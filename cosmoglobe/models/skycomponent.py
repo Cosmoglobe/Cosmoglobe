@@ -1,9 +1,3 @@
-from ..chaintools import (
-    get_alms, 
-    get_alm_list, 
-    get_component_list,
-    validate_nside,
-)
 import numpy as np
 import healpy as hp
 import astropy.units as u
@@ -22,33 +16,28 @@ class SkyComponent:
 
     """
 
-    def __init__(self, data, model_params):
+    def __init__(self, chain):
         """
         Initializes base model attributes and methods for a sky component.
 
         Parameters
         ----------
-        data : pathlib.Path
-            pathlib Path object to Commander HDF5 chain file.
+        chain : 'cosmoglobe.tools.chain.Chain'
+            Commander3 chainfile object.
         model_params : dict
             Model parameters.
 
         """
-        self.data_dir = data.parent
-        self.params = model_params
-        maps = self.initialize_maps(data)
+        self.chain = chain
+        self.params = chain.model_params[self.comp_label]
+        maps = self.initialize_maps()
         for key, value in maps.items():
             setattr(self, key, value)
 
 
-    def initialize_maps(self, data):
+    def initialize_maps(self):
         """
         Initializes model maps from alms.
-
-        Parameters
-        ----------
-        data : pathlib.Path
-            pathlib Path object to Commander HDF5 chain file.
 
         Returns
         -------
@@ -58,10 +47,13 @@ class SkyComponent:
         """
 
         maps = {}
-        alm_list = get_alm_list(data, self.comp_label)
+        alm_list = self.chain.get_alm_list(self.comp_label)
         for alm in alm_list:
-            alm_map = get_alms(data, self.comp_label, self.params['nside'], 
-                               alm, self.params['polarization'], self.params['fwhm'])
+            alm_map = self.chain.get_alms(alm,
+                                          self.comp_label, 
+                                          self.params['nside'], 
+                                          self.params['polarization'], 
+                                          self.params['fwhm'])
             maps[alm] = alm_map
         
         maps = self.set_units(maps)

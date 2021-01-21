@@ -1,17 +1,12 @@
 from .skycomponent import SkyComponent
-from ..chaintools import get_alms, get_item_from_data
-from numba import njit
 
-import os
 import numpy as np
 import astropy.units as u
 import astropy.constants as const
 
 # Initializing common astrophy units
 h = const.h
-c = const.c
 k_B = const.k_B
-e = np.exp(1)
 
 
 class FreeFree(SkyComponent):
@@ -20,8 +15,8 @@ class FreeFree(SkyComponent):
     """
     comp_label = 'ff'
 
-    def __init__(self, data, model_params):
-        super().__init__(data, model_params)
+    def __init__(self, data):
+        super().__init__(data)
 
 
 class LinearOpticallyThin(FreeFree):
@@ -32,10 +27,10 @@ class LinearOpticallyThin(FreeFree):
     model_has_polarization = False
     model_label= 'freefree'
 
-    def __init__(self, data, model_params):
-        super().__init__(data, model_params)
+    def __init__(self, data):
+        super().__init__(data)
 
-        self.T_e = get_item_from_data(data, 'Te_map', self.comp_label) * u.K
+        self.T_e = data.get_item(self.comp_label, 'Te_map')* u.K
 
 
     @u.quantity_input(nu=u.GHz)
@@ -109,4 +104,4 @@ def gaunt_factor(nu, T_e):
 
     """
     return np.log(np.exp(5.96-(np.sqrt(3)/np.pi) * np.log(nu.value*
-                  (T_e.value*1e-4)**-1.5)) + e )
+                  (T_e.value*1e-4)**-1.5)) + np.e )

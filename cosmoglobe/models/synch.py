@@ -1,6 +1,6 @@
 from .skycomponent import SkyComponent
-from ..chaintools import get_alms, get_item_from_data
 import astropy.units as u
+
 
 class Synchrotron(SkyComponent):
     """
@@ -8,8 +8,8 @@ class Synchrotron(SkyComponent):
     """
     comp_label = 'synch'
 
-    def __init__(self, data, model_params):
-        super().__init__(data, model_params)
+    def __init__(self, data):
+        super().__init__(data)
 
 
 
@@ -20,8 +20,9 @@ class PowerLaw(Synchrotron):
     """
     model_label = 'power_law'
 
-    def __init__(self, data, model_params):
-        super().__init__(data, model_params)
+    def __init__(self, data):
+        super().__init__(data)
+
 
     @u.quantity_input(nu=u.Hz)
     def get_emission(self, nu):

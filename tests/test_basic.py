@@ -1,24 +1,29 @@
+"""
+For testing Cosmoglobe during development.
+
+"""
+
 from context import cosmoglobe
 from cosmoglobe.cosmoglobe import Cosmoglobe
 
 import astropy.units as u
 import healpy as hp
 import matplotlib.pyplot as plt
+import pathlib
 
-sky = Cosmoglobe('../cosmoglobe/data/chain_test.h5')
-# print(sky)
-model = sky.model('AmE')
+data = pathlib.Path('../../Cosmoglobe_test_data/chain_test.h5')
 
-# print(model.model_name)
+sky = Cosmoglobe(data)
+model = sky.model('ff')
+model_200 = model[200*u.GHz]
 
-# print(model.params)
-model_shifted = model[900*u.GHz]
-# print(model_shifted)
-# print(model.beta[0], model.beta[1], model.beta[2])
-hp.mollview(model.amp[0], title=model.params['type'], 
+hp.mollview(model_200[0], title=model.params['type'], 
             norm='hist', unit=model.params['unit'])
             
-hp.mollview(model_shifted[0], title=model.params['type'], 
-            norm='hist', unit=model.params['unit'])
+print(model)            
+print(repr(model))
+print(model.model_name)
+print(model.params)            
 
 plt.show()
+
