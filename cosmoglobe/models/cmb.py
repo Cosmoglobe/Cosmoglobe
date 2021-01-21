@@ -1,15 +1,9 @@
 from .skycomponent import SkyComponent
-from ..chaintools import get_alms
+
 import astropy.units as u
 import astropy.constants as const
 import healpy as hp 
 import numpy as np
-
-# Initializing common astrophy units
-h = const.h
-c = const.c
-k_B = const.k_B
-T_0 = 2.7255*u.K
 
 
 class CMB(SkyComponent):
@@ -18,8 +12,9 @@ class CMB(SkyComponent):
     """
     comp_label = 'cmb'
 
-    def __init__(self, data, model_params):
-        super().__init__(data, model_params)
+    def __init__(self, data):
+        super().__init__(data)
+
 
 
 class BlackBody(CMB):
@@ -29,8 +24,9 @@ class BlackBody(CMB):
     """    
     model_label = 'cmb'
 
-    def __init__(self, data, model_params):
-        super().__init__(data, model_params)
+    def __init__(self, data):
+        super().__init__(data)
+
 
     @u.quantity_input(nu=u.Hz)
     def get_emission(self, nu):

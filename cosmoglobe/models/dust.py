@@ -1,5 +1,5 @@
 from .skycomponent import SkyComponent
-from ..chaintools import get_alms
+
 import numpy as np
 import astropy.units as u
 import astropy.constants as const
@@ -9,14 +9,16 @@ h = const.h
 c = const.c
 k_B = const.k_B
 
+
 class Dust(SkyComponent):
     """
     Parent class for all Dust models.
     """
     comp_label = 'dust'
 
-    def __init__(self, data, model_params):
-        super().__init__(data, model_params)
+    def __init__(self, data):
+        super().__init__(data)
+
 
 
 class ModifiedBlackbody(Dust):
@@ -26,8 +28,8 @@ class ModifiedBlackbody(Dust):
     """    
     model_label = 'MBB'
 
-    def __init__(self, data, model_params):
-        super().__init__(data, model_params)
+    def __init__(self, data):
+        super().__init__(data)
 
 
     @u.quantity_input(nu=u.Hz)

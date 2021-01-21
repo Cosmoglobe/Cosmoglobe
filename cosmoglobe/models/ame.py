@@ -1,13 +1,10 @@
 from .skycomponent import SkyComponent
-from ..chaintools import get_alms, get_item_from_data
-import numpy as np
+from .. import data as data_dir
+
 import astropy.units as u
-import astropy.constants as const
-import os
-# Initializing common astrophy units
-h = const.h
-c = const.c
-k_B = const.k_B
+import importlib.resources as pkg_resources
+import numpy as np
+
 
 class AME(SkyComponent):
     """
@@ -15,8 +12,9 @@ class AME(SkyComponent):
     """
     comp_label = 'ame'
 
-    def __init__(self, data, model_params):
-        super().__init__(data, model_params)
+    def __init__(self, data):
+        super().__init__(data)
+
 
 
 class SpinningDust2(AME):
@@ -26,14 +24,14 @@ class SpinningDust2(AME):
     """    
     model_label = 'spindust2'
 
-    def __init__(self, data, model_params):
-        super().__init__(data, model_params)
+    def __init__(self, data):
+        super().__init__(data)
 
         # Reading in spdust2 template to interpolate for arbitrary frequency
-        spdust2_spectrum = np.loadtxt(self.data_dir/'spdust2_cnm.dat')
+        spdust2_spectrum = pkg_resources.read_text(data_dir, 'spdust2_cnm.dat')
         self.spdust2_nu = spdust2_spectrum[0]
         self.spdust2_amp = spdust2_spectrum[1]
-        self.nu_p = get_item_from_data(data, 'nu_p_map', self.comp_label)*u.GHz
+        self.nu_p = data.get_item(self.comp_label, 'nu_p_map')*u.GHz
 
 
     @u.quantity_input(nu=u.Hz)

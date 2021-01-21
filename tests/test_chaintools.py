@@ -76,15 +76,15 @@ class TestChaintools(unittest.TestCase):
                             param='not_a_valid_param', nside=nside)
 
 
-    def test_validate_nside(self):
+    def test_nside_isvalid(self):
         with self.assertRaises(ValueError):
-            ctools.validate_nside(511)
+            ctools.nside_isvalid(511)
         with self.assertRaises(ValueError):
-            ctools.validate_nside(64.0)        
+            ctools.nside_isvalid(64.0)        
         with self.assertRaises(ValueError):
-            ctools.validate_nside('64')
+            ctools.nside_isvalid('64')
         with self.assertRaises(ValueError):
-            ctools.validate_nside(-64)
+            ctools.nside_isvalid(-64)
 
 if __name__ == "__main__":
     unittest.main()

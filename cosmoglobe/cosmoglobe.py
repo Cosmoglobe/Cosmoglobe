@@ -1,8 +1,3 @@
-import os
-import sys
-import astropy.units as u 
-
-from .chaintools import get_chainfile, get_component_list, get_params_from_data
 from .models.skycomponent import SkyComponent
 from .models.synch import Synchrotron, PowerLaw
 from .models.ff import FreeFree
@@ -10,13 +5,12 @@ from .models.dust import ModifiedBlackbody
 from .models.cmb import CMB
 from .models.ame import AME
 
-#relative paths to data and models
-default_data = os.path.join(os.path.dirname(os.path.abspath(__file__)),'data')
-models_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),'models')
+from .tools.chain import Chain
 
 #list of all foreground components and labels
 components = {comp.__name__.lower():comp for comp in SkyComponent.__subclasses__()}
 component_labels = {comp.comp_label:comp for comp in SkyComponent.__subclasses__()}
+
 
 class Cosmoglobe:
     """Cosmoglobe sky model. 
@@ -26,7 +20,7 @@ class Cosmoglobe:
     
     """
 
-    def __init__(self, data=default_data):
+    def __init__(self, data):
         """
         Initializes the Cosmoglobe sky model.
 
@@ -38,39 +32,36 @@ class Cosmoglobe:
 
         """
         self.datapath = data
-        self.data = get_chainfile(data)
-        self.loaded_components = get_component_list(self.data)
-        self.data_params = get_params_from_data(self.data)
+        self.chain = Chain(data)
 
 
-    def model(self, name):
+    def model(self, component_name):
         """
         Initializes a sky component.
 
         Parameters
         ----------
-        name : str
+        component_name : str
             Model name. Name must be contained in the list of available
             cosmoglobe sky models (components or component_labels).
 
         """
-        if name.lower() in components:
-            component =  components[name.lower()]
+        if component_name.lower() in components:
+            component =  components[component_name.lower()]
 
-        elif name.lower() in component_labels:
-            component = component_labels[name.lower()]
+        elif component_name.lower() in component_labels:
+            component = component_labels[component_name.lower()]
 
         else:
             raise ValueError(
-                f"'{name}' is not a valid component. Please select between the "
-                f"following components:{self.loaded_components}"
+                f"'{component_name}' is not a valid component. Please select "
+                f"between the following components:{self.chain.components}"
             )
 
-        model_params = self.data_params[component.comp_label]
         models = {model.model_label:model for model in component.__subclasses__()}
-        model = models[model_params['type']]
+        model = models[self.chain.model_params[component.comp_label]['type']]
 
-        return model(self.data, model_params)
+        return model(self.chain)
 
 
     def __repr__(self):

@@ -5,14 +5,17 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="cosmoglobe", # Replace with your own username
-    version="0.0.1",
+    version="0.0.8",
     author="Metin San",
     author_email="metinisan@gmail.com",
     description="The Cosmoglobe Sky Model",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/cosmoglobe",
+    url="https://github.com/Cosmoglobe/Cosmoglobe",
     packages=setuptools.find_packages(),
+    # package_dir={"":"cosmoglobe"},
+    package_data={"": ["*.dat"]}, 
+    include_package_data=True,
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
