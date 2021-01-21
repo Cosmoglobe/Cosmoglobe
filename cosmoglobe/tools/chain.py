@@ -11,18 +11,27 @@ import sys
 class Chain:
     """
     Commander3 chainfile object.
-    
-    Contains data from a Commander 3 hdf5 chainfile.
+
     """
 
     def __init__(self, h5file):
+        """
+        Initializes the chain object from a give Commander3 chainfile.
+
+        Parameters
+        ----------
+        h5file : str, 'pathlib.Path'
+            Commander3 chainfile. Must be a hdf5 file.
+
+        """
+
         self.data = self.get_data(h5file)
         self.components = self.get_components()
         self.model_params = self.get_model_params()
 
 
-
-    def get_data(self, h5file):
+    @staticmethod
+    def get_data(h5file):
         """
         Validates that the given file is of a type and format that matches a
         Commander3 hdf5 output chainfile, and then returns file as a pathlib
@@ -86,6 +95,7 @@ class Chain:
             raise FileNotFoundError(
                 f"Could not find file or directory '{path.name}'. " 
             )
+      
       
     def get_components(self):
         """
