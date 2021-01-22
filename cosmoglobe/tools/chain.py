@@ -7,7 +7,6 @@ import os
 import pathlib
 import sys
 
-
 class Chain:
     """
     Commander3 chainfile object.
@@ -238,7 +237,7 @@ class Chain:
         Parameters
         ----------
         component : str
-            Foreground name.
+            Component name.
         
         Returns
         -------
@@ -265,7 +264,8 @@ class Chain:
         return alm_list
 
 
-    def get_alms(self, alm_param, component, nside, polarization, fwhm):
+    def get_alms(self, alm_param, component, nside, polarization, fwhm,
+                 multipole=None):
         """
         Returns array or arrays containing alms from Commander chain HDF5 file.
 
@@ -279,12 +279,15 @@ class Chain:
         nside: int
             Healpix map resolution.
         lmax: int, optional
-            Maximum value for l used in dataset.
+            Maximum value for l used in data.
             Default is None.
         fwhm : float, scalar, optional
             The fwhm of the Gaussian used to smooth the map (applied on alm)
             [in degrees]
             Default is 0.0.
+        multipole : int
+            A specific multipole. If provided, get_alms will extract
+            only this specific multipole. Defaults to None.
 
         Returns
         -------
@@ -297,24 +300,31 @@ class Chain:
             samples = sorted(list(f.keys()))
 
             try:
-                dataset = f[(f'{samples[0]}')][component]
+                data = f[(f'{samples[0]}')][component]
             except:
                 raise KeyError(f'"{component}" is not a valid component.')
 
             try:
-                alms = dataset[f'{alm_param}_alm'][()]
+                alms = data[f'{alm_param}_alm'][()]
+
             except:
                 raise KeyError(f'"{alm_param}_alm" does not exist in file.')
             
             try:
-                lmax = dataset[f'{alm_param}_lmax'][()]
+                lmax = data[f'{alm_param}_lmax'][()]
             except:
                 raise KeyError(f'"{alm_param}_lmax" does not exist in file.')
 
             if lmax <= 1:
                 polarization = False
 
-            alms_unpacked = unpack_alms_from_chain(alms, lmax)
+            if multipole is not None:
+                alms_unpacked = unpack_multipole(alms, lmax, multipole)
+
+            else:
+                alms_unpacked = unpack_alms(alms, lmax)
+
+
             if hp.isnsideok(nside):
                 alms_map = hp.alm2map(alms_unpacked, 
                                       nside=nside, 
@@ -325,22 +335,26 @@ class Chain:
             else:
                 print(f'nside: {nside} is not valdid')
                 sys.exit()
-                
+
         return alms_map
 
 
 
+
+#Fix to OMP: Error #15 using numba
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
+
 @numba.njit(cache=True, fastmath=True)
-def unpack_alms_from_chain(dataset, lmax):
+def unpack_multipole(data, lmax, multipole=None):
     """
-    Unpacks alms from the Commander chain output.
+    Unpacks a single multipole alm from the Commander chain output.
 
     Parameters
     ----------
-    dataset : HDF5 dataset
-        Chain output hdf5 dataset.
+    data : HDF5 data
+        Chain output hdf5 data.
     lmax : int
-        Maximum value for l used in the dataset.
+        Maximum value for l used in the data.
 
     Returns
     -------
@@ -352,7 +366,52 @@ def unpack_alms_from_chain(dataset, lmax):
     262/src/tools.py#L9"
 
     """
-    n = len(dataset)
+    n = len(data)
+    n_alms = int(lmax * ((2*lmax + 1 - lmax)/2) + lmax + 1)
+    alms = np.zeros((n, n_alms), dtype=np.complex128)
+
+    for sigma in range(n):
+        i = 0
+        for l in range(lmax+1):
+            if l is multipole:
+                j_real = l**2 + l
+                alms[sigma, i] = complex(data[sigma, j_real], 0.0)
+            i += 1
+        
+        for m in range(1, lmax+1):
+            for l in range(m, lmax+1):
+                if l is multipole:
+                    j_real = l**2 + l + m
+                    j_comp = l**2 + l - m
+                    alms[sigma, i] = (complex(data[sigma, j_real], 
+                                             data[sigma, j_comp],)
+                                      /np.sqrt(2.0))
+                i += 1
+    return alms
+
+@numba.njit(cache=True, fastmath=True)
+def unpack_alms(data, lmax):
+    """
+    Unpacks alms from the Commander chain output.
+
+    Parameters
+    ----------
+    data : HDF5 data
+        Chain output hdf5 data.
+    lmax : int
+        Maximum value for l used in the data.
+
+    Returns
+    -------
+    alms : 'numpy.ndarray'
+        Unpacked version of the Commander alms (2-dimensional array)
+
+    Unpacking algorithm: 
+    "https://github.com/trygvels/c3pp/blob/2a2937926c260cbce15e6d6d6e0e9d23b0be1
+    262/src/tools.py#L9"
+
+    """
+    n = len(data)
     n_alms = int(lmax * (2*lmax+1 - lmax) / 2 + lmax+1)
     alms = np.zeros((n, n_alms), dtype=np.complex128)
 
@@ -360,15 +419,15 @@ def unpack_alms_from_chain(dataset, lmax):
         i = 0
         for l in range(lmax+1):
             j_real = l**2 + l
-            alms[sigma, i] = complex(dataset[sigma, j_real], 0.0)
+            alms[sigma, i] = complex(data[sigma, j_real], 0.0)
             i += 1
-        
+
         for m in range(1, lmax+1):
             for l in range(m, lmax+1):
                 j_real = l**2 + l + m
                 j_comp = l**2 + l - m
-                alms[sigma, i] = complex(dataset[sigma, j_real], 
-                                         dataset[sigma, j_comp],)/ np.sqrt(2.0)
+                alms[sigma, i] = complex(data[sigma, j_real], 
+                                         data[sigma, j_comp],)/ np.sqrt(2.0)
                 i += 1
 
     return alms

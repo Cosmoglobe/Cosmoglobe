@@ -35,7 +35,7 @@ class Cosmoglobe:
         self.chain = Chain(data)
 
 
-    def model(self, component_name):
+    def model(self, component_name, **kwargs):
         """
         Initializes a sky component.
 
@@ -57,11 +57,10 @@ class Cosmoglobe:
                 f"'{component_name}' is not a valid component. Please select "
                 f"between the following components:{self.chain.components}"
             )
-
         models = {model.model_label:model for model in component.__subclasses__()}
         model = models[self.chain.model_params[component.comp_label]['type']]
 
-        return model(self.chain)
+        return model(self.chain, **kwargs)
 
 
     def __repr__(self):

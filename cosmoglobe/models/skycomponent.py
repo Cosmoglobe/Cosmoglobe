@@ -16,7 +16,7 @@ class SkyComponent:
 
     """
 
-    def __init__(self, chain):
+    def __init__(self, chain, **kwargs):
         """
         Initializes base model attributes and methods for a sky component.
 
@@ -29,11 +29,13 @@ class SkyComponent:
 
         """
         self.chain = chain
+        self.kwargs = kwargs
         self.params = chain.model_params[self.comp_label]
         maps = self.initialize_maps()
         for key, value in maps.items():
             setattr(self, key, value)
 
+        # print(self.__init__.__code__.co_varnames)
 
     def initialize_maps(self):
         """
