@@ -1,31 +1,52 @@
+from healpy.pixelfunc import remove_dipole, remove_monopole
 from .skycomponent import SkyComponent
 
 import astropy.units as u
-import astropy.constants as const
 import healpy as hp 
-import numpy as np
 
 
 class CMB(SkyComponent):
     """
-    Parent class for all Synchrotron models.
+    Parent class for all CMB models.
+
     """
     comp_label = 'cmb'
 
-    def __init__(self, data):
-        super().__init__(data)
+    def __init__(self, data, **kwargs):
+        super().__init__(data, **kwargs)
+
+        self.monopole = data.get_alms('amp',
+                                      self.comp_label, 
+                                      self.params['nside'], 
+                                      self.params['polarization'], 
+                                      self.params['fwhm'],
+                                      multipole=0)*u.uK
+        self.dipole = data.get_alms('amp',
+                                      self.comp_label, 
+                                      self.params['nside'], 
+                                      self.params['polarization'], 
+                                      self.params['fwhm'],
+                                      multipole=1)*u.uK
+
+        if remove_monopole:
+            self.amp -= self.monopole
+
+        if remove_dipole:
+            self.amp -= self.dipole
 
 
 
 class BlackBody(CMB):
     """
-    Model for CMB emission.
+    Model for BlackBody CMB emission.
 
     """    
     model_label = 'cmb'
 
-    def __init__(self, data):
-        super().__init__(data)
+    def __init__(self, data, remove_monopole=False, remove_dipole=False):
+
+        super().__init__(data, remove_monopole=remove_monopole, 
+                         remove_dipole=remove_dipole)
 
 
     @u.quantity_input(nu=u.Hz)
