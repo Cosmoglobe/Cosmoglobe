@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 import healpy as hp
 import astropy.units as u
@@ -24,13 +25,17 @@ class SkyComponent:
         ----------
         chain : 'cosmoglobe.tools.chain.Chain'
             Commander3 chainfile object.
-        model_params : dict
-            Model parameters.
+        **kwargs : dict
+            Additional keyword value pairs. Valid keywords can vary from 
+            component to component.
 
         """
         self.chain = chain
-        self.kwargs = kwargs
         self.params = chain.model_params[self.comp_label]
+
+        if 'nside' in kwargs:
+            self.params['nside'] = kwargs['nside']
+
         maps = self.initialize_maps()
         for key, value in maps.items():
             setattr(self, key, value)
@@ -47,7 +52,6 @@ class SkyComponent:
             Dictionary of loaded model maps.
 
         """
-
         maps = {}
         alm_list = self.chain.get_alm_list(self.comp_label)
         for alm in alm_list:
@@ -60,6 +64,27 @@ class SkyComponent:
         
         maps = self.set_units(maps)
         return maps
+
+
+    def to_nside(self, nside):
+        """
+        Reinitializes the model instance with at new nside.
+
+        Parameters
+        ----------
+        nside: int
+            Healpix map resolution.
+
+        Returns
+        -------
+        Model instance with a new nside.
+    
+        """
+        if hp.isnsideok(nside, nest=True):
+            return super(self.__class__, self).__init__(self.chain, nside=nside)
+        else:
+            print(f'nside: {nside} is not valid.')
+            sys.exit()
 
 
     def set_units(self, maps):

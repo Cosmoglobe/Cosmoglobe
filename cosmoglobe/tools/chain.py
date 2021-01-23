@@ -325,7 +325,7 @@ class Chain:
                 alms_unpacked = unpack_alms(alms, lmax)
 
 
-            if hp.isnsideok(nside):
+            if hp.isnsideok(nside, nest=True):
                 alms_map = hp.alm2map(alms_unpacked, 
                                       nside=nside, 
                                       lmax=lmax, 
@@ -333,7 +333,7 @@ class Chain:
                                       fwhm=fwhm.to('rad').value, 
                                       pol=polarization, pixwin=True)
             else:
-                print(f'nside: {nside} is not valdid')
+                print(f'nside: {nside} is not valid.')
                 sys.exit()
 
         return alms_map

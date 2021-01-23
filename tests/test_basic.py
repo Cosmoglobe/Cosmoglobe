@@ -16,7 +16,12 @@ import numpy as np
 data = pathlib.Path('../../Cosmoglobe_test_data/chain_test.h5')
 
 sky = Cosmoglobe(data)
-model = sky.model('cmb', remove_monopole=True)
+model = sky.model('cmb', remove_dipole=True)
+hp.mollview(model.amp[0], norm='hist')
+model.to_nside(64)
+hp.mollview(model.amp[0], norm='hist')
+
+
 # model2 = sky.model('cmb')
 
 
@@ -32,6 +37,7 @@ model = sky.model('cmb', remove_monopole=True)
 # hp.mollview(model.amp[0], title=model.params['type'], 
 #             norm='hist', unit=model.params['unit'])
 # hp.mollview(model.amp[0])
-hp.mollview(model.amp[0], norm='hist')
+# hp.mollview(model.amp[0], norm='hist')
+
 
 plt.show()
