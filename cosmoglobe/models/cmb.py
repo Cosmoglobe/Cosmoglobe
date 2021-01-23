@@ -1,8 +1,5 @@
-from healpy.pixelfunc import remove_dipole, remove_monopole
 from .skycomponent import SkyComponent
-
 import astropy.units as u
-import healpy as hp 
 
 
 class CMB(SkyComponent):
