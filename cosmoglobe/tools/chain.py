@@ -331,7 +331,9 @@ class Chain:
                                       lmax=lmax, 
                                       mmax=lmax, 
                                       fwhm=fwhm.to('rad').value, 
-                                      pol=polarization, pixwin=True)
+                                      pol=polarization, 
+                                      pixwin=True,
+                                      verbose=False)
             else:
                 print(f'nside: {nside} is not valid.')
                 sys.exit()

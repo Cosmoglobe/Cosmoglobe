@@ -4,7 +4,7 @@ For testing Cosmoglobe during development.
 """
 
 
-from healpy.pixelfunc import remove_dipole
+from healpy.pixelfunc import remove_monopole
 from context import cosmoglobe
 from cosmoglobe.cosmoglobe import Cosmoglobe
 
@@ -12,32 +12,24 @@ import matplotlib.pyplot as plt
 import pathlib
 import healpy as hp
 import numpy as np
+import astropy.units as u
 
 data = pathlib.Path('../../Cosmoglobe_test_data/chain_test.h5')
 
 sky = Cosmoglobe(data)
-model = sky.model('cmb', remove_dipole=True)
-hp.mollview(model.amp[0], norm='hist')
-model.to_nside(64)
-hp.mollview(model.amp[0], norm='hist')
 
+cmb = sky.model('cmb', remove_dipole=True, remove_monopole=True)
+dust = sky.model('dust')
+synch = sky.model('synch')
+ff = sky.model('ff')
+ame = sky.model('ame')
+freqs, rms = sky.spectrum()
 
-# model2 = sky.model('cmb')
+for model, model_rms in rms.items():
+    plt.loglog(freqs, model_rms, label=model)
 
-
-# map_mono = model2.amp[0].value
-# map_ = model1.amp[0].value
-
-# model = sky.model('cmb', remove_dipole=True)
-# model = sky.model('cmb')
-# model = sky.model('cmb')
-
-# np.save('../../Cosmoglobe_test_data/cmb_mono.npy', model.amp[0].value)
-# mono = np.load('../../Cosmoglobe_test_data/cmb_mono.npy')
-# hp.mollview(model.amp[0], title=model.params['type'], 
-#             norm='hist', unit=model.params['unit'])
-# hp.mollview(model.amp[0])
-# hp.mollview(model.amp[0], norm='hist')
-
-
+plt.ylim(1e-2, 1e3)
+plt.xlabel('Frequency [GHz]')
+plt.ylabel('RMS brightness temperature [muK]')
+plt.legend()
 plt.show()

@@ -16,8 +16,9 @@ class Dust(SkyComponent):
     """
     comp_label = 'dust'
 
-    def __init__(self, data):
-        super().__init__(data)
+    def __init__(self, data, **kwargs):
+        super().__init__(data, **kwargs)
+        self.kwargs = kwargs
 
 
 
@@ -111,7 +112,6 @@ def blackbody_ratio(nu, nu_ref, T):
     ratio = blackbody_emission(nu, T) / blackbody_emission(nu_ref, T)
 
     return ratio
-
 
 @u.quantity_input(nu=u.Hz, T=u.K)
 def blackbody_emission(nu, T):
