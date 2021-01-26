@@ -33,14 +33,17 @@ class SkyComponent:
         self.chain = chain
         self.params = chain.model_params[self.comp_label]
 
-        if 'nside' in kwargs:
-            self.params['nside'] = kwargs['nside']
+        if kwargs.get('nside', False):
+            self.params['nside'] = kwargs['nside']     
+
+        if kwargs.get('fwhm', False):
+            self.params['fwhm'] = kwargs['fwhm']
+
 
         maps = self.initialize_maps()
         for key, value in maps.items():
             setattr(self, key, value)
 
-        # print(self.__init__.__code__.co_varnames)
 
     def initialize_maps(self):
         """
@@ -81,7 +84,7 @@ class SkyComponent:
     
         """
         if hp.isnsideok(nside, nest=True):
-            return super(self.__class__, self).__init__(self.chain, nside=nside)
+            return super(self.__class__, self).__init__(self.chain, nside=nside, **self.kwargs)
         else:
             print(f'nside: {nside} is not valid.')
             sys.exit()
@@ -139,6 +142,7 @@ class SkyComponent:
     
         return input_map*scaling_factor
 
+
     @staticmethod
     @u.quantity_input(input_map=u.K, nu=u.Hz)
     def KCMB_to_KRJ(input_map, nu):
@@ -157,7 +161,6 @@ class SkyComponent:
         """
         x = (h*nu)/(k_B*T_0)
         scaling_factor = (np.expm1(x)**2)/(x**2 * np.exp(x))
-        
         return input_map/scaling_factor
 
 
@@ -194,7 +197,7 @@ class SkyComponent:
         Unambigious representation of the sky model object.
 
         """
-        return f"model('{self.model_label}')"    
+        return f"Cosmoglobe.model('{self.model_label}')"    
         
 
     def __str__(self):

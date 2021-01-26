@@ -1,13 +1,19 @@
 from .models.skycomponent import SkyComponent
-from .models.synch import Synchrotron, PowerLaw
+from .models.synch import Synchrotron
 from .models.ff import FreeFree
 from .models.dust import ModifiedBlackbody
 from .models.cmb import CMB
 from .models.ame import AME
 
 from .tools.chain import Chain
+from .tools import utils
+
+import numpy as np
+import healpy as hp
+import astropy.units as u
 
 #list of all foreground components and labels
+print(SkyComponent.__subclasses__())
 components = {comp.__name__.lower():comp for comp in SkyComponent.__subclasses__()}
 component_labels = {comp.comp_label:comp for comp in SkyComponent.__subclasses__()}
 
@@ -33,6 +39,7 @@ class Cosmoglobe:
         """
         self.datapath = data
         self.chain = Chain(data)
+        self.initialized_models = []
 
 
     def model(self, component_name, **kwargs):
@@ -59,8 +66,60 @@ class Cosmoglobe:
             )
         models = {model.model_label:model for model in component.__subclasses__()}
         model = models[self.chain.model_params[component.comp_label]['type']]
+        new_model = model(self.chain, **kwargs)
 
-        return model(self.chain, **kwargs)
+        self.initialized_models.append(new_model)
+        
+        return new_model
+
+
+    def spectrum(self, models=None, sky_frac=88, min=10, max=1000, n=50):
+        """
+        Produces a SED spectrum for the given models.
+
+        Parameters
+        ----------
+        models : list, optional
+            List of models objects to include in the SED spectrum. Must be a 
+            component object, not just the name of a component. Defaults to all
+            initialized Cosmoglobe.model objects.
+        sky_frac : int, float, optional
+            Fraction of the sky to compute RMS values for. Default is 88%.
+        min : int, float, optional
+            Minimum value of the frequency range to compute the spectrum over.
+        max : int, float, optional
+            Maximum value of the frequency range to compute the spectrum over.
+        n : int, optional
+            Number of discrete frequencies to compute the RMS over. 
+            Default is 50.
+
+        Returns
+        -------
+        frecs: np.ndarray
+            Log spaces array of frequencies used to compute the spectrum.
+        rms : dict
+            Dictionary containing model name and RMS array pairs.
+
+        """
+        if models is None:
+            models = self.initialized_models
+        mask = utils.create_mask(sky_frac)
+        freqs = np.logspace(np.log10(min),np.log10(max), n)*u.GHz
+        rms = [[] for _ in models]
+        rms_dict = {}
+        for i, model in enumerate(models):
+            if model.params['nside'] > 256:
+                model.to_nside(256)
+
+            for freq in freqs:
+                amp = model[freq].value
+                amp = hp.ma(amp)
+                amp.mask = mask
+                rms[i].append(np.sqrt(np.mean(amp**2)))
+
+            rms_dict[model.comp_label] = rms[i]
+
+        return freqs, rms_dict
 
 
     def __repr__(self):
@@ -68,7 +127,7 @@ class Cosmoglobe:
         Unambigious representation of the Cosmoglobe sky object.
 
         """
-        return f"Cosmoglobe('{self.datapath}')"    
+        return f"cosmoglobe.Cosmoglobe('{self.datapath}')"    
         
 
     def __str__(self):

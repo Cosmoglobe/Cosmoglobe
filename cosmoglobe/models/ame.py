@@ -2,8 +2,10 @@ from .skycomponent import SkyComponent
 from .. import data as data_dir
 
 import astropy.units as u
-import importlib.resources as pkg_resources
 import numpy as np
+import os
+
+data_path = os.path.dirname(data_dir.__file__) + '/'
 
 
 class AME(SkyComponent):
@@ -12,9 +14,9 @@ class AME(SkyComponent):
     """
     comp_label = 'ame'
 
-    def __init__(self, data):
-        super().__init__(data)
-
+    def __init__(self, data, **kwargs):
+        super().__init__(data, **kwargs)
+        self.kwargs = kwargs
 
 
 class SpinningDust2(AME):
@@ -28,9 +30,8 @@ class SpinningDust2(AME):
         super().__init__(data)
 
         # Reading in spdust2 template to interpolate for arbitrary frequency
-        spdust2_spectrum = pkg_resources.read_text(data_dir, 'spdust2_cnm.dat')
-        self.spdust2_nu = spdust2_spectrum[0]
-        self.spdust2_amp = spdust2_spectrum[1]
+        self.spdust2_nu, self.spdust2_amp = np.loadtxt(data_path + 'spdust2_cnm.dat', 
+                                                       unpack=True)
         self.nu_p = data.get_item(self.comp_label, 'nu_p_map')*u.GHz
 
 
@@ -84,12 +85,21 @@ class SpinningDust2(AME):
             Modeled modified blackbody emission at a given frequency.
 
         """
+        if nu.value >= spdust2_nu[-1]:
+            return np.zeros_like(self.amp)
+        
+        if nu.value <= spdust2_nu[0]:
+            raise ValueError(
+                             'Invalid frequency range for AME. '
+                             'AME is not defined below 0.05 GHz.'
+            )
+
         emission = self.amp.copy()
-        scaled_nu = (nu * (30*u.GHz / nu_p)).value
+        scaled_nu = (nu * (30*u.GHz / nu_p[0])).value
         for i in range(len(emission)):
             scaled_ref_nu = (nu_ref[i] * (30*u.GHz / nu_p)).value
-            emission[i] *= np.interp(scaled_nu, spdust2_amp, spdust2_nu)   
-            emission[i] /= np.interp(scaled_ref_nu[i], spdust2_amp, spdust2_nu)    
+            emission[i] *= np.interp(scaled_nu, spdust2_nu, spdust2_amp)   
+            emission[i] /= np.interp(scaled_ref_nu[i], spdust2_nu, spdust2_amp)    
             emission[i] *= (nu_ref[i]/nu)**2
 
         return emission

@@ -15,8 +15,10 @@ class FreeFree(SkyComponent):
     """
     comp_label = 'ff'
 
-    def __init__(self, data):
-        super().__init__(data)
+    def __init__(self, data, **kwargs):
+        super().__init__(data, **kwargs)
+        self.kwargs = kwargs
+
 
 
 class LinearOpticallyThin(FreeFree):
@@ -52,7 +54,6 @@ class LinearOpticallyThin(FreeFree):
         emission = self.compute_emission(nu, self.params['nu_ref'], self.T_e)
 
         return emission
-
 
     @u.quantity_input(nu=u.GHz, nu_ref=u.GHz, T_e=u.K)
     def compute_emission(self, nu, nu_ref, T_e):

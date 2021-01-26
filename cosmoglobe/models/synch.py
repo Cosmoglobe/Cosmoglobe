@@ -8,9 +8,9 @@ class Synchrotron(SkyComponent):
     """
     comp_label = 'synch'
 
-    def __init__(self, data):
-        super().__init__(data)
-
+    def __init__(self, data, **kwargs):
+        super().__init__(data, **kwargs)
+        self.kwargs = kwargs
 
 
 class PowerLaw(Synchrotron):
@@ -20,8 +20,8 @@ class PowerLaw(Synchrotron):
     """
     model_label = 'power_law'
 
-    def __init__(self, data):
-        super().__init__(data)
+    def __init__(self, data, fwhm=None):
+        super().__init__(data, fwhm=fwhm)
 
 
     @u.quantity_input(nu=u.Hz)
@@ -42,7 +42,6 @@ class PowerLaw(Synchrotron):
         """
         emission = self.compute_emission(nu, self.params['nu_ref'], self.beta)
         return emission
-
 
     @u.quantity_input(nu=u.Hz, nu_ref=u.Hz)
     def compute_emission(self, nu, nu_ref, beta):
@@ -71,6 +70,8 @@ class PowerLaw(Synchrotron):
             emission[i] *= (nu/nu_ref[i])**beta[i]
 
         return emission
+
+
 
 class CurvedPowerLaw(Synchrotron):
     """
@@ -125,7 +126,7 @@ class CurvedPowerLaw(Synchrotron):
             Modeled modified blackbody emission at a given frequency.
 
         """
-        curvature = 1 # extract from data output once present
+        curvature = 0 # extract from data output once present
         emission = self.amp.copy()
         for i in range(len(emission)):
             emission[i] *= (nu/nu_ref[i])**(beta[i] + curvature)

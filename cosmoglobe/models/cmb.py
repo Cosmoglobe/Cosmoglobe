@@ -11,7 +11,7 @@ class CMB(SkyComponent):
 
     def __init__(self, data, **kwargs):
         super().__init__(data, **kwargs)
-
+        self.kwargs = kwargs
         self.monopole = data.get_alms('amp',
                                       self.comp_label, 
                                       self.params['nside'], 
@@ -25,11 +25,12 @@ class CMB(SkyComponent):
                                       self.params['fwhm'],
                                       multipole=1)*u.uK
 
-        if remove_monopole:
+        if kwargs.get('remove_monopole', False):
             self.amp -= self.monopole
 
-        if remove_dipole:
+        if kwargs.get('remove_dipole', False):
             self.amp -= self.dipole
+
 
 
 
@@ -84,5 +85,5 @@ class BlackBody(CMB):
 
         """
         emission = self.amp.copy()
-
-        return self.KCMB_to_KRJ(emission, nu)
+    
+        return self.KCMB_to_KRJ(emission, nu).to(u.uK)
