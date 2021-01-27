@@ -29,8 +29,8 @@ class LinearOpticallyThin(FreeFree):
     model_has_polarization = False
     model_label= 'freefree'
 
-    def __init__(self, data):
-        super().__init__(data)
+    def __init__(self, data, nside=None, fwhm=None):
+        super().__init__(data, nside=nside, fwhm=fwhm)
 
         self.T_e = data.get_item(self.comp_label, 'Te_map')* u.K
 
@@ -54,6 +54,7 @@ class LinearOpticallyThin(FreeFree):
         emission = self.compute_emission(nu, self.params['nu_ref'], self.T_e)
 
         return emission
+
 
     @u.quantity_input(nu=u.GHz, nu_ref=u.GHz, T_e=u.K)
     def compute_emission(self, nu, nu_ref, T_e):

@@ -1,4 +1,3 @@
-import sys
 import numpy as np
 import healpy as hp
 import astropy.units as u
@@ -33,22 +32,24 @@ class SkyComponent:
         self.chain = chain
         self.params = chain.model_params[self.comp_label]
 
-        if kwargs.get('nside', False):
-            self.params['nside'] = kwargs['nside']     
-
-        if kwargs.get('fwhm', False):
-            self.params['fwhm'] = kwargs['fwhm']
-
-
-        maps = self.initialize_maps()
+        maps = self.initialize_maps(kwargs.get('nside', None),
+                                    kwargs.get('fwhm', None))
         for key, value in maps.items():
             setattr(self, key, value)
 
 
-    def initialize_maps(self):
+    def initialize_maps(self, nside=None, fwhm=None):
         """
         Initializes model maps from alms.
 
+        Parameters
+        ----------
+        nside: int, optional
+            Healpix map resolution. If not None, hp.ud_grades all maps to nside
+            after hp.map2alm.
+        fwhm : float, scalar, optional
+            The fwhm of the Gaussian used to smooth the map (applied on alm)
+            [in degrees]. Default is None. 
         Returns
         -------
         maps : dict
@@ -57,12 +58,22 @@ class SkyComponent:
         """
         maps = {}
         alm_list = self.chain.get_alm_list(self.comp_label)
+
+        if fwhm is None:
+            fwhm = self.params['fwhm']
+            
         for alm in alm_list:
             alm_map = self.chain.get_alms(alm,
                                           self.comp_label, 
                                           self.params['nside'], 
                                           self.params['polarization'], 
-                                          self.params['fwhm'])
+                                          fwhm)
+            if nside is not None:
+                if hp.isnsideok(nside, nest=True):
+                    alm_map = hp.ud_grade(alm_map, int(nside), dtype=np.float64)
+                else:
+                    raise ValueError(f'nside: {nside} is not valid.')
+
             maps[alm] = alm_map
         
         maps = self.set_units(maps)
@@ -84,10 +95,11 @@ class SkyComponent:
     
         """
         if hp.isnsideok(nside, nest=True):
-            return super(self.__class__, self).__init__(self.chain, nside=nside, **self.kwargs)
+            self.kwargs['nside'] = nside
+            return super(self.__class__, self).__init__(self.chain, **self.kwargs)
         else:
-            print(f'nside: {nside} is not valid.')
-            sys.exit()
+            raise ValueError(f'nside: {nside} is not valid.')
+
 
 
     def set_units(self, maps):

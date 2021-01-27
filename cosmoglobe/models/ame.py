@@ -26,8 +26,8 @@ class SpinningDust2(AME):
     """    
     model_label = 'spindust2'
 
-    def __init__(self, data):
-        super().__init__(data)
+    def __init__(self, data, nside=None, fwhm=None):
+        super().__init__(data, nside=nside, fwhm=fwhm)
 
         # Reading in spdust2 template to interpolate for arbitrary frequency
         self.spdust2_nu, self.spdust2_amp = np.loadtxt(data_path + 'spdust2_cnm.dat', 

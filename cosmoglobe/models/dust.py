@@ -29,8 +29,8 @@ class ModifiedBlackbody(Dust):
     """    
     model_label = 'MBB'
 
-    def __init__(self, data):
-        super().__init__(data)
+    def __init__(self, data, nside=None, fwhm=None):
+        super().__init__(data, nside=nside, fwhm=fwhm)
 
 
     @u.quantity_input(nu=u.Hz)
