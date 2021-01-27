@@ -20,8 +20,8 @@ class PowerLaw(Synchrotron):
     """
     model_label = 'power_law'
 
-    def __init__(self, data, fwhm=None):
-        super().__init__(data, fwhm=fwhm)
+    def __init__(self, data, nside=None, fwhm=None):
+        super().__init__(data, nside=nside, fwhm=fwhm)
 
 
     @u.quantity_input(nu=u.Hz)

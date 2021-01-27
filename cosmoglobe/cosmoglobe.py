@@ -13,7 +13,6 @@ import healpy as hp
 import astropy.units as u
 
 #list of all foreground components and labels
-print(SkyComponent.__subclasses__())
 components = {comp.__name__.lower():comp for comp in SkyComponent.__subclasses__()}
 component_labels = {comp.comp_label:comp for comp in SkyComponent.__subclasses__()}
 
@@ -26,7 +25,7 @@ class Cosmoglobe:
     
     """
 
-    def __init__(self, data):
+    def __init__(self, data, verbose=True):
         """
         Initializes the Cosmoglobe sky model.
 
@@ -38,6 +37,7 @@ class Cosmoglobe:
 
         """
         self.datapath = data
+        self.verbose = verbose
         self.chain = Chain(data)
         self.initialized_models = []
 
@@ -66,14 +66,17 @@ class Cosmoglobe:
             )
         models = {model.model_label:model for model in component.__subclasses__()}
         model = models[self.chain.model_params[component.comp_label]['type']]
-        new_model = model(self.chain, **kwargs)
 
+        if self.verbose:
+            print(f'Initializing {model.comp_label}')
+
+        new_model = model(self.chain, **kwargs)
         self.initialized_models.append(new_model)
         
         return new_model
 
 
-    def spectrum(self, models=None, sky_frac=88, min=10, max=1000, n=50):
+    def spectrum(self, models=None, sky_frac=88, min=10, max=1000, num=50):
         """
         Produces a SED spectrum for the given models.
 
@@ -89,7 +92,7 @@ class Cosmoglobe:
             Minimum value of the frequency range to compute the spectrum over.
         max : int, float, optional
             Maximum value of the frequency range to compute the spectrum over.
-        n : int, optional
+        num : int, optional
             Number of discrete frequencies to compute the RMS over. 
             Default is 50.
 
@@ -103,11 +106,24 @@ class Cosmoglobe:
         """
         if models is None:
             models = self.initialized_models
+
+        if self.verbose:
+            print(
+                'Computing SED spectrum with parameters:\n'
+                f'  sky_frac: {sky_frac}%\n'
+                f'  min frequency: {min} GHz\n'
+                f'  max frequency: {max} GHz\n'
+                f'  num discrete frequencies: {num}'
+            )
+
         mask = utils.create_mask(sky_frac)
-        freqs = np.logspace(np.log10(min),np.log10(max), n)*u.GHz
+        freqs = np.logspace(np.log10(min),np.log10(max), num)*u.GHz
         rms = [[] for _ in models]
         rms_dict = {}
         for i, model in enumerate(models):
+            if self.verbose:
+                print(f'Calculating RMS for {model.comp_label}')
+
             if model.params['nside'] > 256:
                 model.to_nside(256)
 
@@ -136,6 +152,6 @@ class Cosmoglobe:
 
         """
         return (
-            f"Cosmoglobe sky model generated from "
+            f"Cosmoglobe sky model - Generated from "
             f"'{self.datapath}'"
         )

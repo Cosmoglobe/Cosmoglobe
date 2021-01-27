@@ -263,7 +263,7 @@ class Chain:
 
         return alm_list
 
-
+    @u.quantity_input(fwhm=[u.arcmin, u.rad])
     def get_alms(self, alm_param, component, nside, polarization, fwhm,
                  multipole=None):
         """
@@ -335,8 +335,7 @@ class Chain:
                                       pixwin=True,
                                       verbose=False)
             else:
-                print(f'nside: {nside} is not valid.')
-                sys.exit()
+                raise ValueError(f'nside: {nside} is not valid.')
 
         return alms_map
 
