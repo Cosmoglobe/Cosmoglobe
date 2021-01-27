@@ -1,13 +1,14 @@
 from .skycomponent import SkyComponent
+from numba import njit
 
 import numpy as np
 import astropy.units as u
 import astropy.constants as const
 
 # Initializing common astrophy units
-h = const.h
-c = const.c
-k_B = const.k_B
+h = const.h.value
+c = const.c.value
+k_B = const.k_B.value
 
 
 class Dust(SkyComponent):
@@ -24,7 +25,7 @@ class Dust(SkyComponent):
 
 class ModifiedBlackbody(Dust):
     """
-    Model for modifed blackbody (mdd) emission for thermal dust.
+    Model for modifed blackbody emission from thermal dust.
 
     """    
     model_label = 'MBB'
@@ -37,57 +38,67 @@ class ModifiedBlackbody(Dust):
     def get_emission(self, nu):
         """
         Returns the model emission of at a given frequency in units of K_RJ.
+        Makes use of numba to speed up computations. Numba does not support
+        astropy, so astropy objects are converted to pure values or 
+        numpy.ndarrays during computation.
 
         Parameters
         ----------
-        nu : 'astropy.units.quantity.Quantity'
+        nu : astropy.units.quantity.Quantity
             Frequency at which to evaluate the model. 
 
         Returns
         -------
-        emission : 'astropy.units.quantity.Quantity'
+        emission : astropy.units.quantity.Quantity
             Model emission at given frequency in units of K_RJ.
 
         """
-        emission = self.compute_emission(nu, self.params['nu_ref'], 
-                                         self.beta, self.T)
+        prefix = nu.unit.si.scale
+        emission = self.compute_emission(nu.value*prefix, 
+                                         self.params['nu_ref'].value*prefix, 
+                                         self.amp,
+                                         self.beta, 
+                                         self.T.value)
 
-        return emission
+        return u.Quantity(emission, unit=self.amp.unit)
 
 
-    @u.quantity_input(nu=u.Hz, nu_ref=u.Hz, T=u.K)
-    def compute_emission(self, nu, nu_ref, beta, T):
+    @staticmethod
+    @njit
+    def compute_emission(nu, nu_ref, amp, beta, T):
         """
         Computes the simulated modified blackbody emission of dust at a given
         frequency .
 
         Parameters
         ----------
-        nu : 'astropy.units.quantity.Quantity'
+        nu : int, float,
             Frequency at which to evaluate the modified blackbody radiation. 
-        nu_ref : 'astropy.units.quantity.Quantity'
+        nu_ref : numpy.ndarray
             Reference frequency at which the Commander alm outputs are 
             produced.        
-        beta : 'numpy.ndarray'
+        beta : numpy.ndarray
             Estimated dust beta map from Commander.
-        T : 'astropy.units.quantity.Quantity'
+        T : numpy.ndarray
             Temperature the modified blackbody. 
             
         Returns
         -------
-        emission : 'astropy.units.quantity.Quantity'
+        emission : numpy.ndarray
             Modeled modified blackbody emission at a given frequency.
 
         """
-        emission = self.amp.copy()
-        for i in range(len(emission)):
-            emission[i] *= (nu/nu_ref[i])**beta[i]
-            emission[i] *= blackbody_ratio(nu, nu_ref[i], T[i])
+        nu_ref = nu_ref.reshape(len(nu_ref), 1) #For broadcasting compatibility
+        
+        emission = np.copy(amp)
+        emission *= (nu/nu_ref)**(beta - 2) #(beta - 2) converts to K_RJ
+        emission *= blackbody_ratio(nu, nu_ref, T)
 
         return emission
 
 
-@u.quantity_input(nu=u.Hz, nu_ref=u.Hz, T=u.K)
+
+@njit
 def blackbody_ratio(nu, nu_ref, T):
     """
     Returns the ratio between the emission emitted by a blackbody at two
@@ -95,25 +106,25 @@ def blackbody_ratio(nu, nu_ref, T):
 
     Parameters
     ----------
-    nu : 'astropy.units.quantity.Quantity'
+    nu : int, float,
         New frequency at which to evaluate the blackbody radiation.
-    nu_ref : 'astropy.units.quantity.Quantity'
+    nu_ref : numpy.ndarray
         Reference frequency at which the Commander alm outputs are 
         produced.        
-    T : 'astropy.units.quantity.Quantity'
+    T : numpy.ndarray
         Temperature of the blackbody.
 
     Returns
     -------
-    ratio : float
-        Ratio between the blackbody emission at two different frequencies.
+    numpy.ndarray
+        Array containing the ratio between the blackbody emission at two 
+        different frequencies.
 
     """
-    ratio = blackbody_emission(nu, T) / blackbody_emission(nu_ref, T)
+    return blackbody_emission(nu, T) / blackbody_emission(nu_ref, T)
 
-    return ratio
 
-@u.quantity_input(nu=u.Hz, T=u.K)
+@njit
 def blackbody_emission(nu, T):
     """
     Returns blackbody radiation at a given frequency and temperature
@@ -121,19 +132,15 @@ def blackbody_emission(nu, T):
 
     Parameters
     ----------
-    nu : 'astropy.units.quantity.Quantity'
+    nu : int, float,
         Frequency at which to evaluate the blackbody radiation.
-    T : 'astropy.units.quantity.Quantity'
+    T : numpy.ndarray
         Temperature of the blackbody. 
 
     Returns
     -------
-    'astropy.units.quantity.Quantity'
-        Blackbody emission in units of uK_RJ.
+    numpy.ndarray
+        Blackbody emission in units of Jy/sr
 
     """
-    emission = 1 / np.expm1(h*nu/(k_B*T))
-    emission *= 2*h*nu**3 / c**2
-    emission /= u.sr    # adds astropy steradians unit
-
-    return emission.to(u.uK, equivalencies=u.brightness_temperature(nu))
+    return ((2*h*nu**3)/c**2)/np.expm1(h*nu/(k_B*T))

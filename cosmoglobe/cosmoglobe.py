@@ -116,7 +116,7 @@ class Cosmoglobe:
                 f'  num discrete frequencies: {num}'
             )
 
-        mask = utils.create_mask(sky_frac)
+        mask = utils.create_70GHz_mask(sky_frac)
         freqs = np.logspace(np.log10(min),np.log10(max), num)*u.GHz
         rms = [[] for _ in models]
         rms_dict = {}

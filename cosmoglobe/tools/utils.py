@@ -2,11 +2,12 @@ from .. import data as data_dir
 import healpy as hp
 import os
 import numpy as np
+import time 
 
 data_path = os.path.dirname(data_dir.__file__) + '/'
 
 
-def create_mask(sky_frac):
+def create_70GHz_mask(sky_frac):
     """
     Creates a mask from the 70GHz BP7 frequency map at nside=256 for a 
     threshold corresponding to a given sky fraction (in %). The 70GGz
@@ -56,3 +57,18 @@ def create_mask(sky_frac):
         (amp_percentage/100)*np.nanmax(np.log(masked_template)))] = 1
 
     return mask 
+
+
+def timer(function):
+    """
+    Timer decorator for development purposes.
+    """
+    def wrapper(*args, **kwargs):
+        start = time.time()
+        return_value = function(*args, **kwargs)
+        total_time = time.time() - start
+        print(f'{function.__name__} took: {total_time} s')
+        return return_value
+
+    return wrapper
+        

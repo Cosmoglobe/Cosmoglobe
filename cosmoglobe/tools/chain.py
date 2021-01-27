@@ -2,7 +2,7 @@ import astropy.units as u
 import h5py
 import healpy as hp
 import numpy as np
-import numba
+from numba import njit
 import os
 import pathlib
 import sys
@@ -344,8 +344,7 @@ class Chain:
 
 #Fix to OMP: Error #15 using numba
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
-
-@numba.njit(cache=True, fastmath=True)
+@njit
 def unpack_multipole(data, lmax, multipole=None):
     """
     Unpacks a single multipole alm from the Commander chain output.
@@ -390,7 +389,7 @@ def unpack_multipole(data, lmax, multipole=None):
                 i += 1
     return alms
 
-@numba.njit(cache=True, fastmath=True)
+@njit
 def unpack_alms(data, lmax):
     """
     Unpacks alms from the Commander chain output.
