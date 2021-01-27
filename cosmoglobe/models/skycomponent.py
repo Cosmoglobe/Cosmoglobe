@@ -68,6 +68,7 @@ class SkyComponent:
                                           self.params['nside'], 
                                           self.params['polarization'], 
                                           fwhm)
+
             if nside is not None:
                 if hp.isnsideok(nside, nest=True):
                     alm_map = hp.ud_grade(alm_map, int(nside), dtype=np.float64)
