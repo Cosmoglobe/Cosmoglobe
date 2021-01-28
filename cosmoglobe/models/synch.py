@@ -1,6 +1,8 @@
 from .skycomponent import SkyComponent
-import astropy.units as u
 
+from numba import njit
+import astropy.units as u
+import numpy as np
 
 class Synchrotron(SkyComponent):
     """
@@ -11,6 +13,7 @@ class Synchrotron(SkyComponent):
     def __init__(self, data, **kwargs):
         super().__init__(data, **kwargs)
         self.kwargs = kwargs
+
 
 
 class PowerLaw(Synchrotron):
@@ -28,107 +31,57 @@ class PowerLaw(Synchrotron):
     def get_emission(self, nu):
         """
         Returns the model emission of at a given frequency in units of K_RJ.
+        Makes use of numba to speed up computations. Numba does not support
+        astropy, so astropy objects are converted to pure values or 
+        numpy.ndarrays during computation.
+
 
         Parameters
         ----------
-        nu : 'astropy.units.quantity.Quantity' (array)
+        nu : astropy.units.quantity.Quantity
             Frequencies at which to evaluate the model. 
 
         Returns
         -------
-        emission : 'astropy.units.quantity.Quantity'
+        emission : astropy.units.quantity.Quantity
             Model emission at given frequency in units of K_RJ.
 
         """
-        emission = self.compute_emission(nu, self.params['nu_ref'], self.beta)
-        return emission
 
-    @u.quantity_input(nu=u.Hz, nu_ref=u.Hz)
-    def compute_emission(self, nu, nu_ref, beta):
+        emission = self.compute_emission(nu.si.value, 
+                                         self.params['nu_ref'].si.value, 
+                                         self.amp,
+                                         self.beta)
+
+        return u.Quantity(emission, unit=self.amp.unit)
+
+
+    @staticmethod
+    @njit
+    def compute_emission(nu, nu_ref, amp, beta):
         """
         Computes the simulated power law emission of synchrotron at a given
-        frequency .
+        frequency. 
 
         Parameters
         ----------
-        nu : 'astropy.units.quantity.Quantity'
-            Frequency at which to evaluate the power law synchrotron radiation.
-        nu_ref : 'astropy.units.quantity.Quantity'
+        nu : int, float,
+            Frequency at which to evaluate the emission. 
+        nu_ref : numpy.ndarray
             Reference frequency at which the Commander alm outputs are 
             produced.        
-        beta : ndarray
-            Estimated sycnh beta map from Commander.
+        beta : numpy.ndarray
+            Estimated synch beta map from Commander.
             
         Returns
         -------
-        emission : 'astropy.units.quantity.Quantity'
-            Modeled modified blackbody emission at a given frequency.
+        emission : numpy.ndarray
+            Modeled synchrotron emission at a given frequency.
 
         """
-        emission = self.amp.copy()
-        for i in range(len(emission)):
-            emission[i] *= (nu/nu_ref[i])**beta[i]
+        nu_ref = nu_ref.reshape(len(nu_ref), 1) #For broadcasting compatibility
+        emission = np.copy(amp)
+        emission *= (nu/nu_ref)**beta
 
         return emission
 
-
-
-class CurvedPowerLaw(Synchrotron):
-    """
-    Model for curved power law emission for synchrotron.
-
-    """
-    model_label = 'curved_power_law' # should be replaced with commander param
-
-    def __init__(self, data, model_params):
-        super().__init__(data, model_params)
-
-
-    @u.quantity_input(nu=u.Hz)
-    def get_emission(self, nu):
-        """
-        Returns the model emission of at a given frequency in units of K_RJ.
-
-        Parameters
-        ----------
-        nu : 'astropy.units.quantity.Quantity' (array)
-            Frequencies at which to evaluate the model. 
-
-        Returns
-        -------
-        emission : 'astropy.units.quantity.Quantity'
-            Model emission at given frequency in units of K_RJ.
-
-        """
-        emission = self.compute_emission(nu, self.params['nu_ref'], self.beta)
-        return emission
-
-
-    @u.quantity_input(nu=u.Hz, nu_ref=u.Hz)
-    def compute_emission(self, nu, nu_ref, beta):
-        """
-        Computes the simulated power law emission of synchrotron at a given
-        frequency .
-
-        Parameters
-        ----------
-        nu : 'astropy.units.quantity.Quantity'
-            Frequency at which to evaluate the power law synchrotron radiation.
-        nu_ref : 'astropy.units.quantity.Quantity'
-            Reference frequency at which the Commander alm outputs are 
-            produced.        
-        beta : ndarray
-            Estimated sycnh beta map from Commander.
-            
-        Returns
-        -------
-        emission : 'astropy.units.quantity.Quantity'
-            Modeled modified blackbody emission at a given frequency.
-
-        """
-        curvature = 0 # extract from data output once present
-        emission = self.amp.copy()
-        for i in range(len(emission)):
-            emission[i] *= (nu/nu_ref[i])**(beta[i] + curvature)
-
-        return emission

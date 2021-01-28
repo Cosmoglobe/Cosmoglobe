@@ -77,7 +77,21 @@ class SkyComponent:
 
             maps[alm] = alm_map
         
+        # Some models require non alm maps
+        if hasattr(self, 'additional_maps'):
+            for map_ in self.additional_maps:
+                additional_map = self.chain.get_item(self.comp_label, map_)
+    
+                if nside is not None:
+                    if hp.isnsideok(nside, nest=True):
+                        additional_map = hp.ud_grade(additional_map, int(nside), 
+                                                     dtype=np.float64)
+                    else:
+                        raise ValueError(f'nside: {nside} is not valid.')
+                maps[map_] = additional_map
+
         maps = self.set_units(maps)
+
         return maps
 
 
@@ -123,14 +137,16 @@ class SkyComponent:
             'amp':u.uK,
             'beta':None,
             'T':u.K,
+            'Te_map':u.K,
+            'nu_p_map':u.GHz,
         }
         if self.params['unit'] not in ['uK_RJ', 'uK_rj', 'uK_cmb', 'uK_CMB']:
             units['amp'] = self.params['unit']
 
-        for alm in maps:
-            if alm in units:
-                if units[alm]:
-                    maps[alm] *= units[alm]
+        for map_ in maps:
+            if map_ in units:
+                if units[map_]:
+                    maps[map_] *= units[map_]
         return maps
 
 

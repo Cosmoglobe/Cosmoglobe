@@ -172,8 +172,10 @@ class Chain:
 
             if model_params[model]['polarization'] == 'True':
                 model_params[model]['polarization'] = True
+                
             elif model_params[model]['polarization'] == 'False':
                 model_params[model]['polarization'] = False
+                model_params[model]['nu_ref'] = model_params[model]['nu_ref'][0]
 
         return model_params
 
@@ -249,7 +251,7 @@ class Chain:
         with h5py.File(self.data,'r') as f:
             samples = sorted(list(f.keys()))
             try:
-                params = f[(f'{samples[0]}')][component]
+                params = f[(f'{samples[-2]}')][component]
             except:
                 raise KeyError(f'"{component}" is not a valid component.')
 
@@ -291,16 +293,15 @@ class Chain:
 
         Returns
         -------
-        alm_map : 'numpy.ndarray' or list of 'numpy.ndarray'
+        alm_map : numpy.ndarray or list of 'numpy.ndarray'
             A Healpix map in RING scheme at nside or a list of I,Q,U maps (if
             polarized input)
 
         """
         with h5py.File(self.data,'r') as f:
             samples = sorted(list(f.keys()))
-
             try:
-                data = f[(f'{samples[0]}')][component]
+                data = f[(f'{samples[-2]}')][component]
             except:
                 raise KeyError(f'"{component}" is not a valid component.')
 
@@ -358,7 +359,7 @@ def unpack_multipole(data, lmax, multipole=None):
 
     Returns
     -------
-    alms : 'numpy.ndarray'
+    alms : numpy.ndarray
         Unpacked version of the Commander alms (2-dimensional array)
 
     Unpacking algorithm: 
@@ -403,7 +404,7 @@ def unpack_alms(data, lmax):
 
     Returns
     -------
-    alms : 'numpy.ndarray'
+    alms : numpy.ndarray
         Unpacked version of the Commander alms (2-dimensional array)
 
     Unpacking algorithm: 
