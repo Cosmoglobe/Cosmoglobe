@@ -53,9 +53,8 @@ class ModifiedBlackbody(Dust):
             Model emission at given frequency in units of K_RJ.
 
         """
-        prefix = nu.unit.si.scale
-        emission = self.compute_emission(nu.value*prefix, 
-                                         self.params['nu_ref'].value*prefix, 
+        emission = self.compute_emission(nu.si.value, 
+                                         self.params['nu_ref'].si.value, 
                                          self.amp,
                                          self.beta, 
                                          self.T.value)
