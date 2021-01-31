@@ -70,13 +70,13 @@ class Chain:
 
         """
 
-        self.data, self.sample = self.validate_chainfile(chainfile, sample)
+        self.data, self.sample = self._validate_chainfile(chainfile, sample)
         self.components = self.get_components()
         self.model_params = self.get_model_params()
 
 
     @staticmethod
-    def validate_chainfile(path, sample):
+    def _validate_chainfile(path, sample):
         """
         Validates that the given path is of a type and format that matches a
         Commander3 hdf5 output chainfile, and then returns file as a pathlib
@@ -113,13 +113,13 @@ class Chain:
             elif len(chainfiles) > 1:
                 raise IOError(
                       f'Data directory contains more than one hdf5 file: '
-                      f'{chainfiles} \nPlease provide a path including '
-                      'the specific hdf5 file you wish to use'
+                      f'{*chainfiles,} \nPlease provide a path including '
+                      'the specific chain file you wish to use'
                 )
 
             else:
                 raise FileNotFoundError(
-                    f'{path.name!r} directory does not contain a valid '
+                    f'{str(path)!r} directory does not contain a valid '
                     'chain HDF5 file'
                 )
 
@@ -144,7 +144,7 @@ class Chain:
                                 f[sample]
                             except KeyError:
                                 raise KeyError(
-                                    f'Chainfile does not contain sample: {sample} '
+                                    f'Chainfile does not contain sample {sample!r}'
                                 )
                 except OSError:
                     raise OSError(
@@ -155,6 +155,11 @@ class Chain:
 
             else:
                 raise OSError("Input file must be an hdf5 file")
+        
+        else:
+            raise OSError(
+            f'No such file or directory: {str(path)!r}'
+        )
 
         return path, sample
       
@@ -303,7 +308,7 @@ class Chain:
 
             else:
                 try: 
-                    item = f[self.sample][component][item_name]
+                    item = f[self.sample][component][item_name][()]
                 except:
                     raise KeyError(f'{item_name} does not exist in file')
 
@@ -443,8 +448,7 @@ def unpack_alms_from_chain(data, lmax):
 
 
 
-def reduce_chain(chainfile, method='mean', save=True, save_filename=None, 
-                 n_samples=10):
+def reduce_chain(chainfile, method='mean', save_filename=None, n_samples=None):
     """
     Creates a reduced version of a chainfile containing. The method of 
     reduction is chosen by the method parameter. A reduced file always contains
@@ -470,9 +474,9 @@ def reduce_chain(chainfile, method='mean', save=True, save_filename=None,
     allowed_methods = ['mean', 'sample']
     ignored_components = ['md', 'bandpass', 'tod', 'gain']
 
-    if save and save_filename is None:
+    if save_filename is None:
         try:
-            path = pathlib.Path(chainfile)
+            chainfile = pathlib.Path(chainfile)
         except:
             raise TypeError(
                 f'Chainfile argument must be str or a os.PathLike '
@@ -522,19 +526,14 @@ def reduce_chain(chainfile, method='mean', save=True, save_filename=None,
                             if parameter not in maps[component]:
                                 maps[component][parameter] = parameters[parameter][()]
 
-        if save:
-            sample_mean = reduced_chain.create_group('sample_mean')
-            for component in maps:
-                comp_group = sample_mean.create_group(component)
-
-                for parameter in maps[component]:
-                    comp_group.create_dataset(parameter, 
-                                              data=maps[component][parameter], 
-                                              dtype=np.float64)
-            
-            chain.copy(parameter_group, reduced_chain)    
-            return
-
-    return maps
+        sample_mean = reduced_chain.create_group('sample_mean')
+        for component in maps:
+            comp_group = sample_mean.create_group(component)
+            for parameter in maps[component]:
+                comp_group.create_dataset(parameter, 
+                                          data=maps[component][parameter], 
+                                          dtype=np.float64)
+        
+        chain.copy(parameter_group, reduced_chain)    
 
 

@@ -106,13 +106,16 @@ class SkyComponent:
         for atr in attributes:
             if isinstance(attributes[atr], (list, np.ndarray)):
                 if ud_grade:
-                    attributes[atr] = hp.ud_grade(attributes[atr], nside_out=int(nside), dtype=np.float64)
+                    attributes[atr] = hp.ud_grade(attributes[atr],
+                                                  nside_out=int(nside), 
+                                                  dtype=np.float64)
                 if smooth:
-                    attributes[atr] = hp.smoothing(attributes[atr], fwhm=fwhm.to('rad').value)
+                    attributes[atr] = hp.smoothing(attributes[atr], 
+                                                   fwhm=fwhm.to('rad').value)
         
         for key, value in attributes.items():
             if any(attr in key for attr in ['amp', 'monopole', 'dipole']):
-                if self.params['unit'] in ['uK_RJ', 'uK_rj', 'uK_cmb', 'uK_CMB']:
+                if self.params['unit'].lower() in ['uk_rj', 'uk_cmb']:
                     value *= u.uK
                 else: 
                     raise ValueError(
