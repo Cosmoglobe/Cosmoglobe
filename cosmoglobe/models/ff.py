@@ -28,8 +28,7 @@ class LinearOpticallyThin(FreeFree):
 
     """    
     model_label= 'freefree'
-
-    additional_maps = ['Te_map']
+    other_quantities = ['Te_map']
 
     def __init__(self, data, nside=None, fwhm=None):
         super().__init__(data, nside=nside, fwhm=fwhm)
@@ -51,7 +50,7 @@ class LinearOpticallyThin(FreeFree):
             Model emission at given frequency in units of K_RJ.
 
         """
-        emission = self.compute_emission(nu.si.value,
+        emission = self._compute_emission(nu.si.value,
                                          self.params['nu_ref'].si.value,
                                          self.amp,
                                          self.Te_map.value)
@@ -61,7 +60,7 @@ class LinearOpticallyThin(FreeFree):
 
     @staticmethod
     @njit
-    def compute_emission(nu, nu_ref, amp, T_e):
+    def _compute_emission(nu, nu_ref, amp, T_e):
         """
         Computes the power law emission at a given frequency for the 
         given Commander data.

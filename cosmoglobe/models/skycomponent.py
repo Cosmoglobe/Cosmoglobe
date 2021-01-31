@@ -12,90 +12,120 @@ T_0 = 2.7255*u.K
 
 class SkyComponent:
     """
-    Generalized template for all sky components.
+    Generalized template for all sky models.
 
     """
 
     def __init__(self, chain, **kwargs):
         """
-        Initializes base model attributes and methods for a sky component.
+        Initializes model attributes and methods for a sky component.
 
         Parameters
         ----------
         chain : 'cosmoglobe.tools.chain.Chain'
             Commander3 chainfile object.
         **kwargs : dict
-            Additional keyword value pairs. Valid keywords can vary from 
+            Additional keywords. Valid keywords can vary from 
             component to component.
 
         """
         self.chain = chain
-        self.params = chain.model_params[self.comp_label]
+        self.params = self.chain.model_params[self.comp_label]
 
-        maps = self.initialize_maps(kwargs.get('nside', None),
-                                    kwargs.get('fwhm', None))
-        for key, value in maps.items():
-            setattr(self, key, value)
+        attributes = self._get_model_attributes()
+        self._set_model_attributes(attributes=attributes, 
+                                   nside=kwargs.get('nside', None), 
+                                   fwhm=kwargs.get('fwhm', None))
 
 
-    def initialize_maps(self, nside=None, fwhm=None):
+    def _get_model_attributes(self):
         """
-        Initializes model maps from alms.
+        Returns a dictionary of maps and other model attributes.
+
+        """
+        attributes = {}
+        attributes_list = self.chain.get_alm_list(self.comp_label)
+
+        if hasattr(self, 'other_quantities'):
+            attributes_list += self.other_quantities
+
+        for attr in attributes_list:
+            if 'alm' in attr:
+                unpack_alms = True
+                attr_name = attr.split('_')[0]
+            else:
+                unpack_alms = False  
+                attr_name = attr
+
+            item = self.chain.get_item(item_name=attr, 
+                                       component=self.comp_label, 
+                                       unpack_alms=unpack_alms, 
+                                       multipoles=getattr(self, 'multipoles', None))
+
+            if isinstance(item, dict):
+                for key, value in item.items():
+                    attributes[key] = value
+            else:
+                attributes[attr_name] = item
+
+        return attributes
+
+
+    def _set_model_attributes(self, attributes, nside, fwhm):
+        """
+        Sets model maps and quantities to instance attributes.
 
         Parameters
         ----------
-        nside: int, optional
-            Healpix map resolution. If not None, hp.ud_grades all maps to nside
-            after hp.map2alm.
-        fwhm : float, scalar, optional
-            The fwhm of the Gaussian used to smooth the map (applied on alm)
-            [in degrees]. Default is None. 
-        Returns
-        -------
-        maps : dict
-            Dictionary of loaded model maps.
+        attributes : dict
+            Dictionary of maps and other model attributes.
+        nside : int
+            Healpix map resolution. If not None, then maps are downgraded to
+            nside with hp.ud_grade.
+        fwhm : float
+            The fwhm of the Gaussian used to smooth the map with hp.smoothing.
 
         """
-        maps = {}
-        alm_list = self.chain.get_alm_list(self.comp_label)
+        if nside is not None:
+            if hp.isnsideok(nside, nest=True):
+                ud_grade = True
+            else:
+                raise ValueError(f'nside: {nside} is not valid.')
+        else: 
+            ud_grade = False
 
-        if fwhm is None:
-            fwhm = self.params['fwhm']
-            
-        for alm in alm_list:
-            alm_map = self.chain.get_alms(alm,
-                                          self.comp_label, 
-                                          self.params['nside'], 
-                                          self.params['polarization'], 
-                                          fwhm)
-
-            if nside is not None:
-                if hp.isnsideok(nside, nest=True):
-                    alm_map = hp.ud_grade(alm_map, int(nside), dtype=np.float64)
-                else:
-                    raise ValueError(f'nside: {nside} is not valid.')
-
-            maps[alm] = alm_map
+        if fwhm is not None:
+            if not isinstance(fwhm, u.Quantity):
+                raise u.UnitsError(
+                    'Fwhm must be an astropy object of units deg, rad, or arcmin'
+                )
+            smooth = True
+        else:
+            smooth = False
+             
+        for atr in attributes:
+            if isinstance(attributes[atr], (list, np.ndarray)):
+                if ud_grade:
+                    attributes[atr] = hp.ud_grade(attributes[atr], nside_out=int(nside), dtype=np.float64)
+                if smooth:
+                    attributes[atr] = hp.smoothing(attributes[atr], fwhm=fwhm.to('rad').value)
         
-        # Some models require non alm maps
-        if hasattr(self, 'additional_maps'):
-            for map_ in self.additional_maps:
-                additional_map = self.chain.get_item(self.comp_label, map_)
-    
-                if nside is not None:
-                    if hp.isnsideok(nside, nest=True):
-                        additional_map = hp.ud_grade(additional_map, int(nside), 
-                                                     dtype=np.float64)
-                    else:
-                        raise ValueError(f'nside: {nside} is not valid.')
-                maps[map_] = additional_map
-
-        maps = self.set_units(maps)
-
-        return maps
+        for key, value in attributes.items():
+            if any(attr in key for attr in ['amp', 'monopole', 'dipole']):
+                if self.params['unit'] in ['uK_RJ', 'uK_rj', 'uK_cmb', 'uK_CMB']:
+                    value *= u.uK
+                else: 
+                    raise ValueError(
+                        f'Unit {self.params["unit"]!r} is unrecognized'
+                    )
+            elif 'T' in key:
+                value *= u.uK
+            elif 'nu' in key:
+                value *= u.GHz
+            setattr(self, key, value)
 
 
-    def to_nside(self, nside):
+    def _to_nside(self, nside):
         """
         Reinitializes the model instance with at new nside.
 
@@ -114,40 +144,6 @@ class SkyComponent:
             return super(self.__class__, self).__init__(self.chain, **self.kwargs)
         else:
             raise ValueError(f'nside: {nside} is not valid.')
-
-
-
-    def set_units(self, maps):
-        """
-        Sets units for alm maps.
-
-        Parameters
-        ----------
-        maps : dict
-            Dictionary of loaded model maps.
-
-        Returns
-        -------
-        maps : dict
-            Loaded maps with astropy units.
-        
-        """
-        # Hardcoding units for model quantities
-        units = {
-            'amp':u.uK,
-            'beta':None,
-            'T':u.K,
-            'Te_map':u.K,
-            'nu_p_map':u.GHz,
-        }
-        if self.params['unit'] not in ['uK_RJ', 'uK_rj', 'uK_cmb', 'uK_CMB']:
-            units['amp'] = self.params['unit']
-
-        for map_ in maps:
-            if map_ in units:
-                if units[map_]:
-                    maps[map_] *= units[map_]
-        return maps
 
 
     @staticmethod
@@ -213,28 +209,18 @@ class SkyComponent:
 
 
     @property
-    def model_name(self):
-        """
-        Returns the name of the sky model.
-
-        """
+    def name(self):
         return self.__class__.__name__
 
 
     def __repr__(self):
-        """
-        Unambigious representation of the sky model object.
+        kwargs = {key:value for key, value in self.kwargs.items() if value is not None}
+        kwargs_str = ", ".join(f"'{key}={value}'" for key, value in kwargs.items())
+        return f'Cosmoglobe.model({self.comp_label!r}, {kwargs_str})'
 
-        """
-        return f"Cosmoglobe.model('{self.model_label}')"    
-        
 
     def __str__(self):
-        """
-        Readable representation of the sky model object.
-
-        """
-        return f"Cosmoglobe {self.comp_label} - {self.model_label} model."
+        return f"Cosmoglobe {self.comp_label} {self.__class__.__name__} model."
 
 
 

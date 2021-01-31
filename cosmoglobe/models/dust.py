@@ -53,7 +53,7 @@ class ModifiedBlackbody(Dust):
             Model emission at given frequency in units of K_RJ.
 
         """
-        emission = self.compute_emission(nu.si.value, 
+        emission = self._compute_emission(nu.si.value, 
                                          self.params['nu_ref'].si.value, 
                                          self.amp,
                                          self.beta, 
@@ -64,7 +64,7 @@ class ModifiedBlackbody(Dust):
 
     @staticmethod
     @njit
-    def compute_emission(nu, nu_ref, amp, beta, T):
+    def _compute_emission(nu, nu_ref, amp, beta, T):
         """
         Computes the simulated modified blackbody emission of dust at a given
         frequency .
