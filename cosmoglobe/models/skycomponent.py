@@ -157,11 +157,11 @@ class SkyComponent:
 
         Parameters
         ----------
-        input_map : 'astropy.units.quantity.Quantity'
+        input_map : astropy.units.quantity.Quantity
             Healpix map in units of K_RJ.
         Returns
         -------
-        'astropy.units.quantity.Quantity'
+        astropy.units.quantity.Quantity
             Output map in units of K_CMB.
 
         """
@@ -179,11 +179,11 @@ class SkyComponent:
 
         Parameters
         ----------
-        input_map : 'astropy.units.quantity.Quantity'
+        input_map : astropy.units.quantity.Quantity
             Healpix map in units of K_RJ.
         Returns
         -------
-        'astropy.units.quantity.Quantity'
+        astropy.units.quantity.Quantity
             Output map in units of K_CMB.
 
         """
@@ -199,12 +199,12 @@ class SkyComponent:
 
         Parameters
         ----------
-        nu : 'astropy.units.quantity.Quantity'
+        nu : astropy.units.quantity.Quantity
             Frequency at which to evaluate the model emission.
 
         Returns
         -------
-        'astropy.units.quantity.Quantity'
+        astropy.units.quantity.Quantity
             Model emission at the given frequency.
 
         """

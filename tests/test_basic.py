@@ -25,17 +25,17 @@ dust = cosmo.model('dust')
 ff = cosmo.model('ff')
 ame = cosmo.model('ame')
 
-# sky_500GHz = cosmo.full_sky(nu=500*u.GHz)
-# hp.mollview(sky_500GHz[0], min=0, max=1000)
-# plt.show()
-
-freqs, rms = cosmo.spectrum()
-for model, model_rms in rms.items():
-    plt.loglog(freqs, model_rms, label=model)
-
-plt.ylim(1e-2, 1e3)
-plt.xlabel('Frequency [GHz]')
-plt.ylabel('RMS brightness temperature [muK]')
-plt.legend()
+sky = cosmo.full_sky(nu=500*u.GHz)
+hp.mollview(sky[0], min=0, max=1000)
 plt.show()
+
+# freqs, rms = cosmo.spectrum()
+# for model, model_rms in rms.items():
+#     plt.loglog(freqs, model_rms, label=model)
+
+# plt.ylim(1e-2, 1e3)
+# plt.xlabel('Frequency [GHz]')
+# plt.ylabel('RMS brightness temperature [muK]')
+# plt.legend()
+# plt.show()
 
