@@ -80,6 +80,35 @@ class Cosmoglobe:
         return new_model
 
 
+    @u.quantity_input(nu=u.Hz)
+    def full_sky(self, nu, models=None):
+        """
+        Returns the combined emission of a set of models for at a given 
+        frequency.
+
+        Parameters
+        ----------
+        nu : astropy.units.quantity.Quantity
+            Frequency at which to evaluate the models.
+
+        Returns
+        -------
+        full_emission : astropy.units.quantity.Quantity
+            Combined emission of all models at the given frequency.
+
+        """
+        if models is None:
+            models = self.initialized_models
+
+        full_emission = np.zeros_like(models[0].amp)
+        for model in models:
+            if self.verbose:
+                print(f'Simulating {model.comp_label!r} at {nu}')
+            full_emission += model[nu]
+
+        return full_emission
+
+
     def spectrum(self, models=None, pol=False, sky_frac=88, start=10, stop=1000, num=50):
         """
         Produces a RMS SED for the given models.
@@ -167,22 +196,6 @@ class Cosmoglobe:
                     rms_dict[model.comp_label].append(np.sqrt(np.mean(I**2)))
 
         return freqs, rms_dict
-
-
-    @u.quantity_input(nu=u.Hz)
-    def full_sky(self, nu, models=None):
-
-        if models is None:
-            models = self.initialized_models
-
-        full_emission = np.zeros_like(models[0].amp)
-        for model in models:
-            if self.verbose:
-                print(f'Simulating {model.comp_label!r} at {nu}')
-            full_emission += model[nu]
-
-        return full_emission
-
 
 
     def _reduce_chainfile(self, method='mean', save=True, save_filename=None,
