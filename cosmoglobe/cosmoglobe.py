@@ -109,7 +109,9 @@ class Cosmoglobe:
         return full_emission
 
 
-    def spectrum(self, models=None, pol=False, sky_frac=88, start=10, stop=1000, num=50):
+    @u.quantity_input(start=u.Hz, stop=u.Hz)
+    def spectrum(self, models=None, pol=False, sky_frac=88, start=10*u.GHz, 
+                 stop=1000*u.GHz, num=50):
         """
         Produces a RMS SED for the given models.
 
@@ -150,8 +152,8 @@ class Cosmoglobe:
             print(
                 'Computing SED spectrum with parameters:\n'
                 f'  sky_frac: {sky_frac}%\n'
-                f'  start frequency: {start} GHz\n'
-                f'  stop frequency: {stop} GHz\n'
+                f'  start frequency: {start}\n'
+                f'  stop frequency: {stop}\n'
                 f'  num discrete frequencies: {num}\n'
                 f'  signal: {signal_type}'
             )
@@ -169,6 +171,9 @@ class Cosmoglobe:
 
             
         mask = utils.create_70GHz_mask(sky_frac)
+
+        start = start.to(u.GHz).value
+        stop = stop.to(u.GHz).value
         freqs = np.logspace(np.log10(start), np.log10(stop), num)*u.GHz
         rms_dict = {model.comp_label:[] for model in models}
 
