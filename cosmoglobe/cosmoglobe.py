@@ -5,12 +5,13 @@ from .models.dust import ModifiedBlackbody
 from .models.cmb import CMB
 from .models.ame import AME
 
-from .tools.chain import Chain
+from .tools import chain
 from .tools import utils
 
 import numpy as np
 import healpy as hp
 import astropy.units as u
+import pathlib
 
 #list of all foreground components and labels
 components = {comp.__name__.lower():comp for comp in SkyComponent.__subclasses__()}
@@ -20,14 +21,14 @@ component_labels = {comp.comp_label:comp for comp in SkyComponent.__subclasses__
 class Cosmoglobe:
     """Cosmoglobe sky model. 
 
-    Provides methods and utilities to process, analyze, and make simulations
+    Provides methods and utilities to analyze, process, and make simulations
     from Commander outputs.
     
     """
 
-    def __init__(self, data, verbose=True):
+    def __init__(self, data, sample='mean', verbose=True):
         """
-        Initializes the Cosmoglobe sky model.
+        Initializes the Cosmoglobe sky object.
 
         Parameters
         ----------
@@ -36,9 +37,11 @@ class Cosmoglobe:
             standard Cosmoglobe data directory.
 
         """
-        self.datapath = data
+        self.data = data
+        self.sample = sample
         self.verbose = verbose
-        self.chain = Chain(data)
+
+        self.chain = chain.Chain(data, sample)
         self.initialized_models = []
 
 
@@ -61,9 +64,10 @@ class Cosmoglobe:
 
         else:
             raise ValueError(
-                f"'{component_name}' is not a valid component. Please select "
-                f"between the following components:{self.chain.components}"
+                f'{component_name!r} is not a valid component. Please select ' 
+                f'between the following components:\n{*self.chain.components,}'
             )
+
         models = {model.model_label:model for model in component.__subclasses__()}
         model = models[self.chain.model_params[component.comp_label]['type']]
 
@@ -144,7 +148,7 @@ class Cosmoglobe:
                 print(f'Calculating RMS for {model.comp_label}')
 
             if model.params['nside'] > 256:
-                model.to_nside(256)
+                model._to_nside(256)
             
             if pol:
                 for freq in freqs:
@@ -165,20 +169,53 @@ class Cosmoglobe:
         return freqs, rms_dict
 
 
-    def __repr__(self):
+    def _reduce_chainfile(self, method='mean', save=True, save_filename=None,
+                         n_samples=10):
         """
-        Unambigious representation of the Cosmoglobe sky object.
+        Reduces a larger chainfile.
 
-        """
-        return f"cosmoglobe.Cosmoglobe('{self.datapath}')"    
+        Parameters
+        ----------
+        chainfile : str, 'pathlib.Path'
+            Commander3 chainfile. Must be a hdf5 file.
+        method : str, optional
+            Method of reduction. Available methods are : mean (draws n_samples 
+            random samples, and averages the alm maps). Default is 'mean'.
+        save : bool, optional
+            If True, outputs a reduced chainfile. If False, returns all parameters
+            directly. Default is True.
+        save_filename : str, optional
+            Filename of output file. If None, and save=True, save_filename is 
+            f'reduced_{chainfile.name}'. Default is None
+            """
+        chain.reduce_chain(self.datapath, 
+                           method, 
+                           save, 
+                           save_filename, 
+                           n_samples)
+
+
+    def __repr__(self):
+        if isinstance(self.data, pathlib.PosixPath):
+            data = self.data.name
+        else:
+            data = pathlib.Path(self.data).name
+
+        if self.verbose:
+            return (
+                f'{self.__class__.__name__}({data!r}, '
+                f'sample={self.sample!r})'
+            )          
+        else:  
+            return (
+                f'{self.__class__.__name__}({data!r}, '
+                f'sample={self.sample!r}, verbose={self.verbose})'
+            )
         
 
     def __str__(self):
-        """
-        Readable representation of the Cosmoglobe sky object.
-
-        """
-        return (
-            f"Cosmoglobe sky model - Generated from "
-            f"'{self.datapath}'"
-        )
+        if isinstance(self.data, pathlib.PosixPath):
+            data = self.data.name
+        else:
+            data = pathlib.Path(self.data).name
+        return f'Cosmoglobe sky object generated from: {data}'

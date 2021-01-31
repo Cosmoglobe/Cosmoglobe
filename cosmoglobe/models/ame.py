@@ -26,8 +26,7 @@ class SpinningDust2(AME):
 
     """    
     model_label = 'spindust2'
-
-    additional_maps = ['nu_p_map']
+    other_quantities = ['nu_p_map']
 
     def __init__(self, data, nside=None, fwhm=None):
         super().__init__(data, nside=nside, fwhm=fwhm)
@@ -62,7 +61,7 @@ class SpinningDust2(AME):
                              'AME is not defined below 0.05 GHz.'
             )
 
-        emission = self.compute_emission(nu.si.value, 
+        emission = self._compute_emission(nu.si.value, 
                                          self.params['nu_ref'].si.value, 
                                          self.nu_p_map.si.value, 
                                          self.amp,
@@ -74,7 +73,7 @@ class SpinningDust2(AME):
 
     @staticmethod
     @njit
-    def compute_emission(nu, nu_ref, nu_p, amp, spdust2_amp, spdust2_nu):
+    def _compute_emission(nu, nu_ref, nu_p, amp, spdust2_amp, spdust2_nu):
         """
         Computes the simulated spinning dust emission at a given frequency.
 

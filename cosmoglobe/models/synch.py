@@ -4,6 +4,7 @@ from numba import njit
 import astropy.units as u
 import numpy as np
 
+
 class Synchrotron(SkyComponent):
     """
     Parent class for all Synchrotron models.
@@ -48,7 +49,7 @@ class PowerLaw(Synchrotron):
 
         """
 
-        emission = self.compute_emission(nu.si.value, 
+        emission = self._compute_emission(nu.si.value, 
                                          self.params['nu_ref'].si.value, 
                                          self.amp,
                                          self.beta)
@@ -58,7 +59,7 @@ class PowerLaw(Synchrotron):
 
     @staticmethod
     @njit
-    def compute_emission(nu, nu_ref, amp, beta):
+    def _compute_emission(nu, nu_ref, amp, beta):
         """
         Computes the simulated power law emission of synchrotron at a given
         frequency. 

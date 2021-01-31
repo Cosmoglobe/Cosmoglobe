@@ -5,230 +5,212 @@ import numpy as np
 from numba import njit
 import os
 import pathlib
-import sys
+import random
+
+
 
 class Chain:
     """
     Commander3 chainfile object.
 
+    Operates on chainfiles of the following format:
+    -----------------------------------------------
+    >>> h5ls chainfile.h5
+    sample_1        Group 
+    sample_2        Group 
+    ...
+    sample_n        Group 
+    parameters      Group
+
+    >>> h5ls chainfile.h5/sample_1
+    component_1     Group 
+    component_2     Group 
+    ...
+    component_n     Group 
+
+    >>> h5ls chainfile.h5/component_1
+    param_1         Dataset {scalar, shape(array)}
+    param_2         Dataset {scalar, shape(array)}
+    ...
+    param_n         Dataset {scalar, shape(array)}
+
+    >>> h5ls chainfile.h5/parameters
+    component_1     Group 
+    component_2     Group 
+    ...
+    component_n     Group 
+
+    >>> h5ls chainfile.h5/parameters/component_1
+    class           Dataset {SCALAR}
+    fwhm            Dataset {SCALAR}
+    nside           Dataset {SCALAR}
+    nu_ref          Dataset {3}
+    polarization    Dataset {SCALAR}
+    type            Dataset {SCALAR}
+    unit            Dataset {SCALAR}
+
     """
 
-    def __init__(self, h5file):
+    allowed_methods = ['mean', 'sample']
+
+    def __init__(self, chainfile, sample='mean'):
         """
         Initializes the chain object from a give Commander3 chainfile.
 
         Parameters
         ----------
-        h5file : str, 'pathlib.Path'
-            Commander3 chainfile. Must be a hdf5 file.
+        chainfile : str, pathlib.Path
+            Path to Commander3 chainfile.
+
+        sample : str, optional
+            Sample to extract data from. Allowed values are ['sample', 'mean']
+            where 'sample' is the name of a sample group in the h5 file. If 
+            sample is set to 'mean', the average over all the samples will be
+            used. Default is 'mean'.
 
         """
 
-        self.data = self.get_data(h5file)
+        self.data, self.sample = self.validate_chainfile(chainfile, sample)
         self.components = self.get_components()
         self.model_params = self.get_model_params()
 
 
     @staticmethod
-    def get_data(h5file):
+    def validate_chainfile(path, sample):
         """
-        Validates that the given file is of a type and format that matches a
+        Validates that the given path is of a type and format that matches a
         Commander3 hdf5 output chainfile, and then returns file as a pathlib
         object.
 
         Parameters
         ----------
-        filename_or_dir : str, 'pathlib.Path'
-            Path to a Commander HDF5 datafile or a Commander chain directory
-            containing a HDF5 datafile.
+        path : str, pathlib.Path
+            Path to a Commander chain file or directory containing a HDF5 
+            datafile.
 
         Returns
         -------
         pathlib.Path
-            pathlib Path object to Commander HDF5 chain file.
+            Pathlib Path object to Commander HDF5 chain file.
 
         """
         try:
-            path = pathlib.Path(h5file)
+            path = pathlib.Path(path)
         except:
             raise TypeError(
                 f'Data input to Cosmoglobe() must be str or a os.PathLike '
-                'object.'
+                'object'
             ) 
 
-        if os.path.isfile(h5file):
-            if path.name.endswith('.h5'):
-                try: 
-                    with h5py.File(h5file,'r') as f:
-                        pass
-                except OSError:
-                    raise(OSError(
-                        f'{path.name} has an invalid hdf5 format. Make sure '
-                        'the file was created with a recent version of '
-                        'Commander.'
-                    ))
-                return path
 
-            else:
-                raise OSError("Input file must be an hdf5 file.")
+        if os.path.isdir(path):
+            chainfiles = ([file for file in os.listdir(path) 
+                           if file.endswith('.h5') and 'chain' in file])
 
-        elif os.path.isdir(h5file):
-            chainfiles = []
-            for file in os.listdir(h5file):
-                if file.endswith('.h5'):
-                    chainfiles.append(file)
+            if len(chainfiles) == 1:
+                path = path/chainfiles[0]
 
-            if len(chainfiles) > 1:
-                print(f'Data directory contains more than one hdf5 file: '
+            elif len(chainfiles) > 1:
+                raise IOError(
+                      f'Data directory contains more than one hdf5 file: '
                       f'{chainfiles} \nPlease provide a path including '
-                      'the specific hdf5 file you wish to use.'
+                      'the specific hdf5 file you wish to use'
                 )
-                sys.exit()
+
             else:
                 raise FileNotFoundError(
-                    f"'{path.name}' directory does not contain a valid "
-                    "chain HDF5 file."
+                    f'{path.name!r} directory does not contain a valid '
+                    'chain HDF5 file'
                 )
 
-        else:
-            raise FileNotFoundError(
-                f"Could not find file or directory '{path.name}'. " 
-            )
+        if os.path.isfile(path):
+            if path.name.endswith('.h5'):
+                try: 
+                    with h5py.File(path,'r') as f:
+                        try:
+                            f['parameters']
+                        except KeyError:
+                            raise KeyError(
+                                f'Chainfile does not contain a parameters '
+                                'group. Make sure the chainfile was produced '
+                                'with an updated version of Commander3'
+                            )
+                        if len(f) <= 1:
+                            raise KeyError(
+                                f'Chainfile does not contain any gibbs samples'
+                            )
+                        elif sample != 'mean':
+                            try:
+                                f[sample]
+                            except KeyError:
+                                raise KeyError(
+                                    f'Chainfile does not contain sample: {sample} '
+                                )
+                except OSError:
+                    raise OSError(
+                        f'{path.name!r} has an invalid hdf5 format. Make sure '
+                        'the file was created with a recent version of '
+                        'Commander.'
+                    )
+
+            else:
+                raise OSError("Input file must be an hdf5 file")
+
+        return path, sample
       
-      
+
     def get_components(self):
         """
-        Returns all sky components available in the commander output.
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-        component_list : list of strings
-            List containing all avaiable sky components for a given chainsfile.
+        Returns a list of all sky components present in a gibbs sample.
 
         """
-        component_list = []
         with h5py.File(self.data,'r') as f:
-            samples = sorted(list(f.keys()))
-            components = f[(f'{samples[0]}')]
+            components = list(f['parameters'])
 
-            for component in components:
-                component_list.append(component)
-
-            if not component_list:
-                raise ValueError(
-                    f'"{self.data.name}" doest not include any components.'
+        if not components:
+            raise ValueError(
+                f'Parameters group in {self.data.name!r} does not include '
+                'any components'
             )
-
-        return component_list
+            
+        return components
 
 
     def get_model_params(self):
         """
-        Returns a dictionary containing all model parameters from the commander 
-        output.
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-        model_params : dict
-            Dictionary containing commander model parameters.
-
+        Returns a dictionary containing all model parameters.
+        
         """   
-        model_params = {}
         with h5py.File(self.data,'r') as f:
-            samples = sorted(list(f.keys()))
-            if samples[-1] == 'parameters':
-                models = f[(f'{samples[-1]}')]
-            else:
-                raise KeyError(
-                    f'Chainfile does not contain any model parameters. Make ' 
-                    'sure the chainfile was produced with an updated '
-                    'version of Commander3.'
-            )
-            for model in models:
-                model_params[model] = {}
+            components = f['parameters']
+            model_params = {component:{} for component in components}
 
-                params = models[model]
+            for component in components:
+                params = components[component]
+
                 for param in params:
-                    if isinstance(models[model][param][()], bytes):
-                        model_params[model][param] = models[model][param][()].decode("utf-8")
+                    if isinstance(params[param][()], bytes):
+                        model_params[component][param] = params[param][()].decode("utf-8")
 
                     else:
-                        if len(np.shape(models[model][param][()])) > 0:
-                            model_params[model][param] = models[model][param][()]
+                        if len(np.shape(params[param][()])) > 0:
+                            model_params[component][param] = params[param][()]
                         else:
-                            model_params[model][param] = models[model][param][()].item()
+                            model_params[component][param] = params[param][()].item()
 
+        for component in model_params:
+            model_params[component]['fwhm'] *= u.arcmin
+            model_params[component]['nu_ref'] *= u.GHz
+            model_params[component]['nu_ref'] *= 1e-9
 
-        for model in model_params:
-            model_params[model]['fwhm'] *= u.arcmin
-            model_params[model]['nu_ref'] *= u.GHz
-            model_params[model]['nu_ref'] *= 1e-9
-
-            if model_params[model]['polarization'] == 'True':
-                model_params[model]['polarization'] = True
+            if model_params[component]['polarization'] == 'True':
+                model_params[component]['polarization'] = True
                 
-            elif model_params[model]['polarization'] == 'False':
-                model_params[model]['polarization'] = False
-                model_params[model]['nu_ref'] = model_params[model]['nu_ref'][0]
+            elif model_params[component]['polarization'] == 'False':
+                model_params[component]['polarization'] = False
+                model_params[component]['nu_ref'] = model_params[component]['nu_ref'][0]
 
         return model_params
-
-
-    def get_item(self, component, item , sample='000000'):
-        """
-        Returns a specific item from the data.
-
-        Parameters
-        ----------
-        component : str
-            Name of component that contains item.
-        item : str
-            Name of item to be extracted from datafile.
-        sample : str
-            Sample number. Default is 000000.
-
-        Returns
-        -------
-        item : int, float, str, numpy.ndarray
-            item extracted from data. Can be any type.
-
-        """  
-        with h5py.File(self.data,'r') as f:
-            samples = sorted(list(f.keys()))
-            if sample in samples:
-                models = f[(f'{sample}')]
-            else:
-                raise KeyError(
-                    f"Chainfile does not contain sample '{sample}'."
-            )
-
-            components = sorted(list(models.keys()))
-            if component in components:
-                quantities = models[(f'{component}')]
-            else:
-                raise KeyError(
-                    f'Chainfile does not contain data for component: '
-                    '{component}.'
-            )
-            
-            if item in quantities:
-                item = quantities[(f'{item}')]
-                if len(np.shape(item)) > 0:
-                    if np.shape(item[()])[0] == 1:
-                        return item[()][0]
-                    else:
-                        return item[()]
-                else:
-                    if np.shape(item[()])[0] == 1:
-                        return item[()].item()[0]
-                    else:
-                        return item[()].item()
 
 
     def get_alm_list(self, component):
@@ -243,110 +225,135 @@ class Chain:
         
         Returns
         -------
-        alm_list : list of strings
-            List containing all avaiable alms for a given component.
+        alms : list
+            List containing name of all alm maps for a given component.
 
         """
-        alm_list = []
         with h5py.File(self.data,'r') as f:
-            samples = sorted(list(f.keys()))
-            try:
-                params = f[(f'{samples[-2]}')][component]
-            except:
-                raise KeyError(f'"{component}" is not a valid component.')
-
-            for param in params:
-                if 'alm' in param:
-                    alm_param = param.split('_')[0]
-                    alm_list.append(alm_param)
+            samples = list(f.keys())
+            samples.pop(samples.index('parameters'))
             
-            if not alm_list:
-                raise ValueError(f'"{component}" doest not include any alms.')
+            try:
+                params = f[samples[0]][component]
+            except KeyError:
+                raise KeyError(f'"{component}" is not a valid component')
 
-        return alm_list
+            alms = [param for param in params if 'alm' in param]
 
-    @u.quantity_input(fwhm=[u.arcmin, u.rad])
-    def get_alms(self, alm_param, component, nside, polarization, fwhm,
-                 multipole=None):
+            if not alms:
+                raise ValueError(f'"{component}" does not include any alms')
+
+        return alms
+
+
+    def get_item(self, item_name, component, unpack_alms=False, multipoles=None):
         """
-        Returns array or arrays containing alms from Commander chain HDF5 file.
+        Extracts an item from the chainfile.
 
         Parameters
         ----------
-        alm_param : str, optional
-            alm parameter ('amp', 'T', 'beta') to extract from hdf5 file.
-            Default is 'amp'.
+        item_name : str
+            Name of the item to extract.
         component : str
             component name.
-        nside: int
-            Healpix map resolution.
-        lmax: int, optional
-            Maximum value for l used in data.
-            Default is None.
-        fwhm : float, scalar, optional
-            The fwhm of the Gaussian used to smooth the map (applied on alm)
-            [in degrees]
-            Default is 0.0.
-        multipole : int
-            A specific multipole. If provided, get_alms will extract
-            only this specific multipole. Defaults to None.
+        unpack_alms: bool, optional
+            If True, item will be asumed to be alms and will be unpacked.
+            Default is False.
+        multipoles : int, optional
+            Specific multipole to unpack. Default is None.
 
         Returns
         -------
-        alm_map : numpy.ndarray or list of 'numpy.ndarray'
-            A Healpix map in RING scheme at nside or a list of I,Q,U maps (if
-            polarized input)
+        item : float or numpy.ndarray
+            Extracted item.
 
         """
+        if unpack_alms and 'alm' not in item_name:
+            raise ValueError(
+                'Keyword alm is set to True, but item is not alms'
+            )
+        
+        if multipoles is not None and unpack_alms is False:
+            raise ValueError(
+                'Keyword unpack_alms must be set to True to get monopoles'
+            )
+
+        try:
+            self.model_params[component]
+        except KeyError:
+            raise KeyError(f'"{component}" is not a valid component')
+
         with h5py.File(self.data,'r') as f:
-            samples = sorted(list(f.keys()))
-            try:
-                data = f[(f'{samples[-2]}')][component]
-            except:
-                raise KeyError(f'"{component}" is not a valid component.')
+            samples = list(f.keys())
+            samples.pop(samples.index('parameters'))
 
-            try:
-                alms = data[f'{alm_param}_alm'][()]
+            if self.sample == 'mean':
+                try: 
+                    if f[samples[0]][component][item_name].ndim > 0:
+                        item = np.zeros_like(f[samples[0]][component][item_name])
+                    else:
+                        item = 0
+                except:
+                    raise KeyError(f'{item_name} does not exist in file')
 
-            except:
-                raise KeyError(f'"{alm_param}_alm" does not exist in file.')
-            
-            try:
-                lmax = data[f'{alm_param}_lmax'][()]
-            except:
-                raise KeyError(f'"{alm_param}_lmax" does not exist in file.')
+                for sample in samples:    
+                    item += f[sample][component][item_name][()]
 
-            if lmax <= 1:
-                polarization = False
-
-            if multipole is not None:
-                alms_unpacked = unpack_multipole(alms, lmax, multipole)
+                item /= len(samples)
 
             else:
-                alms_unpacked = unpack_alms(alms, lmax)
+                try: 
+                    item = f[self.sample][component][item_name]
+                except:
+                    raise KeyError(f'{item_name} does not exist in file')
 
+            if unpack_alms:
+                lmax_name = f"{item_name.split('_')[0]}_lmax"
+                try:
+                    lmax = f[samples[0]][component][lmax_name][()]
+                except:
+                    raise KeyError(f'{lmax_name} does not exist in file')
 
-            if hp.isnsideok(nside, nest=True):
-                alms_map = hp.alm2map(alms_unpacked, 
-                                      nside=nside, 
-                                      lmax=lmax, 
-                                      mmax=lmax, 
-                                      fwhm=fwhm.to('rad').value, 
-                                      pol=polarization, 
-                                      pixwin=True,
-                                      verbose=False)
-            else:
-                raise ValueError(f'nside: {nside} is not valid.')
+                if lmax <= 1:
+                    pol = False
+                else:
+                    pol = self.model_params[component]['polarization']
 
-        return alms_map
+                unpacked_alm = unpack_alms_from_chain(item, lmax)
+                items = hp.alm2map(unpacked_alm, 
+                                  nside=self.model_params[component]['nside'], 
+                                  lmax=int(lmax), 
+                                  mmax=int(lmax), 
+                                  fwhm=self.model_params[component]['fwhm'].to('rad').value, 
+                                  pol=pol,
+                                  pixwin=True,
+                                  verbose=False).astype('float32')
 
+                if multipoles is not None:
+                    items = {'amp':items}
+                    monopole_names = {0:'monopole', 1:'dipole', 2:'quadrupole'}
+                    for multipole in multipoles:
+                        unpacked_alm = unpack_alms_multipole_from_chain(item, lmax, multipole)
+                        items[monopole_names[multipole]] = hp.alm2map(unpacked_alm, 
+                                                                      nside=self.model_params[component]['nside'], 
+                                                                      lmax=int(lmax), 
+                                                                      mmax=int(lmax), 
+                                                                      fwhm=self.model_params[component]['fwhm'].to('rad').value, 
+                                                                      pol=pol,
+                                                                      pixwin=True,
+                                                                      verbose=False).astype('float32') 
 
+                    return items
+
+                return items
+
+        return item
 
 
 #Fix to OMP: Error #15 using numba
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 @njit
-def unpack_multipole(data, lmax, multipole=None):
+def unpack_alms_multipole_from_chain(data, lmax, multipole):
     """
     Unpacks a single multipole alm from the Commander chain output.
 
@@ -391,7 +398,7 @@ def unpack_multipole(data, lmax, multipole=None):
     return alms
 
 @njit
-def unpack_alms(data, lmax):
+def unpack_alms_from_chain(data, lmax):
     """
     Unpacks alms from the Commander chain output.
 
@@ -432,3 +439,102 @@ def unpack_alms(data, lmax):
                 i += 1
 
     return alms
+
+
+
+
+def reduce_chain(chainfile, method='mean', save=True, save_filename=None, 
+                 n_samples=10):
+    """
+    Creates a reduced version of a chainfile containing. The method of 
+    reduction is chosen by the method parameter. A reduced file always contains
+    a parameter group containing model parameters.
+
+    Parameters
+    ----------
+    chainfile : str, 'pathlib.Path'
+        Commander3 chainfile. Must be a hdf5 file.
+    method : str, optional
+        Method of reduction. Available methods are : mean (draws n_samples 
+        random samples, and averages the alm maps). Default is 'mean'.
+    save : bool, optional
+        If True, outputs a reduced chainfile. If False, returns all parameters
+        directly. Default is True.
+    save_filename : str, optional
+        Filename of output file. If None, and save=True, save_filename is 
+        f'reduced_{chainfile.name}'. Default is None
+
+    """
+
+
+    allowed_methods = ['mean', 'sample']
+    ignored_components = ['md', 'bandpass', 'tod', 'gain']
+
+    if save and save_filename is None:
+        try:
+            path = pathlib.Path(chainfile)
+        except:
+            raise TypeError(
+                f'Chainfile argument must be str or a os.PathLike '
+                'object.'
+            ) 
+        save_filename = f'{chainfile.parent}/reduced_{chainfile.name}'
+
+    maps = {}
+    if method not in allowed_methods:
+        raise KeyError(
+            "Keyword 'method' only accepts the following values: "
+            f"{allowed_methods}"
+        )
+
+    with h5py.File(save_filename, 'w') as reduced_chain:
+        chain = h5py.File(chainfile,'r') 
+        samples = list(chain.keys())
+        samples.sort()
+        parameter_group = samples.pop(-1)
+
+        if n_samples > len(samples):
+            n_samples = len(samples)
+
+        samples = random.sample(samples, n_samples)
+        samples.sort()
+
+        for sample in samples:
+            components = chain[sample]
+
+            for component in components:
+                if component not in ignored_components:
+                    if component not in maps:
+                        maps[component] = {}
+
+                    parameters = components[component]
+
+                    for parameter in parameters:
+                        if 'alm' in parameter:
+                            try:
+                                maps[component][parameter] += parameters[parameter][()]
+                            except KeyError:
+                                maps[component][parameter] = parameters[parameter][()]
+
+                            if sample is samples[-1]:
+                                maps[component][parameter] /= n_samples
+                        else:
+                            if parameter not in maps[component]:
+                                maps[component][parameter] = parameters[parameter][()]
+
+        if save:
+            sample_mean = reduced_chain.create_group('sample_mean')
+            for component in maps:
+                comp_group = sample_mean.create_group(component)
+
+                for parameter in maps[component]:
+                    comp_group.create_dataset(parameter, 
+                                              data=maps[component][parameter], 
+                                              dtype=np.float64)
+            
+            chain.copy(parameter_group, reduced_chain)    
+            return
+
+    return maps
+
+

@@ -8,40 +8,17 @@ class CMB(SkyComponent):
 
     """
     comp_label = 'cmb'
-
+    multipoles = [0, 1]
+    
     def __init__(self, data, **kwargs):
         super().__init__(data, **kwargs)
         self.kwargs = kwargs
-
-        if kwargs['nside'] is None:
-            nside = self.params['nside']
-        else:
-            nside = kwargs['nside']
-
-        if kwargs['fwhm']is None:
-            fwhm = self.params['fwhm']
-        else:
-            fwhm = kwargs['fwhm']
-
-        self.monopole = data.get_alms('amp',
-                                      self.comp_label, 
-                                      nside, 
-                                      self.params['polarization'], 
-                                      fwhm,
-                                      multipole=0)*u.uK
-        self.dipole = data.get_alms('amp',
-                                      self.comp_label, 
-                                      nside, 
-                                      self.params['polarization'], 
-                                      fwhm,
-                                      multipole=1)*u.uK
 
         if kwargs.get('remove_monopole', False):
             self.amp -= self.monopole
 
         if kwargs.get('remove_dipole', False):
             self.amp -= self.dipole
-
 
 
 
@@ -76,13 +53,13 @@ class BlackBody(CMB):
             Model emission at given frequency in units of K_RJ.
 
         """
-        emission = self.compute_emission(nu)
+        emission = self._compute_emission(nu)
 
         return emission
 
 
     @u.quantity_input(nu=u.Hz)
-    def compute_emission(self, nu):
+    def _compute_emission(self, nu):
         """
         Computes the simulated emission CMB of at a given frequency .
 
