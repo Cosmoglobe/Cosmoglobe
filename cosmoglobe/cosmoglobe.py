@@ -80,7 +80,7 @@ class Cosmoglobe:
         return new_model
 
 
-    def spectrum(self, models=None, pol=False, sky_frac=88, min=10, max=1000, num=50):
+    def spectrum(self, models=None, pol=False, sky_frac=88, start=10, stop=1000, num=50):
         """
         Produces a RMS SED for the given models.
 
@@ -96,9 +96,9 @@ class Cosmoglobe:
             is False.
         sky_frac : int, float, optional
             Fraction of the sky to compute RMS values for. Default is 88%.
-        min : int, float, optional
+        start : int, float, optional
             Minimum value of the frequency range to compute the spectrum over.
-        max : int, float, optional
+        stop : int, float, optional
             Maximum value of the frequency range to compute the spectrum over.
         num : int, optional
             Number of discrete frequencies to compute the RMS over. 
@@ -106,7 +106,7 @@ class Cosmoglobe:
 
         Returns
         -------
-        frecs: np.ndarray
+        freqs: np.ndarray
             Log spaces array of frequencies used to compute the spectrum.
         rms : dict
             Dictionary containing model name and RMS array pairs.
@@ -121,8 +121,8 @@ class Cosmoglobe:
             print(
                 'Computing SED spectrum with parameters:\n'
                 f'  sky_frac: {sky_frac}%\n'
-                f'  min frequency: {min} GHz\n'
-                f'  max frequency: {max} GHz\n'
+                f'  start frequency: {start} GHz\n'
+                f'  stop frequency: {stop} GHz\n'
                 f'  num discrete frequencies: {num}\n'
                 f'  signal: {signal_type}'
             )
@@ -140,7 +140,7 @@ class Cosmoglobe:
 
             
         mask = utils.create_70GHz_mask(sky_frac)
-        freqs = np.logspace(np.log10(min),np.log10(max), num)*u.GHz
+        freqs = np.logspace(np.log10(start), np.log10(stop), num)*u.GHz
         rms_dict = {model.comp_label:[] for model in models}
 
         for model in models:
@@ -167,6 +167,22 @@ class Cosmoglobe:
                     rms_dict[model.comp_label].append(np.sqrt(np.mean(I**2)))
 
         return freqs, rms_dict
+
+
+    @u.quantity_input(nu=u.Hz)
+    def full_sky(self, nu, models=None):
+
+        if models is None:
+            models = self.initialized_models
+
+        full_emission = np.zeros_like(models[0].amp)
+        for model in models:
+            if self.verbose:
+                print(f'Simulating {model.comp_label!r} at {nu}')
+            full_emission += model[nu]
+
+        return full_emission
+
 
 
     def _reduce_chainfile(self, method='mean', save=True, save_filename=None,
