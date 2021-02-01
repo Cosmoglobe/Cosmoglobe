@@ -200,11 +200,11 @@ class Chain:
                 params = components[component]
 
                 for param in params:
-                    if isinstance(params[param][()], bytes):
-                        model_params[component][param] = params[param][()].decode("utf-8")
-
+                    if isinstance(params[param][()], (bytes, np.byte)):
+                        model_params[component][param] = params[param].asstr()[()]
+                    
                     else:
-                        if len(np.shape(params[param][()])) > 0:
+                        if params[param][()].ndim > 0:
                             model_params[component][param] = params[param][()]
                         else:
                             model_params[component][param] = params[param][()].item()
@@ -220,7 +220,7 @@ class Chain:
             elif model_params[component]['polarization'] == 'False':
                 model_params[component]['polarization'] = False
                 model_params[component]['nu_ref'] = model_params[component]['nu_ref'][0]
-
+        print(model_params['dust'])
         return model_params
 
 
@@ -345,23 +345,21 @@ class Chain:
 
                 if multipoles is not None:
                     items = {'amp':items}
-                    monopole_names = {0:'monopole', 1:'dipole', 2:'quadrupole'}
+                    pole_names = {0:'monopole', 1:'dipole', 2:'quadrupole'}
 
                     for multipole in multipoles:
                         unpacked_alm = unpack_alms_multipole_from_chain(item, int(lmax), multipole)
-                        items[monopole_names[multipole]] = hp.alm2map(unpacked_alm, 
-                                                                      nside=self.model_params[component]['nside'], 
-                                                                      lmax=int(lmax), 
-                                                                      mmax=int(lmax), 
-                                                                      fwhm=self.model_params[component]['fwhm'].to('rad').value, 
-                                                                      pol=pol,
-                                                                      pixwin=True,
-                                                                      verbose=False).astype('float32') 
+                        items[pole_names[multipole]] = hp.alm2map(unpacked_alm, 
+                                                                  nside=self.model_params[component]['nside'], 
+                                                                  lmax=int(lmax), 
+                                                                  mmax=int(lmax), 
+                                                                  fwhm=self.model_params[component]['fwhm'].to('rad').value, 
+                                                                  pol=pol,
+                                                                  pixwin=True,
+                                                                  verbose=False).astype('float32') 
 
                     return items
-
                 return items
-
         return item
 
 
