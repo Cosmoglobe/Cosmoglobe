@@ -26,7 +26,7 @@ class Cosmoglobe:
     
     """
 
-    def __init__(self, data, sample='mean', verbose=True):
+    def __init__(self, data, sample='mean', burnin=None, verbose=True):
         """
         Initializes the Cosmoglobe sky object.
 
@@ -35,13 +35,25 @@ class Cosmoglobe:
         data : str
             Path to Commander chain directory or chain h5 file. Defaults to 
             standard Cosmoglobe data directory.
+        sample : str, optional
+            If sample is 'mean', quantities from the chainfile will be averaged 
+            over all samples. Else sample must be a sample number whose 
+            quantities will be used.
+            Default : 'mean'
+        burnin : int, optional
+            Discards all samples prior to and including burnin.
+            Default : None
+        verbose : bool, optional
+            If True, provides additional details of the performed computations.
+            Default : True
 
         """
         self.data = data
         self.sample = sample
+        self.burnin = burnin
         self.verbose = verbose
 
-        self.chain = chain.Chain(data, sample)
+        self.chain = chain.Chain(data, sample, burnin)
         self.initialized_models = []
 
 
@@ -90,6 +102,9 @@ class Cosmoglobe:
         ----------
         nu : astropy.units.quantity.Quantity
             Frequency at which to evaluate the models.
+        models : list
+            List of models to compute the emission for.
+            Default : None
 
         Returns
         -------
@@ -110,7 +125,7 @@ class Cosmoglobe:
 
 
     @u.quantity_input(start=u.Hz, stop=u.Hz)
-    def spectrum(self, models=None, pol=False, sky_frac=88, start=10*u.GHz, 
+    def spectrum(self, models=None, pol=False, sky_frac=88, start=10*u.GHz,
                  stop=1000*u.GHz, num=50):
         """
         Produces a RMS SED for the given models.
@@ -203,31 +218,27 @@ class Cosmoglobe:
         return freqs, rms_dict
 
 
-    def _reduce_chainfile(self, method='mean', save=True, save_filename=None,
-                         n_samples=10):
+    def _reduce_chainfile(self, fname=None, method='mean', nsamples=None):
         """
-        Reduces a larger chainfile.
+        Reduces a larger chainfile by averaging all, or n randomly selected 
+        samples.
 
         Parameters
         ----------
-        chainfile : str, 'pathlib.Path'
-            Commander3 chainfile. Must be a hdf5 file.
+        fname : str, optional
+            Filename of output. If None, fname is f'reduced_{chainfile.name}'.
+            Default : None
         method : str, optional
-            Method of reduction. Available methods are : mean (draws n_samples 
-            random samples, and averages the alm maps). Default is 'mean'.
-        save : bool, optional
-            If True, outputs a reduced chainfile. If False, returns all parameters
-            directly. Default is True.
-        save_filename : str, optional
-            Filename of output file. If None, and save=True, save_filename is 
-            f'reduced_{chainfile.name}'. Default is None
-            """
-        chain.reduce_chain(self.datapath, 
-                           method, 
-                           save, 
-                           save_filename, 
-                           n_samples)
+            Method of reduction. Currently available methods are 'mean', 'sample.
+            if method : 'sample, then all but the selected sample is removed from
+            the output.
+            Default : 'mean'
+        nsamples : int, optional
+            Number of samples averaged in the chain files.
+            Default : None
 
+            """
+        chain.reduce_chain(self.data, fname, method, nsamples)
 
     def __repr__(self):
         if isinstance(self.data, pathlib.PosixPath):

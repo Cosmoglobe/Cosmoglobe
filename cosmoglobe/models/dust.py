@@ -14,6 +14,7 @@ k_B = const.k_B.value
 class Dust(SkyComponent):
     """
     Parent class for all Dust models.
+    
     """
     comp_label = 'dust'
 

@@ -13,6 +13,7 @@ k_B = const.k_B
 class FreeFree(SkyComponent):
     """
     Parent class for all Free-Free models.
+    
     """
     comp_label = 'ff'
 

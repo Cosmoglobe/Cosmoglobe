@@ -51,9 +51,7 @@ class Chain:
 
     """
 
-    allowed_methods = ['mean', 'sample']
-
-    def __init__(self, chainfile, sample='mean'):
+    def __init__(self, chainfile, sample='mean', burnin=None):
         """
         Initializes the chain object from a give Commander3 chainfile.
 
@@ -70,13 +68,13 @@ class Chain:
 
         """
 
-        self.data, self.sample = self._validate_chainfile(chainfile, sample)
+        self.data, self.sample, self.burnin = self._validate_chainfile(chainfile, sample, burnin)
         self.components = self.get_components()
         self.model_params = self.get_model_params()
 
 
     @staticmethod
-    def _validate_chainfile(path, sample):
+    def _validate_chainfile(path, sample, burnin):
         """
         Validates that the given path is of a type and format that matches a
         Commander3 hdf5 output chainfile, and then returns file as a pathlib
@@ -131,7 +129,7 @@ class Chain:
                             f['parameters']
                         except KeyError:
                             raise KeyError(
-                                f'Chainfile does not contain a parameters '
+                                'Chainfile does not contain a parameters '
                                 'group. Make sure the chainfile was produced '
                                 'with an updated version of Commander3'
                             )
@@ -144,8 +142,16 @@ class Chain:
                                 f[sample]
                             except KeyError:
                                 raise KeyError(
-                                    f'Chainfile does not contain sample {sample!r}'
+                                    'Chainfile does not contain sample '
+                                    f'{sample!r}'
                                 )
+
+                        if burnin is not None and len(f) < burnin + 1:
+                            raise ValueError(
+                                'Burn-in number must be smaller than the '
+                                'total sample number'
+                            )
+
                 except OSError:
                     raise OSError(
                         f'{path.name!r} has an invalid hdf5 format. Make sure '
@@ -161,7 +167,7 @@ class Chain:
             f'No such file or directory: {str(path)!r}'
         )
 
-        return path, sample
+        return path, sample, burnin
       
 
     def get_components(self):
@@ -292,6 +298,9 @@ class Chain:
             samples = list(f.keys())
             samples.pop(samples.index('parameters'))
 
+            if self.burnin is not None:
+                samples = samples[self.burnin:]
+
             if self.sample == 'mean':
                 try: 
                     if f[samples[0]][component][item_name].ndim > 0:
@@ -300,7 +309,7 @@ class Chain:
                         item = 0
                 except:
                     raise KeyError(f'{item_name} does not exist in file')
-
+                
                 for sample in samples:    
                     item += f[sample][component][item_name][()]
 
@@ -324,7 +333,7 @@ class Chain:
                 else:
                     pol = self.model_params[component]['polarization']
 
-                unpacked_alm = unpack_alms_from_chain(item, lmax)
+                unpacked_alm = unpack_alms_from_chain(item, int(lmax))
                 items = hp.alm2map(unpacked_alm, 
                                   nside=self.model_params[component]['nside'], 
                                   lmax=int(lmax), 
@@ -337,8 +346,9 @@ class Chain:
                 if multipoles is not None:
                     items = {'amp':items}
                     monopole_names = {0:'monopole', 1:'dipole', 2:'quadrupole'}
+
                     for multipole in multipoles:
-                        unpacked_alm = unpack_alms_multipole_from_chain(item, lmax, multipole)
+                        unpacked_alm = unpack_alms_multipole_from_chain(item, int(lmax), multipole)
                         items[monopole_names[multipole]] = hp.alm2map(unpacked_alm, 
                                                                       nside=self.model_params[component]['nside'], 
                                                                       lmax=int(lmax), 
@@ -448,33 +458,22 @@ def unpack_alms_from_chain(data, lmax):
 
 
 
-def reduce_chain(chainfile, method='mean', save_filename=None, n_samples=None):
+def reduce_chain(chainfile, fname=None, burnin=None):
     """
-    Creates a reduced version of a chainfile containing. The method of 
-    reduction is chosen by the method parameter. A reduced file always contains
-    a parameter group containing model parameters.
+    Reduces a larger chainfile by averaging all, or n randomly selected 
+    samples.
 
     Parameters
     ----------
-    chainfile : str, 'pathlib.Path'
-        Commander3 chainfile. Must be a hdf5 file.
-    method : str, optional
-        Method of reduction. Available methods are : mean (draws n_samples 
-        random samples, and averages the alm maps). Default is 'mean'.
-    save : bool, optional
-        If True, outputs a reduced chainfile. If False, returns all parameters
-        directly. Default is True.
-    save_filename : str, optional
-        Filename of output file. If None, and save=True, save_filename is 
-        f'reduced_{chainfile.name}'. Default is None
+    fname : str, optional
+        Filename of output. If None, fname is f'reduced_{chainfile.name}'.
+        Default : None
+    
+        """
 
-    """
-
-
-    allowed_methods = ['mean', 'sample']
     ignored_components = ['md', 'bandpass', 'tod', 'gain']
 
-    if save_filename is None:
+    if fname is None:
         try:
             chainfile = pathlib.Path(chainfile)
         except:
@@ -482,57 +481,66 @@ def reduce_chain(chainfile, method='mean', save_filename=None, n_samples=None):
                 f'Chainfile argument must be str or a os.PathLike '
                 'object.'
             ) 
-        save_filename = f'{chainfile.parent}/reduced_{chainfile.name}'
+        fname = f'{chainfile.parent}/reduced_{chainfile.name}'
 
-    maps = {}
-    if method not in allowed_methods:
-        raise KeyError(
-            "Keyword 'method' only accepts the following values: "
-            f"{allowed_methods}"
-        )
-
-    with h5py.File(save_filename, 'w') as reduced_chain:
+    with h5py.File(fname, 'w') as reduced_chain:
         chain = h5py.File(chainfile,'r') 
         samples = list(chain.keys())
-        samples.sort()
-        parameter_group = samples.pop(-1)
+        parameter_group = samples.pop(samples.index('parameters'))
 
-        if n_samples > len(samples):
-            n_samples = len(samples)
+        nsamples = len(samples)
+        if burnin is not None:
+            if burnin >= nsamples:
+                raise ValueError(
+                    'Burn-in number must be smaller than the '
+                    'total sample number'
+                )
+            else:
+                samples = samples[burnin:]
 
-        samples = random.sample(samples, n_samples)
-        samples.sort()
 
-        for sample in samples:
+        maps = {}
+        for component in chain[samples[0]]:
+            if component not in ignored_components:
+                maps[component] = {key:value[()] for key, value in 
+                                   chain[samples[0]][component].items()}
+
+        for sample in samples[1:]:
             components = chain[sample]
 
             for component in components:
                 if component not in ignored_components:
-                    if component not in maps:
-                        maps[component] = {}
-
                     parameters = components[component]
 
                     for parameter in parameters:
-                        if 'alm' in parameter:
-                            try:
-                                maps[component][parameter] += parameters[parameter][()]
-                            except KeyError:
-                                maps[component][parameter] = parameters[parameter][()]
+                        value = parameters[parameter][()]
+                        maps[component][parameter] += value
 
-                            if sample is samples[-1]:
-                                maps[component][parameter] /= n_samples
-                        else:
-                            if parameter not in maps[component]:
-                                maps[component][parameter] = parameters[parameter][()]
+                        if sample is samples[-1]:
+                            if np.issubdtype(value.dtype, np.integer):
+                                maps[component][parameter] //= nsamples
+                            else:
+                                maps[component][parameter] /= nsamples
+ 
 
         sample_mean = reduced_chain.create_group('sample_mean')
         for component in maps:
             comp_group = sample_mean.create_group(component)
+
             for parameter in maps[component]:
-                comp_group.create_dataset(parameter, 
-                                          data=maps[component][parameter], 
-                                          dtype=np.float64)
+                value = maps[component][parameter]
+
+                if np.issubdtype(value.dtype, np.integer):
+                    dtype = np.int32
+                elif np.issubdtype(value.dtype, np.floating):
+                    dtype = np.float32
+                else:
+                    raise TypeError (
+                    f'Unsupported dtype = {value.dtype!r} for parameter {parameter!r} in '
+                    f'component {component!r}'
+                )
+
+                comp_group.create_dataset(parameter, data=value, dtype=dtype)
         
         chain.copy(parameter_group, reduced_chain)    
 
