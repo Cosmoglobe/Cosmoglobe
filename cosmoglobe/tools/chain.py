@@ -412,6 +412,7 @@ def unpack_alms_multipole_from_chain(data, lmax, multipole):
                 i += 1
     return alms
 
+
 @njit
 def unpack_alms_from_chain(data, lmax):
     """
@@ -456,8 +457,6 @@ def unpack_alms_from_chain(data, lmax):
     return alms
 
 
-
-
 def reduce_chain(chainfile, fname=None, burnin=None):
     """
     Reduces a larger chainfile by averaging all, or n randomly selected 
@@ -467,6 +466,9 @@ def reduce_chain(chainfile, fname=None, burnin=None):
     ----------
     fname : str, optional
         Filename of output. If None, fname is f'reduced_{chainfile.name}'.
+        Default : None
+    burnin : int, optional
+        Discards all samples prior to and including burnin.
         Default : None
     
         """
@@ -488,6 +490,9 @@ def reduce_chain(chainfile, fname=None, burnin=None):
         samples = list(chain.keys())
         parameter_group = samples.pop(samples.index('parameters'))
 
+        chain.copy(parameter_group, reduced_chain)    
+        sample_mean = reduced_chain.create_group('sample_mean')
+
         nsamples = len(samples)
         if burnin is not None:
             if burnin >= nsamples:
@@ -497,7 +502,6 @@ def reduce_chain(chainfile, fname=None, burnin=None):
                 )
             else:
                 samples = samples[burnin:]
-
 
         maps = {}
         for component in chain[samples[0]]:
@@ -511,6 +515,7 @@ def reduce_chain(chainfile, fname=None, burnin=None):
             for component in components:
                 if component not in ignored_components:
                     parameters = components[component]
+                    comp_group = sample_mean.create_group(component)
 
                     for parameter in parameters:
                         value = parameters[parameter][()]
@@ -521,27 +526,7 @@ def reduce_chain(chainfile, fname=None, burnin=None):
                                 maps[component][parameter] //= nsamples
                             else:
                                 maps[component][parameter] /= nsamples
- 
 
-        sample_mean = reduced_chain.create_group('sample_mean')
-        for component in maps:
-            comp_group = sample_mean.create_group(component)
-
-            for parameter in maps[component]:
-                value = maps[component][parameter]
-
-                if np.issubdtype(value.dtype, np.integer):
-                    dtype = np.int32
-                elif np.issubdtype(value.dtype, np.floating):
-                    dtype = np.float32
-                else:
-                    raise TypeError (
-                    f'Unsupported dtype = {value.dtype!r} for parameter {parameter!r} in '
-                    f'component {component!r}'
-                )
-
-                comp_group.create_dataset(parameter, data=value, dtype=dtype)
-        
-        chain.copy(parameter_group, reduced_chain)    
-
-
+                            comp_group.create_dataset(parameter, 
+                                                      data=maps[component][parameter], 
+                                                      dtype=value.dtype.type)

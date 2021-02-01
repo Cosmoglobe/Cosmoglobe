@@ -113,7 +113,10 @@ class Cosmoglobe:
 
         """
         if models is None:
-            models = self.initialized_models
+            if self.initialized_models:
+                models = self.initialized_models
+            else:
+                raise ValueError('No models initialized.')
 
         full_emission = np.zeros_like(models[0].amp)
         for model in models:
