@@ -218,27 +218,19 @@ class Cosmoglobe:
         return freqs, rms_dict
 
 
-    def _reduce_chainfile(self, fname=None, method='mean', nsamples=None):
+    def reduce_chainfile(self, fname=None):
         """
-        Reduces a larger chainfile by averaging all, or n randomly selected 
-        samples.
+        Reduces a larger chainfile by averaging samples.
 
         Parameters
         ----------
         fname : str, optional
             Filename of output. If None, fname is f'reduced_{chainfile.name}'.
             Default : None
-        method : str, optional
-            Method of reduction. Currently available methods are 'mean', 'sample.
-            if method : 'sample, then all but the selected sample is removed from
-            the output.
-            Default : 'mean'
-        nsamples : int, optional
-            Number of samples averaged in the chain files.
-            Default : None
 
             """
-        chain.reduce_chain(self.data, fname, method, nsamples)
+        chain.reduce_chain(self.data, fname, self.burnin)
+
 
     def __repr__(self):
         if isinstance(self.data, pathlib.PosixPath):
