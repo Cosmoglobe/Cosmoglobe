@@ -22,10 +22,10 @@ class SkyComponent:
 
         Parameters
         ----------
-        chain : 'cosmoglobe.tools.chain.Chain'
+        chain : cosmoglobe.tools.chain.Chain
             Commander3 chainfile object.
-        **kwargs : dict
-            Additional keywords. Valid keywords can vary from 
+        kwargs : dict
+            Additional keyword value pairs. Valid keywords can vary from 
             component to component.
 
         """
@@ -34,8 +34,8 @@ class SkyComponent:
 
         attributes = self._get_model_attributes()
         self._set_model_attributes(attributes=attributes, 
-                                   nside=kwargs.get('nside', None), 
-                                   fwhm=kwargs.get('fwhm', None))
+                                   nside=kwargs['nside'], 
+                                   fwhm=kwargs['fwhm'])
 
 
     def _get_model_attributes(self):

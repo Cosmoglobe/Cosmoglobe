@@ -12,6 +12,7 @@ data_path = os.path.dirname(data_dir.__file__) + '/'
 class AME(SkyComponent):
     """
     Parent class for all AME models.
+    
     """
     comp_label = 'ame'
 
