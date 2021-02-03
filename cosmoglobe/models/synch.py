@@ -15,7 +15,6 @@ class Synchrotron(SkyComponent):
         self.kwargs = kwargs
 
 
-
 class PowerLaw(Synchrotron):
     """Model for power law emission for synchrotron."""
 
@@ -32,7 +31,6 @@ class PowerLaw(Synchrotron):
         Makes use of numba to speed up computations. Numba does not support
         astropy, so astropy objects are converted to pure values or 
         numpy.ndarrays during computation.
-
 
         Parameters
         ----------
@@ -77,7 +75,7 @@ class PowerLaw(Synchrotron):
             Modeled synchrotron emission at a given frequency.
 
         """
-        nu_ref = nu_ref.reshape(len(nu_ref), 1)
+        nu_ref = np.expand_dims(nu_ref, axis=1)
         emission = np.copy(amp)
         emission *= (nu/nu_ref)**beta
 
