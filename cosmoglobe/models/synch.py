@@ -6,8 +6,10 @@ from .skycomponent import SkyComponent
 
 
 class Synchrotron(SkyComponent):
-    """Parent class for all Synchrotron models."""
+    """
+    Parent class for all Synchrotron models.
 
+    """
     comp_label = 'synch'
 
     def __init__(self, data, **kwargs):
@@ -16,8 +18,10 @@ class Synchrotron(SkyComponent):
 
 
 class PowerLaw(Synchrotron):
-    """Model for power law emission for synchrotron."""
+    """
+    Model for power law emission for synchrotron.
 
+    """
     model_label = 'power_law'
 
     def __init__(self, data, nside=None, fwhm=None):

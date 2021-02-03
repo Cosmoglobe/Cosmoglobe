@@ -116,6 +116,7 @@ def create_70GHz_mask(sky_frac):
 def timer(function):
     """
     Timer decorator for development purposes.
+
     """
     def wrapper(*args, **kwargs):
         start = time.time()

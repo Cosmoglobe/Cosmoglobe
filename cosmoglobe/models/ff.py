@@ -10,8 +10,10 @@ k_B = const.k_B
 
 
 class FreeFree(SkyComponent):
-    """Parent class for all Free-Free models."""
+    """
+    Parent class for all Free-Free models.
     
+    """
     comp_label = 'ff'
 
     def __init__(self, data, **kwargs):
@@ -20,8 +22,10 @@ class FreeFree(SkyComponent):
 
 
 class LinearOpticallyThin(FreeFree):
-    """Linearized model only valid in the optically thin case (tau << 1)."""
-
+    """
+    Linearized model only valid in the optically thin case (tau << 1).
+    
+    """
     model_label= 'freefree'
     other_quantities = ('Te_map',)
 
