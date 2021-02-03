@@ -170,10 +170,8 @@ class Chain:
       
 
     def get_components(self):
-        """
-        Returns a list of all sky components present in a gibbs sample.
-
-        """
+        """Returns a list of all sky components present in a gibbs sample."""
+        
         with h5py.File(self.data,'r') as f:
             components = list(f['parameters'])
 
@@ -187,10 +185,8 @@ class Chain:
 
 
     def get_model_params(self):
-        """
-        Returns a dictionary containing all model parameters.
-        
-        """   
+        """Returns a dictionary containing all model parameters."""   
+
         with h5py.File(self.data,'r') as f:
             components = f['parameters']
             model_params = {component: {} for component in components}

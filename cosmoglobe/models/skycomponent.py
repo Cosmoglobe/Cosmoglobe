@@ -3,11 +3,7 @@ import astropy.units as u
 import healpy as hp
 import numpy as np
 
-h = const.h
-c = const.c
-k_B = const.k_B
-T_0 = 2.7255*u.K
-
+from ..tools.utils import KRJ_to_KCMB, KCMB_to_KRJ
 
 class SkyComponent:
     """Generalized template for all sky models."""
@@ -145,47 +141,19 @@ class SkyComponent:
             raise ValueError(f'nside: {nside} is not valid.')
 
 
-    @staticmethod
-    @u.quantity_input(input_map=u.K, nu=u.Hz)
-    def _KRJ_to_KCMB(input_map, nu):
-        """
-        Converts input map from units of K_RJ to K_CMB.
+    def to_KCMB(self):
+        """Converts input map from units of K_RJ to K_CMB."""
 
-        Parameters
-        ----------
-        input_map : astropy.units.quantity.Quantity
-            Healpix map in units of K_RJ.
-        Returns
-        -------
-        astropy.units.quantity.Quantity
-            Output map in units of K_CMB.
+        nu_ref = np.expand_dims(self.params['nu_ref'], axis=1)
 
-        """
-        x = (h*nu) / (k_B*T_0)
-        scaling_factor = (np.expm1(x)**2) / (x**2 * np.exp(x))
-    
-        return input_map*scaling_factor
+        return KRJ_to_KCMB(self.amp, nu_ref)
 
 
-    @staticmethod
-    @u.quantity_input(input_map=u.K, nu=u.Hz)
-    def _KCMB_to_KRJ(input_map, nu):
-        """
-        Converts input map from units of K_CMB to K_RJ.
+    def to_KRJ(self):
+        """Converts input map from units of K_CMB to K_RJ."""
+        nu_ref = np.expand_dims(self.params['nu_ref'], axis=1)
 
-        Parameters
-        ----------
-        input_map : astropy.units.quantity.Quantity
-            Healpix map in units of K_RJ.
-        Returns
-        -------
-        astropy.units.quantity.Quantity
-            Output map in units of K_CMB.
-
-        """
-        x = (h*nu) / (k_B*T_0)
-        scaling_factor = (np.expm1(x)**2) / (x**2 * np.exp(x))
-        return input_map/scaling_factor
+        return KCMB_to_KRJ(self.amp, nu_ref)
 
 
     @u.quantity_input(nu=u.Hz)

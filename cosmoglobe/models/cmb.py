@@ -1,6 +1,7 @@
 import astropy.units as u
 
 from .skycomponent import SkyComponent
+from ..tools.utils import KRJ_to_KCMB, KCMB_to_KRJ
 
 
 class CMB(SkyComponent):
@@ -18,7 +19,6 @@ class CMB(SkyComponent):
 
         if kwargs.get('remove_dipole', False):
             self.amp -= self.dipole
-
 
 
 class BlackBody(CMB):
@@ -73,4 +73,4 @@ class BlackBody(CMB):
         """
         emission = self.amp.copy()
     
-        return self._KCMB_to_KRJ(emission, nu).to(u.uK)
+        return KCMB_to_KRJ(emission, nu).to(u.uK)

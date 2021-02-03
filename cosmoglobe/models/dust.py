@@ -20,7 +20,6 @@ class Dust(SkyComponent):
         self.kwargs = kwargs
 
 
-
 class ModifiedBlackbody(Dust):
     """Model for modifed blackbody emission from thermal dust."""    
 
@@ -83,7 +82,7 @@ class ModifiedBlackbody(Dust):
             Modeled modified blackbody emission at a given frequency.
 
         """
-        nu_ref = nu_ref.reshape(len(nu_ref), 1)
+        nu_ref = np.expand_dims(nu_ref, axis=1)
         
         emission = np.copy(amp)
         emission *= (nu/nu_ref)**(beta-2)       # Converting to K_RJ with (-2)

@@ -1,3 +1,5 @@
+import astropy.units as u
+import astropy.constants as const
 import healpy as hp
 import numpy as np
 import os
@@ -5,7 +7,58 @@ import time
 
 from .. import data as data_dir
 
+h = const.h
+c = const.c
+k_B = const.k_B
+T_0 = 2.7255*u.K
+
 data_path = os.path.dirname(data_dir.__file__) + '/'
+
+
+def normalize_weights(bandpass, unit='K_RJ'):
+    if unit.lower() not in ('k_rj', 'jy', 'jy/sr'):
+        pass
+    weights = bandpass/np.sum(bandpass)
+
+    return weights
+
+
+@u.quantity_input(input_map=u.K, nu=u.Hz)
+def KRJ_to_KCMB(input_map, nu):
+    """
+    Converts input map from units of K_RJ to K_CMB.
+    Parameters
+    ----------
+    input_map : astropy.units.quantity.Quantity
+        Healpix map in units of K_RJ.
+    Returns
+    -------
+    astropy.units.quantity.Quantity
+        Output map in units of K_CMB.
+    """
+    x = (h*nu) / (k_B*T_0)
+    scaling_factor = (np.expm1(x)**2) / (x**2 * np.exp(x))
+
+    return input_map*scaling_factor
+
+
+@u.quantity_input(input_map=u.K, nu=u.Hz)
+def KCMB_to_KRJ(input_map, nu):
+    """
+    Converts input map from units of K_CMB to K_RJ.
+    Parameters
+    ----------
+    input_map : astropy.units.quantity.Quantity
+        Healpix map in units of K_RJ.
+    Returns
+    -------
+    astropy.units.quantity.Quantity
+        Output map in units of K_CMB.
+    """
+    x = (h*nu) / (k_B*T_0)
+    scaling_factor = (np.expm1(x)**2) / (x**2 * np.exp(x))
+
+    return input_map/scaling_factor
 
 
 def create_70GHz_mask(sky_frac):
@@ -73,3 +126,8 @@ def timer(function):
 
     return wrapper
         
+
+if __name__ == '__main__':
+    bandpass = '../../../Cosmoglobe_test_data/wmap_bandpass.txt'
+    freqs, det1, det2 = np.loadtxt(bandpass, unpack=True)
+    weight = normalize_weights(det1)
