@@ -5,8 +5,10 @@ from ..tools.utils import KRJ_to_KCMB, KCMB_to_KRJ
 
 
 class CMB(SkyComponent):
-    """Parent class for all CMB models."""
-
+    """
+    Parent class for all CMB models.
+    
+    """
     comp_label = 'cmb'
     multipoles = (0, 1)
     
@@ -22,8 +24,10 @@ class CMB(SkyComponent):
 
 
 class BlackBody(CMB):
-    """Model for BlackBody CMB emission."""
-
+    """
+    Model for BlackBody CMB emission.
+    
+    """
     model_label = 'cmb'
 
     def __init__(self, data, nside=None, fwhm=None,

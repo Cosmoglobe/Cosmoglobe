@@ -11,8 +11,10 @@ k_B = const.k_B.value
 
 
 class Dust(SkyComponent):
-    """Parent class for all Dust models."""
-
+    """
+    Parent class for all Dust models.
+    
+    """
     comp_label = 'dust'
 
     def __init__(self, data, **kwargs):
@@ -21,8 +23,10 @@ class Dust(SkyComponent):
 
 
 class ModifiedBlackbody(Dust):
-    """Model for modifed blackbody emission from thermal dust."""    
-
+    """
+    Model for modifed blackbody emission from thermal dust.
+    
+    """
     model_label = 'MBB'
 
     def __init__(self, data, nside=None, fwhm=None):

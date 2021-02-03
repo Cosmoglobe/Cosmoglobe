@@ -6,8 +6,11 @@ import numpy as np
 from ..tools.utils import KRJ_to_KCMB, KCMB_to_KRJ
 
 class SkyComponent:
-    """Generalized template for all sky models."""
-
+    """
+    Generalized template for all sky models.
+    
+    """
+    
     def __init__(self, chain, **kwargs):
         """
         Initializes model attributes and methods for a sky component.
@@ -30,8 +33,10 @@ class SkyComponent:
 
 
     def _get_model_attributes(self):
-        """Returns a dictionary of maps and other model attributes."""
-
+        """
+        Returns a dictionary of maps and other model attributes.
+        
+        """
         attributes = {}
         attributes_list = self.chain.get_alm_list(self.comp_label)
 
@@ -142,15 +147,26 @@ class SkyComponent:
 
 
     def to_KCMB(self):
-        """Converts input map from units of K_RJ to K_CMB."""
-
+        """
+        Converts input map from units of K_RJ to K_CMB.
+        
+        """
+        if self.params['unit'].lower() != 'uk_rj':
+            raise ValueError(f'Unit is already {self.params["unit"]!r}')
+        
         nu_ref = np.expand_dims(self.params['nu_ref'], axis=1)
 
         return KRJ_to_KCMB(self.amp, nu_ref)
 
 
     def to_KRJ(self):
-        """Converts input map from units of K_CMB to K_RJ."""
+        """
+        Converts input map from units of K_CMB to K_RJ.
+
+        """
+        if self.params['unit'].lower() != 'uk_cmb':
+            raise ValueError(f'Unit is already {self.params["unit"]!r}')
+
         nu_ref = np.expand_dims(self.params['nu_ref'], axis=1)
 
         return KCMB_to_KRJ(self.amp, nu_ref)

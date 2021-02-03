@@ -10,8 +10,10 @@ data_path = os.path.dirname(data_dir.__file__) + '/'
 
 
 class AME(SkyComponent):
-    """Parent class for all AME models."""
-
+    """
+    Parent class for all AME models.
+    
+    """
     comp_label = 'ame'
 
     def __init__(self, data, **kwargs):
@@ -20,8 +22,10 @@ class AME(SkyComponent):
 
 
 class SpinningDust2(AME):
-    """Model for spinning dust emission."""    
-
+    """
+    Model for spinning dust emission.
+    
+    """    
     model_label = 'spindust2'
     other_quantities = ('nu_p_map',)
 

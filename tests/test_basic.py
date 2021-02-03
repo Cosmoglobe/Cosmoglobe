@@ -24,24 +24,22 @@ cosmo = Cosmoglobe(data, sample='mean')
 
 cmb = cosmo.model('cmb', remove_dipole=True, remove_monopole=True)
 synch = cosmo.model('synch')
-# synch_RJ = synch.to_KCMB()
-# hp.mollview(synch_RJ[0], norm='hist')
-# plt.show()
 dust = cosmo.model('dust')
 ff = cosmo.model('ff')
 ame = cosmo.model('ame')
 
+
 # frequency_map = cosmo.full_sky(nu=1000*u.GHz)
 # hp.mollview(frequency_map[0], min=0, max=2000)
 
-freqs, rms = cosmo.spectrum()
-for model, model_rms in rms.items():
-    plt.loglog(freqs, model_rms, label=model)
+# freqs, rms = cosmo.spectrum()
+# for model, model_rms in rms.items():
+#     plt.loglog(freqs, model_rms, label=model)
 
-plt.ylim(1e-2, 1e3)
-plt.xlabel('Frequency [GHz]')
-plt.ylabel('RMS brightness temperature [muK]')
-plt.legend()
+# plt.ylim(1e-2, 1e3)
+# plt.xlabel('Frequency [GHz]')
+# plt.ylabel('RMS brightness temperature [muK]')
+# plt.legend()
 
-plt.show()
+# plt.show()
 
