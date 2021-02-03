@@ -1,9 +1,8 @@
-import numpy as np
-import healpy as hp
-import astropy.units as u
 import astropy.constants as const
+import astropy.units as u
+import healpy as hp
+import numpy as np
 
-# Initializing common astrophy units
 h = const.h
 c = const.c
 k_B = const.k_B
@@ -11,10 +10,7 @@ T_0 = 2.7255*u.K
 
 
 class SkyComponent:
-    """
-    Generalized template for all sky models.
-
-    """
+    """Generalized template for all sky models."""
 
     def __init__(self, chain, **kwargs):
         """
@@ -34,15 +30,12 @@ class SkyComponent:
 
         attributes = self._get_model_attributes()
         self._set_model_attributes(attributes=attributes, 
-                                   nside=kwargs['nside'], 
-                                   fwhm=kwargs['fwhm'])
+                                   nside=kwargs['nside'], fwhm=kwargs['fwhm'])
 
 
     def _get_model_attributes(self):
-        """
-        Returns a dictionary of maps and other model attributes.
+        """Returns a dictionary of maps and other model attributes."""
 
-        """
         attributes = {}
         attributes_list = self.chain.get_alm_list(self.comp_label)
 
@@ -57,10 +50,10 @@ class SkyComponent:
                 unpack_alms = False  
                 attr_name = attr
 
-            item = self.chain.get_item(item_name=attr, 
-                                       component=self.comp_label, 
-                                       unpack_alms=unpack_alms, 
-                                       multipoles=getattr(self, 'multipoles', None))
+            item = self.chain.get_item(
+                item_name=attr, component=self.comp_label, 
+                unpack_alms=unpack_alms, 
+                multipoles=getattr(self, 'multipoles', None))
 
             if isinstance(item, dict):
                 for key, value in item.items():
@@ -97,25 +90,26 @@ class SkyComponent:
         if fwhm is not None:
             if not isinstance(fwhm, u.Quantity):
                 raise u.UnitsError(
-                    'Fwhm must be an astropy object of units deg, rad, or arcmin'
+                    'Fwhm must be an astropy object of units deg, rad, or '
+                    'arcmin'
                 )
             smooth = True
         else:
             smooth = False
              
-        for atr in attributes:
-            if isinstance(attributes[atr], (list, np.ndarray)):
+        for attr in attributes:
+            if isinstance(attributes[attr], (list, np.ndarray)):
                 if ud_grade:
-                    attributes[atr] = hp.ud_grade(attributes[atr],
-                                                  nside_out=int(nside), 
-                                                  dtype=np.float64)
+                    attributes[attr] = hp.ud_grade(attributes[attr],
+                                                   nside_out=int(nside), 
+                                                   dtype=np.float64)
                 if smooth:
-                    attributes[atr] = hp.smoothing(attributes[atr], 
-                                                   fwhm=fwhm.to('rad').value)
+                    attributes[attr] = hp.smoothing(attributes[attr], 
+                                                    fwhm=fwhm.to('rad').value)
         
         for key, value in attributes.items():
-            if any(attr in key for attr in ['amp', 'monopole', 'dipole']):
-                if self.params['unit'].lower() in ['uk_rj', 'uk_cmb']:
+            if any(attr in key for attr in ('amp', 'monopole', 'dipole')):
+                if self.params['unit'].lower() in ('uk_rj', 'uk_cmb'):
                     value *= u.uK
                 else: 
                     raise ValueError(
@@ -125,10 +119,11 @@ class SkyComponent:
                 value *= u.uK
             elif 'nu' in key:
                 value *= u.GHz
+
             setattr(self, key, value)
 
 
-    def _to_nside(self, nside):
+    def _model_to_nside(self, nside):
         """
         Reinitializes the model instance with at new nside.
 
@@ -144,14 +139,15 @@ class SkyComponent:
         """
         if hp.isnsideok(nside, nest=True):
             self.kwargs['nside'] = nside
-            return super(self.__class__, self).__init__(self.chain, **self.kwargs)
+            return super(self.__class__, self).__init__(self.chain, 
+                                                        **self.kwargs)
         else:
             raise ValueError(f'nside: {nside} is not valid.')
 
 
     @staticmethod
     @u.quantity_input(input_map=u.K, nu=u.Hz)
-    def KRJ_to_KCMB(input_map, nu):
+    def _KRJ_to_KCMB(input_map, nu):
         """
         Converts input map from units of K_RJ to K_CMB.
 
@@ -165,15 +161,15 @@ class SkyComponent:
             Output map in units of K_CMB.
 
         """
-        x = (h*nu)/(k_B*T_0)
-        scaling_factor = (np.expm1(x)**2)/(x**2 * np.exp(x))
+        x = (h*nu) / (k_B*T_0)
+        scaling_factor = (np.expm1(x)**2) / (x**2 * np.exp(x))
     
         return input_map*scaling_factor
 
 
     @staticmethod
     @u.quantity_input(input_map=u.K, nu=u.Hz)
-    def KCMB_to_KRJ(input_map, nu):
+    def _KCMB_to_KRJ(input_map, nu):
         """
         Converts input map from units of K_CMB to K_RJ.
 
@@ -187,8 +183,8 @@ class SkyComponent:
             Output map in units of K_CMB.
 
         """
-        x = (h*nu)/(k_B*T_0)
-        scaling_factor = (np.expm1(x)**2)/(x**2 * np.exp(x))
+        x = (h*nu) / (k_B*T_0)
+        scaling_factor = (np.expm1(x)**2) / (x**2 * np.exp(x))
         return input_map/scaling_factor
 
 
@@ -217,7 +213,7 @@ class SkyComponent:
 
 
     def __repr__(self):
-        kwargs = {key:value for key, value in self.kwargs.items() if value is not None}
+        kwargs = {key: value for key, value in self.kwargs.items() if value is not None}
         kwargs_str = ", ".join(f"'{key}={value}'" for key, value in kwargs.items())
         return f'Cosmoglobe.model({self.comp_label!r}, {kwargs_str})'
 

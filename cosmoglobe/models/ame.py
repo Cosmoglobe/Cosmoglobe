@@ -1,19 +1,17 @@
-from .skycomponent import SkyComponent
-from .. import data as data_dir
-
-from numba import njit
 import astropy.units as u
+from numba import njit
 import numpy as np
 import os
+
+from .. import data as data_dir
+from .skycomponent import SkyComponent
 
 data_path = os.path.dirname(data_dir.__file__) + '/'
 
 
 class AME(SkyComponent):
-    """
-    Parent class for all AME models.
-    
-    """
+    """Parent class for all AME models."""
+
     comp_label = 'ame'
 
     def __init__(self, data, **kwargs):
@@ -22,12 +20,10 @@ class AME(SkyComponent):
 
 
 class SpinningDust2(AME):
-    """
-    Model for spinning dust emission.
+    """Model for spinning dust emission."""    
 
-    """    
     model_label = 'spindust2'
-    other_quantities = ['nu_p_map']
+    other_quantities = ('nu_p_map',)
 
     def __init__(self, data, nside=None, fwhm=None):
         super().__init__(data, nside=nside, fwhm=fwhm)
@@ -101,8 +97,8 @@ class SpinningDust2(AME):
             Modeled emission at a given frequency.
 
         """
-        scaled_nu = (nu * (30*1e9 / nu_p))
-        scaled_nu_ref = (nu_ref * (30*1e9 / nu_p))
+        scaled_nu = nu * (30*1e9/nu_p)
+        scaled_nu_ref = nu_ref * (30*1e9/nu_p)
 
         emission = np.copy(amp)
         emission *= np.interp(scaled_nu, spdust2_nu, spdust2_amp)   

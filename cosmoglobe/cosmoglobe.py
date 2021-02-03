@@ -1,25 +1,24 @@
-from .models.skycomponent import SkyComponent
-from .models.synch import Synchrotron
-from .models.ff import FreeFree
-from .models.dust import ModifiedBlackbody
-from .models.cmb import CMB
-from .models.ame import AME
-
-from .tools import chain
-from .tools import utils
-
-import numpy as np
-import healpy as hp
 import astropy.units as u
+import healpy as hp
+import numpy as np
 import pathlib
 
-#list of all foreground components and labels
-components = {comp.__name__.lower():comp for comp in SkyComponent.__subclasses__()}
-component_labels = {comp.comp_label:comp for comp in SkyComponent.__subclasses__()}
+from cosmoglobe.models.skycomponent import SkyComponent
+from cosmoglobe.models.ame import AME
+from cosmoglobe.models.cmb import CMB
+from cosmoglobe.models.ff import FreeFree
+from cosmoglobe.models.dust import ModifiedBlackbody
+from cosmoglobe.models.synch import Synchrotron
+
+from cosmoglobe.tools import chain
+from cosmoglobe.tools import utils
+
+components = {comp.__name__.lower(): comp for comp in SkyComponent.__subclasses__()}
+component_labels = {comp.comp_label: comp for comp in SkyComponent.__subclasses__()}
 
 
 class Cosmoglobe:
-    """Cosmoglobe sky model. 
+    """Cosmoglobe sky model
 
     Provides methods and utilities to analyze, process, and make simulations
     from Commander outputs.
@@ -121,7 +120,7 @@ class Cosmoglobe:
         full_emission = np.zeros_like(models[0].amp)
         for model in models:
             if self.verbose:
-                print(f'Simulating {model.comp_label!r} at {nu}')
+                print(f'Simulating {model.comp_label} at {nu}')
             full_emission += model[nu]
 
         return full_emission
@@ -193,14 +192,14 @@ class Cosmoglobe:
         start = start.to(u.GHz).value
         stop = stop.to(u.GHz).value
         freqs = np.logspace(np.log10(start), np.log10(stop), num)*u.GHz
-        rms_dict = {model.comp_label:[] for model in models}
+        rms_dict = {model.comp_label: [] for model in models}
 
         for model in models:
             if self.verbose:
                 print(f'Calculating RMS for {model.comp_label}')
 
             if model.params['nside'] > 256:
-                model._to_nside(256)
+                model._model_to_nside(256)
             
             if pol:
                 for freq in freqs:

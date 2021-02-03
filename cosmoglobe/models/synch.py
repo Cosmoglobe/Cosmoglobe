@@ -1,14 +1,13 @@
-from .skycomponent import SkyComponent
-
-from numba import njit
 import astropy.units as u
+from numba import njit
 import numpy as np
+
+from .skycomponent import SkyComponent
 
 
 class Synchrotron(SkyComponent):
-    """
-    Parent class for all Synchrotron models.
-    """
+    """Parent class for all Synchrotron models."""
+
     comp_label = 'synch'
 
     def __init__(self, data, **kwargs):
@@ -18,10 +17,8 @@ class Synchrotron(SkyComponent):
 
 
 class PowerLaw(Synchrotron):
-    """
-    Model for power law emission for synchrotron.
+    """Model for power law emission for synchrotron."""
 
-    """
     model_label = 'power_law'
 
     def __init__(self, data, nside=None, fwhm=None):
@@ -80,7 +77,7 @@ class PowerLaw(Synchrotron):
             Modeled synchrotron emission at a given frequency.
 
         """
-        nu_ref = nu_ref.reshape(len(nu_ref), 1) #For broadcasting compatibility
+        nu_ref = nu_ref.reshape(len(nu_ref), 1)
         emission = np.copy(amp)
         emission *= (nu/nu_ref)**beta
 
