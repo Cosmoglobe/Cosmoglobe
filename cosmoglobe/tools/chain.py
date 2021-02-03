@@ -1,11 +1,10 @@
 import astropy.units as u
 import h5py
 import healpy as hp
-import numpy as np
-from numba import njit
-import os
 import pathlib
-import random
+from numba import njit
+import numpy as np
+import os
 
 
 
@@ -194,20 +193,21 @@ class Chain:
         """   
         with h5py.File(self.data,'r') as f:
             components = f['parameters']
-            model_params = {component:{} for component in components}
+            model_params = {component: {} for component in components}
 
             for component in components:
                 params = components[component]
 
                 for param in params:
-                    if isinstance(params[param][()], (bytes, np.byte)):
+                    value = params[param][()]
+                    if isinstance(value, (bytes, np.byte)):
                         model_params[component][param] = params[param].asstr()[()]
                     
                     else:
-                        if params[param][()].ndim > 0:
-                            model_params[component][param] = params[param][()]
+                        if value.ndim > 0:
+                            model_params[component][param] = value
                         else:
-                            model_params[component][param] = params[param][()].item()
+                            model_params[component][param] = value.item()
 
         for component in model_params:
             model_params[component]['fwhm'] *= u.arcmin
@@ -220,7 +220,7 @@ class Chain:
             elif model_params[component]['polarization'] == 'False':
                 model_params[component]['polarization'] = False
                 model_params[component]['nu_ref'] = model_params[component]['nu_ref'][0]
-        print(model_params['dust'])
+
         return model_params
 
 
@@ -344,8 +344,8 @@ class Chain:
                                   verbose=False).astype('float32')
 
                 if multipoles is not None:
-                    items = {'amp':items}
-                    pole_names = {0:'monopole', 1:'dipole', 2:'quadrupole'}
+                    items = {'amp': items}
+                    pole_names = {0: 'monopole', 1: 'dipole', 2: 'quadrupole'}
 
                     for multipole in multipoles:
                         unpacked_alm = unpack_alms_multipole_from_chain(item, int(lmax), multipole)
@@ -504,7 +504,7 @@ def reduce_chain(chainfile, fname=None, burnin=None):
         maps = {}
         for component in chain[samples[0]]:
             if component not in ignored_components:
-                maps[component] = {key:value[()] for key, value in 
+                maps[component] = {key: value[()] for key, value in 
                                    chain[samples[0]][component].items()}
 
         for sample in samples[1:]:

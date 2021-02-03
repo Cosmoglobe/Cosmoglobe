@@ -1,21 +1,18 @@
-from .skycomponent import SkyComponent
-from numba import njit
-
-import numpy as np
-import astropy.units as u
 import astropy.constants as const
+import astropy.units as u
+from numba import njit
+import numpy as np
 
-# Initializing common astrophy units
+from .skycomponent import SkyComponent
+
 h = const.h.value
 c = const.c.value
 k_B = const.k_B.value
 
 
 class Dust(SkyComponent):
-    """
-    Parent class for all Dust models.
-    
-    """
+    """Parent class for all Dust models."""
+
     comp_label = 'dust'
 
     def __init__(self, data, **kwargs):
@@ -25,10 +22,8 @@ class Dust(SkyComponent):
 
 
 class ModifiedBlackbody(Dust):
-    """
-    Model for modifed blackbody emission from thermal dust.
+    """Model for modifed blackbody emission from thermal dust."""    
 
-    """    
     model_label = 'MBB'
 
     def __init__(self, data, nside=None, fwhm=None):
@@ -88,10 +83,10 @@ class ModifiedBlackbody(Dust):
             Modeled modified blackbody emission at a given frequency.
 
         """
-        nu_ref = nu_ref.reshape(len(nu_ref), 1) #For broadcasting compatibility
+        nu_ref = nu_ref.reshape(len(nu_ref), 1)
         
         emission = np.copy(amp)
-        emission *= (nu/nu_ref)**(beta - 2) #(beta - 2) converts to K_RJ
+        emission *= (nu/nu_ref)**(beta-2)       # Converting to K_RJ with (-2)
         emission *= blackbody_ratio(nu, nu_ref, T)
 
         return emission
@@ -143,4 +138,4 @@ def blackbody_emission(nu, T):
         Blackbody emission in units of Jy/sr
 
     """
-    return ((2*h*nu**3)/c**2)/np.expm1(h*nu/(k_B*T))
+    return ((2*h*nu**3)/c**2) / np.expm1(h*nu/(k_B*T))

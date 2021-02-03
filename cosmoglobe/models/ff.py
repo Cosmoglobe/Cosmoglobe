@@ -1,20 +1,17 @@
-from .skycomponent import SkyComponent
-
+import astropy.constants as const
+import astropy.units as u
 from numba import njit
 import numpy as np
-import astropy.units as u
-import astropy.constants as const
 
-# Initializing common astrophy units
+from .skycomponent import SkyComponent
+
 h = const.h
 k_B = const.k_B
 
 
 class FreeFree(SkyComponent):
-    """
-    Parent class for all Free-Free models.
+    """Parent class for all Free-Free models."""
     
-    """
     comp_label = 'ff'
 
     def __init__(self, data, **kwargs):
@@ -22,14 +19,11 @@ class FreeFree(SkyComponent):
         self.kwargs = kwargs
 
 
-
 class LinearOpticallyThin(FreeFree):
-    """
-    Linearized model strictly only valid in the optically thin case (tau << 1).
+    """Linearized model only valid in the optically thin case (tau << 1)."""
 
-    """    
     model_label= 'freefree'
-    other_quantities = ['Te_map']
+    other_quantities = ('Te_map',)
 
     def __init__(self, data, nside=None, fwhm=None):
         super().__init__(data, nside=nside, fwhm=fwhm)
@@ -85,8 +79,8 @@ class LinearOpticallyThin(FreeFree):
         g_eff = gaunt_factor(nu, T_e)
         g_eff_ref = gaunt_factor(nu_ref, T_e)
         emission = np.copy(amp)
-        emission *= (g_eff/g_eff_ref)*(nu/nu_ref)**-2
-        emission *= np.exp(-h * ((nu-nu_ref)/(k_B*T_e)))
+        emission *= (g_eff/g_eff_ref) * (nu/nu_ref)**-2
+        emission *= np.exp(-h * ((nu-nu_ref) / (k_B*T_e)))
 
         return emission
 
@@ -109,5 +103,5 @@ def gaunt_factor(nu, T_e):
         Gaunt Factor.
 
     """
-    return np.log(np.exp(5.96-(np.sqrt(3)/np.pi) * np.log(nu*
-                  (T_e*1e-4)**-1.5)) + np.e )
+    return np.log(np.exp(5.96 - (np.sqrt(3)/np.pi) * np.log(nu
+                  * (T_e*1e-4)**-1.5)) + np.e)

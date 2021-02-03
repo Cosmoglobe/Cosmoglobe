@@ -1,8 +1,9 @@
-from .. import data as data_dir
 import healpy as hp
-import os
 import numpy as np
+import os
 import time 
+
+from .. import data as data_dir
 
 data_path = os.path.dirname(data_dir.__file__) + '/'
 

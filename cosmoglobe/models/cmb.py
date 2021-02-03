@@ -1,14 +1,13 @@
-from .skycomponent import SkyComponent
 import astropy.units as u
+
+from .skycomponent import SkyComponent
 
 
 class CMB(SkyComponent):
-    """
-    Parent class for all CMB models.
+    """Parent class for all CMB models."""
 
-    """
     comp_label = 'cmb'
-    multipoles = [0, 1]
+    multipoles = (0, 1)
     
     def __init__(self, data, **kwargs):
         super().__init__(data, **kwargs)
@@ -23,10 +22,8 @@ class CMB(SkyComponent):
 
 
 class BlackBody(CMB):
-    """
-    Model for BlackBody CMB emission.
+    """Model for BlackBody CMB emission."""
 
-    """    
     model_label = 'cmb'
 
     def __init__(self, data, nside=None, fwhm=None,
@@ -76,4 +73,4 @@ class BlackBody(CMB):
         """
         emission = self.amp.copy()
     
-        return self.KCMB_to_KRJ(emission, nu).to(u.uK)
+        return self._KCMB_to_KRJ(emission, nu).to(u.uK)
