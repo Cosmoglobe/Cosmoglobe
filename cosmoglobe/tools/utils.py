@@ -15,12 +15,7 @@ T_0 = 2.7255*u.K
 data_path = os.path.dirname(data_dir.__file__) + '/'
 
 
-def normalize_weights(bandpass, unit='K_RJ'):
-    if unit.lower() not in ('k_rj', 'jy', 'jy/sr'):
-        pass
-    weights = bandpass/np.sum(bandpass)
-
-    return weights
+# def trapezoidal_step(f, )
 
 
 @u.quantity_input(input_map=u.K, nu=u.Hz)
@@ -36,7 +31,7 @@ def KRJ_to_KCMB(input_map, nu):
     astropy.units.quantity.Quantity
         Output map in units of K_CMB.
     """
-    x = (h*nu) / (k_B*T_0)
+    x = ((h*nu) / (k_B*T_0)).si.value
     scaling_factor = (np.expm1(x)**2) / (x**2 * np.exp(x))
 
     return input_map*scaling_factor
@@ -55,7 +50,7 @@ def KCMB_to_KRJ(input_map, nu):
     astropy.units.quantity.Quantity
         Output map in units of K_CMB.
     """
-    x = (h*nu) / (k_B*T_0)
+    x = ((h*nu) / (k_B*T_0)).si.value
     scaling_factor = (np.expm1(x)**2) / (x**2 * np.exp(x))
 
     return input_map/scaling_factor
@@ -126,9 +121,3 @@ def timer(function):
         return return_value
 
     return wrapper
-        
-
-if __name__ == '__main__':
-    bandpass = '../../../Cosmoglobe_test_data/wmap_bandpass.txt'
-    freqs, det1, det2 = np.loadtxt(bandpass, unpack=True)
-    weight = normalize_weights(det1)
