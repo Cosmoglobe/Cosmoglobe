@@ -4,7 +4,6 @@ import numpy as np
 
 from .skycomponent import SkyComponent
 
-
 class Synchrotron(SkyComponent):
     """
     Parent class for all Synchrotron models.
@@ -31,10 +30,8 @@ class PowerLaw(Synchrotron):
     @u.quantity_input(nu=u.Hz)
     def get_emission(self, nu):
         """
-        Returns the model emission of at a given frequency in units of K_RJ.
-        Makes use of numba to speed up computations. Numba does not support
-        astropy, so astropy objects are converted to pure values or 
-        numpy.ndarrays during computation.
+        Returns the model emission at an arbitrary frequency nu in units 
+        of K_RJ.
 
         Parameters
         ----------
@@ -47,41 +44,38 @@ class PowerLaw(Synchrotron):
             Model emission at given frequency in units of K_RJ.
 
         """
-
-        emission = self._compute_emission(nu.si.value, 
-                                         self.params['nu_ref'].si.value, 
-                                         self.amp,
+        scaling = self._get_freq_scaling(nu.si.value,
+                                         self.params['nu_ref'].si.value,
                                          self.beta)
+        emission = self.amp*scaling
 
-        return u.Quantity(emission, unit=self.amp.unit)
+        return emission
 
 
     @staticmethod
     @njit
-    def _compute_emission(nu, nu_ref, amp, beta):
+    def _get_freq_scaling(nu, nu_ref, beta):
         """
-        Computes the simulated power law emission of synchrotron at a given
-        frequency. 
+        Computes the frequency scaling from the reference frequency nu_ref to 
+        an arbitrary frequency nu, which depends on the spectral parameter
+        beta.
 
         Parameters
         ----------
-        nu : int, float,
-            Frequency at which to evaluate the emission. 
-        nu_ref : numpy.ndarray
-            Reference frequency at which the Commander alm outputs are 
-            produced.        
+        nu : int, float, numpy.ndarray
+            Frequencies at which to evaluate the model. 
+        nu_ref : int, float, numpy.ndarray
+            Reference frequency.        
         beta : numpy.ndarray
-            Estimated synch beta map from Commander.
+            Synch beta map.
             
         Returns
         -------
-        emission : numpy.ndarray
-            Modeled synchrotron emission at a given frequency.
+        scaling : numpy.ndarray
+            Frequency scaling factor.
 
         """
         nu_ref = np.expand_dims(nu_ref, axis=1)
-        emission = np.copy(amp)
-        emission *= (nu/nu_ref)**beta
+        scaling = (nu/nu_ref)**beta
 
-        return emission
-
+        return scaling

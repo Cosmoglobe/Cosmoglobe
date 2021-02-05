@@ -14,32 +14,32 @@ from cosmoglobe.cosmoglobe import Cosmoglobe
 
 hp.disable_warnings()
 
+# bandpass = '../../Cosmoglobe_test_data/wmap_bandpass.txt'
+# freqs, det1, det2 = np.loadtxt(bandpass, unpack=True)
+
+# bandpass = '../../Cosmoglobe_test_data/wmap_bandpass.txt'
+
 data = '../../Cosmoglobe_test_data/reduced_chain_test.h5'
-bandpass = '../../Cosmoglobe_test_data/wmap_bandpass.txt'
-# data = pathlib.Path('../../Cosmoglobe_test_data/chain_test.h5')
-# data = '../../Cosmoglobe_test_data/chain_test.h5'
+sky = Cosmoglobe(data, sample='mean')
+# cmb = sky.model('cmb')
+cmb = sky.model('cmb', remove_dipole=True, remove_monopole=True)
+synch = sky.model('synch')
+dust = sky.model('dust')
+ff = sky.model('ff')
+ame = sky.model('ame')
 
-cosmo = Cosmoglobe(data, sample='mean')
-# cosmo.reduce_chainfile()
+# frequency_map = sky.full_sky(nu=30*u.GHz)
+# hp.mollview(frequency_map[0], min=-3400, max=3400)
 
-cmb = cosmo.model('cmb', remove_dipole=True, remove_monopole=True)
-synch = cosmo.model('synch')
-dust = cosmo.model('dust')
-ff = cosmo.model('ff')
-ame = cosmo.model('ame')
+# map_ = synch.get_emission(freqs*u.GHz, det1*(u.Jy/u.sr))
+# print(synch.get_emission(66*u.GHz))
+freqs, rms = sky.spectrum(sky_frac=22)
+for model, model_rms in rms.items():
+    plt.loglog(freqs, model_rms, label=model)
 
-
-# frequency_map = cosmo.full_sky(nu=1000*u.GHz)
-# hp.mollview(frequency_map[0], min=0, max=2000)
-
-# freqs, rms = cosmo.spectrum()
-# for model, model_rms in rms.items():
-#     plt.loglog(freqs, model_rms, label=model)
-
-# plt.ylim(1e-2, 1e3)
-# plt.xlabel('Frequency [GHz]')
-# plt.ylabel('RMS brightness temperature [muK]')
-# plt.legend()
-
-# plt.show()
+plt.ylim(5e-2, 1e3)
+plt.xlabel('Frequency [GHz]')
+plt.ylabel('RMS brightness temperature [muK]')
+plt.legend()
+plt.show()
 

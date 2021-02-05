@@ -14,10 +14,6 @@ T_0 = 2.7255*u.K
 
 data_path = os.path.dirname(data_dir.__file__) + '/'
 
-
-# def trapezoidal_step(f, )
-
-
 @u.quantity_input(input_map=u.K, nu=u.Hz)
 def KRJ_to_KCMB(input_map, nu):
     """

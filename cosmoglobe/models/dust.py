@@ -36,15 +36,13 @@ class ModifiedBlackbody(Dust):
     @u.quantity_input(nu=u.Hz)
     def get_emission(self, nu):
         """
-        Returns the model emission of at a given frequency in units of K_RJ.
-        Makes use of numba to speed up computations. Numba does not support
-        astropy, so astropy objects are converted to pure values or 
-        numpy.ndarrays during computation.
+        Returns the model emission at an arbitrary frequency nu in units 
+        of K_RJ.
 
         Parameters
         ----------
         nu : astropy.units.quantity.Quantity
-            Frequency at which to evaluate the model. 
+            Frequencies at which to evaluate the model. 
 
         Returns
         -------
@@ -52,85 +50,58 @@ class ModifiedBlackbody(Dust):
             Model emission at given frequency in units of K_RJ.
 
         """
-        emission = self._compute_emission(nu.si.value, 
+        scaling = self._get_freq_scaling(nu.si.value, 
                                          self.params['nu_ref'].si.value, 
-                                         self.amp,
                                          self.beta, 
                                          self.T.value)
-
-        return u.Quantity(emission, unit=self.amp.unit)
-
-
-    @staticmethod
-    @njit
-    def _compute_emission(nu, nu_ref, amp, beta, T):
-        """
-        Computes the simulated modified blackbody emission of dust at a given
-        frequency .
-
-        Parameters
-        ----------
-        nu : int, float,
-            Frequency at which to evaluate the modified blackbody radiation. 
-        nu_ref : numpy.ndarray
-            Reference frequency at which the Commander alm outputs are 
-            produced.        
-        beta : numpy.ndarray
-            Estimated dust beta map from Commander.
-        T : numpy.ndarray
-            Temperature the modified blackbody. 
-            
-        Returns
-        -------
-        emission : numpy.ndarray
-            Modeled modified blackbody emission at a given frequency.
-
-        """
-        nu_ref = np.expand_dims(nu_ref, axis=1)
-        
-        emission = np.copy(amp)
-        emission *= (nu/nu_ref)**(beta-2)       # Converting to K_RJ with (-2)
-        emission *= blackbody_ratio(nu, nu_ref, T)
+        emission =  self.amp*scaling
 
         return emission
 
 
+    @staticmethod
+    @njit
+    def _get_freq_scaling(nu, nu_ref, beta, T):
+        """
+        Computes the frequency scaling from the reference frequency nu_ref to 
+        an arbitrary frequency nu, which depends on the spectral parameters
+        beta and T.
 
-@njit
-def blackbody_ratio(nu, nu_ref, T):
-    """
-    Returns the ratio between the emission emitted by a blackbody at two
-    different frequencies.
+        Parameters
+        ----------
+        nu : int, float, numpy.ndarray
+            Frequencies at which to evaluate the model. 
+        nu_ref : int, float, numpy.ndarray
+            Reference frequency.        
+        beta : numpy.ndarray
+            Dust beta map.
+        T : numpy.ndarray
+            Dust temperature map.
 
-    Parameters
-    ----------
-    nu : int, float,
-        New frequency at which to evaluate the blackbody radiation.
-    nu_ref : numpy.ndarray
-        Reference frequency at which the Commander alm outputs are 
-        produced.        
-    T : numpy.ndarray
-        Temperature of the blackbody.
+        Returns
+        -------
+        scaling : numpy.ndarray
+            Frequency scaling factor.
 
-    Returns
-    -------
-    numpy.ndarray
-        Array containing the ratio between the blackbody emission at two 
-        different frequencies.
+        """
+        nu_ref = np.expand_dims(nu_ref, axis=1)
 
-    """
-    return blackbody_emission(nu, T) / blackbody_emission(nu_ref, T)
+        scaling = (nu/nu_ref)**(beta-2)
+        scaling *= blackbody_emission(nu, T) / blackbody_emission(nu_ref, T)
+
+        return scaling
+
 
 
 @njit
 def blackbody_emission(nu, T):
     """
-    Returns blackbody radiation at a given frequency and temperature
-    in units of uK_RJ.
+    Returns the emission emitted by a blackbody with with temperature T at 
+    a frequency nu.
 
     Parameters
     ----------
-    nu : int, float,
+    nu : int, float, numpy.ndarray
         Frequency at which to evaluate the blackbody radiation.
     T : numpy.ndarray
         Temperature of the blackbody. 

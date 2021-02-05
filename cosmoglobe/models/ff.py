@@ -36,12 +36,13 @@ class LinearOpticallyThin(FreeFree):
     @u.quantity_input(nu=u.GHz)
     def get_emission(self, nu):
         """
-        Returns the model emission of at a given frequency in units of K_RJ.
+        Returns the model emission at an arbitrary frequency nu in units 
+        of K_RJ.
 
         Parameters
         ----------
         nu : astropy.units.quantity.Quantity
-            Frequency at which to evaluate the model. 
+            Frequencies at which to evaluate the model. 
 
         Returns
         -------
@@ -49,54 +50,53 @@ class LinearOpticallyThin(FreeFree):
             Model emission at given frequency in units of K_RJ.
 
         """
-        emission = self._compute_emission(nu.si.value,
+        scaling = self._get_freq_scaling(nu.si.value,
                                          self.params['nu_ref'].si.value,
-                                         self.amp,
-                                         self.Te_map.value)
+                                         self.Te_map)
+        emission = self.amp*scaling
 
-        return u.Quantity(emission, unit=self.amp.unit)
+        return emission
 
 
     @staticmethod
     @njit
-    def _compute_emission(nu, nu_ref, amp, T_e):
+    def _get_freq_scaling(nu, nu_ref, T_e):
         """
-        Computes the power law emission at a given frequency for the 
-        given Commander data.
+        Computes the frequency scaling from the reference frequency nu_ref to 
+        an arbitrary frequency nu, which depends on the spectral parameters
+        T_e.
 
         Parameters
         ----------
-        nu : int, float,
-            Frequency at which to evaluate the modified blackbody radiation. 
-        nu_ref : numpy.ndarray
-            Reference frequency at which the Commander alm outputs are 
-            estimated.        
+        nu : int, float, numpy.ndarray
+            Frequencies at which to evaluate the model. 
+        nu_ref : int, float, numpy.ndarray
+            Reference frequency.        
         T_e : numpy.ndarray
-            Electron temperature map
+            Electron temperature map.
 
         Returns
         -------
-        emission : numpy.ndarray
-            Modeled emission at a given frequency.
+        scaling : numpy.ndarray
+            Frequency scaling factor.
 
         """
-        g_eff = gaunt_factor(nu, T_e)
-        g_eff_ref = gaunt_factor(nu_ref, T_e)
-        emission = np.copy(amp)
-        emission *= (g_eff/g_eff_ref) * (nu/nu_ref)**-2
-        emission *= np.exp(-h * ((nu-nu_ref) / (k_B*T_e)))
+        scaling = np.exp(-h * ((nu-nu_ref) / (k_B*T_e)))
+        scaling *= (nu/nu_ref)**-2
+        scaling *= gaunt_factor(nu, T_e) / gaunt_factor(nu_ref, T_e)
 
-        return emission
+        return scaling
+
 
 
 @njit
 def gaunt_factor(nu, T_e):
     """
-    Computes the caunt factor for a given frequency and electron temperature.
+    Returns the gaunt factor for a given frequency and electron temperature.
 
     Parameters
     ----------
-    nu : int, float
+    nu : int, float, numpy.ndarray
         Frequency at which to evaluate the Gaunt factor.   
     T_e : numpy.ndarray
         Electron temperature at which to evaluate the Gaunt factor.
