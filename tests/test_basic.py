@@ -27,7 +27,7 @@ synch = sky.model('synch')
 dust = sky.model('dust')
 ff = sky.model('ff')
 ame = sky.model('ame')
-
+print(repr(ame.chain))
 # frequency_map = sky.full_sky(nu=30*u.GHz)
 # hp.mollview(frequency_map[0], min=-3400, max=3400)
 

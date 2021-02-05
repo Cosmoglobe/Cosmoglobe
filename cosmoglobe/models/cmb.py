@@ -10,7 +10,7 @@ class CMB(SkyComponent):
     
     """
     comp_label = 'cmb'
-    multipoles = (0, 1)
+    _multipoles = (0, 1)
     
     def __init__(self, data, **kwargs):
         super().__init__(data, **kwargs)

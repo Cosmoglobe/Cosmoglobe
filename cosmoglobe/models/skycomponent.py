@@ -39,8 +39,8 @@ class SkyComponent:
         attributes = {}
         attributes_list = self.chain.get_alm_list(self.comp_label)
 
-        if hasattr(self, 'other_quantities'):
-            attributes_list += self.other_quantities
+        if hasattr(self, '_other_quantities'):
+            attributes_list += self._other_quantities
 
         for attr in attributes_list:
             if 'alm' in attr:
@@ -53,7 +53,7 @@ class SkyComponent:
             item = self.chain.get_item(
                 item_name=attr, component=self.comp_label, 
                 unpack_alms=unpack_alms, 
-                multipoles=getattr(self, 'multipoles', None))
+                multipoles=getattr(self, '_multipoles', None))
 
             if isinstance(item, dict):
                 for key, value in item.items():
