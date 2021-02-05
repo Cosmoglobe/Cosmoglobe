@@ -1,14 +1,12 @@
 import astropy.units as u
+import pathlib
 from numba import njit
 import numpy as np
-import os
 
-
-from .. import data as data_dir
 from .skycomponent import SkyComponent
+from .. import data as data_dir
 
-data_path = os.path.dirname(data_dir.__file__) + '/'
-
+data_path = pathlib.Path(data_dir.__path__[0])
 
 class AME(SkyComponent):
     """
@@ -30,8 +28,7 @@ class SpinningDust2(AME):
     model_label = 'spindust2'
     other_quantities = ('nu_p_map',)
 
-    # Reading in spdust2 template to interpolate for arbitrary frequency
-    spdust2_nu, spdust2_amp = np.loadtxt(data_path + 'spdust2_cnm.dat', 
+    spdust2_nu, spdust2_amp = np.loadtxt(data_path / 'spdust2_cnm.dat', 
                                          unpack=True)
 
     spdust2_nu = spdust2_nu * u.GHz
