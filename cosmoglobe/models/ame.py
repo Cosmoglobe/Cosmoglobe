@@ -26,16 +26,14 @@ class SpinningDust2(AME):
     
     """    
     model_label = 'spindust2'
-    other_quantities = ('nu_p_map',)
+    _other_quantities = ('nu_p_map',)
 
     spdust2_nu, spdust2_amp = np.loadtxt(data_path / 'spdust2_cnm.dat', 
                                          unpack=True)
 
     spdust2_nu = spdust2_nu * u.GHz
     spdust2_amp = u.Quantity(spdust2_amp, unit=(u.Jy/u.sr)).to(
-        u.K, 
-        equivalencies=u.brightness_temperature(spdust2_nu)
-    )
+        u.K, equivalencies=u.brightness_temperature(spdust2_nu))
 
     def __init__(self, data, nside=None, fwhm=None):
         super().__init__(data, nside=nside, fwhm=fwhm)

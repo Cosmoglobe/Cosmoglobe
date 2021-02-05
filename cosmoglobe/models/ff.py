@@ -27,7 +27,7 @@ class LinearOpticallyThin(FreeFree):
     
     """
     model_label= 'freefree'
-    other_quantities = ('Te_map',)
+    _other_quantities = ('Te_map',)
 
     def __init__(self, data, nside=None, fwhm=None):
         super().__init__(data, nside=nside, fwhm=fwhm)

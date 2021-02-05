@@ -67,7 +67,7 @@ class Chain:
 
         """
 
-        self.data, self.sample, self.burnin = self._validate_chainfile(chainfile, sample, burnin)
+        self.chainfile, self.sample, self.burnin = self._validate_chainfile(chainfile, sample, burnin)
         self.components = self.get_components()
         self.model_params = self.get_model_params()
 
@@ -174,12 +174,12 @@ class Chain:
         Returns a list of all sky components present in a gibbs sample.
         
         """
-        with h5py.File(self.data,'r') as f:
+        with h5py.File(self.chainfile,'r') as f:
             components = list(f['parameters'])
 
         if not components:
             raise ValueError(
-                f'Parameters group in {self.data.name!r} does not include '
+                f'Parameters group in {self.chainfile.name!r} does not include '
                 'any components'
             )
             
@@ -191,7 +191,7 @@ class Chain:
         Returns a dictionary containing all model parameters.
         
         """   
-        with h5py.File(self.data,'r') as f:
+        with h5py.File(self.chainfile,'r') as f:
             components = f['parameters']
             model_params = {component: {} for component in components}
 
@@ -240,7 +240,7 @@ class Chain:
             List containing name of all alm maps for a given component.
 
         """
-        with h5py.File(self.data,'r') as f:
+        with h5py.File(self.chainfile,'r') as f:
             samples = list(f.keys())
             samples.pop(samples.index('parameters'))
             
@@ -294,7 +294,7 @@ class Chain:
         except KeyError:
             raise KeyError(f'"{component}" is not a valid component')
 
-        with h5py.File(self.data,'r') as f:
+        with h5py.File(self.chainfile,'r') as f:
             samples = list(f.keys())
             samples.pop(samples.index('parameters'))
 
@@ -362,6 +362,12 @@ class Chain:
                 return items
         return item
 
+    def __repr__(self):
+        return f"Chain(chainfile={self.chainfile.name!r}, sample={self.sample!r}, burnin={self.burnin!r})"
+    
+    def __str__(self):
+        return f"Chain object generated from {self.chainfile.name!r}"
+    
 
 #Fix to OMP: Error #15 using numba
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
