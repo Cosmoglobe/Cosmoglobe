@@ -83,7 +83,7 @@ class Cosmoglobe:
         model = models[self.chain.model_params[component.comp_label]['type']]
 
         if self.verbose:
-            print(f'Initializing {model.comp_label}')
+            print(f'Initializing {model.comp_label}...')
 
         new_model = model(self.chain, **kwargs)
         self.initialized_models.append(new_model)
@@ -120,7 +120,7 @@ class Cosmoglobe:
         full_emission = np.zeros_like(models[0].amp)
         for model in models:
             if self.verbose:
-                print(f'Simulating {model.comp_label} at {nu}')
+                print(f'Simulating {model.comp_label} at {nu}...')
             full_emission += model[nu]
 
         return full_emission
@@ -167,7 +167,7 @@ class Cosmoglobe:
                 signal_type = 'I'
 
             print(
-                'Computing SED spectrum with parameters:\n'
+                'Making SED spectrum with parameters:\n'
                 f'  sky_frac: {sky_frac}%\n'
                 f'  start frequency: {start}\n'
                 f'  stop frequency: {stop}\n'
@@ -196,7 +196,7 @@ class Cosmoglobe:
 
         for model in models:
             if self.verbose:
-                print(f'Calculating RMS for {model.comp_label}')
+                print(f'Computing RMS for {model.comp_label}...')
 
             if model.params['nside'] > 256:
                 model._model_to_nside(256)

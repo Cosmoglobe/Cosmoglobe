@@ -1,4 +1,3 @@
-import astropy.constants as const
 import astropy.units as u
 import healpy as hp
 import numpy as np
@@ -170,6 +169,50 @@ class SkyComponent:
         nu_ref = np.expand_dims(self.params['nu_ref'], axis=1)
 
         return KCMB_to_KRJ(self.amp, nu_ref)
+
+
+    @u.quantity_input(nus=u.Hz, bandpass=(u.Jy/u.sr, u.K))
+    def _get_weights(self, nus, bandpass):
+        """
+        Returns normalized integration weights from a bandpass profile. First
+        converts to same units as the model amplitude, then normalizes.
+
+        Parameters
+        ----------
+        nus : astropy.units.quantity.Quantity
+            Array or list of frequencies for the bandpass profile.
+        bandpass : astropy.units.quantity.Quantity
+            Bandpass profile array or list. Must be in units of Jy/sr or K_RJ.
+
+        Returns
+        -------
+        weights : numpy.ndarray
+            Normalized bandpass profile to unit integral.
+            
+        """
+        if np.shape(nus) != np.shape(bandpass):
+            raise ValueError(
+                'Frequency and bandpass arrays must have the same shape'
+            )
+        amp_unit = self.params['unit'].lower()
+
+        if bandpass.unit == u.Jy/u.sr:
+            if amp_unit.endswith('rj'):
+                bandpass = bandpass.to(u.K, 
+                    equivalencies=u.brightness_temperature(nus)
+                )
+            elif amp_unit.endswith('cmb'):
+                bandpass = bandpass.to(u.K, 
+                    equivalencies=u.thermodynamic_temperature(nus)
+                )
+
+        elif bandpass.unit == u.K:
+            if amp_unit.endswith('cmb'):
+                bandpass = KRJ_to_KCMB(bandpass, nus)
+        
+        weights = bandpass/np.sum(bandpass)
+
+        return weights.value
 
 
     @u.quantity_input(nu=u.Hz)

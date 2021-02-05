@@ -1,7 +1,7 @@
 import astropy.units as u
 
 from .skycomponent import SkyComponent
-from ..tools.utils import KRJ_to_KCMB, KCMB_to_KRJ
+from ..tools.utils import KCMB_to_KRJ
 
 
 class CMB(SkyComponent):
@@ -32,7 +32,6 @@ class BlackBody(CMB):
 
     def __init__(self, data, nside=None, fwhm=None,
                  remove_monopole=False, remove_dipole=False):
-
         super().__init__(data, nside=nside, fwhm=fwhm, 
                          remove_monopole=remove_monopole, 
                          remove_dipole=remove_dipole)
@@ -41,40 +40,18 @@ class BlackBody(CMB):
     @u.quantity_input(nu=u.Hz)
     def get_emission(self, nu):
         """
-        Returns the model emission of at a given frequency in units of K_RJ.
+        Returns the model emission at an arbitrary frequency nu in units 
+        of K_RJ.
 
         Parameters
         ----------
-        nu : 'astropy.units.quantity.Quantity'
-            Frequency at which to evaluate the model. 
+        nu : astropy.units.quantity.Quantity
+            Frequencies at which to evaluate the model. 
 
         Returns
         -------
-        emission : 'astropy.units.quantity.Quantity'
+        astropy.units.quantity.Quantity
             Model emission at given frequency in units of K_RJ.
 
         """
-        emission = self._compute_emission(nu)
-
-        return emission
-
-
-    @u.quantity_input(nu=u.Hz)
-    def _compute_emission(self, nu):
-        """
-        Computes the simulated emission CMB of at a given frequency .
-
-        Parameters
-        ----------
-        nu : 'astropy.units.quantity.Quantity'
-            Frequency at which to evaluate the CMB radiation.    
-            
-        Returns
-        -------
-        emission : 'astropy.units.quantity.Quantity'
-            CMB emission at a given frequency.
-
-        """
-        emission = self.amp.copy()
-    
-        return KCMB_to_KRJ(emission, nu).to(u.uK)
+        return KCMB_to_KRJ(self.amp, nu)
