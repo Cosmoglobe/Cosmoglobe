@@ -2,7 +2,7 @@ import astropy.units as u
 import astropy.constants as const
 import healpy as hp
 import numpy as np
-import os
+import pathlib
 import time 
 
 from .. import data as data_dir
@@ -12,7 +12,7 @@ c = const.c
 k_B = const.k_B
 T_0 = 2.7255*u.K
 
-data_path = os.path.dirname(data_dir.__file__) + '/'
+data_path = pathlib.Path(data_dir.__path__[0])
 
 @u.quantity_input(input_map=u.K, nu=u.Hz)
 def KRJ_to_KCMB(input_map, nu):
@@ -70,7 +70,7 @@ def create_70GHz_mask(sky_frac):
         Mask covering the sky for a given sky fraction.
 
     """
-    template = hp.read_map(data_path + 'BP7_70GHz_nocmb_n0256.fits', 
+    template = hp.read_map(data_path / 'BP7_70GHz_nocmb_n0256.fits', 
                            dtype=np.float64, verbose=False)
     template = hp.ma(template)
 

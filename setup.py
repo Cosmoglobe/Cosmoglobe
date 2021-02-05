@@ -4,8 +4,8 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="cosmoglobe", # Replace with your own username
-    version="0.0.8",
+    name="cosmoglobe",
+    version="0.1.0",
     author="Metin San",
     author_email="metinisan@gmail.com",
     description="The Cosmoglobe Sky Model",
@@ -14,14 +14,14 @@ setuptools.setup(
     url="https://github.com/Cosmoglobe/Cosmoglobe",
     packages=setuptools.find_packages(),
     # package_dir={"":"cosmoglobe"},
-    package_data={"": ["*.dat"]}, 
+    package_data={"": ["*.dat","BP7_70GHz_nocmb_n0256.fits"]}, 
     include_package_data=True,
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.6',
+    python_requires='>=3.8',
     install_requires=[
         "healpy",
         "astropy",

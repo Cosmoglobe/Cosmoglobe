@@ -81,12 +81,11 @@ class LinearOpticallyThin(FreeFree):
             Frequency scaling factor.
 
         """
-        scaling = np.exp(-h * ((nu-nu_ref) / (k_B*T_e)))
-        scaling *= (nu/nu_ref)**-2
-        scaling *= gaunt_factor(nu, T_e) / gaunt_factor(nu_ref, T_e)
+        # scaling = np.exp(-h * ((nu-nu_ref) / (k_B*T_e)))
+        scaling = gaunt_factor(nu, T_e) / gaunt_factor(nu_ref, T_e)
+        scaling *= (nu_ref/nu)**2
 
         return scaling
-
 
 
 @njit

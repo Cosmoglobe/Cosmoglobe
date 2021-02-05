@@ -33,13 +33,13 @@ ame = sky.model('ame')
 
 # map_ = synch.get_emission(freqs*u.GHz, det1*(u.Jy/u.sr))
 # print(synch.get_emission(66*u.GHz))
-freqs, rms = sky.spectrum(sky_frac=22)
+freqs, rms = sky.spectrum(sky_frac=50)
 for model, model_rms in rms.items():
     plt.loglog(freqs, model_rms, label=model)
 
 plt.ylim(5e-2, 1e3)
 plt.xlabel('Frequency [GHz]')
-plt.ylabel('RMS brightness temperature [muK]')
+plt.ylabel('RMS brightness temperature [uK_RJ]')
 plt.legend()
 plt.show()
 
