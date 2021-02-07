@@ -13,8 +13,8 @@ from cosmoglobe.models.synch import Synchrotron
 from cosmoglobe.tools import chain
 from cosmoglobe.tools import utils
 
-components = {comp.__name__.lower(): comp for comp in SkyComponent.__subclasses__()}
-component_labels = {comp.comp_label: comp for comp in SkyComponent.__subclasses__()}
+implemented_comps = {comp.__name__.lower(): comp for comp in SkyComponent.__subclasses__()}
+implemented_comp_labels = {comp.comp_label: comp for comp in SkyComponent.__subclasses__()}
 
 
 class Cosmoglobe:
@@ -67,11 +67,12 @@ class Cosmoglobe:
             cosmoglobe sky models (components or component_labels).
 
         """
-        if component_name.lower() in components:
-            component =  components[component_name.lower()]
+        component_name = component_name.lower()
+        if component_name in implemented_comps:
+            component = implemented_comps[component_name]
 
-        elif component_name.lower() in component_labels:
-            component = component_labels[component_name.lower()]
+        elif component_name in implemented_comp_labels:
+            component = implemented_comp_labels[component_name]
 
         else:
             raise ValueError(
@@ -79,16 +80,16 @@ class Cosmoglobe:
                 f'between the following components:\n{*self.chain.components,}'
             )
 
-        models = {model.model_label: model for model in component.__subclasses__()}
-        model = models[self.chain.model_params[component.comp_label]['type']]
+        comp_models = {model.model_label: model for model in component.__subclasses__()}
+        comp_model = comp_models[self.chain.model_params[component.comp_label]['type']]
 
         if self.verbose:
-            print(f'Initializing {model.comp_label}...')
+            print(f'Initializing {comp_model.comp_label}...')
 
-        new_model = model(self.chain, **kwargs)
-        self.initialized_models.append(new_model)
+        model = comp_model(self.chain, **kwargs)
+        self.initialized_models.append(model)
         
-        return new_model
+        return model
 
 
     @u.quantity_input(nu=u.Hz)
