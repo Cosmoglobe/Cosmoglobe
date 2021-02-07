@@ -2,7 +2,7 @@ import astropy.units as u
 import healpy as hp
 import numpy as np
 
-from ..tools.utils import KRJ_to_KCMB, KCMB_to_KRJ
+from ..tools import utils
 
 class SkyComponent:
     """
@@ -26,16 +26,31 @@ class SkyComponent:
         self.chain = chain
         self.params = self.chain.model_params[self.comp_label]
 
-        attributes = self._get_model_attributes()
-        self._set_model_attributes(attributes=attributes, 
-                                   nside=kwargs['nside'], fwhm=kwargs['fwhm'])
+        attributes = self._get_model_attributes(nside=kwargs['nside'], 
+                                                fwhm=kwargs['fwhm'])
+        self._set_model_attributes(attributes)
 
 
-    def _get_model_attributes(self):
+    @utils.nside_isvalid
+    @u.quantity_input(fwhm=(u.arcmin, u.deg, u.rad, None))
+    def _get_model_attributes(self, nside, fwhm):
         """
         Returns a dictionary of maps and other model attributes.
         
+        Parameters
+        ---------
+        nside : int
+            Healpix map resolution.
+        fwhm : float
+            The fwhm of the Gaussian used to smooth the map.
+
         """
+        if nside is not None:
+            self.params['nside'] = nside      
+
+        if fwhm is not None:
+            self.params['fwhm'] = fwhm
+
         attributes = {}
         attributes_list = self.chain.get_alm_list(self.comp_label)
 
@@ -51,9 +66,16 @@ class SkyComponent:
                 attr_name = attr
 
             item = self.chain.get_item(
-                item_name=attr, component=self.comp_label, 
+                item_name=attr, 
+                component=self.comp_label, 
                 unpack_alms=unpack_alms, 
-                multipoles=getattr(self, '_multipoles', None))
+                multipoles=getattr(self, '_multipoles', None)
+            )
+
+            if not unpack_alms and nside is not None:
+                item_nside = hp.npix2nside(len(item))
+                if item_nside != nside:
+                    item = hp.ud_grade(item, nside)
 
             if isinstance(item, dict):
                 for key, value in item.items():
@@ -64,7 +86,7 @@ class SkyComponent:
         return attributes
 
 
-    def _set_model_attributes(self, attributes, nside, fwhm):
+    def _set_model_attributes(self, attributes):
         """
         Sets model maps and quantities to instance attributes.
 
@@ -72,41 +94,8 @@ class SkyComponent:
         ----------
         attributes : dict
             Dictionary of maps and other model attributes.
-        nside : int
-            Healpix map resolution. If not None, then maps are downgraded to
-            nside with hp.ud_grade.
-        fwhm : float
-            The fwhm of the Gaussian used to smooth the map with hp.smoothing.
 
         """
-        if nside is not None:
-            if hp.isnsideok(nside, nest=True):
-                ud_grade = True
-            else:
-                raise ValueError(f'nside: {nside} is not valid.')
-        else: 
-            ud_grade = False
-
-        if fwhm is not None:
-            if not isinstance(fwhm, u.Quantity):
-                raise u.UnitsError(
-                    'Fwhm must be an astropy object of units deg, rad, or '
-                    'arcmin'
-                )
-            smooth = True
-        else:
-            smooth = False
-             
-        for attr in attributes:
-            if isinstance(attributes[attr], (list, np.ndarray)):
-                if ud_grade:
-                    attributes[attr] = hp.ud_grade(attributes[attr],
-                                                   nside_out=int(nside), 
-                                                   dtype=np.float64)
-                if smooth:
-                    attributes[attr] = hp.smoothing(attributes[attr], 
-                                                    fwhm=fwhm.to('rad').value)
-        
         for key, value in attributes.items():
             if any(attr in key for attr in ('amp', 'monopole', 'dipole')):
                 if self.params['unit'].lower() in ('uk_rj', 'uk_cmb'):
@@ -123,9 +112,10 @@ class SkyComponent:
             setattr(self, key, value)
 
 
-    def _model_to_nside(self, nside):
+    @utils.nside_isvalid
+    def to_nside(self, nside):
         """
-        Reinitializes the model instance with at new nside.
+        Reinitializes the model instance at new nside.
 
         Parameters
         ----------
@@ -137,12 +127,27 @@ class SkyComponent:
         Model instance with a new nside.
     
         """
-        if hp.isnsideok(nside, nest=True):
-            self.kwargs['nside'] = nside
-            return super(self.__class__, self).__init__(self.chain, 
-                                                        **self.kwargs)
-        else:
-            raise ValueError(f'nside: {nside} is not valid.')
+        self.kwargs['nside'] = nside
+        return super(self.__class__, self).__init__(self.chain, **self.kwargs)
+
+
+    @u.quantity_input(fwhm=(u.arcmin, u.deg, u.rad))
+    def smooth(self, fwhm):
+        """
+        Reinitializes the model instance at new fwhm.
+
+        Parameters
+        ----------
+        fwhm : float
+            The fwhm of the Gaussian used to smooth the map.
+
+        Returns
+        -------
+        Model instance with a new nside.
+    
+        """
+        self.kwargs['fwhm'] = fwhm
+        return super(self.__class__, self).__init__(self.chain, **self.kwargs)
 
 
     def to_KCMB(self):
@@ -155,7 +160,7 @@ class SkyComponent:
         
         nu_ref = np.expand_dims(self.params['nu_ref'], axis=1)
 
-        return KRJ_to_KCMB(self.amp, nu_ref)
+        return utils.KRJ_to_KCMB(self.amp, nu_ref)
 
 
     def to_KRJ(self):
@@ -168,7 +173,7 @@ class SkyComponent:
 
         nu_ref = np.expand_dims(self.params['nu_ref'], axis=1)
 
-        return KCMB_to_KRJ(self.amp, nu_ref)
+        return utils.KCMB_to_KRJ(self.amp, nu_ref)
 
 
     @u.quantity_input(nus=u.Hz, bandpass=(u.Jy/u.sr, u.K))
@@ -208,7 +213,7 @@ class SkyComponent:
 
         elif bandpass.unit == u.K:
             if amp_unit.endswith('cmb'):
-                bandpass = KRJ_to_KCMB(bandpass, nus)
+                bandpass = utils.KRJ_to_KCMB(bandpass, nus)
         
         weights = bandpass/np.sum(bandpass)
 
@@ -241,8 +246,11 @@ class SkyComponent:
 
     def __repr__(self):
         kwargs = {key: value for key, value in self.kwargs.items() if value is not None}
-        kwargs_str = ", ".join(f"'{key}={value}'" for key, value in kwargs.items())
-        return f'Cosmoglobe.model({self.comp_label!r}, {kwargs_str})'
+        if kwargs:
+            kwargs_str = ", ".join(f"'{key}={value}'" for key, value in kwargs.items())
+            return f'model({self.comp_label!r}, {kwargs_str})'
+        else:
+            return f'model({self.comp_label!r})'
 
 
     def __str__(self):

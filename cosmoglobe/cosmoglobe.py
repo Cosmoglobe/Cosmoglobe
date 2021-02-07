@@ -198,9 +198,9 @@ class Cosmoglobe:
             if self.verbose:
                 print(f'Computing RMS for {model.comp_label}...')
 
-            if model.params['nside'] > 256:
-                model._model_to_nside(256)
-            
+            if model.params['nside'] != 256:
+                model.to_nside(256)
+
             if pol:
                 for freq in freqs:
                     amp = model[freq].value

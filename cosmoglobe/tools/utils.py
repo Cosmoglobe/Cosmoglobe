@@ -4,6 +4,7 @@ import healpy as hp
 import numpy as np
 import pathlib
 import time 
+import inspect
 
 from .. import data as data_dir
 
@@ -116,4 +117,32 @@ def timer(function):
         print(f'{function.__name__} took: {total_time} s')
         return return_value
 
+    return wrapper
+
+
+def nside_isvalid(function):
+    """
+    Decorator that validates the nside input to a function. Function must have
+    a keyword named 'nside'.
+
+    """
+    def wrapper(*args, **kwargs):
+        if kwargs:
+            nside = kwargs['nside']
+        else:
+            arg_names = inspect.getargspec(function).args
+            try:
+                nside_ind = arg_names.index('nside')
+            except KeyError:
+                raise KeyError(
+                f'Method {function.__name__} has no nside argument'
+            )
+            nside = args[nside_ind]
+
+        if nside is not None and not hp.isnsideok(nside, nest=True):
+            raise ValueError(f'nside: {nside} is not valid.')
+
+        return_value = function(*args, **kwargs)
+
+        return return_value
     return wrapper
