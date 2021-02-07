@@ -3,6 +3,7 @@ For testing Cosmoglobe during development.
 
 """
 
+import sys
 import astropy.units as u
 import healpy as hp
 import matplotlib.pyplot as plt
@@ -14,12 +15,7 @@ from cosmoglobe.cosmoglobe import Cosmoglobe
 
 hp.disable_warnings()
 
-# bandpass = '../../Cosmoglobe_test_data/wmap_bandpass.txt'
-# freqs, det1, det2 = np.loadtxt(bandpass, unpack=True)
-
-# bandpass = '../../Cosmoglobe_test_data/wmap_bandpass.txt'
-
-data = '../../Cosmoglobe_test_data/reduced_chain_test.h5'
+data = '../../Cosmoglobe_test_data/chain_test.h5'
 sky = Cosmoglobe(data, sample='mean')
 # cmb = sky.model('cmb')
 cmb = sky.model('cmb', remove_dipole=True, remove_monopole=True)
@@ -27,12 +23,15 @@ synch = sky.model('synch')
 dust = sky.model('dust')
 ff = sky.model('ff')
 ame = sky.model('ame')
-print(repr(ame.chain))
+
+# dust.to_nside(64)
+# dust.smooth(150*u.arcmin)
+# hp.mollview(dust.amp[0], norm='hist')
+# plt.show()
+#
 # frequency_map = sky.full_sky(nu=30*u.GHz)
 # hp.mollview(frequency_map[0], min=-3400, max=3400)
 
-# map_ = synch.get_emission(freqs*u.GHz, det1*(u.Jy/u.sr))
-# print(synch.get_emission(66*u.GHz))
 freqs, rms = sky.spectrum(sky_frac=50)
 for model, model_rms in rms.items():
     plt.loglog(freqs, model_rms, label=model)

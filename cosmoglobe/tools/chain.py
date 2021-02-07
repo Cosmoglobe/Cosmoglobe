@@ -60,14 +60,15 @@ class Chain:
             Path to Commander3 chainfile.
 
         sample : str, optional
-            Sample to extract data from. Allowed values are ['sample', 'mean']
+            Sample to extract data from. Allowed values are ('sample', 'mean')
             where 'sample' is the name of a sample group in the h5 file. If 
             sample is set to 'mean', the average over all the samples will be
             used. Default is 'mean'.
 
         """
-
-        self.chainfile, self.sample, self.burnin = self._validate_chainfile(chainfile, sample, burnin)
+        self.chainfile = self._validate_chainfile(chainfile, sample, burnin)
+        self.sample = sample
+        self.burnin = burnin
         self.components = self.get_components()
         self.model_params = self.get_model_params()
 
@@ -105,11 +106,11 @@ class Chain:
                            if file.endswith('.h5') and 'chain' in file])
 
             if len(chainfiles) == 1:
-                path = path/chainfiles[0]
+                path = path / chainfiles[0]
 
             elif len(chainfiles) > 1:
                 raise IOError(
-                      f'Data directory contains more than one hdf5 file: '
+                      f'Data directory contains more than one chain file: '
                       f'{*chainfiles,} \nPlease provide a path including '
                       'the specific chain file you wish to use'
                 )
@@ -130,7 +131,7 @@ class Chain:
                             raise KeyError(
                                 'Chainfile does not contain a parameters '
                                 'group. Make sure the chainfile was produced '
-                                'with an updated version of Commander3'
+                                'with a recent version of Commander3'
                             )
                         if len(f) <= 1:
                             raise KeyError(
@@ -155,7 +156,7 @@ class Chain:
                     raise OSError(
                         f'{path.name!r} has an invalid hdf5 format. Make sure '
                         'the file was created with a recent version of '
-                        'Commander.'
+                        'Commander3.'
                     )
 
             else:
@@ -166,7 +167,7 @@ class Chain:
             f'No such file or directory: {str(path)!r}'
         )
 
-        return path, sample, burnin
+        return path
       
 
     def get_components(self):
@@ -174,15 +175,9 @@ class Chain:
         Returns a list of all sky components present in a gibbs sample.
         
         """
-        with h5py.File(self.chainfile,'r') as f:
+        with h5py.File(self.chainfile, 'r') as f:
             components = list(f['parameters'])
 
-        if not components:
-            raise ValueError(
-                f'Parameters group in {self.chainfile.name!r} does not include '
-                'any components'
-            )
-            
         return components
 
 
@@ -333,14 +328,15 @@ class Chain:
                 else:
                     pol = self.model_params[component]['polarization']
 
+                nside = self.model_params[component]['nside']
+                fwhm = self.model_params[component]['fwhm'].to('rad').value
+
                 unpacked_alm = unpack_alms_from_chain(item, int(lmax))
                 items = hp.alm2map(unpacked_alm, 
-                                  nside=self.model_params[component]['nside'], 
+                                  nside=nside, 
                                   lmax=int(lmax), 
-                                  mmax=int(lmax), 
-                                  fwhm=self.model_params[component]['fwhm'].to('rad').value, 
+                                  fwhm=fwhm, 
                                   pol=pol,
-                                  pixwin=True,
                                   verbose=False).astype('float32')
 
                 if multipoles is not None:
@@ -350,17 +346,15 @@ class Chain:
                     for multipole in multipoles:
                         unpacked_alm = unpack_alms_multipole_from_chain(item, int(lmax), multipole)
                         items[pole_names[multipole]] = hp.alm2map(unpacked_alm, 
-                                                                  nside=self.model_params[component]['nside'], 
+                                                                  nside=nside, 
                                                                   lmax=int(lmax), 
-                                                                  mmax=int(lmax), 
-                                                                  fwhm=self.model_params[component]['fwhm'].to('rad').value, 
+                                                                  fwhm=fwhm, 
                                                                   pol=pol,
-                                                                  pixwin=True,
                                                                   verbose=False).astype('float32') 
 
                     return items
                 return items
-        return item
+        return item[0]
 
     def __repr__(self):
         return f"Chain(chainfile={self.chainfile.name!r}, sample={self.sample!r}, burnin={self.burnin!r})"
