@@ -79,7 +79,7 @@ class Cosmoglobe:
                 f'between the following components:\n{*self.chain.components,}'
             )
 
-        models = {model.model_label:model for model in component.__subclasses__()}
+        models = {model.model_label: model for model in component.__subclasses__()}
         model = models[self.chain.model_params[component.comp_label]['type']]
 
         if self.verbose:

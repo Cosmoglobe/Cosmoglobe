@@ -1,7 +1,7 @@
 import astropy.units as u
 
 from .skycomponent import SkyComponent
-from ..tools.utils import KCMB_to_KRJ
+from ..tools import utils
 
 
 class CMB(SkyComponent):
@@ -54,4 +54,4 @@ class BlackBody(CMB):
             Model emission at given frequency in units of K_RJ.
 
         """
-        return KCMB_to_KRJ(self.amp, nu)
+        return utils.KCMB_to_KRJ(self.amp, nu)
