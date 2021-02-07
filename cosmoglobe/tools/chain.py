@@ -319,7 +319,7 @@ class Chain:
             if unpack_alms:
                 lmax_name = f"{item_name.split('_')[0]}_lmax"
                 try:
-                    lmax = f[samples[0]][component][lmax_name][()]
+                    lmax = int(f[samples[0]][component][lmax_name][()])
                 except:
                     raise KeyError(f'{lmax_name} does not exist in file')
 
@@ -331,10 +331,10 @@ class Chain:
                 nside = self.model_params[component]['nside']
                 fwhm = self.model_params[component]['fwhm'].to('rad').value
 
-                unpacked_alm = unpack_alms_from_chain(item, int(lmax))
+                unpacked_alm = unpack_alms_from_chain(item, lmax)
                 items = hp.alm2map(unpacked_alm, 
                                   nside=nside, 
-                                  lmax=int(lmax), 
+                                  lmax=lmax, 
                                   fwhm=fwhm, 
                                   pol=pol,
                                   verbose=False).astype('float32')
@@ -344,10 +344,10 @@ class Chain:
                     pole_names = {0: 'monopole', 1: 'dipole', 2: 'quadrupole'}
 
                     for multipole in multipoles:
-                        unpacked_alm = unpack_alms_multipole_from_chain(item, int(lmax), multipole)
+                        unpacked_alm = unpack_alms_multipole_from_chain(item, lmax, multipole)
                         items[pole_names[multipole]] = hp.alm2map(unpacked_alm, 
                                                                   nside=nside, 
-                                                                  lmax=int(lmax), 
+                                                                  lmax=lmax, 
                                                                   fwhm=fwhm, 
                                                                   pol=pol,
                                                                   verbose=False).astype('float32') 
