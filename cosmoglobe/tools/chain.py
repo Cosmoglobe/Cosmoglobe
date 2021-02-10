@@ -341,7 +341,7 @@ class Chain:
 
                 if multipoles is not None:
                     items = {'amp': items}
-                    pole_names = {0: 'monopole', 1: 'dipole', 2: 'quadrupole'}
+                    pole_names = dict(enumerate(['monopole', 'dipole', 'quadrupole']))
 
                     for multipole in multipoles:
                         unpacked_alm = unpack_alms_multipole_from_chain(item, lmax, multipole)

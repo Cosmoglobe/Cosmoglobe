@@ -1,6 +1,5 @@
 import astropy.units as u
 import pathlib
-from numba import njit
 import numpy as np
 
 from .skycomponent import SkyComponent
@@ -40,7 +39,7 @@ class SpinningDust2(AME):
 
 
     @u.quantity_input(nu=u.Hz)
-    def get_emission(self, nu):
+    def get_emission(self, nu, bandpass=None):
         """
         Returns the model emission at an arbitrary frequency nu in units 
         of K_RJ.
@@ -56,28 +55,39 @@ class SpinningDust2(AME):
             Model emission at given frequency in units of K_RJ.
 
         """
-        if nu.si.value >= self.spdust2_nu[-1].si.value:
-            return u.Quantity(np.zeros_like(self.amp), unit=self.amp.unit)
-        
-        if nu.si.value <= self.spdust2_nu[0].si.value:
-            raise ValueError(
-                             'Invalid frequency range for AME. '
-                             'AME is not defined below 0.05 GHz.'
-            )
+        if bandpass is None:
+            if nu.si.value >= self.spdust2_nu[-1].si.value:
+                return u.Quantity(np.zeros_like(self.amp), unit=self.amp.unit)
 
-        scaling = self._get_freq_scaling(nu.si.value, 
-                                         self.params['nu_ref'].si.value, 
-                                         self.nu_p_map.si.value, 
-                                         self.spdust2_amp.value, 
-                                         self.spdust2_nu.si.value)
-        emission = self.amp*scaling
+            if nu.si.value <= self.spdust2_nu[0].si.value:
+                raise ValueError(
+                                 'Invalid frequency range for AME. '
+                                 'AME is not defined below 0.05 GHz.'
+                )
+
+            scaling = self._get_freq_scaling(nu.si.value, self.nu_p_map.si.value)
+            emission = self.amp*scaling
+
+        else:
+            if (nu.si[-1] >= self.spdust2_nu.si[-1] 
+                or nu.si[0] <= self.spdust2_nu.si[0]):
+                raise ValueError(
+                    'Invalid frequency range for AME when bandpass integrating. '
+                )
+            # bandpass = self._normalize_bandpassI()
+            # U = self._get_unit_conversion(nu, bandpass)
+            bandpass = self._get_unit_conversion(nu, bandpass)
+            M = self._get_mixing(bandpass=bandpass, 
+                                 nus=nu.si.value, 
+                                 spectral_params=self.nu_p_map.si.value)
+
+            emission = self.amp*M
+
 
         return emission
 
 
-    @staticmethod
-    @njit
-    def _get_freq_scaling(nu, nu_ref, nu_p, spdust2_amp, spdust2_nu):
+    def _get_freq_scaling(self, nu, nu_p):
         """
         Computes the frequency scaling from the reference frequency nu_ref to 
         an arbitrary frequency nu, given by the peak frequency nu_p abd
@@ -91,10 +101,6 @@ class SpinningDust2(AME):
             Reference frequency.    
         nu_p : numpy.ndarray
             Peak position parameter.    
-        spdust2_amp : numpy.ndarray
-            SpDust2 code template amplitude.
-        spdust2_nu : numpy.ndarray
-            SpDust2 code template frequency.
 
         Returns
         -------
@@ -102,6 +108,10 @@ class SpinningDust2(AME):
             Frequency scaling factor.
 
         """
+        nu_ref = self.params['nu_ref'].si.value
+        spdust2_nu = self.spdust2_nu.si.value
+        spdust2_amp = self.spdust2_amp.si.value
+
         scaled_nu = nu * (30e9/nu_p)
         scaled_nu_ref = nu_ref * (30e9/nu_p)
 
