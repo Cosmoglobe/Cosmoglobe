@@ -146,3 +146,4 @@ def nside_isvalid(function):
 
         return return_value
     return wrapper
+

@@ -7,7 +7,7 @@ from cosmoglobe.models.skycomponent import SkyComponent
 from cosmoglobe.models.ame import AME
 from cosmoglobe.models.cmb import CMB
 from cosmoglobe.models.ff import FreeFree
-from cosmoglobe.models.dust import ModifiedBlackbody
+from cosmoglobe.models.dust import Dust
 from cosmoglobe.models.synch import Synchrotron
 
 from cosmoglobe.tools import chain
