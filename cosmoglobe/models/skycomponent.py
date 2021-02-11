@@ -142,8 +142,8 @@ class SkyComponent:
             emission = self.amp*scaling
 
         else:
-            bandpass = self._get_normalized_bandpass(nu, bandpass)
-            U = self._get_unit_conversion(nu, bandpass, output_unit)
+            bandpass = utils.get_normalized_bandpass(nu, bandpass)
+            U = utils.get_unit_conversion(nu, bandpass, output_unit)
             M = self._get_mixing(bandpass=bandpass.value,
                                  nus=nu.si.value, 
                                  spectral_params=self._spectral_params)
@@ -233,70 +233,6 @@ class SkyComponent:
             )
 
         return M_interp
-
-
-    @staticmethod
-    def _get_unit_conversion(nus, bandpass, output_unit):
-        """
-        Returns the unit conversion factor for a bandpass integration given an 
-        output and input unit.
-
-        Parameters
-        ----------
-        nus : astropy.units.quantity.Quantity
-            Frequency array or list for the bandpass profile.
-        bandpass : astropy.units.quantity.Quantity
-            Bandpass profile array or list in units K_RJ.
-        output_unit : astropy.units.core.IrreducibleUnit or 
-                      astropy.units.core.CompositeUnit
-            Output unit of bandpass integrated map.
-
-        Returns
-        -------
-        weights : numpy.ndarray
-            Normalized bandpass profile to unit integral.
-            
-        """
-        bandpass_input = bandpass.value
-        bandpass_output = (bandpass.value * output_unit).to_value(u.K, 
-            equivalencies=u.brightness_temperature(nus)
-        )
-
-        factor = np.trapz(bandpass_input, nus.si.value)
-        factor /= np.trapz(bandpass_output, nus.si.value)
-
-        return factor
-
-
-    @staticmethod
-    @u.quantity_input(nus=u.Hz, bandpass=(u.Jy/u.sr, u.K))
-    def _get_normalized_bandpass(nus, bandpass):
-        """
-        Converts the bandpass profile to 'K_RJ' units and normalizes it unity 
-        under the trapezoidal integration.
-
-        Parameters
-        ----------
-        nus : astropy.units.quantity.Quantity
-            Array or list of frequencies for the bandpass profile.
-        bandpass : astropy.units.quantity.Quantity
-            Bandpass profile array or list. Must be in units of Jy/sr or K_RJ.
-
-        Returns
-        -------
-        bandpass : numpy.ndarray
-            Normalized bandpass profile to unit integral in units of K_RJ.
-            
-        """
-        if np.shape(nus) != np.shape(bandpass):
-            raise ValueError(
-                'Frequency and bandpass arrays must have the same shape'
-            )
-
-        bandpass = bandpass.to_value(u.K, equivalencies=u.brightness_temperature(nus))
-        bandpass /= np.trapz(bandpass, nus.si.value)
-
-        return bandpass * u.K
 
 
     @utils.nside_isvalid
@@ -398,7 +334,3 @@ class SkyComponent:
 
     def __str__(self):
         return f"Cosmoglobe {self.comp_label} {self.__class__.__name__} model."
-
-
-
-
