@@ -135,50 +135,38 @@ class SkyComponent:
 
         n_interpols = 10
 
-        nu_ref = self.params['nu_ref'].si.value
         polarized = self.params['polarization']
 
-        #1D
-        if not isinstance(spectral_params, (tuple, list)):
-            if len(np.unique(spectral_params)) == 1:
-                spectral_value = np.unique(spectral_params)[0]
-                freq_scaling = self._get_freq_scaling(nus, spectral_value)
-                M = np.trapz(freq_scaling*bandpass, nus)
+        interp_ranges, consts, interp_dim, interp_ind = (
+            utils.get_interp_ranges(spectral_params, n_interpols)
+        )
 
-                return M
 
+        if interp_dim == 0:
+            freq_scaling = self._get_freq_scaling(nus, *consts)
+            M = np.trapz(freq_scaling*bandpass, nus)
+
+            return M
+
+        elif interp_dim == 1:
+            M = []
+            for val in interp_ranges[0]:
+                freq_scaling = self._get_freq_scaling(nus, val, *consts)
+                M.append(np.trapz(freq_scaling*bandpass, nus))
+
+            if polarized:
+                M = np.transpose(M)
+                f = [interp1d(interp_ranges[0], M[IQU]) for IQU in range(3)]
+                M_interp = [f[IQU](spectral_params[interp_ind][IQU]) for IQU in range(3)]
             else:
-                spectral_interp_vals = np.linspace(np.amin(spectral_params), 
-                                                   np.amax(spectral_params), 
-                                                   n_interpols)
-                M = []
-                for val in spectral_interp_vals:
-                    freq_scaling = self._get_freq_scaling(nus, nu_ref, val)
-                    M.append(np.trapz(freq_scaling*bandpass, nus))
+                f = interp1d(interp_ranges[0], M) 
+                M_interp = f(spectral_params[interp_ind]) 
 
-                if polarized:
-                    M = np.transpose(M)
-                    f = tuple(interp1d(spectral_interp_vals, M[IQU]) 
-                              for IQU in range(3))
-                    M_interp = tuple(f[IQU](spectral_params[IQU]) 
-                                     for IQU in range(3))
+            return M_interp
 
-                    return M_interp
-
-                else:
-                    f = interp1d(spectral_interp_vals, M) 
-                    M_interp = f(spectral_params) 
-
-                    return M_interp
-
-        #2D
-        else:
-            spectral_interp_vals = tuple(
-                np.linspace(np.amin(param)-1, np.amax(param)+1, n_interpols) 
-                for param in spectral_params
-            )
-            spectral_meshgrid = np.meshgrid(*spectral_interp_vals)
-
+        elif interp_dim == 2:
+            interp_meshgrid = np.meshgrid(*interp_ranges)
+ 
             if polarized:
                 M = np.zeros((n_interpols, n_interpols, 3))
             else:
@@ -186,26 +174,23 @@ class SkyComponent:
 
             for i in range(n_interpols):
                 for j in range(n_interpols):
-                    spec_inds = (spectral_meshgrid[0][i,j], 
-                                 spectral_meshgrid[1][i,j])
+                    spec_inds = (interp_meshgrid[0][i,j], 
+                                 interp_meshgrid[1][i,j])
                     freq_scaling = self._get_freq_scaling(nus, *spec_inds)
                     M[i,j] = np.trapz(freq_scaling*bandpass, nus)
             
             if polarized:
                 M = np.transpose(M)
-                f = tuple(RectBivariateSpline(*spectral_interp_vals, M[IQU]) 
-                          for IQU in range(3))
-                M_interp = tuple(f[IQU](spectral_params[0][IQU], 
-                                 spectral_params[1][IQU], grid=False) 
-                                 for IQU in range(3))   
-
-                return M_interp
-
+                f = [RectBivariateSpline(*interp_ranges, M[IQU]) 
+                     for IQU in range(3)]
+                M_interp = [f[IQU](spectral_params[0][IQU], 
+                            spectral_params[1][IQU], grid=False) 
+                            for IQU in range(3)]  
             else: 
-                f = RectBivariateSpline(*spectral_interp_vals, M) 
-                M_interp = f(spectral_params[0], spectral_params[1], grid=False) 
+                f = RectBivariateSpline(*interp_ranges, M) 
+                M_interp = f(*spectral_params, grid=False) 
 
-                return M_interp
+            return M_interp
 
 
     @u.quantity_input(nus=u.Hz, bandpass=(u.Jy/u.sr, u.K))

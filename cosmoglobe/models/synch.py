@@ -52,9 +52,7 @@ class PowerLaw(Synchrotron):
 
         """
         if bandpass is None:
-            scaling = self._get_freq_scaling(nu.si.value,
-                                                self.params['nu_ref'].si.value,
-                                                self.beta)
+            scaling = self._get_freq_scaling(nu.si.value, self.beta)
             emission = self.amp*scaling
 
         else:
@@ -70,7 +68,7 @@ class PowerLaw(Synchrotron):
         return emission
 
 
-    def _get_freq_scaling(self, nu, nu_ref, beta):
+    def _get_freq_scaling(self, nu, beta):
         """
         Computes the frequency scaling from the reference frequency nu_ref to 
         an arbitrary frequency nu, which depends on the spectral parameter
@@ -91,7 +89,7 @@ class PowerLaw(Synchrotron):
             Frequency scaling factor.
 
         """
-        nu_ref = np.expand_dims(nu_ref, axis=1)
+        nu_ref = np.expand_dims(self.params['nu_ref'].si.value, axis=1)
         scaling = (nu/nu_ref)**beta
 
         return scaling
