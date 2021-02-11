@@ -19,6 +19,7 @@ class AME(SkyComponent):
         self.kwargs = kwargs
 
 
+
 class SpinningDust2(AME):
     """
     Model for spinning dust emission.
@@ -27,27 +28,36 @@ class SpinningDust2(AME):
     model_label = 'spindust2'
     _other_quantities = ('nu_p_map',)
 
-    spdust2_nu, spdust2_amp = np.loadtxt(data_path / 'spdust2_cnm.dat', 
-                                         unpack=True)
-
+    spdust2_nu, spdust2_amp = (
+        np.loadtxt(data_path / 'spdust2_cnm.dat', unpack=True)
+    )
     spdust2_nu = spdust2_nu * u.GHz
     spdust2_amp = u.Quantity(spdust2_amp, unit=(u.Jy/u.sr)).to(
-        u.K, equivalencies=u.brightness_temperature(spdust2_nu))
+        u.K, equivalencies=u.brightness_temperature(spdust2_nu)
+    )
 
     def __init__(self, data, nside=None, fwhm=None):
         super().__init__(data, nside=nside, fwhm=fwhm)
+        self._spectral_params = (self.nu_p_map.si.value,)
 
 
     @u.quantity_input(nu=u.Hz)
     def get_emission(self, nu, bandpass=None, output_unit=u.K):
         """
-        Returns the model emission at an arbitrary frequency nu in units 
-        of K_RJ.
+        Calls the get_emission function of the SkyComponent class.
 
         Parameters
         ----------
         nu : astropy.units.quantity.Quantity
-            Frequencies at which to evaluate the model. 
+            A frequency, or a frequency array at which to evaluate the model.
+        bandpass : astropy.units.quantity.Quantity
+            Bandpass profile in units of (k_RJ, Jy/sr) corresponding to 
+            frequency array nu. If None, a delta peak in frequency is assumed.
+            Default : None
+        output_unit : astropy.units.quantity.Quantity or str
+            Desired unit for the output map. Must be a valid astropy.unit or 
+            one of the two following strings ('K_CMB', 'K_RJ').
+            Default : None
 
         Returns
         -------
@@ -58,15 +68,11 @@ class SpinningDust2(AME):
         if bandpass is None:
             if nu.si.value >= self.spdust2_nu[-1].si.value:
                 return u.Quantity(np.zeros_like(self.amp), unit=self.amp.unit)
-
             if nu.si.value <= self.spdust2_nu[0].si.value:
                 raise ValueError(
                                  'Invalid frequency range for AME. '
                                  'AME is not defined below 0.05 GHz.'
                 )
-
-            scaling = self._get_freq_scaling(nu.si.value, self.nu_p_map.si.value)
-            emission = self.amp*scaling
 
         else:
             if (nu.si[-1] >= self.spdust2_nu.si[-1] 
@@ -74,15 +80,8 @@ class SpinningDust2(AME):
                 raise ValueError(
                     'Invalid frequency range for AME when bandpass integrating. '
                 )
-            bandpass = self._get_normalized_bandpass(nu, bandpass)
-            U = self._get_unit_conversion(nu, bandpass, output_unit)
-            M = self._get_mixing(bandpass=bandpass.value, 
-                                 nus=nu.si.value, 
-                                 spectral_params=(self.nu_p_map.si.value,))
 
-            emission = self.amp*M*U
-
-        return emission
+        return super().get_emission(nu, bandpass, output_unit)
 
 
     def _get_freq_scaling(self, nu, nu_p):
@@ -117,4 +116,3 @@ class SpinningDust2(AME):
         scaling /= np.interp(scaled_nu_ref, spdust2_nu, spdust2_amp)   
 
         return scaling
-
