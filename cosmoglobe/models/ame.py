@@ -39,7 +39,7 @@ class SpinningDust2(AME):
 
 
     @u.quantity_input(nu=u.Hz)
-    def get_emission(self, nu, bandpass=None):
+    def get_emission(self, nu, bandpass=None, output_unit=u.K):
         """
         Returns the model emission at an arbitrary frequency nu in units 
         of K_RJ.
@@ -74,15 +74,13 @@ class SpinningDust2(AME):
                 raise ValueError(
                     'Invalid frequency range for AME when bandpass integrating. '
                 )
-            # bandpass = self._normalize_bandpassI()
-            # U = self._get_unit_conversion(nu, bandpass)
-            bandpass = self._get_unit_conversion(nu, bandpass)
-            M = self._get_mixing(bandpass=bandpass, 
+            bandpass = self._get_normalized_bandpass(nu, bandpass)
+            U = self._get_unit_conversion(nu, bandpass, output_unit)
+            M = self._get_mixing(bandpass=bandpass.value, 
                                  nus=nu.si.value, 
-                                 spectral_params=self.nu_p_map.si.value)
+                                 spectral_params=(self.nu_p_map.si.value,))
 
-            emission = self.amp*M
-
+            emission = self.amp*M*U
 
         return emission
 

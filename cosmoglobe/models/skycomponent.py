@@ -1,4 +1,5 @@
 import astropy.units as u
+from astropy.units import equivalencies
 import healpy as hp
 import numpy as np
 from scipy.interpolate import interp1d, RectBivariateSpline
@@ -113,130 +114,6 @@ class SkyComponent:
             setattr(self, key, value)
 
 
-    @utils.timer
-    def _get_mixing(self, bandpass, nus, spectral_params):
-        """
-        Returns the frequency scaling factor given a bandpass profile and a 
-        set of spectral parameters. Uses the mixing matrix implementation 
-        from commander3.
-
-        Parameters
-        ----------
-        bandpass : astropy.units.quantity.Quantity
-            Bandpass profile array normalized to sum to one. Units must be 
-            either K_RJ or K_CMB.
-        nus : astropy.units.quantity.Quantity
-            Frequency array corresponding to the bandpass array.
-        spectral_parameters : tuple
-            Tuple of all spectral parameters required to compute the frequency 
-            scaling for a component i.e (self.beta, self.T).
-
-        """
-
-        n_interpols = 10
-
-        polarized = self.params['polarization']
-
-        interp_ranges, consts, interp_dim, interp_ind = (
-            utils.get_interp_ranges(spectral_params, n_interpols)
-        )
-
-
-        if interp_dim == 0:
-            freq_scaling = self._get_freq_scaling(nus, *consts)
-            M = np.trapz(freq_scaling*bandpass, nus)
-
-            return M
-
-        elif interp_dim == 1:
-            M = []
-            for val in interp_ranges[0]:
-                freq_scaling = self._get_freq_scaling(nus, val, *consts)
-                M.append(np.trapz(freq_scaling*bandpass, nus))
-
-            if polarized:
-                M = np.transpose(M)
-                f = [interp1d(interp_ranges[0], M[IQU]) for IQU in range(3)]
-                M_interp = [f[IQU](spectral_params[interp_ind][IQU]) for IQU in range(3)]
-            else:
-                f = interp1d(interp_ranges[0], M) 
-                M_interp = f(spectral_params[interp_ind]) 
-
-            return M_interp
-
-        elif interp_dim == 2:
-            interp_meshgrid = np.meshgrid(*interp_ranges)
- 
-            if polarized:
-                M = np.zeros((n_interpols, n_interpols, 3))
-            else:
-                M = np.zeros((n_interpols, n_interpols))
-
-            for i in range(n_interpols):
-                for j in range(n_interpols):
-                    spec_inds = (interp_meshgrid[0][i,j], 
-                                 interp_meshgrid[1][i,j])
-                    freq_scaling = self._get_freq_scaling(nus, *spec_inds)
-                    M[i,j] = np.trapz(freq_scaling*bandpass, nus)
-            
-            if polarized:
-                M = np.transpose(M)
-                f = [RectBivariateSpline(*interp_ranges, M[IQU]) 
-                     for IQU in range(3)]
-                M_interp = [f[IQU](spectral_params[0][IQU], 
-                            spectral_params[1][IQU], grid=False) 
-                            for IQU in range(3)]  
-            else: 
-                f = RectBivariateSpline(*interp_ranges, M) 
-                M_interp = f(*spectral_params, grid=False) 
-
-            return M_interp
-
-
-    @u.quantity_input(nus=u.Hz, bandpass=(u.Jy/u.sr, u.K))
-    def _get_unit_conversion(self, nus, bandpass):
-        """
-        Returns normalized integration weights from a bandpass profile. First
-        converts to same units as the model amplitude, then normalizes.
-
-        Parameters
-        ----------
-        nus : astropy.units.quantity.Quantity
-            Array or list of frequencies for the bandpass profile.
-        bandpass : astropy.units.quantity.Quantity
-            Bandpass profile array or list. Must be in units of Jy/sr or K_RJ.
-
-        Returns
-        -------
-        weights : numpy.ndarray
-            Normalized bandpass profile to unit integral.
-            
-        """
-        if np.shape(nus) != np.shape(bandpass):
-            raise ValueError(
-                'Frequency and bandpass arrays must have the same shape'
-            )
-        amp_unit = self.params['unit'].lower()
-
-        if bandpass.unit == u.Jy/u.sr:
-            if amp_unit.endswith('rj'):
-                bandpass = bandpass.to(u.K, 
-                    equivalencies=u.brightness_temperature(nus)
-                )
-            elif amp_unit.endswith('cmb'):
-                bandpass = bandpass.to(u.K, 
-                    equivalencies=u.thermodynamic_temperature(nus)
-                )
-
-        elif bandpass.unit == u.K:
-            if amp_unit.endswith('cmb'):
-                bandpass = utils.KRJ_to_KCMB(bandpass, nus)
-        
-        weights = bandpass/np.trapz(bandpass, nus.si.value)
-
-        return weights.value
-
-
     @utils.nside_isvalid
     def to_nside(self, nside):
         """
@@ -299,6 +176,153 @@ class SkyComponent:
         nu_ref = np.expand_dims(self.params['nu_ref'], axis=1)
 
         return utils.KCMB_to_KRJ(self.amp, nu_ref)
+
+
+    def _get_mixing(self, bandpass, nus, spectral_params):
+        """
+        Returns the frequency scaling factor given a bandpass profile and a 
+        set of spectral parameters. Uses the mixing matrix implementation 
+        from commander3.
+
+        Parameters
+        ----------
+        bandpass : astropy.units.quantity.Quantity
+            Bandpass profile array normalized to sum to one. Units must be 
+            either K_RJ or K_CMB.
+        nus : astropy.units.quantity.Quantity
+            Frequency array corresponding to the bandpass array.
+        spectral_parameters : tuple
+            Tuple of all spectral parameters required to compute the frequency 
+            scaling for a component i.e (self.beta, self.T).
+
+        """
+
+        n_interpols = 25
+
+        polarized = self.params['polarization']
+
+        interp_ranges, consts, interp_dim, interp_ind = (
+            utils.get_interp_ranges(spectral_params, n_interpols)
+        )
+
+        if interp_dim == 0:
+            freq_scaling = self._get_freq_scaling(nus, *consts)
+            M_interp = np.trapz(freq_scaling*bandpass, nus)
+
+            return M_interp
+
+        elif interp_dim == 1:
+            M = []
+            for val in interp_ranges[0]:
+                freq_scaling = self._get_freq_scaling(nus, val, *consts)
+                M.append(np.trapz(freq_scaling*bandpass, nus))
+
+            if polarized:
+                M = np.transpose(M)
+                f = [interp1d(interp_ranges[0], M[IQU]) for IQU in range(3)]
+                M_interp = [f[IQU](spectral_params[interp_ind][IQU]) 
+                            for IQU in range(3)]
+            else:
+                f = interp1d(interp_ranges[0], M) 
+                M_interp = f(spectral_params[interp_ind]) 
+
+
+        elif interp_dim == 2:
+            interp_meshgrid = np.meshgrid(*interp_ranges)
+ 
+            if polarized:
+                M = np.zeros((n_interpols, n_interpols, 3))
+            else:
+                M = np.zeros((n_interpols, n_interpols))
+
+            for i in range(n_interpols):
+                for j in range(n_interpols):
+                    spec_inds = (interp_meshgrid[0][i,j], 
+                                 interp_meshgrid[1][i,j])
+                    freq_scaling = self._get_freq_scaling(nus, *spec_inds)
+                    M[i,j] = np.trapz(freq_scaling*bandpass, nus)
+            
+            if polarized:
+                M = np.transpose(M)
+                f = [RectBivariateSpline(*interp_ranges, M[IQU]) 
+                     for IQU in range(3)]
+                M_interp = [f[IQU](spectral_params[0][IQU], 
+                            spectral_params[1][IQU], grid=False) 
+                            for IQU in range(3)]  
+            else: 
+                f = RectBivariateSpline(*interp_ranges, M) 
+                M_interp = f(*spectral_params, grid=False) 
+
+        else:
+            raise NotImplementedError(
+                '3D interpolation is not implemented yet'
+            )
+
+        return M_interp
+
+
+    @staticmethod
+    def _get_unit_conversion(nus, bandpass, output_unit):
+        """
+        Returns normalized integration weights from a bandpass profile. First
+        converts to same units as the model amplitude, then normalizes.
+
+        Parameters
+        ----------
+        nus : astropy.units.quantity.Quantity
+            Frequency array or list for the bandpass profile.
+        bandpass : astropy.units.quantity.Quantity
+            Bandpass profile array or list in units K_RJ.
+        output_unit : astropy.units.core.IrreducibleUnit or 
+                      astropy.units.core.CompositeUnit
+            Output unit of bandpass integrated map.
+
+        Returns
+        -------
+        weights : numpy.ndarray
+            Normalized bandpass profile to unit integral.
+            
+        """
+        bandpass_input = bandpass.value
+        bandpass_output = (bandpass.value * output_unit).to_value(u.K, 
+            equivalencies=u.brightness_temperature(nus)
+        )
+
+        factor = np.trapz(bandpass_input, nus.si.value)
+        factor /= np.trapz(bandpass_output, nus.si.value)
+
+        return factor
+
+
+    @staticmethod
+    @u.quantity_input(nus=u.Hz, bandpass=(u.Jy/u.sr, u.K))
+    def _get_normalized_bandpass(nus, bandpass):
+        """
+        Converts the bandpass profile to 'K_RJ' units and normalizes it unity 
+        under the trapezoidal integration.
+
+        Parameters
+        ----------
+        nus : astropy.units.quantity.Quantity
+            Array or list of frequencies for the bandpass profile.
+        bandpass : astropy.units.quantity.Quantity
+            Bandpass profile array or list. Must be in units of Jy/sr or K_RJ.
+
+        Returns
+        -------
+        bandpass : numpy.ndarray
+            Normalized bandpass profile to unit integral in units of K_RJ.
+            
+        """
+        if np.shape(nus) != np.shape(bandpass):
+            raise ValueError(
+                'Frequency and bandpass arrays must have the same shape'
+            )
+
+        bandpass = bandpass.to_value(u.K, equivalencies=u.brightness_temperature(nus))
+        bandpass /= np.trapz(bandpass, nus.si.value)
+
+        return bandpass * u.K
 
 
     @u.quantity_input(nu=u.Hz)

@@ -33,7 +33,7 @@ class LinearOpticallyThin(FreeFree):
 
 
     @u.quantity_input(nu=u.Hz, bandpass=(u.Jy/u.sr, u.K, None))
-    def get_emission(self, nu, bandpass=None, output_unit=None):
+    def get_emission(self, nu, bandpass=None, output_unit=u.K):
         """
         Returns the model emission at an arbitrary frequency nu in units 
         of K_RJ.
@@ -62,14 +62,13 @@ class LinearOpticallyThin(FreeFree):
             emission = self.amp*scaling
 
         else:
-            # bandpass = self._normalize_bandpassI()
-            # U = self._get_unit_conversion(nu, bandpass)
-            bandpass = self._get_unit_conversion(nu, bandpass)
-            M = self._get_mixing(bandpass=bandpass,
+            bandpass = self._get_normalized_bandpass(nu, bandpass)
+            U = self._get_unit_conversion(nu, bandpass, output_unit)
+            M = self._get_mixing(bandpass=bandpass.value,
                                  nus=nu.si.value, 
-                                 spectral_params=self.Te_map.value)
+                                 spectral_params=(self.Te_map.value,))
 
-            emission = self.amp*M
+            emission = self.amp*M*U
 
         return emission
 

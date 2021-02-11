@@ -93,7 +93,7 @@ class Cosmoglobe:
 
 
     @u.quantity_input(nu=u.Hz)
-    def full_sky(self, nu, models=None):
+    def full_sky(self, nu, bandpass=None, output_unit=u.K, models=None):
         """
         Returns the combined emission of a set of models for at a given 
         frequency.
@@ -119,10 +119,15 @@ class Cosmoglobe:
                 raise ValueError('No models initialized.')
 
         full_emission = np.zeros_like(models[0].amp)
+        # print(full_emission.unit)
         for model in models:
             if self.verbose:
-                print(f'Simulating {model.comp_label} at {nu}...')
-            full_emission += model[nu]
+                if bandpass is None:
+                    print(f'Simulating {model.comp_label} at {nu}...')
+                else:
+                    print(f'Bandpass integrating {model.comp_label}...')
+            full_emission += model.get_emission(nu, bandpass, output_unit)
+
 
         return full_emission
 
