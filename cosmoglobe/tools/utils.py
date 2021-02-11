@@ -6,6 +6,8 @@ import pathlib
 import time 
 import inspect
 
+from numpy.lib.arraysetops import unique
+
 from .. import data as data_dir
 
 h = const.h
@@ -147,3 +149,65 @@ def nside_isvalid(function):
         return return_value
     return wrapper
 
+
+def get_interp_ranges(spectral_params, n):
+    """
+    Returns interpolation information required to determine and compute the
+    n-dimensional interpolation in the mixing matrix.
+
+    Parameters
+    ----------
+    spectral_params : list, tuple, numpy.ndarray
+        Spectral parameters for a model.
+    n : int
+        Number of interpolation points.
+
+    Returns
+    -------
+    interpol_ranges : list
+        List linearly spaced interpolation arrays for all spectral parameters 
+        varying over the sky.
+    consts : list
+        List of the scalar value of all spectral parameters constant over the 
+        sky.
+    interp_dim : int
+        Interpolation dimension. Is decided by the number of items in the
+        interpol_ranges list.
+    interp_ind : int
+        If interp_dim == 1, but len(spectral_params) > 1, interp_ind is the 
+        index of spectral parameter in spectral_params that we want to 
+        interpolate over. If interp_dim != 1, interp_ind = None.
+    
+    """
+    interp_dim = 0
+    interp_ind = None
+    interpol_ranges, consts = [], []
+    if not isinstance(spectral_params, (tuple, list)):
+        unique_values = np.unique(spectral_params)
+        if len(unique_values) > 1:
+            interp_dim += 1
+
+            min_value = np.amin(spectral_params)
+            max_value = np.amax(spectral_params)
+            interpol_ranges.append(np.linspace(min_value, max_value, n))
+
+        else:
+            consts.append(unique_values[0])
+    
+    else:
+        for i, param in enumerate(spectral_params):
+            unique_values = np.unique(param)
+            if len(unique_values) > 1:
+                interp_dim += 1
+                if interp_ind is None:
+                    interp_ind = i
+
+                min_value = np.amin(param)
+                max_value = np.amax(param)
+                interpol_range = np.linspace(min_value, max_value, n)
+                interpol_ranges.append(interpol_range)
+            
+            else:
+                consts.append(unique_values[0])
+
+    return interpol_ranges, consts, interp_dim, interp_ind
