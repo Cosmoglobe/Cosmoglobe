@@ -6,8 +6,6 @@ import pathlib
 import time 
 import inspect
 
-from numpy.lib.arraysetops import unique
-
 from .. import data as data_dir
 
 h = const.h
@@ -183,9 +181,15 @@ def get_interp_ranges(spectral_params, n):
     interp_ind = None
     interpol_ranges, consts = [], []
     if not isinstance(spectral_params, (tuple, list)):
+        raise TypeError(
+            'spectral_params argument must be of type tuple or list'
+        )
+        
+    if len(spectral_params) == 1:
         unique_values = np.unique(spectral_params)
         if len(unique_values) > 1:
             interp_dim += 1
+            interp_ind = 0
 
             min_value = np.amin(spectral_params)
             max_value = np.amax(spectral_params)
