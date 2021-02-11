@@ -1,5 +1,4 @@
 import astropy.units as u
-from astropy.units import equivalencies
 import healpy as hp
 import numpy as np
 from scipy.interpolate import interp1d, RectBivariateSpline
@@ -11,7 +10,6 @@ class SkyComponent:
     Generalized template for all sky models.
     
     """
-    
     def __init__(self, chain, **kwargs):
         """
         Initializes model attributes and methods for a sky component.
@@ -114,68 +112,45 @@ class SkyComponent:
             setattr(self, key, value)
 
 
-    @utils.nside_isvalid
-    def to_nside(self, nside):
+    @u.quantity_input(nu=u.Hz, bandpass=(u.Jy/u.sr, u.K, None))
+    def get_emission(self, nu, bandpass=None, output_unit=u.K):
         """
-        Reinitializes the model instance at new nside.
+        Returns the model emission at an arbitrary frequency nu in units 
+        of K_RJ.
 
         Parameters
         ----------
-        nside: int
-            Healpix map resolution.
+        nu : astropy.units.quantity.Quantity
+            A frequency, or a frequency array at which to evaluate the model.
+        bandpass : astropy.units.quantity.Quantity
+            Bandpass profile in units of (k_RJ, Jy/sr) corresponding to 
+            frequency array nu. If None, a delta peak in frequency is assumed.
+            Default : None
+        output_unit : astropy.units.quantity.Quantity or str
+            Desired unit for the output map. Must be a valid astropy.unit or 
+            one of the two following strings ('K_CMB', 'K_RJ').
+            Default : None
 
         Returns
         -------
-        Model instance with a new nside.
-    
-        """
-        self.kwargs['nside'] = nside
-        return super(self.__class__, self).__init__(self.chain, **self.kwargs)
-
-
-    @u.quantity_input(fwhm=(u.arcmin, u.deg, u.rad))
-    def smooth(self, fwhm):
-        """
-        Reinitializes the model instance at new fwhm.
-
-        Parameters
-        ----------
-        fwhm : float
-            The fwhm of the Gaussian used to smooth the map.
-
-        Returns
-        -------
-        Model instance with a new nside.
-    
-        """
-        self.kwargs['fwhm'] = fwhm
-        return super(self.__class__, self).__init__(self.chain, **self.kwargs)
-
-
-    def to_KCMB(self):
-        """
-        Converts input map from units of K_RJ to K_CMB.
-        
-        """
-        if self.params['unit'].lower() != 'uk_rj':
-            raise ValueError(f'Unit is already {self.params["unit"]!r}')
-        
-        nu_ref = np.expand_dims(self.params['nu_ref'], axis=1)
-
-        return utils.KRJ_to_KCMB(self.amp, nu_ref)
-
-
-    def to_KRJ(self):
-        """
-        Converts input map from units of K_CMB to K_RJ.
+        emission : astropy.units.quantity.Quantity
+            Model emission at given frequency in units of K_RJ.
 
         """
-        if self.params['unit'].lower() != 'uk_cmb':
-            raise ValueError(f'Unit is already {self.params["unit"]!r}')
+        if bandpass is None:
+            scaling = self._get_freq_scaling(nu.si.value, *self._spectral_params)
+            emission = self.amp*scaling
 
-        nu_ref = np.expand_dims(self.params['nu_ref'], axis=1)
+        else:
+            bandpass = self._get_normalized_bandpass(nu, bandpass)
+            U = self._get_unit_conversion(nu, bandpass, output_unit)
+            M = self._get_mixing(bandpass=bandpass.value,
+                                 nus=nu.si.value, 
+                                 spectral_params=self._spectral_params)
 
-        return utils.KCMB_to_KRJ(self.amp, nu_ref)
+            emission = self.amp*M*U
+
+        return emission
 
 
     def _get_mixing(self, bandpass, nus, spectral_params):
@@ -196,11 +171,9 @@ class SkyComponent:
             scaling for a component i.e (self.beta, self.T).
 
         """
-
-        n_interpols = 25
-
         polarized = self.params['polarization']
 
+        n_interpols = 25
         interp_ranges, consts, interp_dim, interp_ind = (
             utils.get_interp_ranges(spectral_params, n_interpols)
         )
@@ -255,7 +228,8 @@ class SkyComponent:
 
         else:
             raise NotImplementedError(
-                '3D interpolation is not implemented yet'
+                'Models with more than three spectral parameters are not '
+                'currently supported'
             )
 
         return M_interp
@@ -264,8 +238,8 @@ class SkyComponent:
     @staticmethod
     def _get_unit_conversion(nus, bandpass, output_unit):
         """
-        Returns normalized integration weights from a bandpass profile. First
-        converts to same units as the model amplitude, then normalizes.
+        Returns the unit conversion factor for a bandpass integration given an 
+        output and input unit.
 
         Parameters
         ----------
@@ -323,6 +297,70 @@ class SkyComponent:
         bandpass /= np.trapz(bandpass, nus.si.value)
 
         return bandpass * u.K
+
+
+    @utils.nside_isvalid
+    def to_nside(self, nside):
+        """
+        Reinitializes the model instance at new nside.
+
+        Parameters
+        ----------
+        nside: int
+            Healpix map resolution.
+
+        Returns
+        -------
+        Model instance with a new nside.
+    
+        """
+        self.kwargs['nside'] = nside
+        return self.__init__(self.chain, **self.kwargs)
+
+
+    @u.quantity_input(fwhm=(u.arcmin, u.deg, u.rad))
+    def smooth(self, fwhm):
+        """
+        Reinitializes the model instance at new fwhm.
+
+        Parameters
+        ----------
+        fwhm : float
+            The fwhm of the Gaussian used to smooth the map.
+
+        Returns
+        -------
+        Model instance with a new nside.
+    
+        """
+        self.kwargs['fwhm'] = fwhm
+        return self.__init__(self.chain, **self.kwargs)
+
+
+    def to_KCMB(self):
+        """
+        Converts input map from units of K_RJ to K_CMB.
+        
+        """
+        if self.params['unit'].lower() != 'uk_rj':
+            raise ValueError(f'Unit is already {self.params["unit"]!r}')
+        
+        nu_ref = np.expand_dims(self.params['nu_ref'], axis=1)
+
+        return utils.KRJ_to_KCMB(self.amp, nu_ref)
+
+
+    def to_KRJ(self):
+        """
+        Converts input map from units of K_CMB to K_RJ.
+
+        """
+        if self.params['unit'].lower() != 'uk_cmb':
+            raise ValueError(f'Unit is already {self.params["unit"]!r}')
+
+        nu_ref = np.expand_dims(self.params['nu_ref'], axis=1)
+
+        return utils.KCMB_to_KRJ(self.amp, nu_ref)
 
 
     @u.quantity_input(nu=u.Hz)
