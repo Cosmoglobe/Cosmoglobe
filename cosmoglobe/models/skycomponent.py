@@ -5,7 +5,6 @@ from scipy.interpolate import interp1d, RectBivariateSpline
 from cosmoglobe.tools import chain
 from cosmoglobe.tools.data import get_params_from_config
 import pathlib
-import sys
 
 from ..tools import utils
 
@@ -31,8 +30,8 @@ class SkyComponent:
 
         if isinstance(data, chain.Chain):
             self._from_chain = True
-            self.chain = data
-            self.params = self.chain.params[self.comp_label]
+            self.data = data
+            self.params = self.data.params[self.comp_label]
         
         elif isinstance(data, dict):
             self._from_config = True
@@ -67,7 +66,7 @@ class SkyComponent:
         attributes = {}
 
         if self._from_chain:
-            attributes_list = self.chain.get_alm_list(self.comp_label)
+            attributes_list = self.data.get_alm_list(self.comp_label)
             if hasattr(self, '_other_quantities'):
                 attributes_list += self._other_quantities
 
@@ -79,7 +78,7 @@ class SkyComponent:
                     unpack_alms = False  
                     attr_name = attr
 
-                item = self.chain.get_item(
+                item = self.data.get_item(
                     item_name=attr, 
                     component=self.comp_label, 
                     unpack_alms=unpack_alms, 
@@ -281,7 +280,7 @@ class SkyComponent:
     
         """
         self.kwargs['nside'] = nside
-        return self.__init__(self.chain, **self.kwargs)
+        return self.__init__(self.data, **self.kwargs)
 
 
     @u.quantity_input(fwhm=(u.arcmin, u.deg, u.rad))
@@ -300,7 +299,7 @@ class SkyComponent:
     
         """
         self.kwargs['fwhm'] = fwhm
-        return self.__init__(self.chain, **self.kwargs)
+        return self.__init__(self.data, **self.kwargs)
 
 
     def to_KCMB(self):
@@ -345,7 +344,7 @@ class SkyComponent:
             Model emission at the given frequency.
 
         """
-        return self.get_emission(nu.to(u.GHz))
+        return self.get_emission(nu)
 
 
     @property
