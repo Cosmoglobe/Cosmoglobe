@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="cosmoglobe",
-    version="0.1.1",
+    version="0.1.3",
     author="Metin San",
     author_email="metinisan@gmail.com",
     description="The Cosmoglobe Sky Model",
@@ -13,7 +13,6 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/Cosmoglobe/Cosmoglobe",
     packages=setuptools.find_packages(),
-    # package_dir={"":"cosmoglobe"},
     package_data={"": ["*.dat","BP7_70GHz_nocmb_n0256.fits"]}, 
     include_package_data=True,
     classifiers=[
@@ -26,7 +25,8 @@ setuptools.setup(
         "healpy",
         "astropy",
         "numpy",
+        "h5py>=3.0",
+        "scipy",
         "numba",
-        "h5py",
     ]
 )

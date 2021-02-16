@@ -1,1 +1,1 @@
-from .cosmoglobe import Cosmoglobe
+from .cosmoglobe import SkyModel

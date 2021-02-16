@@ -91,10 +91,14 @@ class SkyModel:
                 
         elif datafile.endswith('.json'):
             self.data = unpack_config(datafile)
-            self.params = get_params_from_config(self.data)
 
             if components is None:
                 components = list(self.data.keys())
+
+            config_params = get_params_from_config(self.data)
+            self.params = {comp : params for comp, params 
+                           in config_params.items() if comp in components}
+
         else:
             raise ValueError(
                 'Data must be either a Commander3 hdf5 file, or a json file.'
@@ -126,8 +130,7 @@ class SkyModel:
 
     def _get_skycomponents(self, components):
         """
-        Returns a list of SkyComponent subclasses matching input 
-        model components.
+        Returns a list of SkyComponent subclasses matching input components.
 
         """
         model_class_list = []
@@ -141,8 +144,11 @@ class SkyModel:
 
             else:
                 raise ValueError
-            comp_models = {model.model_label: model for model in component.__subclasses__()}
-            model_class_list.append(comp_models[self.params[component.comp_label].type])
+            comp_models = {model.model_label: model 
+                           for model in component.__subclasses__()}
+            model_class_list.append(
+                comp_models[self.params[component.comp_label].type]
+            )
 
         return model_class_list
 
@@ -150,8 +156,8 @@ class SkyModel:
     @u.quantity_input(nu=u.Hz, bandpass=(u.Jy/u.sr, u.K, None))
     def get_emission(self, nu, bandpass=None, output_unit=u.K):
         """
-        Returns the model emission at an arbitrary frequency nu in units 
-        of K_RJ.
+        Returns the sky model emission at an arbitrary frequency nu or for a 
+        bandpass profile, in units of K_RJ.
 
         Parameters
         ----------
@@ -179,33 +185,35 @@ class SkyModel:
         return emission
 
 
-
-
     @u.quantity_input(start=u.Hz, stop=u.Hz)
-    def get_spectrum(self, models=None, pol=False, sky_frac=88, start=10*u.GHz,
+    def get_spectrum(self, components=None, pol=False, sky_frac=88, start=10*u.GHz,
                      stop=1000*u.GHz, num=50):
         """
-        Produces a RMS SED for the given models.
+        Produces a RMS SED for all included sky components.
 
         Parameters
         ----------
-        models : list, optional
-            List of models objects to include in the SED spectrum. Must be a 
-            component object, not just the name of a component. Defaults to all
-            initialized Cosmoglobe.model objects.
+        component : list, optional
+            List of sky components to include. Must be a component object, 
+            not just the name of a component. If None, then all initialized 
+            SkyComponent objects are used.
+            Default : None
         pol : bool, optional
             If True, the spectrum will be calculated for P = sqrt(Q^2 + U^2). 
-            Components that does not include polarization is omitted. Default
-            is False.
+            Components that does not include polarization is omitted. 
+            Default : False.
         sky_frac : int, float, optional
-            Fraction of the sky to compute RMS values for. Default is 88%.
+            Fraction of the sky to compute RMS values for. 
+            Default : 88
         start : int, float, optional
             Minimum value of the frequency range to compute the spectrum over.
+            Default : 10 GHz
         stop : int, float, optional
             Maximum value of the frequency range to compute the spectrum over.
+            Default : 1000 GHz
         num : int, optional
             Number of discrete frequencies to compute the RMS over. 
-            Default is 50.
+            Default : 50
 
         Returns
         -------
@@ -231,16 +239,16 @@ class SkyModel:
                 f'    n : \t\t{num}\n',
             )
 
-        if models is None:
-            models = self.components
+        if components is None:
+            components = self.components
 
         if pol:
-            for model in models.copy():
+            for model in components.copy():
                 if not model.params['polarization']:
                     print(
                         f'Ignored {model.comp_label} as it does not contain polarization.'
                     )
-                    models.remove(model)
+                    components.remove(model)
 
             
         mask = utils.create_70GHz_mask(sky_frac)
@@ -248,11 +256,11 @@ class SkyModel:
         start = start.to(u.GHz).value
         stop = stop.to(u.GHz).value
         freqs = np.logspace(np.log10(start), np.log10(stop), num)*u.GHz
-        rms_dict = {model.comp_label: [] for model in models}
+        rms_dict = {component.comp_label: [] for component in components}
 
         if self.verbose:
             print(f'    Computing RMS values:')
-        for model in models:
+        for model in components:
             if self.verbose:
                 print(f'        {model.comp_label}...')
 
