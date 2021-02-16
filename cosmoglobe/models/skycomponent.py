@@ -11,7 +11,7 @@ from ..tools import utils
 
 class SkyComponent:
     """
-    Generalized template for all sky models.
+    Generalized template for all sky components.
     
     """
     def __init__(self, data, **kwargs):
