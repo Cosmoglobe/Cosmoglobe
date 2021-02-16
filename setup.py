@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="cosmoglobe",
-    version="0.1.0",
+    version="0.1.1",
     author="Metin San",
     author_email="metinisan@gmail.com",
     description="The Cosmoglobe Sky Model",

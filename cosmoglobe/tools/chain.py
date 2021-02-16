@@ -6,6 +6,9 @@ from numba import njit
 import numpy as np
 import os
 
+from .data import ModelParameters
+
+ignored_components = ['md', 'bandpass', 'tod', 'gain', 'relquad', 'radio']
 
 
 class Chain:
@@ -50,7 +53,7 @@ class Chain:
 
     """
 
-    def __init__(self, chainfile, sample='mean', burnin=None):
+    def __init__(self, chainfile, sample='mean', burnin=None, verbose=True):
         """
         Initializes the chain object from a give Commander3 chainfile.
 
@@ -66,15 +69,23 @@ class Chain:
             used. Default is 'mean'.
 
         """
-        self.chainfile = self._validate_chainfile(chainfile, sample, burnin)
+        self.filename = chainfile
         self.sample = sample
         self.burnin = burnin
+        self.chainfile = self._validate_chainfile(sample, burnin)
+
+        self.samples = self.get_samples()
         self.components = self.get_components()
-        self.model_params = self.get_model_params()
+        self.params = self.get_model_params()
 
+        if verbose:
+            print(f'Chain object:')
+            print(f'    filename:\t{self.chainfile.name}')
+            print(f'    n samples:\t{len(self.samples)}')
+            print(f'    burn in:\t{self.burnin}')
+            print(f'    components:\t{*self.components,}\n')
 
-    @staticmethod
-    def _validate_chainfile(path, sample, burnin):
+    def _validate_chainfile(self, sample, burnin):
         """
         Validates that the given path is of a type and format that matches a
         Commander3 hdf5 output chainfile, and then returns file as a pathlib
@@ -93,7 +104,7 @@ class Chain:
 
         """
         try:
-            path = pathlib.Path(path)
+            path = pathlib.Path(self.filename)
         except:
             raise TypeError(
                 f'Data input to Cosmoglobe() must be str or a os.PathLike '
@@ -169,6 +180,17 @@ class Chain:
 
         return path
       
+    def get_samples(self):
+        """
+        Returns a list of all samples contained in the chain file.
+
+        """
+        with h5py.File(self.chainfile,'r') as f:
+            samples = list(f.keys())
+            samples.pop(samples.index('parameters'))
+
+        return samples
+
 
     def get_components(self):
         """
@@ -176,7 +198,8 @@ class Chain:
         
         """
         with h5py.File(self.chainfile, 'r') as f:
-            components = list(f['parameters'])
+            components = list(set(f['parameters']) - set(ignored_components))
+            
 
         return components
 
@@ -204,19 +227,24 @@ class Chain:
                         else:
                             model_params[component][param] = value.item()
 
+        params = {}
         for component in model_params:
-            model_params[component]['fwhm'] *= u.arcmin
-            model_params[component]['nu_ref'] *= u.GHz
-            model_params[component]['nu_ref'] *= 1e-9
-
             if model_params[component]['polarization'] == 'True':
-                model_params[component]['polarization'] = True
-                
+                model_params[component]['polarization'] = True            
             elif model_params[component]['polarization'] == 'False':
                 model_params[component]['polarization'] = False
                 model_params[component]['nu_ref'] = model_params[component]['nu_ref'][0]
 
-        return model_params
+            params[component] = ModelParameters(
+                type=model_params[component]['type'],
+                polarization=model_params[component]['polarization'],
+                unit=model_params[component]['unit'],
+                nu_ref=model_params[component]['nu_ref']*(1e-9*u.GHz),
+                nside=model_params[component]['nside'],
+                fwhm=model_params[component]['fwhm']*u.arcmin,
+            )
+
+        return params
 
 
     def get_alm_list(self, component):
@@ -285,7 +313,7 @@ class Chain:
             )
 
         try:
-            self.model_params[component]
+            self.params[component]
         except KeyError:
             raise KeyError(f'"{component}" is not a valid component')
 
@@ -305,7 +333,7 @@ class Chain:
                 except:
                     raise KeyError(f'{item_name} does not exist in file')
                 
-                for sample in samples:    
+                for sample in samples:   
                     item += f[sample][component][item_name][()]
 
                 item /= len(samples)
@@ -326,10 +354,10 @@ class Chain:
                 if lmax <= 1:
                     pol = False
                 else:
-                    pol = self.model_params[component]['polarization']
+                    pol = self.params[component].polarization
 
-                nside = self.model_params[component]['nside']
-                fwhm = self.model_params[component]['fwhm'].to('rad').value
+                nside = self.params[component].nside
+                fwhm = self.params[component].fwhm.to('rad').value
 
                 unpacked_alm = unpack_alms_from_chain(item, lmax)
                 items = hp.alm2map(unpacked_alm, 
@@ -356,12 +384,15 @@ class Chain:
                 return items
         return item[0]
 
+
     def __repr__(self):
         return f"Chain(chainfile={self.chainfile.name!r}, sample={self.sample!r}, burnin={self.burnin!r})"
     
+
     def __str__(self):
         return f"Chain object generated from {self.chainfile.name!r}"
     
+
 
 #Fix to OMP: Error #15 using numba
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
@@ -471,7 +502,6 @@ def reduce_chain(chainfile, fname=None, burnin=None):
     
         """
 
-    ignored_components = ['md', 'bandpass', 'tod', 'gain']
 
     if fname is None:
         try:
@@ -506,6 +536,7 @@ def reduce_chain(chainfile, fname=None, burnin=None):
             if component not in ignored_components:
                 maps[component] = {key: value[()] for key, value in 
                                    chain[samples[0]][component].items()}
+                reduced_chain.create_group(f'sample_mean/{component}')
 
         for sample in samples[1:]:
             components = chain[sample]
@@ -513,7 +544,6 @@ def reduce_chain(chainfile, fname=None, burnin=None):
             for component in components:
                 if component not in ignored_components:
                     parameters = components[component]
-                    comp_group = sample_mean.create_group(component)
 
                     for parameter in parameters:
                         value = parameters[parameter][()]
@@ -524,7 +554,6 @@ def reduce_chain(chainfile, fname=None, burnin=None):
                                 maps[component][parameter] //= nsamples
                             else:
                                 maps[component][parameter] /= nsamples
-
-                            comp_group.create_dataset(parameter, 
+                            reduced_chain.create_dataset(f'{component}/{parameter}', 
                                                       data=maps[component][parameter], 
                                                       dtype=value.dtype.type)
