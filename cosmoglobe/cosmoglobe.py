@@ -52,7 +52,12 @@ class Cosmoglobe:
         self.burnin = burnin
         self.verbose = verbose
 
-        self.chain = chain.Chain(data, sample, burnin)
+        if verbose:
+            init_str = 'Cosmoglobe Sky Model'
+            print(init_str)
+            print(f'{"="*len(init_str)}')
+
+        self.chain = chain.Chain(data, sample, burnin, verbose)
         self.initialized_models = []
 
 
@@ -83,9 +88,24 @@ class Cosmoglobe:
         comp_models = {model.model_label: model for model in component.__subclasses__()}
         comp_model = comp_models[self.chain.model_params[component.comp_label]['type']]
 
-        if self.verbose:
-            print(f'Initializing {comp_model.comp_label}...')
+        if not self.verbose:
+            print(
+                f"Initializing {comp_model.comp_label}...",
+            )
 
+        else:
+            print(
+                "Initializing model:\n",
+                f"    label:\t{comp_model.comp_label}\n",
+                f"    type:\t{self.chain.model_params[component.comp_label]['type']}\n",
+                f"    polarized:\t{self.chain.model_params[component.comp_label]['polarization']}\n",
+                f"    unit:\t{self.chain.model_params[component.comp_label]['unit']}\n",
+                f"    ref freq:\t{self.chain.model_params[component.comp_label]['nu_ref']}\n",
+                f"    nside:\t{self.chain.model_params[component.comp_label]['nside']}\n",
+                f"    fwhm:\t{self.chain.model_params[component.comp_label]['fwhm']}\n",
+                "...\n"
+            )
+            
         model = comp_model(self.chain, **kwargs)
         self.initialized_models.append(model)
         
@@ -119,15 +139,18 @@ class Cosmoglobe:
                 raise ValueError('No models initialized.')
 
         full_emission = np.zeros_like(models[0].amp)
-        # print(full_emission.unit)
+        if bandpass is None:
+            print(
+                f'Simulating the sky at {nu}...\n     included comps: '
+                f'{*[comp.comp_label for comp in models],}\n'
+            )
+        else:
+            print(
+                f'Simulating the sky over bandpass..\n     included comps: '
+                f'{*[comp.comp_label for comp in models],}\n'
+            )
         for model in models:
-            if self.verbose:
-                if bandpass is None:
-                    print(f'Simulating {model.comp_label} at {nu}...')
-                else:
-                    print(f'Bandpass integrating {model.comp_label}...')
             full_emission += model.get_emission(nu, bandpass, output_unit)
-
 
         return full_emission
 
@@ -166,19 +189,20 @@ class Cosmoglobe:
             Dictionary containing model name and RMS array pairs.
 
         """
+        print(
+            'Computing SED spectrum...'
+        )
         if self.verbose:
             if pol:
                 signal_type = 'P'
             else:
                 signal_type = 'I'
-
             print(
-                'Making SED spectrum with parameters:\n'
-                f'  sky_frac: {sky_frac}%\n'
-                f'  start frequency: {start}\n'
-                f'  stop frequency: {stop}\n'
-                f'  num discrete frequencies: {num}\n'
-                f'  signal: {signal_type}'
+                f'    signal :\t\t{signal_type}\n'
+                f'    sky fraction:\t{sky_frac}%\n'
+                f'    start :\t\t{start}\n'
+                f'    stop :\t\t{stop}\n'
+                f'    n : \t\t{num}\n',
             )
 
         if models is None:
@@ -200,9 +224,11 @@ class Cosmoglobe:
         freqs = np.logspace(np.log10(start), np.log10(stop), num)*u.GHz
         rms_dict = {model.comp_label: [] for model in models}
 
+        if self.verbose:
+            print(f'    Computing RMS values:')
         for model in models:
             if self.verbose:
-                print(f'Computing RMS for {model.comp_label}...')
+                print(f'        {model.comp_label}...')
 
             if model.params['nside'] != 256:
                 model.to_nside(256)

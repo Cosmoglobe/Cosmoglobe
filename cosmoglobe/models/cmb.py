@@ -38,7 +38,7 @@ class BlackBody(CMB):
     model_label = 'cmb'
 
     def __init__(self, data, nside=None, fwhm=None,
-                 remove_monopole=False, remove_dipole=False):
+                 remove_monopole=True, remove_dipole=True):
         super().__init__(data, nside=nside, fwhm=fwhm, 
                          remove_monopole=remove_monopole, 
                          remove_dipole=remove_dipole)

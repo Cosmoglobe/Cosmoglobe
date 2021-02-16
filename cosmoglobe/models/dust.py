@@ -56,7 +56,7 @@ class ModifiedBlackbody(Dust):
             Frequency scaling factor.
 
         """
-        nu_ref = np.expand_dims(self.params['nu_ref'].si.value, axis=1)
+        nu_ref = np.expand_dims(self.params.nu_ref.si.value, axis=1)
 
         scaling = (nu/nu_ref)**(beta-2)
         scaling *= blackbody_emission(nu, T) / blackbody_emission(nu_ref, T)

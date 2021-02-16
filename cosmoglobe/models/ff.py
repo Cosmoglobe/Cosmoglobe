@@ -55,7 +55,7 @@ class LinearOpticallyThin(FreeFree):
 
         """
         # scaling = np.exp(-h * ((nu-nu_ref) / (k_B*T_e)))
-        nu_ref = self.params['nu_ref'].si.value
+        nu_ref = self.params.nu_ref.si.value
 
         # Commander outputs generally in type float32 which results in overflow 
         # in the calculation of the gaunt factor

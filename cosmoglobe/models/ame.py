@@ -105,7 +105,7 @@ class SpinningDust2(AME):
             Frequency scaling factor.
 
         """
-        nu_ref = self.params['nu_ref'].si.value
+        nu_ref = self.params.nu_ref.si.value
         spdust2_nu = self.spdust2_nu.si.value
         spdust2_amp = self.spdust2_amp.si.value
 

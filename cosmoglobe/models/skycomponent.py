@@ -2,6 +2,10 @@ import astropy.units as u
 import healpy as hp
 import numpy as np
 from scipy.interpolate import interp1d, RectBivariateSpline
+from cosmoglobe.tools import chain
+from cosmoglobe.tools.data import get_params_from_config
+import pathlib
+import sys
 
 from ..tools import utils
 
@@ -10,30 +14,39 @@ class SkyComponent:
     Generalized template for all sky models.
     
     """
-    def __init__(self, chain, **kwargs):
+    def __init__(self, data, **kwargs):
         """
         Initializes model attributes and methods for a sky component.
 
         Parameters
         ----------
-        chain : cosmoglobe.tools.chain.Chain
-            Commander3 chainfile object.
+        data : cosmoglobe.tools.chain.Chain
+            Commander3 chainfile object or a config file.
         kwargs : dict
-            Additional keyword value pairs. Valid keywords can vary from 
-            component to component.
+            Additional keyword value pairs.
 
         """
-        self.chain = chain
-        self.params = self.chain.model_params[self.comp_label]
+        self._from_chain = False
+        self._from_config = False
 
-        attributes = self._get_model_attributes(nside=kwargs['nside'], 
-                                                fwhm=kwargs['fwhm'])
+        if isinstance(data, chain.Chain):
+            self._from_chain = True
+            self.chain = data
+            self.params = self.chain.params[self.comp_label]
+        
+        elif isinstance(data, dict):
+            self._from_config = True
+            self.data = data
+            self.params = get_params_from_config(self.data)[self.comp_label]
+
+        attributes = self._get_model_attrs(nside=kwargs['nside'], 
+                                            fwhm=kwargs['fwhm'])
         self._set_model_attributes(attributes)
 
 
     @utils.nside_isvalid
     @u.quantity_input(fwhm=(u.arcmin, u.deg, u.rad, None))
-    def _get_model_attributes(self, nside, fwhm):
+    def _get_model_attrs(self, nside, fwhm):
         """
         Returns a dictionary of maps and other model attributes.
         
@@ -46,42 +59,60 @@ class SkyComponent:
 
         """
         if nside is not None:
-            self.params['nside'] = nside      
+            self.params.nside = nside      
 
         if fwhm is not None:
-            self.params['fwhm'] = fwhm
+            self.params.fwhm = fwhm
 
         attributes = {}
-        attributes_list = self.chain.get_alm_list(self.comp_label)
 
-        if hasattr(self, '_other_quantities'):
-            attributes_list += self._other_quantities
+        if self._from_chain:
+            attributes_list = self.chain.get_alm_list(self.comp_label)
+            if hasattr(self, '_other_quantities'):
+                attributes_list += self._other_quantities
 
-        for attr in attributes_list:
-            if 'alm' in attr:
-                unpack_alms = True
-                attr_name = attr.split('_')[0]
-            else:
-                unpack_alms = False  
-                attr_name = attr
+            for attr in attributes_list:
+                if 'alm' in attr:
+                    unpack_alms = True
+                    attr_name = attr.split('_')[0]
+                else:
+                    unpack_alms = False  
+                    attr_name = attr
 
-            item = self.chain.get_item(
-                item_name=attr, 
-                component=self.comp_label, 
-                unpack_alms=unpack_alms, 
-                multipoles=getattr(self, '_multipoles', None)
-            )
+                item = self.chain.get_item(
+                    item_name=attr, 
+                    component=self.comp_label, 
+                    unpack_alms=unpack_alms, 
+                    multipoles=getattr(self, '_multipoles', None)
+                )
 
-            if not unpack_alms and nside is not None:
-                item_nside = hp.npix2nside(len(item))
-                if item_nside != nside:
-                    item = hp.ud_grade(item, nside)
+                if not unpack_alms and nside is not None:
+                    item_nside = hp.npix2nside(len(item))
+                    if item_nside != nside:
+                        item = hp.ud_grade(item, nside)
 
-            if isinstance(item, dict):
-                for key, value in item.items():
-                    attributes[key] = value
-            else:
-                attributes[attr_name] = item
+                if isinstance(item, dict):
+                    for key, value in item.items():
+                        attributes[key] = value
+                else:
+                    attributes[attr_name] = item
+        
+        elif self._from_config:
+            attributes = {}
+            for key, value in self.data[self.comp_label].items():
+                if isinstance(value, str):
+                    path = pathlib.Path(value)
+                    if path.is_file():
+                        item = hp.read_map(
+                            path, field=(0,1,2), dtype=np.float32
+                        )
+                        if nside is not None:
+                            item_nside = hp.npix2nside(len(item[0]))
+                            if item_nside != nside:
+                                item = hp.ud_grade(item, nside)  
+                        if fwhm is not None:
+                            item = hp.smoothing(item, fwhm=fwhm.to(u.rad).value)       
+                        attributes[key] = item
 
         return attributes
 
@@ -98,11 +129,11 @@ class SkyComponent:
         """
         for key, value in attributes.items():
             if any(attr in key for attr in ('amp', 'monopole', 'dipole')):
-                if self.params['unit'].lower() in ('uk_rj', 'uk_cmb'):
+                if self.params.unit.lower() in ('uk_rj', 'uk_cmb'):
                     value *= u.uK
                 else: 
                     raise ValueError(
-                        f'Unit {self.params["unit"]!r} is unrecognized'
+                        f'Unit {self.params.unit!r} is unrecognized'
                     )
             elif 'T' in key:
                 value *= u.uK
@@ -115,8 +146,8 @@ class SkyComponent:
     @u.quantity_input(nu=u.Hz, bandpass=(u.Jy/u.sr, u.K, None))
     def get_emission(self, nu, bandpass=None, output_unit=u.K):
         """
-        Returns the model emission at an arbitrary frequency nu in units 
-        of K_RJ.
+        Returns the full sky model emission at an arbitrary frequency nu in 
+        units of K_RJ.
 
         Parameters
         ----------
@@ -147,7 +178,6 @@ class SkyComponent:
             M = self._get_mixing(bandpass=bandpass.value,
                                  nus=nu.si.value, 
                                  spectral_params=self._spectral_params)
-
             emission = self.amp*M*U
 
         return emission
@@ -171,7 +201,7 @@ class SkyComponent:
             scaling for a component i.e (self.beta, self.T).
 
         """
-        polarized = self.params['polarization']
+        polarized = self.params.polarization
 
         n_interpols = 25
         interp_ranges, consts, interp_dim, interp_ind = (
@@ -278,10 +308,10 @@ class SkyComponent:
         Converts input map from units of K_RJ to K_CMB.
         
         """
-        if self.params['unit'].lower() != 'uk_rj':
-            raise ValueError(f'Unit is already {self.params["unit"]!r}')
+        if self.params.unit.lower() != 'uk_rj':
+            raise ValueError(f'Unit is already {self.params.unit!r}')
         
-        nu_ref = np.expand_dims(self.params['nu_ref'], axis=1)
+        nu_ref = np.expand_dims(self.params.nu_ref, axis=1)
 
         return utils.KRJ_to_KCMB(self.amp, nu_ref)
 
@@ -291,10 +321,10 @@ class SkyComponent:
         Converts input map from units of K_CMB to K_RJ.
 
         """
-        if self.params['unit'].lower() != 'uk_cmb':
-            raise ValueError(f'Unit is already {self.params["unit"]!r}')
+        if self.params.unit.lower() != 'uk_cmb':
+            raise ValueError(f'Unit is already {self.params.unit!r}')
 
-        nu_ref = np.expand_dims(self.params['nu_ref'], axis=1)
+        nu_ref = np.expand_dims(self.params.nu_ref, axis=1)
 
         return utils.KCMB_to_KRJ(self.amp, nu_ref)
 
