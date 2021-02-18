@@ -1,3 +1,4 @@
+import pathlib
 import astropy.units as u 
 import healpy as hp 
 import numpy as np
@@ -22,9 +23,9 @@ implemented_comp_labels = {comp.comp_label: comp for comp in SkyComponent.__subc
 
 
 class SkyModel:
-    """Cosmoglobe sky model
+    """Cosmoglobe sky model.
 
-    Provides methods and utilities to analyze, and make simulations of 
+    Provides methods and utilities to analyze and make simulations of 
     cosmological sky models.
     
     """
@@ -32,7 +33,7 @@ class SkyModel:
                  sample='mean', burn_in=None, verbose=True):
 
         """
-        Initializes sky model components from either a Commander3 chain hdf5
+        Initializes Sky Model components, either from a Commander3 chain file
         file, or from a config json file.
 
         Parameters
@@ -63,22 +64,30 @@ class SkyModel:
         verbose : bool, optional
             If True, provides additional details of the performed computations.
             Default : True
+        
+        Raises
+        ------
+        ValueError
 
         """
-        self.datafile = datafile
+        try:
+            self.datafile = pathlib.Path(datafile)
+        except TypeError:
+            raise TypeError(
+                'Datafile type must be a string, or a pathlib.Path object, '
+                f'not of type {type(datafile)}'
+            )        
         self.nside = nside
         self.fwhm = fwhm
         self.verbose = verbose
-
         self.components = []
 
-        if datafile.endswith('.h5'):
+        if self.datafile.suffix == '.h5':
             self.data = chain.Chain(chainfile=datafile, 
                                     sample=sample, 
                                     burnin=burn_in, 
                                     verbose=verbose)
             self.params = self.data.params
-
             if components is None:
                 components = self.data.components
             else:
@@ -89,19 +98,18 @@ class SkyModel:
                         f'Included comps in chainfile: {*self.data.components,}'
                     )
                 
-        elif datafile.endswith('.json'):
+        elif self.datafile.suffix == '.json':
             self.data = unpack_config(datafile)
-
             if components is None:
                 components = list(self.data.keys())
-
             config_params = get_params_from_config(self.data)
             self.params = {comp : params for comp, params 
                            in config_params.items() if comp in components}
 
         else:
-            raise ValueError(
-                'Data must be either a Commander3 hdf5 file, or a json file.'
+            raise TypeError(
+                f'datafile: {self.datafile.name!r} must be either a '
+                'Commander3 .h5 chainfile, or a .json configuration file.'
             )
 
         skycomponents = self._get_skycomponents(components)
@@ -112,7 +120,7 @@ class SkyModel:
                 )
             else:
                 print(
-                    "Initializing model:\n",
+                    "Initializing sky component:\n",
                     f"    label:\t{component.comp_label}\n",
                     f"    type:\t{self.params[component.comp_label].type}\n",
                     f"    polarized:\t{self.params[component.comp_label].polarization}\n",
@@ -133,24 +141,24 @@ class SkyModel:
         Returns a list of SkyComponent subclasses matching input components.
 
         """
-        model_class_list = []
-        for model_name in components:
-            model_name = model_name.lower()
-            if model_name in implemented_comps:
-                component = implemented_comps[model_name]
+        skycomponents = []
+        for comp in components:
+            comp = comp.lower()
+            if comp in implemented_comps:
+                component = implemented_comps[comp]
 
-            elif model_name in implemented_comp_labels:
-                component = implemented_comp_labels[model_name]
+            elif comp in implemented_comp_labels:
+                component = implemented_comp_labels[comp]
 
             else:
                 raise ValueError
             comp_models = {model.model_label: model 
                            for model in component.__subclasses__()}
-            model_class_list.append(
+            skycomponents.append(
                 comp_models[self.params[component.comp_label].type]
             )
 
-        return model_class_list
+        return skycomponents
 
 
     @u.quantity_input(nu=u.Hz, bandpass=(u.Jy/u.sr, u.K, None))
@@ -178,12 +186,18 @@ class SkyModel:
             Model emission at given frequency in units of K_RJ.
 
         """
-        emission = np.zeros_like(self.components[0].amp)
+        for comp in self.components:
+            if comp.params.polarization:
+                emission = np.zeros_like(comp.amp)
+                break
+        else:
+            emission = np.zeros_like(self.components[0].amp)
+
         for comp in self.components:
             emission += comp.get_emission(nu, bandpass, output_unit)
 
         return emission
-
+ 
 
     @u.quantity_input(start=u.Hz, stop=u.Hz)
     def get_spectrum(self, components=None, pol=False, sky_frac=88, start=10*u.GHz,
@@ -244,7 +258,7 @@ class SkyModel:
 
         if pol:
             for model in components.copy():
-                if not model.params['polarization']:
+                if not model.params.polarization:
                     print(
                         f'Ignored {model.comp_label} as it does not contain polarization.'
                     )

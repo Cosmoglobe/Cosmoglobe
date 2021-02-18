@@ -10,12 +10,13 @@ from ..tools import utils
 
 class SkyComponent:
     """
-    Generalized template for all sky components.
+    Template that provides common methods and utilities for all sky component 
+    models.
     
     """
     def __init__(self, data, **kwargs):
         """
-        Initializes model attributes and methods for a sky component.
+        Initializes all model attributes for a sky component.
 
         Parameters
         ----------
@@ -59,18 +60,16 @@ class SkyComponent:
         """
         if nside is not None:
             self.params.nside = nside      
-
         if fwhm is not None:
             self.params.fwhm = fwhm
 
         attributes = {}
-
         if self._from_chain:
-            attributes_list = self.data.get_alm_list(self.comp_label)
+            attr_list = self.data.get_alm_list(self.comp_label)
             if hasattr(self, '_other_quantities'):
-                attributes_list += self._other_quantities
+                attr_list += self._other_quantities
 
-            for attr in attributes_list:
+            for attr in attr_list:
                 if 'alm' in attr:
                     unpack_alms = True
                     attr_name = attr.split('_')[0]
@@ -97,20 +96,30 @@ class SkyComponent:
                     attributes[attr_name] = item
         
         elif self._from_config:
-            attributes = {}
             for key, value in self.data[self.comp_label].items():
                 if isinstance(value, str):
                     path = pathlib.Path(value)
                     if path.is_file():
-                        item = hp.read_map(
-                            path, field=(0,1,2), dtype=np.float32
-                        )
-                        if nside is not None:
-                            item_nside = hp.npix2nside(len(item[0]))
-                            if item_nside != nside:
-                                item = hp.ud_grade(item, nside)  
+                        if self.params.polarization:
+                            item = hp.read_map(filename=path, 
+                                               field=(0,1,2), 
+                                               dtype=np.float32)
+                            if nside is not None:
+                                item_nside = hp.npix2nside(len(item[0]))
+                                if item_nside != nside:
+                                    item = hp.ud_grade(item, nside)
+                        else:
+                            item = hp.read_map(filename=path, 
+                                               field=(0,), 
+                                               dtype=np.float32)
+                            if nside is not None:
+                                item_nside = hp.npix2nside(len(item))
+                                if item_nside != nside:
+                                    item = hp.ud_grade(item, nside)
+    
                         if fwhm is not None:
-                            item = hp.smoothing(item, fwhm=fwhm.to(u.rad).value)       
+                            item = hp.smoothing(item, fwhm=fwhm.to(u.rad).value)      
+                            
                         attributes[key] = item
 
         return attributes
@@ -130,6 +139,8 @@ class SkyComponent:
             if any(attr in key for attr in ('amp', 'monopole', 'dipole')):
                 if self.params.unit.lower() in ('uk_rj', 'uk_cmb'):
                     value *= u.uK
+                elif self.params.unit.lower() == 'jy/sr':
+                    value *= (u.Jy/u.sr)
                 else: 
                     raise ValueError(
                         f'Unit {self.params.unit!r} is unrecognized'
@@ -145,20 +156,20 @@ class SkyComponent:
     @u.quantity_input(nu=u.Hz, bandpass=(u.Jy/u.sr, u.K, None))
     def get_emission(self, nu, bandpass=None, output_unit=u.K):
         """
-        Returns the full sky model emission at an arbitrary frequency nu in 
-        units of K_RJ.
+        Returns the full sky component emission at an arbitrary frequency nu 
+        in units of K_RJ.
 
         Parameters
         ----------
         nu : astropy.units.quantity.Quantity
             A frequency, or a frequency array at which to evaluate the model.
         bandpass : astropy.units.quantity.Quantity
-            Bandpass profile in units of (k_RJ, Jy/sr) corresponding to 
-            frequency array nu. If None, a delta peak in frequency is assumed.
+            Bandpass profile in units of K_RJ or Jy/sr corresponding to the
+            frequency array, nu. If None, a delta peak in frequency is assumed.
             Default : None
         output_unit : astropy.units.quantity.Quantity or str
             Desired unit for the output map. Must be a valid astropy.unit or 
-            one of the two following strings ('K_CMB', 'K_RJ').
+            one of the two following strings 'K_CMB', 'K_RJ'.
             Default : None
 
         Returns
@@ -168,7 +179,8 @@ class SkyComponent:
 
         """
         if bandpass is None:
-            scaling = self._get_freq_scaling(nu.si.value, *self._spectral_params)
+            scaling = self._get_freq_scaling(nu.si.value, 
+                                             *self._spectral_params)
             emission = self.amp*scaling
 
         else:
@@ -186,7 +198,8 @@ class SkyComponent:
         """
         Returns the frequency scaling factor given a bandpass profile and a 
         set of spectral parameters. Uses the mixing matrix implementation 
-        from commander3.
+        from Commander3. For more information, see section 4.2 in 
+        https://arxiv.org/abs/2011.05609.
 
         Parameters
         ----------
@@ -310,7 +323,10 @@ class SkyComponent:
         if self.params.unit.lower() != 'uk_rj':
             raise ValueError(f'Unit is already {self.params.unit!r}')
         
-        nu_ref = np.expand_dims(self.params.nu_ref, axis=1)
+        if self.params.polarization:
+            nu_ref = np.expand_dims(self.params.nu_ref, axis=1)
+        else:
+            nu_ref = self.params.nu_ref
 
         return utils.KRJ_to_KCMB(self.amp, nu_ref)
 
@@ -323,7 +339,10 @@ class SkyComponent:
         if self.params.unit.lower() != 'uk_cmb':
             raise ValueError(f'Unit is already {self.params.unit!r}')
 
-        nu_ref = np.expand_dims(self.params.nu_ref, axis=1)
+        if self.params.polarization:
+            nu_ref = np.expand_dims(self.params.nu_ref, axis=1)
+        else:
+            nu_ref = self.params.nu_ref
 
         return utils.KCMB_to_KRJ(self.amp, nu_ref)
 
