@@ -186,18 +186,9 @@ class SkyModel:
             Model emission at given frequency in units of K_RJ.
 
         """
-        for comp in self.components:
-            if comp.params.polarization:
-                emission = np.zeros_like(comp.amp)
-                break
-        else:
-            emission = np.zeros_like(self.components[0].amp)
 
-        for comp in self.components:
-            emission += comp.get_emission(nu, bandpass, output_unit)
-
-        return emission
- 
+        return np.sum([comp.get_emission(nu, bandpass, output_unit) 
+                      for comp in self.components], axis=0)
 
     @u.quantity_input(start=u.Hz, stop=u.Hz)
     def get_spectrum(self, components=None, pol=False, sky_frac=88, start=10*u.GHz,

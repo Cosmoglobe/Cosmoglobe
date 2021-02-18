@@ -233,6 +233,23 @@ def create_70GHz_mask(sky_frac):
     return mask 
 
 
+def to_IQU(array):
+    """
+    Takes in a array of size (,nside) and reutuns the same array with new 
+    shape (3, nside), where the original array resides in the first dimension, 
+    while dimensions two and three are empty.
+
+    """
+    
+    if array.ndim > 1:
+        new_array = np.zeros((3, len(array[0])))
+        new_array[0] = array[0]
+    else:
+        new_array = np.zeros((3, len(array)))
+        new_array[0] = array
+    return new_array
+
+
 def timer(function):
     """
     Timer decorator for development purposes.

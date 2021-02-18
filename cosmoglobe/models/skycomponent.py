@@ -89,6 +89,9 @@ class SkyComponent:
                     if item_nside != nside:
                         item = hp.ud_grade(item, nside)
 
+                if not self.params.polarization and attr_name == 'amp':
+                    item = utils.to_IQU(item)
+
                 if isinstance(item, dict):
                     for key, value in item.items():
                         attributes[key] = value
@@ -116,10 +119,12 @@ class SkyComponent:
                                 item_nside = hp.npix2nside(len(item))
                                 if item_nside != nside:
                                     item = hp.ud_grade(item, nside)
-    
+                            if key == 'amp':
+                                item = utils.to_IQU(item)
+
                         if fwhm is not None:
                             item = hp.smoothing(item, fwhm=fwhm.to(u.rad).value)      
-                            
+
                         attributes[key] = item
 
         return attributes
