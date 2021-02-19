@@ -1,1 +1,4 @@
-from .cosmoglobe import SkyModel
+from .cosmoglobe import (
+    SkyModel, 
+    reduce_chain
+)
