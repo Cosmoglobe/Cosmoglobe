@@ -70,9 +70,17 @@ class Chain:
 
         """
         self.filename = chainfile
-        self.sample = sample
+        if isinstance(sample, str):
+            self.sample = sample
+        elif isinstance(sample, int):
+            self.sample = f'{sample:06d}'
+        else:
+            raise ValueError(
+                "sample must be either a string e.g '000012', or a int e.g 12"
+            )
+
         self.burnin = burnin
-        self.chainfile = self._validate_chainfile(sample, burnin)
+        self.chainfile = self._validate_chainfile(self.sample, self.burnin)
 
         self.samples = self.get_samples()
         self.components = self.get_components()
@@ -554,6 +562,6 @@ def reduce_chain(chainfile, fname=None, burnin=None):
                                 maps[component][parameter] //= nsamples
                             else:
                                 maps[component][parameter] /= nsamples
-                            reduced_chain.create_dataset(f'{component}/{parameter}', 
-                                                      data=maps[component][parameter], 
-                                                      dtype=value.dtype.type)
+                            reduced_chain.create_dataset(f'sample_mean/{component}/{parameter}', 
+                                                         data=maps[component][parameter], 
+                                                         dtype=value.dtype.type)

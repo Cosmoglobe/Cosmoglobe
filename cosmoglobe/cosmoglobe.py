@@ -289,3 +289,13 @@ class SkyModel:
                     rms_dict[model.comp_label].append(np.sqrt(np.mean(I**2)))
 
         return freqs, rms_dict
+
+
+def reduce_chain(chainfile, fname=None, burnin=None):
+    """
+    Output a reduced version of the input chainfile containing only a 
+    single averaged sample group and a parameter group.
+    
+    """
+    print(f'Reducing {chainfile=}...')
+    chain.reduce_chain(chainfile, fname, burnin)
