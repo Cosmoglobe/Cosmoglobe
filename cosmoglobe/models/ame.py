@@ -28,10 +28,9 @@ class SpinningDust2(AME):
     model_label = 'spindust2'
     _other_quantities = ('nu_p_map',)
 
-    spdust2_nu, spdust2_amp = (
-        np.loadtxt(data_path / 'spdust2_cnm.dat', unpack=True)
-    )
-    spdust2_nu = spdust2_nu * u.GHz
+    spdust2_nu, spdust2_amp = np.loadtxt(data_path / 'spdust2_cnm.dat', 
+                                         unpack=True)
+    spdust2_nu = u.Quantity(spdust2_nu, unit=u.GHz)
     spdust2_amp = u.Quantity(spdust2_amp, unit=(u.Jy/u.sr)).to(
         u.K, equivalencies=u.brightness_temperature(spdust2_nu)
     )
@@ -44,7 +43,7 @@ class SpinningDust2(AME):
     @u.quantity_input(nu=u.Hz)
     def get_emission(self, nu, bandpass=None, output_unit=u.K):
         """
-        Calls the get_emission function of the SkyComponent class.
+        Extends the get_emission function of the SkyComponent class.
 
         Parameters
         ----------
@@ -67,7 +66,7 @@ class SpinningDust2(AME):
         """
         if bandpass is None:
             if nu.si.value >= self.spdust2_nu[-1].si.value:
-                return u.Quantity(np.zeros_like(self.amp), unit=self.amp.unit)
+                return np.zeros_like(self.amp)
             if nu.si.value <= self.spdust2_nu[0].si.value:
                 raise ValueError(
                                  'Invalid frequency range for AME. '

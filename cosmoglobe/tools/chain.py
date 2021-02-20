@@ -53,7 +53,7 @@ class Chain:
 
     """
 
-    def __init__(self, chainfile, sample='mean', burnin=None, verbose=True):
+    def __init__(self, chainfile, sample='mean', burn_in=None, verbose=True):
         """
         Initializes the chain object from a give Commander3 chainfile.
 
@@ -69,7 +69,6 @@ class Chain:
             used. Default is 'mean'.
 
         """
-        self.filename = chainfile
         if isinstance(sample, str):
             self.sample = sample
         elif isinstance(sample, int):
@@ -78,9 +77,10 @@ class Chain:
             raise ValueError(
                 "sample must be either a string e.g '000012', or a int e.g 12"
             )
+        self.burn_in = burn_in
+        validate_chainfile(chainfile, self.sample, self.burn_in)
+        self.chainfile = pathlib.Path(chainfile)
 
-        self.burnin = burnin
-        self.chainfile = self._validate_chainfile(self.sample, self.burnin)
 
         self.samples = self.get_samples()
         self.components = self.get_components()
@@ -90,103 +90,8 @@ class Chain:
             print(f'Chain object:')
             print(f'    filename:\t{self.chainfile.name}')
             print(f'    n samples:\t{len(self.samples)}')
-            print(f'    burn in:\t{self.burnin}')
+            print(f'    burn in:\t{self.burn_in}')
             print(f'    components:\t{*self.components,}\n')
-
-    def _validate_chainfile(self, sample, burnin):
-        """
-        Validates that the given path is of a type and format that matches a
-        Commander3 hdf5 output chainfile, and then returns file as a pathlib
-        object.
-
-        Parameters
-        ----------
-        path : str, pathlib.Path
-            Path to a Commander chain file or directory containing a HDF5 
-            datafile.
-
-        Returns
-        -------
-        pathlib.Path
-            Pathlib Path object to Commander HDF5 chain file.
-
-        """
-        try:
-            path = pathlib.Path(self.filename)
-        except:
-            raise TypeError(
-                f'Data input to Cosmoglobe() must be str or a os.PathLike '
-                'object'
-            ) 
-
-
-        if os.path.isdir(path):
-            chainfiles = ([file for file in os.listdir(path) 
-                           if file.endswith('.h5') and 'chain' in file])
-
-            if len(chainfiles) == 1:
-                path = path / chainfiles[0]
-
-            elif len(chainfiles) > 1:
-                raise IOError(
-                      f'Data directory contains more than one chain file: '
-                      f'{*chainfiles,} \nPlease provide a path including '
-                      'the specific chain file you wish to use'
-                )
-
-            else:
-                raise FileNotFoundError(
-                    f'{str(path)!r} directory does not contain a valid '
-                    'chain HDF5 file'
-                )
-
-        if os.path.isfile(path):
-            if path.name.endswith('.h5'):
-                try: 
-                    with h5py.File(path,'r') as f:
-                        try:
-                            f['parameters']
-                        except KeyError:
-                            raise KeyError(
-                                'Chainfile does not contain a parameters '
-                                'group. Make sure the chainfile was produced '
-                                'with a recent version of Commander3'
-                            )
-                        if len(f) <= 1:
-                            raise KeyError(
-                                f'Chainfile does not contain any gibbs samples'
-                            )
-                        elif sample != 'mean':
-                            try:
-                                f[sample]
-                            except KeyError:
-                                raise KeyError(
-                                    'Chainfile does not contain sample '
-                                    f'{sample!r}'
-                                )
-
-                        if burnin is not None and len(f) < burnin + 1:
-                            raise ValueError(
-                                'Burn-in number must be smaller than the '
-                                'total sample number'
-                            )
-
-                except OSError:
-                    raise OSError(
-                        f'{path.name!r} has an invalid hdf5 format. Make sure '
-                        'the file was created with a recent version of '
-                        'Commander3.'
-                    )
-
-            else:
-                raise OSError("Input file must be an hdf5 file")
-        
-        else:
-            raise OSError(
-            f'No such file or directory: {str(path)!r}'
-        )
-
-        return path
       
     def get_samples(self):
         """
@@ -329,8 +234,8 @@ class Chain:
             samples = list(f.keys())
             samples.pop(samples.index('parameters'))
 
-            if self.burnin is not None:
-                samples = samples[self.burnin:]
+            if self.burn_in is not None:
+                samples = samples[self.burn_in:]
 
             if self.sample == 'mean':
                 try: 
@@ -394,7 +299,7 @@ class Chain:
 
 
     def __repr__(self):
-        return f"Chain(chainfile={self.chainfile.name!r}, sample={self.sample!r}, burnin={self.burnin!r})"
+        return f"Chain(chainfile={self.chainfile.name!r}, sample={self.sample!r}, burn_in={self.burn_in!r})"
     
 
     def __str__(self):
@@ -494,7 +399,90 @@ def unpack_alms_from_chain(data, lmax):
     return alms
 
 
-def reduce_chain(chainfile, fname=None, burnin=None):
+
+def validate_chainfile(chainfile, sample=None, burn_in=None):
+    """
+    Validates that the given path is of a type and format that matches a
+    Commander3 hdf5 output chainfile, and then returns file as a pathlib
+    object.
+    Parameters
+    ----------
+    path : str, pathlib.Path
+        Path to a Commander chain file or directory containing a HDF5 
+        datafile.
+    Returns
+    -------
+    pathlib.Path
+        Pathlib Path object to Commander HDF5 chain file.
+    """
+    try:
+        path = pathlib.Path(chainfile)
+    except:
+        raise TypeError(
+            f'Data input to Cosmoglobe() must be str or a os.PathLike '
+            'object'
+        ) 
+    if os.path.isdir(path):
+        chainfiles = ([file for file in os.listdir(path) 
+                       if file.endswith('.h5') and 'chain' in file])
+        if len(chainfiles) == 1:
+            path = path / chainfiles[0]
+        elif len(chainfiles) > 1:
+            raise IOError(
+                  f'Data directory contains more than one chain file: '
+                  f'{*chainfiles,} \nPlease provide a path including '
+                  'the specific chain file you wish to use'
+            )
+        else:
+            raise FileNotFoundError(
+                f'{str(path)!r} directory does not contain a valid '
+                'chain HDF5 file'
+            )
+    if os.path.isfile(path):
+        if path.name.endswith('.h5'):
+            try: 
+                with h5py.File(path,'r') as f:
+                    try:
+                        f['parameters']
+                    except KeyError:
+                        raise KeyError(
+                            'Chainfile does not contain a parameters '
+                            'group. Make sure the chainfile was produced '
+                            'with a recent version of Commander3'
+                        )
+                    if len(f) <= 1:
+                        raise KeyError(
+                            f'Chainfile does not contain any gibbs samples'
+                        )
+                    elif sample is not None and sample != 'mean':
+                        try:
+                            f[sample]
+                        except KeyError:
+                            raise KeyError(
+                                'Chainfile does not contain sample '
+                                f'{sample!r}'
+                            )
+                    if burn_in is not None and len(f) < burn_in + 1:
+                        raise ValueError(
+                            'Burn-in number must be smaller than the '
+                            'total sample number'
+                        )
+            except OSError:
+                raise OSError(
+                    f'{path.name!r} has an invalid hdf5 format. Make sure '
+                    'the file was created with a recent version of '
+                    'Commander3.'
+                )
+        else:
+            raise OSError("Input file must be an hdf5 file")
+    
+    else:
+        raise OSError(
+        f'No such file or directory: {str(path)!r}'
+    )
+
+
+def reduce_chain(chainfile, fname=None, burn_in=None):
     """
     Reduces a larger chainfile by averaging all, or n randomly selected 
     samples.
@@ -504,21 +492,15 @@ def reduce_chain(chainfile, fname=None, burnin=None):
     fname : str, optional
         Filename of output. If None, fname is f'reduced_{chainfile.name}'.
         Default : None
-    burnin : int, optional
-        Discards all samples prior to and including burnin.
+    burn_in : int, optional
+        Discards all samples prior to and including burn_in.
         Default : None
     
         """
 
-
+    validate_chainfile(chainfile, burn_in=burn_in)
+    chainfile = pathlib.Path(chainfile)
     if fname is None:
-        try:
-            chainfile = pathlib.Path(chainfile)
-        except:
-            raise TypeError(
-                f'Chainfile argument must be str or a os.PathLike '
-                'object.'
-            ) 
         fname = f'{chainfile.parent}/reduced_{chainfile.name}'
 
     with h5py.File(fname, 'w') as reduced_chain:
@@ -530,14 +512,14 @@ def reduce_chain(chainfile, fname=None, burnin=None):
         sample_mean = reduced_chain.create_group('sample_mean')
 
         nsamples = len(samples)
-        if burnin is not None:
-            if burnin >= nsamples:
+        if burn_in is not None:
+            if burn_in >= nsamples:
                 raise ValueError(
                     'Burn-in number must be smaller than the '
                     'total sample number'
                 )
             else:
-                samples = samples[burnin:]
+                samples = samples[burn_in:]
 
         maps = {}
         for component in chain[samples[0]]:
