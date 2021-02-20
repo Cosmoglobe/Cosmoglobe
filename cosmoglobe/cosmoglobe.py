@@ -18,10 +18,6 @@ from cosmoglobe.tools.data import (
 )
 
 
-implemented_comps = {comp.__name__.lower(): comp for comp in SkyComponent.__subclasses__()}
-implemented_comp_labels = {comp.comp_label: comp for comp in SkyComponent.__subclasses__()}
-
-
 class SkyModel:
     """Cosmoglobe sky model.
 
@@ -59,7 +55,7 @@ class SkyModel:
             quantities will be used.
             Default : 'mean'
         burn_in : int, optional
-            Discards all samples prior to and including burnin.
+            Discards all samples prior to and including burn_in.
             Default : None
         verbose : bool, optional
             If True, provides additional details of the performed computations.
@@ -85,7 +81,7 @@ class SkyModel:
         if self.datafile.suffix == '.h5':
             self.data = chain.Chain(chainfile=datafile, 
                                     sample=sample, 
-                                    burnin=burn_in, 
+                                    burn_in=burn_in, 
                                     verbose=verbose)
             self.params = self.data.params
             if components is None:
@@ -101,11 +97,10 @@ class SkyModel:
         elif self.datafile.suffix == '.json':
             self.data = unpack_config(datafile)
             if components is None:
-                components = list(self.data.keys())
+                components = self.data.keys()
             config_params = get_params_from_config(self.data)
             self.params = {comp : params for comp, params 
                            in config_params.items() if comp in components}
-
         else:
             raise TypeError(
                 f'datafile: {self.datafile.name!r} must be either a '
@@ -139,24 +134,22 @@ class SkyModel:
     def _get_skycomponents(self, components):
         """
         Returns a list of SkyComponent subclasses matching input components.
-
+        TODO: Add support for specific requested models. Perhaps in the form 
+        of tuple inputs, i.e if components=['ff', ('ame', 'spindust2')]...
         """
         skycomponents = []
         for comp in components:
-            comp = comp.lower()
-            if comp in implemented_comps:
-                component = implemented_comps[comp]
-
-            elif comp in implemented_comp_labels:
-                component = implemented_comp_labels[comp]
+            for class_ in SkyComponent.__subclasses__():
+                if comp.lower() in (class_.comp_label, class_.__name__.lower()):
+                    class_models = {model.model_label: model 
+                                   for model in class_.__subclasses__()}
+                    skycomponents.append(
+                        class_models[self.params[class_.comp_label].type]
+                    )
+                    break
 
             else:
-                raise ValueError
-            comp_models = {model.model_label: model 
-                           for model in component.__subclasses__()}
-            skycomponents.append(
-                comp_models[self.params[component.comp_label].type]
-            )
+                raise ValueError(f'{comp=} is not implemented')
 
         return skycomponents
 
@@ -189,6 +182,7 @@ class SkyModel:
 
         return np.sum([comp.get_emission(nu, bandpass, output_unit) 
                       for comp in self.components], axis=0)
+
 
     @u.quantity_input(start=u.Hz, stop=u.Hz)
     def get_spectrum(self, components=None, pol=False, sky_frac=88, start=10*u.GHz,
@@ -272,18 +266,14 @@ class SkyModel:
             if model.params.nside != 256:
                 model.to_nside(256)
 
-            if pol:
-                for freq in freqs:
-                    amp = model[freq].value
-                    Q, U = amp[1], amp[2]
+            for freq in freqs:
+                I, Q, U = model.get_emission(freq).value
+                if pol:
                     P = np.sqrt(Q**2 + U**2)
                     P = hp.ma(P)
                     P.mask = mask
-                    rms_dict[model.comp_label].append(np.sqrt(np.mean(P**2)))
-            else: 
-                for freq in freqs:
-                    amp = model[freq].value
-                    I = amp[0]
+                    rms_dict[model.comp_label].append(np.sqrt(np.mean(P**2))) 
+                else:
                     I = hp.ma(I)
                     I.mask = mask
                     rms_dict[model.comp_label].append(np.sqrt(np.mean(I**2)))
@@ -291,11 +281,11 @@ class SkyModel:
         return freqs, rms_dict
 
 
-def reduce_chain(chainfile, fname=None, burnin=None):
+def reduce_chain(chainfile, fname=None, burn_in=None):
     """
     Output a reduced version of the input chainfile containing only a 
     single averaged sample group and a parameter group.
     
     """
     print(f'Reducing {chainfile=}...')
-    chain.reduce_chain(chainfile, fname, burnin)
+    chain.reduce_chain(chainfile, fname=fname, burn_in=burn_in)

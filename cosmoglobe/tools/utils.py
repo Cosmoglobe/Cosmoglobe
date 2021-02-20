@@ -247,6 +247,7 @@ def to_IQU(array):
     else:
         new_array = np.zeros((3, len(array)))
         new_array[0] = array
+    
     return new_array
 
 
