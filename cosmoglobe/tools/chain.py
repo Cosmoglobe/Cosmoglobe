@@ -190,6 +190,12 @@ class Chain:
             if not alms:
                 raise ValueError(f'"{component}" does not include any alms')
 
+            for i, alm in enumerate(alms):
+                quantity = alm.split('_')[0]
+                quantity_map = '_'.join([quantity, 'map'])
+                if quantity_map in params:
+                    alms[i] = quantity_map
+
         return alms
 
 
@@ -248,7 +254,6 @@ class Chain:
                 
                 for sample in samples:   
                     item += f[sample][component][item_name][()]
-
                 item /= len(samples)
 
             else:
@@ -295,7 +300,7 @@ class Chain:
 
                     return items
                 return items
-        return item[0]
+        return item
 
 
     def __repr__(self):

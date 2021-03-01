@@ -30,7 +30,7 @@ class LinearOpticallyThin(FreeFree):
 
     def __init__(self, data, nside=None, fwhm=None):
         super().__init__(data, nside=nside, fwhm=fwhm)
-        self._spectral_params = (self.Te_map.value,)
+        self._spectral_params = (self.Te.value,)
 
 
     def _get_freq_scaling(self, nu, T_e):

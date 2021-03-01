@@ -188,7 +188,7 @@ class SkyModel:
     def get_spectrum(self, components=None, pol=False, sky_frac=88, start=10*u.GHz,
                      stop=1000*u.GHz, num=50):
         """
-        Produces a RMS SED for all included sky components.
+        Produces a RMS SED spectrum for all included sky components.
 
         Parameters
         ----------
@@ -198,8 +198,8 @@ class SkyModel:
             SkyComponent objects are used.
             Default : None
         pol : bool, optional
-            If True, the spectrum will be calculated for P = sqrt(Q^2 + U^2). 
-            Components that does not include polarization is omitted. 
+            If True, the spectrum will be calculated for P = sqrt(Q**2 + U**2). 
+            Components that does not include polarization are omitted. 
             Default : False.
         sky_frac : int, float, optional
             Fraction of the sky to compute RMS values for. 
