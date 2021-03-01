@@ -37,7 +37,7 @@ class SpinningDust2(AME):
 
     def __init__(self, data, nside=None, fwhm=None):
         super().__init__(data, nside=nside, fwhm=fwhm)
-        self._spectral_params = (self.nu_p_map.si.value,)
+        self._spectral_params = (self.nu_p.si.value,)
 
 
     @u.quantity_input(nu=u.Hz)

@@ -70,9 +70,12 @@ class SkyComponent:
                 attr_list += self._other_quantities
 
             for attr in attr_list:
-                if 'alm' in attr:
+                if '_alm' in attr:
                     unpack_alms = True
                     attr_name = attr.split('_')[0]
+                elif '_map' in attr:
+                    unpack_alms = False
+                    attr_name = attr.replace('_map','')
                 else:
                     unpack_alms = False  
                     attr_name = attr
@@ -85,7 +88,11 @@ class SkyComponent:
                 )
 
                 if not unpack_alms and nside is not None:
-                    item_nside = hp.npix2nside(len(item))
+                    if len(np.shape(item)) > 1:
+                        npix = np.shape(item)[-1]
+                    else:
+                        npix = len(item)
+                    item_nside = hp.npix2nside(npix)
                     if item_nside != nside:
                         item = hp.ud_grade(item, nside)
 
