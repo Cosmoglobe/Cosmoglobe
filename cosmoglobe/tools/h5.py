@@ -5,10 +5,7 @@ import h5py
 import numpy as np
 
 
-
 param_group = 'parameters'
-test_file = '/Users/metinsan/Documents/doktor/Cosmoglobe_test_data/bla.h5'
-
 
 
 def _get_samples(file):
@@ -28,6 +25,20 @@ def _get_components(file):
     return components
 
 
+def _get_component_params(file, component):
+    """Returns a dictionary of the model parameters of one component"""
+    return_params = {}
+    with h5py.File(file, 'r') as f:
+        params = f[param_group][component]
+        for param, value in params.items():
+            if isinstance(value[()], bytes):
+                return_params[param] = value.asstr()[()]
+            else:
+                return_params[param] = value[()]
+
+        return return_params
+
+
 def _get_items(file, sample, component, items):
     """Return the value of one or many items in the chain file.
 
@@ -39,13 +50,13 @@ def _get_items(file, sample, component, items):
         sample name.
     component: str
         Component group name.
-    items: str, list
+    items: str, list, tuple
         Name of item to extract, or a list of names.
 
     Returns:
     --------
-    lists
-        list of items extracted from the chain file.
+    list
+        List of items extracted from the chain file.
     
     """
     with h5py.File(file, 'r') as f:
@@ -70,16 +81,14 @@ def _get_averaged_items(file, samples, component, items):
         List of samples to average over.
     component:
         Component group.
-    items: str, list
+    items: str, list, tuple
         Name of item to extract, or a list of names. Items must be of types
         compatible with integer division.
-    samples: list
-        List of all samples to average over.
 
     Returns:
     --------
-    lists
-        list of items extracted from the chain file.
+    list
+        List of items averaged over samples from the chain file.
     
     """
     with h5py.File(file, 'r') as f:
@@ -104,14 +113,16 @@ def _get_averaged_items(file, samples, component, items):
 
 
 if __name__ == '__main__':
+    test_file = '/Users/metinsan/Documents/doktor/Cosmoglobe_test_data/bla.h5'
     samples = _get_samples(test_file)
-    items = _get_averaged_items(test_file,
-                                samples,
-                                'ame', 
-                                ('amp_alm', 'nu_p_map'))
-    print(items)
-    items = _get_items(test_file, 
-                       '000039',
-                       'ame', 
-                       ('amp_alm', 'nu_p_map'))
-    print(items)
+    # items = _get_averaged_items(test_file,
+    #                             samples,
+    #                             'ame', 
+    #                             ('amp_alm', 'nu_p_map'))
+    # print(items)
+    # items = _get_items(test_file, 
+    #                    '000039',
+    #                    'ame', 
+    #                    ('amp_alm', 'nu_p_map'))
+    # print(items)
+    print(_get_component_params(test_file, 'dust'))
