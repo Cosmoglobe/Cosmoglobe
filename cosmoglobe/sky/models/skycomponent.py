@@ -6,7 +6,7 @@ from cosmoglobe.tools import chain
 from cosmoglobe.tools.data import get_params_from_config
 import pathlib
 
-from ..tools import utils
+from ...tools import utils
 
 class SkyComponent:
     """

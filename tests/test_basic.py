@@ -2,8 +2,10 @@
 For testing Cosmoglobe during development.
 
 """
+# from cosmoglobe.sky import components
 import astropy.units as u
 import healpy as hp
+from healpy.pixelfunc import nside2npix
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 import numpy as np
@@ -20,17 +22,17 @@ hp.disable_warnings()
 data = '../../Cosmoglobe_test_data/bla.h5'
 # data = '../../Cosmoglobe_test_data/data.json'
 
-bandpass_data = '../../Cosmoglobe_test_data/wmap_bandpass.txt'
-nus, bandpass, _ = np.loadtxt(bandpass_data, unpack=True)
-sky = SkyModel(data, burn_in=20)
+# bandpass_data = '../../Cosmoglobe_test_data/wmap_bandpass.txt'
+# nus, bandpass, _ = np.loadtxt(bandpass_data, unpack=True)
+sky = SkyModel(data, components=['synch', 'dust'], nside=64, burn_in=20)
 
 # data = h5py.File('../../Cosmoglobe_test_data/bla.h5', 'r')
 # beta_map = data['000030/synch/beta_map']
 # hp.mollview(beta_map[1])
 
-hp.mollview(sky.ff.get_emission(435*u.GHz)[0], norm='hist')
+# hp.mollview(sky.dust.amp[0], min=-50, max=50)
 # hp.mollview(sky.get_emission(nus*u.GHz, bandpass*u.K)[0], norm='hist')
-plt.show()
+# plt.show()
 
 # freqs = np.arange(1,300,3)
 # sky_list = [sky.get_emission(freq*u.GHz)[0] for freq in freqs]
@@ -67,3 +69,17 @@ plt.show()
 # plt.legend()
 # plt.show()
 
+from cosmoglobe.sky.map import IQUMap, to_IQU
+import healpy as hp
+from cosmoglobe.sky.components import PowerLaw, ModifiedBlackBody
+from cosmoglobe.sky.model import Model
+map_path = '/Users/metinsan/Documents/doktor/Cosmoglobe/cosmoglobe/data/BP7_70GHz_nocmb_n0256.fits'
+
+# print(sky.synch._get_freq_scaling((50*u.GHz).value, sky.synch.beta))
+
+synch = PowerLaw(sky.synch.amp, sky.synch.params.nu_ref, beta=sky.synch.beta)
+dust = ModifiedBlackBody(sky.dust.amp, sky.dust.params.nu_ref, beta=sky.dust.beta, T=sky.dust.T)
+# print(synch.__class__.__name__)
+
+model = Model(components=[('synch', synch), ('dust', dust)])
+print(model)
