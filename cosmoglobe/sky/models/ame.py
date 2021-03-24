@@ -3,7 +3,7 @@ import pathlib
 import numpy as np
 
 from .skycomponent import SkyComponent
-from .. import data as data_dir
+from ... import data as data_dir
 
 data_path = pathlib.Path(data_dir.__path__[0])
 

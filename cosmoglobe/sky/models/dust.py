@@ -62,25 +62,3 @@ class ModifiedBlackbody(Dust):
         scaling *= blackbody_emission(nu, T) / blackbody_emission(nu_ref, T)
 
         return scaling
-
-
-
-def blackbody_emission(nu, T):
-    """
-    Returns the emission emitted by a blackbody with with temperature T at 
-    a frequency nu.
-
-    Parameters
-    ----------
-    nu : int, float, numpy.ndarray
-        Frequency at which to evaluate the blackbody radiation.
-    T : numpy.ndarray
-        Temperature of the blackbody. 
-
-    Returns
-    -------
-    numpy.ndarray
-        Blackbody emission in units of Jy/sr
-
-    """
-    return ((2*h*nu**3)/c**2) / np.expm1((h*nu) / (k_B*T))

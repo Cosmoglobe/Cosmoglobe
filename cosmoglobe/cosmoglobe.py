@@ -3,12 +3,12 @@ import astropy.units as u
 import healpy as hp 
 import numpy as np
 
-from cosmoglobe.models.skycomponent import SkyComponent
-from cosmoglobe.models.ame import AME
-from cosmoglobe.models.cmb import CMB
-from cosmoglobe.models.ff import FreeFree
-from cosmoglobe.models.dust import Dust
-from cosmoglobe.models.synch import Synchrotron
+from cosmoglobe.sky.models.skycomponent import SkyComponent
+from cosmoglobe.sky.models.ame import AME
+from cosmoglobe.sky.models.cmb import CMB
+from cosmoglobe.sky.models.ff import FreeFree
+from cosmoglobe.sky.models.dust import Dust
+from cosmoglobe.sky.models.synch import Synchrotron
 
 from cosmoglobe.tools import chain
 from cosmoglobe.tools import utils

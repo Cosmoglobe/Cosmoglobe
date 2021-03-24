@@ -5,6 +5,7 @@ import pathlib
 from numba import njit
 import numpy as np
 import os
+from . import utils
 
 from .data import ModelParameters
 
@@ -269,19 +270,18 @@ class Chain:
                 except:
                     raise KeyError(f'{lmax_name} does not exist in file')
 
-                if lmax <= 1:
-                    pol = False
-                else:
-                    pol = self.params[component].polarization
-
                 nside = self.params[component].nside
                 fwhm = self.params[component].fwhm.to('rad').value
-
                 unpacked_alm = unpack_alms_from_chain(item, lmax)
+                if unpacked_alm.shape[0] == 1:
+                    pol = False
+                elif unpacked_alm.shape[0] == 3:
+                    pol = True
+                    
                 items = hp.alm2map(unpacked_alm, 
                                   nside=nside, 
-                                  lmax=lmax, 
-                                  fwhm=fwhm, 
+                                  lmax=lmax,
+                                  fwhm=fwhm,
                                   pol=pol,
                                   verbose=False).astype('float32')
 
