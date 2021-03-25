@@ -112,6 +112,7 @@ class IQUMap:
 
         return self.I
 
+
     @property
     def shape(self):
         """Returns the shape of the IQU map"""
