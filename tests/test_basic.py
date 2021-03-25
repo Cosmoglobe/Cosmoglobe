@@ -81,5 +81,6 @@ synch = PowerLaw(sky.synch.amp, sky.synch.params.nu_ref, beta=sky.synch.beta)
 dust = ModifiedBlackBody(sky.dust.amp, sky.dust.params.nu_ref, beta=sky.dust.beta, T=sky.dust.T)
 # print(synch.__class__.__name__)
 
-model = Model(components=[('synch', synch), ('dust', dust)])
+model = Model(components=[('synch', synch)])
+
 print(model)

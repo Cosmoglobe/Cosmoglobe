@@ -1,15 +1,10 @@
 from ..sky.map import to_IQU
 from ..science.functions import blackbody_emission
-
+from ..science.constants import h, c, k_B
 
 import numpy as np
-import healpy as hp
 import astropy.units as u
-import astropy.constants as const
 
-h = const.h.value
-c = const.c.value
-k_B = const.k_B.value
 
 class Component:
     """Base class for all sky components.
@@ -18,7 +13,7 @@ class Component:
 
     Args:
     -----
-    amp : astropy.units.quantity.Quantity, cosmoglobe.IQUMap
+    amp : np.ndarray, astropy.units.quantity.Quantity, cosmoglobe.IQUMap
         Amplitude map for I, Q and U stokes parameters.
     nu_ref : tuple, list, np.ndarray
         Reference frequencies for the amplitude map. Each array element must 
@@ -26,6 +21,7 @@ class Component:
     spectrals: dict
         Spectral maps required to compute the frequency scaling factor. Maps 
         must be of types astropy.units.quantity.Quantity or cosmoglobe.IQUMap.
+        Default : None
 
     """
     def __init__(self, amp, nu_ref, **spectrals):
@@ -80,11 +76,9 @@ class Component:
 
     def __repr__(self):
         main_repr = f'{self.__class__.__name__}'
-        main_repr += '('
-        main_repr += 'amp, '
-        main_repr += 'nu_ref, '
-        for key, value in self.spectrals.items():
-            main_repr += f'{key}, '
+        main_repr += '(amp, nu_ref, '
+        for spectral in self.spectrals:
+            main_repr += f'{spectral}, '
         main_repr = main_repr[:-2]
         main_repr += ')'
 
@@ -150,9 +144,9 @@ class ModifiedBlackBody(Component):
         MBB IQU beta map.
 
     """
-
     def __init__(self, amp, nu_ref, beta, T):
         super().__init__(amp, nu_ref, beta=beta, T=T)
+
 
     def get_freq_scaling(self, nu, beta, T):
         """Computes the frequency scaling from the reference frequency nu_ref 
@@ -174,7 +168,7 @@ class ModifiedBlackBody(Component):
             Frequency scaling factor.
 
         """
-        nu_ref = np.expand_dims(self.params.nu_ref.si.value, axis=1)
+        nu_ref = np.expand_dims(self.nu_ref.si.value, axis=1)
 
         scaling = (nu/nu_ref)**(beta-2)
         scaling *= blackbody_emission(nu, T) / blackbody_emission(nu_ref, T)
