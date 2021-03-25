@@ -1,4 +1,3 @@
-from typing import Type
 from .components import Component
 
 
