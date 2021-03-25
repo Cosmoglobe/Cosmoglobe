@@ -1,4 +1,5 @@
-from ..sky.map import to_IQU
+from ..tools.map import IQUMap, to_IQU
+from ..tools.bandpass import _extract_scalars
 from ..science.functions import blackbody_emission
 from ..science.constants import h, c, k_B
 
@@ -31,8 +32,37 @@ class Component:
         self.spectrals = {}
         if spectrals is not None:
             for key, value in spectrals.items():
-                self.spectrals[key] = to_IQU(value)
-        
+                if isinstance(value, np.ndarray):
+                    self.spectrals[key] = to_IQU(value)
+                else:
+                    self.spectrals[key] = value
+
+
+    def get_freq_scaling(self, nu, **spectrals):
+        """Any component that inherits from this class must implement the 
+        get_freq_scaling method. This method is what uniquely specifies a 
+        component. 
+
+        This method should return the frequency scaling from the reference 
+        frequency nu_ref to an arbitrary frequency nu, which depends on 
+        the spectral parameters in the spectrals dict.
+
+        Args:
+        -----
+        nu : int, float, numpy.ndarray
+            Frequencies at which to evaluate the model. Must be in si units.
+        spectrals : dict
+            Spectral parameters used to compute the the frequency scaling 
+            factor.
+            
+        Returns:
+        --------
+        scaling : int, float, numpy.ndarray
+            Frequency scaling factor.
+
+        """
+        return 1
+
 
     @u.quantity_input(nu=u.Hz, bandpass=(u.Jy/u.sr, u.K, None))
     def get_emission(self, nu, bandpass=None, output_unit=None):
@@ -59,10 +89,14 @@ class Component:
             Model emission at given frequency in units of K_RJ.
 
         """
+        nu = nu.si
         if bandpass is None:
-            scaling = self.get_freq_scaling(nu.si.value, **self.spectrals)
+            scaling = self.get_freq_scaling(nu, **self.spectrals)
             emission = self.amp*scaling
 
+        else:
+            emission = self._get_bandpass_conversion(nu, bandpass)
+            print(emission)
         # else:
         #     bandpass = utils.get_normalized_bandpass(nu, bandpass)
         #     U = utils.get_unit_conversion(nu, bandpass, output_unit)
@@ -72,6 +106,57 @@ class Component:
         #     emission = self.amp*M*U
 
         return emission
+
+    def _get_bandpass_conversion(self, nu_array, bandpass_array, n=10):
+        """Returns the frequency scaling factor given a frequency array and a 
+        bandpass profile.
+
+        Makes use of the mixing matrix implementation from Commander3. For 
+        more information, see section 4.2 in https://arxiv.org/abs/2011.05609.
+
+        Args:
+        -----
+        nu_array : astropy.units.quantity.Quantity
+            Frequencies corresponding to the bandpass weights.
+        bandpass_array : astropy.units.quantity.Quantity
+            Normalized bandpass profile. Must have signal units.
+        n : int
+            number of values to interpolate over.
+            Default : 10
+
+        Returns:
+        --------
+        float, np.ndarray
+            Frequency scaling factor given a bandpass.
+
+        """
+
+        scalars = _extract_scalars(self.spectrals)
+        interp_ranges = {}
+
+        for key, value in self.spectrals.items():
+            if scalars is None or key not in scalars:
+                interp_ranges[key] = np.linspace(np.amin(value), 
+                                                 np.amax(value), 
+                                                 n) * value.unit
+
+        if not interp_ranges:   # All spectral parameters are scalars
+            freq_scaling = self.get_freq_scaling(nu_array, **scalars)
+            return np.trapz(freq_scaling*bandpass_array, nu_array)
+
+        elif len(interp_ranges) == 1:   # Interpolating over one spec parameter
+            integrals = []
+            for key, value in interp_ranges.items():
+                for spec in value:
+                    spectrals = {key:spec}
+                    if scalars is not None:
+                        spectrals.update(scalars)
+                    freq_scaling = self.get_freq_scaling(nu_array, **spectrals)
+                    integrals.append(
+                        np.trapz(freq_scaling*bandpass_array, nu_array)
+                    )
+
+                    # print(integrals)
 
 
     def __repr__(self):
@@ -123,7 +208,7 @@ class PowerLaw(Component):
             Frequency scaling factor.
 
         """
-        nu_ref = np.expand_dims(self.nu_ref.si.value, axis=1)
+        nu_ref = np.expand_dims(self.nu_ref.si, axis=1)
         scaling = (nu/nu_ref)**beta
 
         return scaling
@@ -168,9 +253,8 @@ class ModifiedBlackBody(Component):
             Frequency scaling factor.
 
         """
-        nu_ref = np.expand_dims(self.nu_ref.si.value, axis=1)
-
-        scaling = (nu/nu_ref)**(beta-2)
-        scaling *= blackbody_emission(nu, T) / blackbody_emission(nu_ref, T)
+        nu_ref = np.expand_dims(self.nu_ref.si, axis=1)
+        scaling = blackbody_emission(nu, T) / blackbody_emission(nu_ref, T)
+        scaling *= (nu/nu_ref)**(beta-2)
 
         return scaling
