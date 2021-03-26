@@ -5,7 +5,7 @@ import healpy as hp
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as col
-import cosmoglove.tools.map import IQUMap
+from cosmoglobe.tools.map import to_IQU, IQUMap
 
 hp.disable_warnings()
 # Fix for macos openMP duplicate bug
@@ -36,7 +36,6 @@ def mollplot(
     size="m",
     white_background=False,
     darkmode=False,
-    png=False,
     cfontsize=11,
     dpi=300,
     xsize=2000,
@@ -86,8 +85,8 @@ def mollplot(
     fwhm : float
         Optional map smoothing. FWHM of gaussian smoothing in arcmin.
         default = 0.0
-    mask : str
-        Apply a mask file (supply filename) to data (uses signal 0).
+    mask : array of healpix mask 
+        Apply a mask file to data
         default = None
     mfill : str
         Color to fill masked area, for example "gray".
@@ -161,24 +160,50 @@ def mollplot(
         default = False
     """
     # Check if input is cosmoglobe map object
-    if not isinstance(map_, (IQU_Map)):
-        map_ = map_.to_IQU
+    if not isinstance(map_, (IQUMap)):
+        map_ = to_IQU(map_)
     
-    print(f"Plotting {map_.label}")
+    nside = map_.nside
+    print(f"Plotting {map_.label} nside {nside}")
+
+    # Mask map
+    domask = isinstance(mask, np.ndarray)
+    dodipole = isinstance(remove_dipole, np.ndarray)
+    domonopole =isinstance(remove_monopole, np.ndarray)
+    if domask: 
+        print("applying mask")
+        map_.mask(mask)
 
     # Set plotting rcParams
-    xsize, dpi = set_style(hires, outname, darkmode)
+    set_style(darkmode)
+    if hires:   
+        xsize=10000
+        dpi=1000
 
     for i, pol in enumerate(sig):
-        if isinstance(pl, int):
+        if isinstance(pol, int):
             pol = ["I", "Q", "U"][pol]
 
-        # Put signal into map object
-        m = hp.ma(getattr(map_,pol))
-
         # Remove mono/dipole
-        if remove_dipole or remove_monopole: 
-            m = remove_md(m, remove_dipole, remove_monopole, map_.nside)
+        if dodipole or domonopole:     
+            if dodipole:
+                mdmask = remove_dipole
+            if domonopole:
+                mdmask = remove_monopole
+
+            map_.remove_md(mdmask, sig=i, remove_dipole=dodipole, remove_monopole=domonopole)
+
+        # Put signal into map object
+        m = getattr(map_,pol)
+
+        # Map projection to matplotlib
+        grid_pix, longitude, latitude = project_map(nside, xsize=xsize, ysize=int(xsize/ 2.0),)
+        grid_mask = m.mask[grid_pix] if domask else None
+        grid_map = np.ma.MaskedArray(m[grid_pix], grid_mask)
+
+        cmap_="Jet"
+
+   
 
 
     # TODO, parse header information somewhere?
@@ -193,6 +218,15 @@ def mollplot(
 
 
 
+def project_map(nside, xsize, ysize,):
+    theta = np.linspace(np.pi, 0, ysize)
+    phi = np.linspace(-np.pi, np.pi, xsize)
+    longitude = np.radians(np.linspace(-180, 180, xsize))
+    latitude = np.radians(np.linspace(-90, 90, ysize))
+    # project the map to a rectangular matrix xsize x ysize
+    PHI, THETA = np.meshgrid(phi, theta)
+    grid_pix = hp.ang2pix(nside, THETA, PHI)
+    return grid_pix, longitude, latitude
 
 
 
@@ -202,20 +236,18 @@ def mollplot(
 
 
 
-def set_style(hires, outname, darkmode):
+
+def set_style(darkmode):
     # rcParameters
     plt.rcParams["mathtext.fontset"] = "stix"
     plt.rcParams["axes.linewidth"] = 1
 
     # Preset high resolution parameters for superbig plots
-    if hires:
-        xsize=10000
-        dpi=1000
 
     ## Set backend based on output filename or     
-    plt.rcParams["backend"] = "agg" if png else "pdf"
-    if outname:
-        plt.rcParams["backend"] = "agg" if outname.endswith("png") else "pdf"
+    #plt.rcParams["backend"] = "agg" if png else "pdf"
+    #if outname:
+    #    plt.rcParams["backend"] = "agg" if outname.endswith("png") else "pdf"
 
     ## If darkmode plot (white frames), change colors:
     if darkmode:
@@ -224,43 +256,5 @@ def set_style(hires, outname, darkmode):
         for p in params:
             plt.rcParams[p] = "white"
 
-    return xsize, dpi
 
 
-def remove_md(m, remove_dipole, remove_monopole, nside):        
-    """
-    This function removes the monopole/dipole of an input map
-    """
-    if remove_monopole:
-        dip_mask_name = remove_monopole
-    if remove_dipole:
-        dip_mask_name = remove_dipole
-
-    # Mask map for dipole estimation
-    if dip_mask_name == 'auto':
-        mono, dip = hp.fit_dipole(m, gal_cut=30)
-    else:
-        m_masked = hp.ma(m)
-        m_masked.mask = np.logical_not(hp.read_map(dip_mask_name,verbose=False,dtype=None,))
-
-        # Fit dipole to masked map
-        mono, dip = hp.fit_dipole(m_masked)
-
-    # Subtract dipole map from data
-    if remove_dipole:
-        print("Removing dipole:")
-        print(f"Dipole vector: {dip}")
-        print(f"Dipole amplitude: {np.sqrt(np.sum(dip ** 2))}")
-
-        # Create dipole template
-        nside = int(nside)
-        ray = range(hp.nside2npix(nside))
-        vecs = hp.pix2vec(nside, ray)
-        dipole = np.dot(dip, vecs)
-        
-        m = m - dipole
-    if remove_monopole:
-        click.echo(click.style("Removing monopole:", fg="yellow"))
-        click.echo(click.style("Mono:",fg="green") + f" {mono}")
-        m = m - mono
-    return m
