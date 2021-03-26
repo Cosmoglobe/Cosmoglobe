@@ -14,5 +14,6 @@ map_ = to_IQU(map_)
 map_.label = "cmb"
 
 mask = np.random.randint(2, size=len(map_.I))
-cgp.mollplot(map_,remove_dipole=mask)
+cgp.mollplot(map_, colorbar=True)
+plt.show()
 
