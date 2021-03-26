@@ -91,7 +91,13 @@ class IQUMap:
         """Checks that I, Q, and U are all of the same length. Converts maps 
         to type np.float.32 to save memory.
         """
-        self.I, self.Q, self.U = I, Q, U
+        self.I = I
+        self.Q = Q
+        self.U = U
+        self.unit = unit
+        self.nu_ref = nu_ref
+        self.label = label
+
         if self._has_pol:
             if not (len(self.I) == len(self.Q) == len(self.U)):
                 raise ValueError('I, Q, and U must have the same nside.')
@@ -103,20 +109,19 @@ class IQUMap:
 
         if unit is None:
             self.unit = u.dimensionless_unscaled
-        else:
-            self.unit = unit
 
-        if nu_ref is not None:
-            if self._has_pol:
+
+        if nu_ref is not None and self._has_pol:
+            try:
                 if len(nu_ref) != 3:
                     raise ValueError('Map is polarized but nu_ref is not')
-                
-        self.nu_ref = nu_ref
-
-
+            except TypeError:
+                raise TypeError('Map is polarized but nu_ref is not')
+        
 
         if not hp.isnsideok(self.nside, nest=True):
             raise ValueError(f'nside: {self.nside} is not valid.')
+
 
 
     @property
