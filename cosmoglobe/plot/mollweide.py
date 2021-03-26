@@ -13,6 +13,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
 def mollplot(
     map_,
+    sig=[0,],
     auto=False,
     min=False,
     max=False,
@@ -24,7 +25,6 @@ def mollplot(
     fwhm=0.0,
     mask=None,
     mfill=None,
-    sig=[0,],
     logscale=False,
     remove_dipole=None,
     remove_monopole=None,
@@ -52,6 +52,10 @@ def mollplot(
     ----------
     map_ : cosmoglobe map object
         cosmoglobe map object with I (optional Q and U)
+    sig : list of int or string ["I", "Q", "U"]
+        Signal indices to be plotted. 0, 1, 2 interprated as IQU.
+        Supports multiple, such that -sig 1 -sig 2.
+        default = [0,]
     auto : bool
         Toggle parameter autodetector. Automatic identification of plotting
         parameters based on information from autoparams.json default = False
@@ -89,10 +93,6 @@ def mollplot(
         Color to fill masked area, for example "gray".
         Transparent by default.
         defualt : None
-    sig : list of int
-        Signal indices to be plotted. 0, 1, 2 interprated as IQU.
-        Supports multiple, such that -sig 1 -sig 2.
-        default = [0,]
     remove_dipole : str
         Fits and removes a dipole. Specify mask for fit, or "auto".
         default = None
@@ -169,9 +169,19 @@ def mollplot(
     # Set plotting rcParams
     xsize, dpi = set_style(hires, outname, darkmode)
 
-    
+    for i, pol in enumerate(sig):
+        if isinstance(pl, int):
+            pol = ["I", "Q", "U"][pol]
+
+        # Put signal into map object
+        m = hp.ma(getattr(map_,pol))
+
+        # Remove mono/dipole
+        if remove_dipole or remove_monopole: 
+            m = remove_md(m, remove_dipole, remove_monopole, map_.nside)
 
 
+    # TODO, parse header information somewhere?
 
 
 
@@ -215,3 +225,42 @@ def set_style(hires, outname, darkmode):
             plt.rcParams[p] = "white"
 
     return xsize, dpi
+
+
+def remove_md(m, remove_dipole, remove_monopole, nside):        
+    """
+    This function removes the monopole/dipole of an input map
+    """
+    if remove_monopole:
+        dip_mask_name = remove_monopole
+    if remove_dipole:
+        dip_mask_name = remove_dipole
+
+    # Mask map for dipole estimation
+    if dip_mask_name == 'auto':
+        mono, dip = hp.fit_dipole(m, gal_cut=30)
+    else:
+        m_masked = hp.ma(m)
+        m_masked.mask = np.logical_not(hp.read_map(dip_mask_name,verbose=False,dtype=None,))
+
+        # Fit dipole to masked map
+        mono, dip = hp.fit_dipole(m_masked)
+
+    # Subtract dipole map from data
+    if remove_dipole:
+        print("Removing dipole:")
+        print(f"Dipole vector: {dip}")
+        print(f"Dipole amplitude: {np.sqrt(np.sum(dip ** 2))}")
+
+        # Create dipole template
+        nside = int(nside)
+        ray = range(hp.nside2npix(nside))
+        vecs = hp.pix2vec(nside, ray)
+        dipole = np.dot(dip, vecs)
+        
+        m = m - dipole
+    if remove_monopole:
+        click.echo(click.style("Removing monopole:", fg="yellow"))
+        click.echo(click.style("Mono:",fg="green") + f" {mono}")
+        m = m - mono
+    return m

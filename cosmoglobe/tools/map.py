@@ -141,6 +141,81 @@ class IQUMap:
 
         return False
 
+    @property
+    def mask(self, mask):
+        """Applies a mask to the data"""
+
+        sigs = ["I"]
+        if self._has_pol:
+            sigs += ["Q", "U"]
+
+        for sig in self:
+            sig = hp.ma(sig)
+            print(sig)
+            setattr(self, sig, hp.ma(getattr(self,sig))    
+            
+            self.[sig].mask = np.logical_not(mask)
+
+            m.mask = np.logical_not(mask)
+
+        # Don't know what this does, from paperplots by Zonca.
+        grid_mask = m.mask[grid_pix]
+        grid_map = np.ma.MaskedArray(m[grid_pix], grid_mask)
+
+"""
+def apply_mask(m, mask, grid_pix, mfill, polt, cmap):
+    click.echo(click.style(f"Masking using {mask}", fg="yellow"))
+    # Apply mask
+    hp.ma(m)
+    mask_field = polt-3 if polt>2 else polt
+    m.mask = np.logical_not(hp.read_map(mask, field=mask_field, verbose=False, dtype=None))
+
+    # Don't know what this does, from paperplots by Zonca.
+    grid_mask = m.mask[grid_pix]
+    grid_map = np.ma.MaskedArray(m[grid_pix], grid_mask)
+
+    if mfill:
+        cmap.set_bad(mfill)  # color of missing pixels
+        # cmap.set_under("white") # color of background, necessary if you want to use
+        # using directly matplotlib instead of mollview has higher quality output
+
+    return grid_map, cmap
+    
+def remove_md(m, remove_dipole, remove_monopole, nside):        
+    if remove_monopole:
+        dip_mask_name = remove_monopole
+    if remove_dipole:
+        dip_mask_name = remove_dipole
+    # Mask map for dipole estimation
+    if dip_mask_name == 'auto':
+        mono, dip = hp.fit_dipole(m, gal_cut=30)
+    else:
+        m_masked = hp.ma(m)
+        m_masked.mask = np.logical_not(hp.read_map(dip_mask_name,verbose=False,dtype=None,))
+
+        # Fit dipole to masked map
+        mono, dip = hp.fit_dipole(m_masked)
+
+    # Subtract dipole map from data
+    if remove_dipole:
+        click.echo(click.style("Removing dipole:", fg="yellow"))
+        click.echo(click.style("Dipole vector:",fg="green") + f" {dip}")
+        click.echo(click.style("Dipole amplitude:",fg="green") + f" {np.sqrt(np.sum(dip ** 2))}")
+
+        # Create dipole template
+        nside = int(nside)
+        ray = range(hp.nside2npix(nside))
+        vecs = hp.pix2vec(nside, ray)
+        dipole = np.dot(dip, vecs)
+        
+        m = m - dipole
+    if remove_monopole:
+        click.echo(click.style("Removing monopole:", fg="yellow"))
+        click.echo(click.style("Mono:",fg="green") + f" {mono}")
+        m = m - mono
+    return m
+"""
+
 
     def to_nside(self, new_nside):
         """If nside is changed, automatically ud_grades I, Q and U maps to the
@@ -306,6 +381,11 @@ class IQUMap:
     __rtruediv__ = __truediv__
     __rpow__ = __pow__
 
+    def __iter__(self):
+         if self._has_pol:
+            return iter([self.I, self.Q, self.U,])
+
+        return iter([self.I,])
 
     def __getitem__(self, idx):
         return self.data[idx]
