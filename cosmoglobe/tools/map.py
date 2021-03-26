@@ -4,7 +4,7 @@ import astropy.units as u
 import operator
 
 
-def to_IQU(input_map):
+def to_IQU(input_map, unit=None, nu_ref=None, label=None):
     """Converts a map to a native IQU map object.
     
     Args:
@@ -14,23 +14,33 @@ def to_IQU(input_map):
 
     """
     if isinstance(input_map, u.quantity.Quantity):
+        unit_ = input_map.unit
+        if unit is not None and unit != unit_:
+            unit_ = unit
         if input_map.ndim == 1:
-            return IQUMap(input_map.value, unit=input_map.unit)
+            return IQUMap(input_map.value, 
+                          unit=unit_,
+                          nu_ref=nu_ref,
+                          label=label)
         else:
-            unit = input_map.unit
             input_map = input_map.value
             return IQUMap(I=input_map[0], 
                           Q=input_map[1], 
                           U=input_map[2], 
-                          unit=unit)
+                          unit=unit_,
+                          nu_ref=nu_ref,
+                          label=label)
 
     elif isinstance(input_map, np.ndarray):
         if input_map.ndim == 1:
-            return IQUMap(input_map)
+            return IQUMap(input_map, unit=unit, nu_ref=nu_ref, label=label)
         else:
             return IQUMap(I=input_map[0], 
                           Q=input_map[1], 
-                          U=input_map[2])
+                          U=input_map[2],
+                          unit=unit,
+                          nu_ref=nu_ref,
+                          label=label)
 
     elif isinstance(input_map, (IQUMap)):
         return input_map
@@ -107,11 +117,11 @@ class IQUMap:
         else:
             self.I = self.I.astype(np.float32)
 
-        if unit is None:
+        if self.unit is None:
             self.unit = u.dimensionless_unscaled
 
 
-        if nu_ref is not None and self._has_pol:
+        if self.nu_ref is not None and self._has_pol:
             try:
                 if len(nu_ref) != 3:
                     raise ValueError('Map is polarized but nu_ref is not')
@@ -121,7 +131,6 @@ class IQUMap:
 
         if not hp.isnsideok(self.nside, nest=True):
             raise ValueError(f'nside: {self.nside} is not valid.')
-
 
 
     @property
