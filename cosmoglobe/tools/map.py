@@ -4,41 +4,54 @@ import astropy.units as u
 import operator
 
 
+@u.quantity_input(nu_ref=(None, u.Hz))
 def to_IQU(input_map, unit=None, nu_ref=None, label=None):
     """Converts a map to a native IQU map object.
     
     Args:
     -----
-    input_map : np.ndarray, astropy.units.quantity,Quantity
-        Map to be converted. Must be a np.ndarray or a subclass of np.ndarray.
+    input_map : np.ndarray, astropy.units.quantity.Quantity
+        Map to be converted.
+    unit : astropy.units.Unit
+        The units of the input map. If the input map is an astropy object, 
+        unit is set the units of the input map. Else, if unit is None, 
+        unit is set to u.dimensionless_unscaled.
+        Default : None
+    nu_ref : astropy.units.quantity.Quantity
+        Reference frequency of the IQU map. Dimensions must match the input 
+        map in axis=1, e.g if input map is (3, nside), nu_ref must be (3,).
+        Default : None
+    label : str
+        Map label. Used to name maps.
+        Default : None
 
     """
     if isinstance(input_map, u.quantity.Quantity):
-        unit_ = input_map.unit
-        if unit is not None and unit != unit_:
-            unit_ = unit
+        if unit is not None and unit != input_map.unit:
+            input_map.to(unit)
         if input_map.ndim == 1:
-            return IQUMap(input_map.value, 
-                          unit=unit_,
+            return IQUMap(input_map, 
                           nu_ref=nu_ref,
                           label=label)
         else:
-            input_map = input_map.value
+            input_map = input_map
             return IQUMap(I=input_map[0], 
                           Q=input_map[1], 
                           U=input_map[2], 
-                          unit=unit_,
                           nu_ref=nu_ref,
                           label=label)
 
     elif isinstance(input_map, np.ndarray):
+        if unit is None:
+            input_map *= u.dimensionless_unscaled
+        else:
+            input_map *= unit
         if input_map.ndim == 1:
-            return IQUMap(input_map, unit=unit, nu_ref=nu_ref, label=label)
+            return IQUMap(input_map, nu_ref=nu_ref, label=label)
         else:
             return IQUMap(I=input_map[0], 
                           Q=input_map[1], 
                           U=input_map[2],
-                          unit=unit,
                           nu_ref=nu_ref,
                           label=label)
 
@@ -89,37 +102,33 @@ class IQUMap:
 
 
     """
-    I : np.ndarray
-    Q : np.ndarray
-    U : np.ndarray
-    unit : u.Unit
+    I : u.Quantity
+    Q : u.Quantity
+    U : u.Quantity
     nu_ref : u.Quantity
     label : str
 
     @u.quantity_input(nu_ref=(None, u.Hz))
-    def __init__(self, I, Q=None, U=None, unit=None, nu_ref=None, label=None):
+    def __init__(self, I, Q=None, U=None, nu_ref=None, label=None):
         """Checks that I, Q, and U are all of the same length. Converts maps 
-        to type np.float.32 to save memory.
+        to type float32 to save memory.
         """
         self.I = I
         self.Q = Q
         self.U = U
-        self.unit = unit
         self.nu_ref = nu_ref
         self.label = label
 
+        self.I = self.I.astype(np.float32)
         if self._has_pol:
             if not (len(self.I) == len(self.Q) == len(self.U)):
-                raise ValueError('I, Q, and U must have the same nside.')
-            self.I = self.I.astype(np.float32)
+                raise ValueError('I, Q, and U must have the same nside')
+            
+            if not (self.I.unit == self.Q.unit == self.U.unit):
+                raise u.UnitsError('I, Q and U must have the same units')
+
             self.Q = self.Q.astype(np.float32)
             self.U = self.U.astype(np.float32)
-        else:
-            self.I = self.I.astype(np.float32)
-
-        if self.unit is None:
-            self.unit = u.dimensionless_unscaled
-
 
         if self.nu_ref is not None and self._has_pol:
             try:
@@ -127,10 +136,9 @@ class IQUMap:
                     raise ValueError('Map is polarized but nu_ref is not')
             except TypeError:
                 raise TypeError('Map is polarized but nu_ref is not')
-        
 
         if not hp.isnsideok(self.nside, nest=True):
-            raise ValueError(f'nside: {self.nside} is not valid.')
+            raise ValueError(f'nside: {self.nside} is not valid')
 
 
     @property
@@ -147,6 +155,16 @@ class IQUMap:
         """Returns the shape of the IQU map"""
         return self.data.shape
 
+
+
+    @property
+    def unit(self):
+        """Returns the units of the IQU map"""
+        unit = self.I.unit
+        if unit is None:
+            return u.dimensionless_unscaled
+
+        return unit
 
     @property
     def P(self):
