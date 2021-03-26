@@ -90,16 +90,12 @@ class IQUMap:
     U : np.ndarray 
         Stokes Q map. 
         Default : None
-    unit : astropy.units.Unit
-        Map units.
-        Default : None
     nu_ref : astropy.units.quantity.Quantity
         I, Q and U reference frequencies.
         Default : None
     label : str
         Map label.
         Default : None
-
 
     """
     I : u.Quantity
@@ -156,7 +152,6 @@ class IQUMap:
         return self.data.shape
 
 
-
     @property
     def unit(self):
         """Returns the units of the IQU map"""
@@ -165,6 +160,7 @@ class IQUMap:
             return u.dimensionless_unscaled
 
         return unit
+
 
     @property
     def P(self):
