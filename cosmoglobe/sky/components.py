@@ -156,7 +156,7 @@ class Component:
                         np.trapz(freq_scaling*bandpass_array, nu_array)
                     )
 
-                    # print(integrals)
+            print(np.shape(np.transpose(integrals)))
 
 
     def __repr__(self):
