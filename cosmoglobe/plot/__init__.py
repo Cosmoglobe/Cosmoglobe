@@ -1,1 +1,1 @@
-from mollweide import mollplot
+from .mollweide import mollplot

@@ -5,11 +5,11 @@ import healpy as hp
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as col
+import cosmoglove.tools.map import IQUMap
 
 hp.disable_warnings()
 # Fix for macos openMP duplicate bug
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
-
 
 def mollplot(
     map_,
@@ -161,7 +161,7 @@ def mollplot(
         default = False
     """
     # Check if input is cosmoglobe map object
-    if not isinstance(map_, (IQU_map)):
+    if not isinstance(map_, (IQU_Map)):
         map_ = map_.to_IQU
     
     print(f"Plotting {map_.label}")
@@ -204,7 +204,7 @@ def mollplot(
 
 def set_style(hires, outname, darkmode):
     # rcParameters
-    plt.rcParams["mathtext.fontset"] =  
+    plt.rcParams["mathtext.fontset"] = "stix"
     plt.rcParams["axes.linewidth"] = 1
 
     # Preset high resolution parameters for superbig plots
