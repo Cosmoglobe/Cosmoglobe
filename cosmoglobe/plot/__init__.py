@@ -1,0 +1,1 @@
+from .mollweide import mollplot
