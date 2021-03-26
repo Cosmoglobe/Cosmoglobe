@@ -36,12 +36,8 @@ dust = ModifiedBlackBody(amp=iqu*u.uK, nu_ref=[20,20,20]*u.GHz, beta=iqu, T=i*u.
 model = Model(components=[('synch', synch), ('dust', dust)])
 
 
-<<<<<<< HEAD
 mask = np.random.randint(2, size=len(map_.I))
 cgp.mollplot(map_, colorbar=True)
 plt.show()
-=======
-model.dust.get_emission(nu_array*u.GHz, bandpass_array*u.K)
->>>>>>> f1059a50f9df72f02bc40f995beceada8b10b720
 
 map_ = to_IQU(iqu, unit=u.m)
