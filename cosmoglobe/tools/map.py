@@ -171,6 +171,64 @@ class IQUMap:
 
         return False
 
+    def mask(self, mask, sigs=None):
+        """Applies a mask to the data"""
+
+        if sigs==None:
+            sigs = ["I"]
+            if self._has_pol:
+                sigs += ["Q", "U"]
+
+        for sig in sigs:
+            m = getattr(self,sig)
+            if not isinstance(m, np.ma.core.MaskedArray):
+                m = hp.ma(m)
+            m.mask = np.logical_not(mask)
+            setattr(self, sig, m)
+
+    def remove_md(self, mask, sig=None, remove_dipole=True, remove_monopole=True):
+        """
+        This function removes the mono and dipole of the signals in the map object.
+        If you only wish to remove from 1 signal, pass [0,1,2]
+        """
+        if sig==None:
+            sig = [0,1,2]
+        pol = ["I", "Q", "U"][sig]
+        data = getattr(self, pol)
+        data = [data] if data.ndim == 1 else data
+        for i, m in enumerate(data):
+            # Make sure data is masked array type
+            if not isinstance(m, np.ma.core.MaskedArray):
+                m = hp.ma(m)
+        
+            if mask == "auto":
+                mono, dip = hp.fit_dipole(m, gal_cut=30)
+            else:
+                m_masked = m
+                m_masked.mask = np.logical_not(mask)
+                mono, dip = hp.fit_dipole(m_masked)
+
+            # Subtract dipole map from data
+            if isinstance(remove_dipole, np.ndarray):
+                print("Removing dipole:")
+                print(f"Dipole vector: {dip}")
+                print(f"Dipole amplitude: {np.sqrt(np.sum(dip ** 2))}")
+
+                # Create dipole template
+                ray = range(len(m))
+                vecs = hp.pix2vec(self.nside, ray)
+                dipole = np.dot(dip, vecs)
+                
+                m = m - dipole
+
+            if isinstance(remove_monopole, np.ndarray):
+                print(f"Removing monopole:")
+                print(f"Mono: {mono}")
+                m = m - mono
+            
+            setattr(self, pol[i], m)
+
+
 
     def to_nside(self, new_nside):
         """If nside is changed, automatically ud_grades I, Q and U maps to the
@@ -336,6 +394,11 @@ class IQUMap:
     __rtruediv__ = __truediv__
     __rpow__ = __pow__
 
+    def __iter__(self):
+        if self._has_pol:
+            return iter([self.I, self.Q, self.U,])
+
+        return iter([self.I,])
 
     def __getitem__(self, idx):
         return self.data[idx]
