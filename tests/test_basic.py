@@ -15,6 +15,7 @@ data = '../../Cosmoglobe_test_data/bla.h5'
 import healpy as hp
 from cosmoglobe.sky.components import PowerLaw, ModifiedBlackBody
 from cosmoglobe.sky.model import Model
+from cosmoglobe.tools.map import IQUMap
 map_path = '/Users/metinsan/Documents/doktor/Cosmoglobe/cosmoglobe/data/BP7_70GHz_nocmb_n0256.fits'
 
 bandpass_data = '../../Cosmoglobe_test_data/wmap_bandpass.txt'
@@ -33,5 +34,6 @@ model = Model(components=[('synch', synch), ('dust', dust)])
 
 model.dust.get_emission(nu_array*u.GHz, bandpass_array*u.K)
 
+map_ = IQUMap(I=i, Q=i, U=i, unit=u.K, nu_ref=3*u.GHz, label="Test map")
 # print(_get_interp_range(dust.spectrals['beta'], 10))
 

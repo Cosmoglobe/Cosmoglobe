@@ -67,38 +67,53 @@ class IQUMap:
     U : np.ndarray 
         Stokes Q map. 
         Default : None
-    unit: astropy.units.Unit 
+    unit : astropy.units.Unit
         Map units.
         Default : None
+    nu_ref : astropy.units.quantity.Quantity
+        I, Q and U reference frequencies.
+        Default : None
+    label : str
+        Map label.
+        Default : None
+
 
     """
     I : np.ndarray
     Q : np.ndarray
     U : np.ndarray
     unit : u.Unit
+    nu_ref : u.Quantity
+    label : str
 
-    def __init__(self, I, Q=None, U=None, unit=None):
+    @u.quantity_input(nu_ref=(None, u.Hz))
+    def __init__(self, I, Q=None, U=None, unit=None, nu_ref=None, label=None):
         """Checks that I, Q, and U are all of the same length. Converts maps 
         to type np.float.32 to save memory.
         """
-        self.I = I
-        self.Q = Q
-        self.U = U
+        self.I, self.Q, self.U = I, Q, U
+        if self._has_pol:
+            if not (len(self.I) == len(self.Q) == len(self.U)):
+                raise ValueError('I, Q, and U must have the same nside.')
+            self.I = self.I.astype(np.float32)
+            self.Q = self.Q.astype(np.float32)
+            self.U = self.U.astype(np.float32)
+        else:
+            self.I = self.I.astype(np.float32)
+
         if unit is None:
             self.unit = u.dimensionless_unscaled
         else:
             self.unit = unit
 
-        if self._has_pol:
-            if not (len(self.I) == len(self.Q) == len(self.U)):
-                raise ValueError('I, Q, and U must have the same nside.')
+        if nu_ref is not None:
+            if self._has_pol:
+                if len(nu_ref) != 3:
+                    raise ValueError('Map is polarized but nu_ref is not')
+                
+        self.nu_ref = nu_ref
 
-            self.I = self.I.astype(np.float32)
-            self.Q = self.Q.astype(np.float32)
-            self.U = self.U.astype(np.float32)
-        
-        else:
-            self.I = self.I.astype(np.float32)
+
 
         if not hp.isnsideok(self.nside, nest=True):
             raise ValueError(f'nside: {self.nside} is not valid.')
