@@ -2,6 +2,7 @@ import numpy as np
 import healpy as hp
 import astropy.units as u
 import operator
+import sys
 
 
 @u.quantity_input(nu_ref=(None, u.Hz))
@@ -13,9 +14,8 @@ def to_IQU(input_map, unit=None, nu_ref=None, label=None):
     input_map : np.ndarray, astropy.units.quantity.Quantity
         Map to be converted.
     unit : astropy.units.Unit
-        The units of the input map. If the input map is an astropy object, 
-        unit is set the units of the input map. Else, if unit is None, 
-        unit is set to u.dimensionless_unscaled.
+        Units of the map object. If input_map already has units it will try to 
+        convert its units to the input unit.
         Default : None
     nu_ref : astropy.units.quantity.Quantity
         Reference frequency of the IQU map. Dimensions must match the input 
@@ -29,38 +29,23 @@ def to_IQU(input_map, unit=None, nu_ref=None, label=None):
     if isinstance(input_map, u.quantity.Quantity):
         if unit is not None and unit != input_map.unit:
             input_map.to(unit)
-        if input_map.ndim == 1:
-            return IQUMap(input_map, 
-                          nu_ref=nu_ref,
-                          label=label)
-        else:
-            input_map = input_map
-            return IQUMap(I=input_map[0], 
-                          Q=input_map[1], 
-                          U=input_map[2], 
-                          nu_ref=nu_ref,
-                          label=label)
+        return IQUMap(input_map=input_map, nu_ref=nu_ref, label=label)
+
 
     elif isinstance(input_map, np.ndarray):
         if unit is None:
             input_map *= u.dimensionless_unscaled
         else:
             input_map *= unit
-        if input_map.ndim == 1:
-            return IQUMap(input_map, nu_ref=nu_ref, label=label)
-        else:
-            return IQUMap(I=input_map[0], 
-                          Q=input_map[1], 
-                          U=input_map[2],
-                          nu_ref=nu_ref,
-                          label=label)
+        return IQUMap(input_map=input_map, nu_ref=nu_ref, label=label)
 
     elif isinstance(input_map, (IQUMap)):
+        if unit is not None and unit != input_map.unit:
+            input_map.to(unit)
         return input_map
 
     else:
         raise NotImplemented
-
 
 
 class IQUMap:
@@ -72,78 +57,70 @@ class IQUMap:
     The motivation for such a map object is: 
         1)  to have vectorized operations for IQU maps without having to 
             initialize unpolarized maps with np.zeros in the Q and U 
-            parameters (otherwise shapes would not match) as this could eat up
-            alot of memory at high nsides.
-        2)  to have common map properties and meta data such as P, units, 
-            nside, fwhm be predefined attributes that dynamically update after 
-            operations.
-
-    TODO: should nu_ref be included as part of the "meta data" of a IQU map?
+            parameters (otherwise broadcasting would fail) as this could eat 
+            up alot of memory at high nsides.
+        2)  to have common map properties, methods and meta data such as P, 
+            units, nside, fwhm be predefined attributes and methods of the map
+            it self that dynamically update after operations.
     
     Args:
     -----
-    I : np.ndarray 
-        Stokes I map.    
-    Q : np.ndarray 
-        Stokes U map.
-        Default : None   
-    U : np.ndarray 
-        Stokes Q map. 
-        Default : None
+    input_map : astropy.units.quantity.Quantity
+        I or IQU stokes parameter map.
     nu_ref : astropy.units.quantity.Quantity
-        I, Q and U reference frequencies.
+        I or IQU reference frequencies.
         Default : None
     label : str
         Map label.
         Default : None
 
     """
-    I : u.Quantity
-    Q : u.Quantity
-    U : u.Quantity
+    input_map : u.Quantity
     nu_ref : u.Quantity
     label : str
 
     @u.quantity_input(nu_ref=(None, u.Hz))
-    def __init__(self, I, Q=None, U=None, nu_ref=None, label=None):
-        """Checks that I, Q, and U are all of the same length. Converts maps 
-        to type float32 to save memory.
-        """
-        self.I = I
-        self.Q = Q
-        self.U = U
+    def __init__(self, input_map, nu_ref=None, label=None):
+        self.data = input_map.astype(np.float32)
         self.nu_ref = nu_ref
         self.label = label
 
-        self.I = self.I.astype(np.float32)
-        if self._has_pol:
-            if not (len(self.I) == len(self.Q) == len(self.U)):
-                raise ValueError('I, Q, and U must have the same nside')
-            
-            if not (self.I.unit == self.Q.unit == self.U.unit):
-                raise u.UnitsError('I, Q and U must have the same units')
-
-            self.Q = self.Q.astype(np.float32)
-            self.U = self.U.astype(np.float32)
-
-        if self.nu_ref is not None and self._has_pol:
-            try:
+        if self.nu_ref is not None:
+            if nu_ref.ndim == 1:
                 if len(nu_ref) != 3:
-                    raise ValueError('Map is polarized but nu_ref is not')
-            except TypeError:
-                raise TypeError('Map is polarized but nu_ref is not')
-
+                    raise ValueError(
+                        'nu_ref must have one value per stokes parameter'
+                    )
+                    
         if not hp.isnsideok(self.nside, nest=True):
             raise ValueError(f'nside: {self.nside} is not valid')
 
 
     @property
-    def data(self):
-        """Returns the the map data as a np.ndarray"""
+    def I(self):
+        """Returns the stokes I map"""
         if self._has_pol:
-            return np.array([self.I, self.Q, self.U])
+            return self.data[0]
+        
+        return self.data
 
-        return self.I
+
+    @property
+    def Q(self):
+        """Returns the stokes Q map"""
+        if self._has_pol:
+            return self.data[1]
+
+        return None
+
+
+    @property
+    def U(self):
+        """Returns the I stokes paramater"""
+        if self._has_pol:
+            return self.data[2]
+        
+        return None
 
 
     @property
@@ -153,9 +130,15 @@ class IQUMap:
 
 
     @property
+    def ndim(self):
+        """Returns the number of dimensions of the map"""
+        return self.data.ndim
+
+
+    @property
     def unit(self):
         """Returns the units of the IQU map"""
-        unit = self.I.unit
+        unit = self.data.unit
         if unit is None:
             return u.dimensionless_unscaled
 
@@ -180,10 +163,11 @@ class IQUMap:
     @property
     def _has_pol(self):
         """Returns True if self.Q is not None. False otherwise"""
-        if self.Q is not None:
+        if self.data.ndim > 1:
             return True
 
         return False
+
 
     def mask(self, mask, sigs=None):
         """Applies a mask to the data"""
@@ -199,6 +183,7 @@ class IQUMap:
                 m = hp.ma(m)
             m.mask = np.logical_not(mask)
             setattr(self, sig, m)
+
 
     def remove_md(self, mask, sig=None, remove_dipole=True, remove_monopole=True):
         """
@@ -243,7 +228,6 @@ class IQUMap:
             setattr(self, pol[i], m)
 
 
-
     def to_nside(self, new_nside):
         """If nside is changed, automatically ud_grades I, Q and U maps to the
         new nside.
@@ -259,9 +243,7 @@ class IQUMap:
         if new_nside == self.nside:
             return
 
-        self.I = hp.ud_grade(self.I, new_nside)
-        self.Q = hp.ud_grade(self.Q, new_nside)
-        self.U = hp.ud_grade(self.U, new_nside)
+        self.data = hp.ud_grade(self.data, new_nside)
 
 
     @u.quantity_input(fwhm=(u.arcmin, u.deg, u.rad))
@@ -275,22 +257,7 @@ class IQUMap:
             units of arcmin, degrees or radians.
 
         """
-        self.I = hp.smoothing(self.I, fwhm.to(u.rad).value)
-        self.Q = hp.smoothing(self.Q, fwhm.to(u.rad).value)
-        self.U = hp.smoothing(self.U, fwhm.to(u.rad).value)
-
-
-    def _validate_nside(self, other):
-        if self.nside != other.nside:
-            raise ValueError(
-                f'Cant perform operation on maps of different nsides'
-            )
-    
-    def _validate_unit(self, other):
-        if self.unit != other.unit:
-            raise ValueError(
-                f'Cant perform operation on maps of different units'
-            )      
+        self.data = hp.smoothing(self.data, fwhm.to(u.rad).value)
 
 
     def _arithmetic_operation(self, other, operator):
@@ -311,76 +278,19 @@ class IQUMap:
 
         """
         if isinstance(other, self.__class__):
-            self._validate_nside(other)
-            if self._has_pol and other._has_pol:
-                return self.__class__(
-                    I=operator(self.I, other.I),
-                    Q=operator(self.Q, other.Q),
-                    U=operator(self.U, other.U),
-                    unit=self.unit
-                )    
-            elif self._has_pol:
-                return self.__class__(
-                    I=operator(self.I, other.I),
-                    Q=self.Q,
-                    U=self.U,
-                    unit=self.unit
-                )
-            return self.__class__(
-                I=operator(self.I, other.I),
-                Q=other.Q,
-                U=other.U,
-                unit=self.unit
-            )      
-
-        elif isinstance(other, np.ndarray):
-            if self.data.shape != other.shape:
-                raise ValueError('Array shapes must match')
-            if isinstance(other, u.quantity.Quantity):
-                if self.unit != other.unit:
-                    raise ValueError(
-                        f'Cant perform operation on maps of different units'
-                    )   
-            if self._has_pol:
-                return self.__class__(
-                    I=operator(self.I, other[0]),
-                    Q=operator(self.Q, other[1]),
-                    U=operator(self.U, other[2]),
-                    unit=self.unit
-                )
-            return self.__class__(
-                I=operator(self.I, other),
-                Q=self.Q,
-                U=self.U,
-                unit=self.unit
-            )
-                
-        elif isinstance(other, (int, float)):
-            if self._has_pol:
-                return self.__class__(
-                    I=operator(self.I, other),
-                    Q=operator(self.Q, other),
-                    U=operator(self.U, other),
-                    unit=self.unit
-                )
-            return self.__class__(
-                I=operator(self.I, other),
-                Q=self.Q,
-                U=self.U,
-                unit=self.unit
-            )
-            
-        else:
-            return NotImplemented         
-
+            other = other.data
+        return self.__class__(
+            input_map=operator(self.data, other),
+            nu_ref=self.nu_ref,
+            label=self.label
+        )
+    
 
     def __add__(self, other):
-        self._validate_unit
         return self._arithmetic_operation(other, operator.add)
 
     
     def __sub__(self, other):
-        self._validate_unit
         return self._arithmetic_operation(other, operator.sub)
 
 
@@ -393,11 +303,34 @@ class IQUMap:
 
 
     def __pow__(self, other):
-        if isinstance(other, (self.__class__, u.quantity.Quantity)):
-            if other.unit is not None:
-                raise u.UnitsError(
-                    f'Can only raise something to a dimensionless quantity'
+        if isinstance(other, self.__class__):
+            if self._has_pol:
+                I = self.data[0].value**other.data[0]
+                Q = self.data[1].value**other.data[1]
+                U = self.data[2].value**other.data[2]
+                data = np.array([I,Q,U])*self.unit
+            else:
+                data = np.array(self.data.value**other.data)*self.unit
+            return self.__class__(
+                input_map=data,
+                nu_ref=self.nu_ref,
+                label=self.label
+            )  
+        if isinstance(other, np.ndarray):
+            if other.ndim > 0:
+                if self._has_pol:
+                    I = self.data[0].value**other[0]
+                    Q = self.data[1].value**other[1]
+                    U = self.data[2].value**other[2]
+                    data = np.array([I,Q,U])*self.unit
+                else:
+                    data = np.array(self.data.value**other)*self.unit
+                return self.__class__(
+                    input_map=data,
+                    nu_ref=self.nu_ref,
+                    label=self.label
                 )
+
         return self._arithmetic_operation(other, operator.pow)
 
 
@@ -408,17 +341,21 @@ class IQUMap:
     __rtruediv__ = __truediv__
     __rpow__ = __pow__
 
+
     def __iter__(self):
         if self._has_pol:
-            return iter([self.I, self.Q, self.U,])
+            return iter(self.data)
 
-        return iter([self.I,])
+        return iter([self.data])
+
 
     def __getitem__(self, idx):
         return self.data[idx]
 
+
     def __len__(self):
         return len(self.data)
+
 
     def __repr__(self):
         return f'{self.data}'
