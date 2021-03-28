@@ -63,6 +63,9 @@ class IQUMap:
             units, nside, fwhm be predefined attributes and methods of the map
             it self that dynamically update after operations.
     
+    TODO: figure out how the map object should behave under arithmetic 
+    operations.
+
     Args:
     -----
     input_map : astropy.units.quantity.Quantity
@@ -82,6 +85,9 @@ class IQUMap:
     @u.quantity_input(nu_ref=(None, u.Hz))
     def __init__(self, input_map, nu_ref=None, label=None):
         self.data = input_map.astype(np.float32)
+        if not self._has_pol and self.data.ndim > 1:
+            self.data = np.squeeze(self.data)
+
         self.nu_ref = nu_ref
         self.label = label
 
@@ -163,7 +169,7 @@ class IQUMap:
     @property
     def _has_pol(self):
         """Returns True if self.Q is not None. False otherwise"""
-        if self.data.ndim > 1:
+        if self.data.ndim > 1 and self.data.shape[0] == 3:
             return True
 
         return False
@@ -278,7 +284,19 @@ class IQUMap:
 
         """
         if isinstance(other, self.__class__):
-            other = other.data
+            if self._has_pol and other._has_pol:
+                input_map = operator(self.data, other.data)
+            elif self._has_pol:
+                input_map = self.data
+                input_map[0] = operator(self.data[0], other.data)
+            elif other._has_pol:
+                input_map = other.data
+                input_map[0] = operator(self.data, other.data[0])
+            return self.__class__(
+                input_map=input_map,
+                nu_ref=self.nu_ref,
+            )
+
         return self.__class__(
             input_map=operator(self.data, other),
             nu_ref=self.nu_ref,
@@ -303,35 +321,23 @@ class IQUMap:
 
 
     def __pow__(self, other):
-        if isinstance(other, self.__class__):
-            if self._has_pol:
-                I = self.data[0].value**other.data[0]
-                Q = self.data[1].value**other.data[1]
-                U = self.data[2].value**other.data[2]
-                data = np.array([I,Q,U])*self.unit
-            else:
-                data = np.array(self.data.value**other.data)*self.unit
+        if isinstance(other, (self.__class__, u.Quantity)):
+            input_map = (self.data.value**other.data.value)*self.unit
             return self.__class__(
-                input_map=data,
+                input_map=input_map,
                 nu_ref=self.nu_ref,
-                label=self.label
-            )  
+                label=self.label,
+            )        
         if isinstance(other, np.ndarray):
-            if other.ndim > 0:
-                if self._has_pol:
-                    I = self.data[0].value**other[0]
-                    Q = self.data[1].value**other[1]
-                    U = self.data[2].value**other[2]
-                    data = np.array([I,Q,U])*self.unit
-                else:
-                    data = np.array(self.data.value**other)*self.unit
-                return self.__class__(
-                    input_map=data,
-                    nu_ref=self.nu_ref,
-                    label=self.label
-                )
+            input_map = (self.data.value**other)*self.unit
+            return self.__class__(
+                input_map=input_map,
+                nu_ref=self.nu_ref,
+                label=self.label,
+            )
 
         return self._arithmetic_operation(other, operator.pow)
+
 
 
     # Operations commute
