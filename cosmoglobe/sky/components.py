@@ -1,4 +1,4 @@
-from ..tools.map import to_IQU
+from ..tools.map import to_stokes
 from ..tools.bandpass import _extract_scalars
 from ..science.functions import blackbody_emission
 
@@ -19,11 +19,11 @@ class Component:
         import cosmoglobe.sky as sky
 
         class PowerLaw(sky.Component):
-            def __init__(self, comp_name, amp, nu_ref, beta):
-                super().__init__(comp_name, amp, nu_ref, beta=beta)
+            def __init__(self, comp_name, amp, freq_ref, beta):
+                super().__init__(comp_name, amp, freq_ref, beta=beta)
 
-            def get_freq_scaling(self, nu, beta):
-                return (nu / nu_ref) ** beta
+            def get_freq_scaling(self, freq, beta):
+                return (freq / freq_ref) ** beta
 
     Args:
     -----
@@ -31,8 +31,9 @@ class Component:
         Name/label of the component, e.g 'dust'. Is used to set the component
         attribute in a cosmoglobe.Model.
     amp : np.ndarray, astropy.units.quantity.Quantity, cosmoglobe.IQUMap
-        Amplitude map for I or IQU stokes parameters.
-    nu_ref : astropy.units.quantity.Quantity
+        Amplitude templates at the reference frequencies for I or IQU stokes 
+        parameters.
+    freq_ref : astropy.units.quantity.Quantity
         Reference frequencies for the amplitude map. Each array element must 
         be an astropy.Quantity, with unit Hertz, e.g u.GHz.
     spectrals: dict
@@ -41,41 +42,41 @@ class Component:
         Default : None
 
     """
-    def __init__(self, comp_name, amp, nu_ref, **spectrals):
+    def __init__(self, comp_name, amp, freq_ref, **spectrals):
         self.comp_name = comp_name
-        self.amp = to_IQU(amp, nu_ref=nu_ref, label=self.comp_name)
+        self.amp = to_stokes(amp, freq_ref=freq_ref, label=self.comp_name)
 
         self._spectrals = {}
         if spectrals is not None:
             for key, value in spectrals.items():
                 if isinstance(value, np.ndarray):
-                    self._spectrals[key] = to_IQU(
-                        value, nu_ref=nu_ref, label=f'{self.comp_name} {key}'
+                    self._spectrals[key] = to_stokes(
+                        value, freq_ref=freq_ref, label=f'{self.comp_name} {key}'
                     )
                 else:
                     self._spectrals[key] = value
                 setattr(self, key, self._spectrals[key])
 
 
-    @u.quantity_input(nu=u.Hz, bandpass=(u.Jy/u.sr, u.K, None))
-    def get_emission(self, nu, bandpass=None, output_unit=None):
-        """Returns the full sky component emission at an arbitrary frequency nu.
+    @u.quantity_input(freq=u.Hz, bandpass=(u.Jy/u.sr, u.K, None))
+    def get_emission(self, freq, bandpass=None, output_unit=None):
+        """Returns the full sky component emission at an arbitrary frequency.
 
         TODO: Implement bandpass normalization and output_unit
 
         Args:
         -----
-        nu : astropy.units.quantity.Quantity
+        freq : astropy.units.quantity.Quantity
             A frequency, or a frequency array at which to evaluate the 
             component emission.
         bandpass : astropy.units.quantity.Quantity
             Bandpass profile in units of K_RJ or Jy/sr corresponding to the
-            frequency array, nu. If None, a delta peak in frequency is assumed.
+            frequency array, freq. If None, a delta peak in frequency is assumed.
             Default : None
-        output_unit : astropy.units.quantity.Quantity or str
-            Desired unit for the output map. Must be a valid astropy.unit or 
-            one of the two following strings 'K_CMB', 'K_RJ'.
-            Default : None
+        output_unit : astropy.units.Unit
+            The desired output units of the emission. Must be signal units, e.g 
+            Jy/sr or K.
+            default : None
 
         Returns
         -------
@@ -83,28 +84,29 @@ class Component:
             Model emission at given frequency in units of K_RJ.
 
         """
-        nu = nu.si
+        freq = freq.si
         if self.amp._has_pol:   # Broadcasting compatibility
-            nu_ref = np.expand_dims(self.amp.nu_ref.si, axis=1)
+            freq_ref = np.expand_dims(self.amp.freq_ref.si, axis=1)
         else:
-            nu_ref = self.amp.nu_ref.si
+            freq_ref = self.amp.freq_ref.si
 
         if bandpass is None:
-            if nu.ndim > 0:
+            if freq.ndim > 0:
                 scalings = []
-                for freq in nu:
-                    scaling = self.get_freq_scaling(freq, nu_ref, **self._spectrals)
+                for freq in freq:
+                    scaling = self.get_freq_scaling(freq, freq_ref, **self._spectrals)
                     scalings.append(scaling)
+
                 return self.amp*(scalings*u.dimensionless_unscaled)
 
-            scaling = self.get_freq_scaling(nu, nu_ref, **self._spectrals)
+            scaling = self.get_freq_scaling(freq, freq_ref, **self._spectrals)
             return self.amp*scaling
 
-        scaling = self._get_bandpass_conversion(nu, nu_ref, bandpass)
+        scaling = self._get_bandpass_conversion(freq, freq_ref, bandpass)
         return self.amp*scaling
 
 
-    def _get_bandpass_conversion(self, nu_array, nu_ref, bandpass_array, n=10):
+    def _get_bandpass_conversion(self, freqs, freq_ref, bandpass_array, n=10):
         """Returns the frequency scaling factor given a frequency array and a 
         bandpass profile.
 
@@ -112,14 +114,16 @@ class Component:
         more information, see section 4.2 in https://arxiv.org/abs/2011.05609.
 
         TODO: FIX 2D interp case.
-        TODO: Test that this actually works for real components. Use the fact that 
+        TODO: Test that this actually works for real components. Use the fact 
+        that.
+        TODO: Rewrite in a more functional and general way.
         dicts are ordered in >3.6
 
         Args:
         -----
-        nu_array : astropy.units.quantity.Quantity
+        freqs : astropy.units.quantity.Quantity
             Frequencies corresponding to the bandpass weights.
-        nu_ref : tuple, list, np.ndarray
+        freq_ref : tuple, list, np.ndarray
             Reference frequencies for the amplitude map.
         bandpass_array : astropy.units.quantity.Quantity
             Normalized bandpass profile. Must have signal units.
@@ -149,8 +153,8 @@ class Component:
 
         # All spectral parameters are scalars. No need to interpolate
         if not interp_ranges:
-            freq_scaling = self.get_freq_scaling(nu_array, nu_ref, **scalars)
-            integral = np.trapz(freq_scaling*bandpass_array, nu_array)
+            freq_scaling = self.get_freq_scaling(freqs, freq_ref, **scalars)
+            integral = np.trapz(freq_scaling*bandpass_array, freqs)
             if self.amp._has_pol:
                 integral = np.expand_dims(integral, axis=1)            
             return integral
@@ -163,10 +167,10 @@ class Component:
                     spectrals = {key:spec}
                     if scalars is not None:
                         spectrals.update(scalars)
-                    freq_scaling = self.get_freq_scaling(nu_array, nu_ref, 
+                    freq_scaling = self.get_freq_scaling(freqs, freq_ref, 
                                                          **spectrals)
                     integrals.append(
-                        np.trapz(freq_scaling*bandpass_array, nu_array)
+                        np.trapz(freq_scaling*bandpass_array, freqs)
                     )
 
                 interp_range = interp_ranges[key]
@@ -195,7 +199,7 @@ class Component:
             meshgrid = np.meshgrid(*spectrals_values)
 
             # Converting np.zeros array to correct units
-            integral_unit = (bandpass_array.unit * nu_array.unit)
+            integral_unit = (bandpass_array.unit * freqs.unit)
             if component_is_polarized:
                 integrals = np.zeros((n, n, 3)) * integral_unit
             else:
@@ -209,9 +213,9 @@ class Component:
                         spectrals_keys[0]: meshgrid[0][i,j],
                         spectrals_keys[1]: meshgrid[1][i,j]
                     }
-                    freq_scaling = self.get_freq_scaling(nu_array, nu_ref, 
+                    freq_scaling = self.get_freq_scaling(freqs, freq_ref, 
                                                          **spectrals)
-                    integral = np.trapz(freq_scaling*bandpass_array, nu_array)
+                    integral = np.trapz(freq_scaling*bandpass_array, freqs)
                     integrals[i,j] = integral
 
             if component_is_polarized:
@@ -232,7 +236,7 @@ class Component:
 
     def __repr__(self):
         main_repr = f'{self.__class__.__name__}'
-        main_repr += '(amp, nu_ref, '
+        main_repr += '(amp, freq_ref, '
         for spectral in self._spectrals:
             main_repr += f'{spectral}, '
         main_repr = main_repr[:-2]
@@ -254,27 +258,27 @@ class PowerLaw(Component):
         comp_name.
     amp : astropy.units.quantity.Quantity, cosmoglobe.IQUMap
         PowerLaw IQU amplitude map.
-    nu_ref : tuple, list, np.ndarray
+    freq_ref : astropy.units.quantity.Quantity
         Reference frequencies for the amplitude map. Each array 
         element must be an astropy.Quantity, with unit Hertz, e.g u.GHz.
     beta: astropy.units.quantity.Quantity, cosmoglobe.IQUMap
         PowerLaw IQU beta map.
 
     """
-    def __init__(self, comp_name, amp, nu_ref, beta):
-        super().__init__(comp_name, amp, nu_ref, beta=beta)
+    def __init__(self, comp_name, amp, freq_ref, beta):
+        super().__init__(comp_name, amp, freq_ref, beta=beta)
 
 
-    def get_freq_scaling(self, nu, nu_ref, beta):
-        """Computes the frequency scaling from the reference frequency nu_ref 
-        to an arbitrary frequency nu, which depends on the spectral parameter
+    def get_freq_scaling(self, freq, freq_ref, beta):
+        """Computes the frequency scaling from the reference frequency freq_ref 
+        to an arbitrary frequency, which depends on the spectral parameter
         beta.
 
         Args:
         -----
-        nu : int, float, numpy.ndarray
+        freq : astropy.units.quantity.Quantity
             Frequencies at which to evaluate the model. Must be in si values.      
-        nu_ref : tuple, list, np.ndarray
+        freq_ref : astropy.units.quantity.Quantity
             Reference frequencies for the amplitude map.
         beta : numpy.ndarray
             Synch beta map. Must be dimensionless.
@@ -285,7 +289,7 @@ class PowerLaw(Component):
             Frequency scaling factor.
 
         """
-        scaling = (nu/nu_ref)**beta
+        scaling = (freq/freq_ref)**beta
         return scaling
 
 
@@ -301,40 +305,40 @@ class ModifiedBlackBody(Component):
         comp_name.
     amp : astropy.units.quantity.Quantity, cosmoglobe.IQUMap
         MBB IQU amplitude map.
-    nu_ref : tuple, list, np.ndarray
+    freq_ref : tuple, list, np.ndarray
         Reference frequencies for the synch amplitude map. Each array 
         element must be an astropy.Quantity, with unit Hertz, e.g u.GHz.
     beta: astropy.units.quantity.Quantity, cosmoglobe.IQUMap
         MBB IQU beta map.
 
     """
-    def __init__(self, comp_name, amp, nu_ref, beta, T):
-        super().__init__(comp_name, amp, nu_ref, beta=beta, T=T)
+    def __init__(self, comp_name, amp, freq_ref, beta, T):
+        super().__init__(comp_name, amp, freq_ref, beta=beta, T=T)
 
 
-    def get_freq_scaling(self, nu, nu_ref, beta, T):
-        """Computes the frequency scaling from the reference frequency nu_ref 
-        to an arbitrary frequency nu, which depends on the spectral parameters
+    def get_freq_scaling(self, freq, freq_ref, beta, T):
+        """Computes the frequency scaling from the reference frequency freq_ref 
+        to an arbitrary frequency, which depends on the spectral parameters
         beta and T.
 
         Args:
         -----
-        nu : int, float, numpy.ndarray
+        freq : astropy.units.quantity.Quantity
             Frequencies at which to evaluate the model. 
-        nu_ref : tuple, list, np.ndarray
+        freq_ref : astropy.units.quantity.Quantity
             Reference frequencies for the amplitude map.
-        beta : numpy.ndarray
+        beta : int, float, numpy.ndarray
             MBB beta map. Must be dimensionless.
-        T : numpy.ndarray
+        T : astropy.units.quantity.Quantity
             MBB temperature map with unit K.
 
         Returns:
         --------
-        scaling : numpy.ndarray
+        scaling : astropy.units.quantity.Quantity
             Frequency scaling factor.
 
         """
-        scaling = blackbody_emission(nu, T) / blackbody_emission(nu_ref, T)
-        scaling *= (nu/nu_ref)**(beta-2)
+        scaling = blackbody_emission(freq, T) / blackbody_emission(freq_ref, T)
+        scaling *= (freq/freq_ref)**(beta-2)
 
         return scaling
