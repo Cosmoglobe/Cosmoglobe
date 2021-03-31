@@ -64,7 +64,7 @@ def to_stokes(input_map, unit=None, freq_ref=None, label=None):
 
 
 class StokesMap:
-    """Stokes map object for IQU maps. 
+    """Stokes map object for IQU maps (custom array container). 
     
     The object provides a convenient interface for the common IQU map with 
     built in methods and attributes to access and evaluate commonly associated 
@@ -72,14 +72,14 @@ class StokesMap:
 
     Args:
     -----
-    input_map : astropy.units.quantity.Quantity
-        Healpix map of shape (3, nside) representing IQU stokes parameters.
-    freq_ref : astropy.units.quantity.Quantity
+    input_map (astropy.units.quantity.Quantity):
+        Healpix map of shape (3, nside) representing stokes IQU parameters.
+    freq_ref (astropy.units.quantity.Quantity):
         List of reference frequencies of shape (3,) for each stokes parameter.
         If the map is unpolarized, i.e, Q and U is zeros, then freq_ref will 
         have the same value in all list elements for broadcasting purposes. 
         Default: None
-    label : str
+    label (str):
         A descriptive label for the map, e.g 'Dust'. Default: None
 
     """
@@ -230,7 +230,7 @@ class StokesMap:
 
         Args:
         -----
-        new_nside: int
+        new_nside (int):
             Healpix map resolution parameter.
 
         """
@@ -248,7 +248,7 @@ class StokesMap:
         
         Args:
         -----
-        fwhm : astropy.units.quantity.Quantity
+        fwhm (astropy.units.quantity.Quantity):
             The fwhm of the Gaussian used to smooth the map. Must be either in
             units of arcmin, degrees or radians.
 
