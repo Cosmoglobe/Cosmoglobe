@@ -23,7 +23,7 @@ class Component:
                 super().__init__(comp_name, amp, freq_ref, beta=beta)
 
             def get_freq_scaling(self, freq, beta):
-                return (freq / freq_ref) ** beta
+                return (freq/freq_ref)**beta
 
     Args:
     -----
@@ -49,12 +49,7 @@ class Component:
         self._spectrals = {}
         if spectrals is not None:
             for key, value in spectrals.items():
-                if isinstance(value, np.ndarray):
-                    self._spectrals[key] = to_stokes(
-                        value, freq_ref=freq_ref, label=f'{self.comp_name} {key}'
-                    )
-                else:
-                    self._spectrals[key] = value
+                self._spectrals[key] = value
                 setattr(self, key, self._spectrals[key])
 
 
@@ -84,25 +79,25 @@ class Component:
             Model emission at given frequency in units of K_RJ.
 
         """
+        # Convert all values to si and prepare broadcasting
         freq = freq.si
-        if self.amp._has_pol:   # Broadcasting compatibility
-            freq_ref = np.expand_dims(self.amp.freq_ref.si, axis=1)
-        else:
-            freq_ref = self.amp.freq_ref.si
+        freq_ref = np.expand_dims(self.amp.freq_ref.si, axis=1)
+        spectrals = {key:(value.si if isinstance(value, u.Quantity) else value)
+                     for key, value in self._spectrals.items()}
 
-        if bandpass is None:
+        if bandpass is not None:
+            scaling = self._get_bandpass_conversion(freq, freq_ref, bandpass)
+
+        else:
             if freq.ndim > 0:
                 scalings = []
                 for freq in freq:
-                    scaling = self.get_freq_scaling(freq, freq_ref, **self._spectrals)
+                    scaling = self.get_freq_scaling(freq, freq_ref, **spectrals)
                     scalings.append(scaling)
+                scaling = u.Quantity(scalings)
+            else:
+                scaling = self.get_freq_scaling(freq, freq_ref, **spectrals)
 
-                return self.amp*(scalings*u.dimensionless_unscaled)
-
-            scaling = self.get_freq_scaling(freq, freq_ref, **self._spectrals)
-            return self.amp*scaling
-
-        scaling = self._get_bandpass_conversion(freq, freq_ref, bandpass)
         return self.amp*scaling
 
 
@@ -338,7 +333,8 @@ class ModifiedBlackBody(Component):
             Frequency scaling factor.
 
         """
-        scaling = blackbody_emission(freq, T) / blackbody_emission(freq_ref, T)
-        scaling *= (freq/freq_ref)**(beta-2)
+
+        scaling = (freq/freq_ref)**(beta-2)
+        scaling *= blackbody_emission(freq, T) / blackbody_emission(freq_ref, T)
 
         return scaling
