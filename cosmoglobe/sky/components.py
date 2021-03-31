@@ -27,19 +27,17 @@ class Component:
 
     Args:
     -----
-    comp_name : str
+    comp_name (str):
         Name/label of the component, e.g 'dust'. Is used to set the component
         attribute in a cosmoglobe.Model.
-    amp : np.ndarray, astropy.units.quantity.Quantity, cosmoglobe.IQUMap
+    amp (np.ndarray, astropy.units.quantity.Quantity, cosmoglobe.IQUMap):
         Amplitude templates at the reference frequencies for I or IQU stokes 
         parameters.
-    freq_ref : astropy.units.quantity.Quantity
-        Reference frequencies for the amplitude map. Each array element must 
-        be an astropy.Quantity, with unit Hertz, e.g u.GHz.
-    spectrals: dict
-        Spectral maps required to compute the frequency scaling factor. Maps 
-        must be of types astropy.units.quantity.Quantity or cosmoglobe.IQUMap.
-        Default : None
+    freq_ref (astropy.units.quantity.Quantity):
+        Reference frequencies for the amplitude map in units of Hertz.
+    spectrals (dict):
+        Spectral parameters required to compute the frequency scaling factor. 
+        can be scalars, numpy arrays or astropy quantities. Default: None
 
     """
     def __init__(self, comp_name, amp, freq_ref, **spectrals):
@@ -55,28 +53,27 @@ class Component:
 
     @u.quantity_input(freq=u.Hz, bandpass=(u.Jy/u.sr, u.K, None))
     def get_emission(self, freq, bandpass=None, output_unit=None):
-        """Returns the full sky component emission at an arbitrary frequency.
+        """Returns the component emission at an arbitrary frequency.
 
         TODO: Implement bandpass normalization and output_unit
 
         Args:
         -----
-        freq : astropy.units.quantity.Quantity
-            A frequency, or a frequency array at which to evaluate the 
+        freq (astropy.units.quantity.Quantity):
+            A frequency, or a list of frequencies at which to evaluate the 
             component emission.
-        bandpass : astropy.units.quantity.Quantity
+        bandpass (astropy.units.quantity.Quantity):
             Bandpass profile in units of K_RJ or Jy/sr corresponding to the
-            frequency array, freq. If None, a delta peak in frequency is assumed.
-            Default : None
-        output_unit : astropy.units.Unit
+            frequency list (freq). If None, a delta peak in frequency is 
+            assumed. Default : None
+        output_unit (astropy.units.Unit):
             The desired output units of the emission. Must be signal units, e.g 
-            Jy/sr or K.
-            default : None
+            Jy/sr or K. Default: None
 
         Returns
         -------
-        emission : astropy.units.quantity.Quantity
-            Model emission at given frequency in units of K_RJ.
+        emission (astropy.units.quantity.Quantity):
+            Model emission at the given frequency.
 
         """
         # Convert all values to si and prepare broadcasting
@@ -243,21 +240,23 @@ class Component:
 
 
 class PowerLaw(Component):
-    """PowerLaw component class.
+    """PowerLaw component class. Represents any component with a frequency 
+    scaling given by a simple power law.
 
     Args:
     -----
-    comp_name : str
-        Name/label of the component that will uses this model, e.g 'dust'. 
-        When added to a cosmoglobe.Model, the attribute name will be the 
-        comp_name.
-    amp : astropy.units.quantity.Quantity, cosmoglobe.IQUMap
-        PowerLaw IQU amplitude map.
-    freq_ref : astropy.units.quantity.Quantity
-        Reference frequencies for the amplitude map. Each array 
-        element must be an astropy.Quantity, with unit Hertz, e.g u.GHz.
-    beta: astropy.units.quantity.Quantity, cosmoglobe.IQUMap
-        PowerLaw IQU beta map.
+    comp_name (str):
+        Name/label of the component. Is used to set the component attribute 
+        in a cosmoglobe.Model.
+    amp (np.ndarray, astropy.units.quantity.Quantity, cosmoglobe.IQUMap):
+        Amplitude templates at the reference frequencies for I or IQU stokes 
+        parameters.
+    freq_ref (astropy.units.quantity.Quantity):
+        Reference frequencies for the amplitude map in units of Hertz.
+    beta (np.ndarray, astropy.units.quantity.Quantity):
+        The power law spectral index. The spectral index can vary over the sky, 
+        and is therefore commonly given as a shape (3, nside) array, but it can 
+        take the value of a scalar.
 
     """
     def __init__(self, comp_name, amp, freq_ref, beta):
@@ -271,17 +270,17 @@ class PowerLaw(Component):
 
         Args:
         -----
-        freq : astropy.units.quantity.Quantity
-            Frequencies at which to evaluate the model. Must be in si values.      
-        freq_ref : astropy.units.quantity.Quantity
+        freq (astropy.units.quantity.Quantity):
+            Frequency at which to evaluate the model.
+        freq_ref (astropy.units.quantity.Quantity):
             Reference frequencies for the amplitude map.
-        beta : numpy.ndarray
-            Synch beta map. Must be dimensionless.
+        beta (numpy.ndarray, astropy.units.quantity.Quantity):
+            The power law spectral index.
             
         Returns:
         --------
-        scaling : numpy.ndarray
-            Frequency scaling factor.
+        scaling (astropy.units.quantity.Quantity):
+            Frequency scaling factor with dimensionless units.
 
         """
         scaling = (freq/freq_ref)**beta
@@ -290,21 +289,26 @@ class PowerLaw(Component):
 
     
 class ModifiedBlackBody(Component):
-    """Modified BlackBody (MBB) component class.
+    """Modified blackbody component class. Represents any component with a 
+    frequency scaling given by a simple power law times a blackbody.
 
     Args:
     -----
-    comp_name : str
-        Name/label of the component that will uses this model, e.g 'dust'. 
-        When added to a cosmoglobe.Model, the attribute name will be the 
-        comp_name.
-    amp : astropy.units.quantity.Quantity, cosmoglobe.IQUMap
-        MBB IQU amplitude map.
-    freq_ref : tuple, list, np.ndarray
-        Reference frequencies for the synch amplitude map. Each array 
-        element must be an astropy.Quantity, with unit Hertz, e.g u.GHz.
-    beta: astropy.units.quantity.Quantity, cosmoglobe.IQUMap
-        MBB IQU beta map.
+    comp_name (str):
+        Name/label of the component. Is used to set the component attribute 
+        in a cosmoglobe.Model.
+    amp (np.ndarray, astropy.units.quantity.Quantity, cosmoglobe.IQUMap):
+        Amplitude templates at the reference frequencies for I or IQU stokes 
+        parameters.
+    freq_ref (astropy.units.quantity.Quantity):
+        Reference frequencies for the amplitude map in units of Hertz.
+    beta (np.ndarray, astropy.units.quantity.Quantity):
+        The power law spectral index. The spectral index can vary over the sky, 
+        and is therefore commonly given as a shape (3, nside) array, but it can 
+        take the value of a scalar.
+    T (astropy.units.quantity.Quantity):
+        Temperature map of the blackbody with unit K and shape (nside,). Can 
+        also take the value of a scalar similar to beta.
 
     """
     def __init__(self, comp_name, amp, freq_ref, beta, T):
@@ -318,19 +322,19 @@ class ModifiedBlackBody(Component):
 
         Args:
         -----
-        freq : astropy.units.quantity.Quantity
-            Frequencies at which to evaluate the model. 
-        freq_ref : astropy.units.quantity.Quantity
+        freq (astropy.units.quantity.Quantity):
+            Frequency at which to evaluate the model.
+        freq_ref (astropy.units.quantity.Quantity):
             Reference frequencies for the amplitude map.
-        beta : int, float, numpy.ndarray
-            MBB beta map. Must be dimensionless.
-        T : astropy.units.quantity.Quantity
-            MBB temperature map with unit K.
-
+        beta (numpy.ndarray, astropy.units.quantity.Quantity):
+            The power law spectral index.
+        T (astropy.units.quantity.Quantity): 
+            Temperature of the blackbody.
+            
         Returns:
         --------
-        scaling : astropy.units.quantity.Quantity
-            Frequency scaling factor.
+        scaling (astropy.units.quantity.Quantity):
+            Frequency scaling factor with dimensionless units.
 
         """
 

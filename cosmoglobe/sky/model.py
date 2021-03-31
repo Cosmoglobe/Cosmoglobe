@@ -15,7 +15,7 @@ class Model:
 
     Args:
     -----
-    components : list
+    components (list):
         A list of cosmoglobe.Component objects that will be added to the model.
 
     """
@@ -53,17 +53,16 @@ class Model:
 
         Args:
         -----
-        freq : astropy.units.quantity.Quantity
+        freq (astropy.units.quantity.Quantity):
             A frequency, or list of frequencies for which to evaluate the 
-            component emission.
-        bandpass : astropy.units.quantity.Quantity
+            component emission. Must be in units of Hertz.
+        bandpass (astropy.units.quantity.Quantity):
             Bandpass profile corresponding to the frequency list. If None, a 
-            delta peak in frequency is assumed.
-            Default : None
-        output_unit : astropy.units.Unit
+            delta peak in frequency is assumed at the given frequencies. 
+            Default: None
+        output_unit (astropy.units.Unit):
             The desired output units of the emission. Must be signal units, e.g 
-            Jy/sr or K.
-            Default : None
+            Jy/sr or K. Default : None
 
 
         Returns
