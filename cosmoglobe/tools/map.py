@@ -1,82 +1,86 @@
 import numpy as np
 import healpy as hp
 import astropy.units as u
-import operator
-import sys
 
 
 @u.quantity_input(freq_ref=(None, u.Hz))
 def to_stokes(input_map, unit=None, freq_ref=None, label=None):
-    """Converts a Healpix like map to a native Stokes map object.
+    """Converts a Healpix-like map to a native Stokes map object. 
+    
+    A StokesMap has shape (3, nside). If the input map does not match this 
+    shape, e.g it is a intensity only map with shape (nside,) it will be 
+    converted to a (3,nside) array with the Q and U stokes parameters set to 
+    zeros.
     
     Args:
     -----
-    input_map : np.ndarray, astropy.units.quantity.Quantity
-        A healpix like map. NSIDE must be a power of 2. 
-    unit : astropy.units.Unit
+    input_map (np.ndarray, astropy.units.quantity.Quantity):
+        A (3, nside) or (nside,) map containing stokes I or IQU parameters.
+    unit (astropy.units.Unit):
         Units of the map object. If input_map already has units it will try to 
-        convert its units to the input unit.
-        Default : None
-    freq_ref : astropy.units.quantity.Quantity
-        Reference frequency of the IQU map. Dimensions must match the input 
-        map in axis=1, e.g if input map is (3, nside), freq_ref must be (3,).
-        Default : None
-    label : str
-        Map label. Used to name maps.
-        Default : None
+        convert its units to the input unit. Default: None
+    freq_ref (astropy.units.quantity.Quantity):
+        Reference frequency of the input_map. If a single value is given, the 
+        reference frequency will be assumed to be equal for all IQU maps. 
+        Default: None
+    label (str):
+        Map label. Used to name maps. Default: None
 
     """
-    if isinstance(input_map, u.quantity.Quantity):
-        if unit is not None and unit != input_map.unit:
-            input_map.to(unit)
-        return StokesMap(input_map=input_map, freq_ref=freq_ref, label=label)
+    if freq_ref is not None:
+        if freq_ref.ndim == 0:
+            freq_ref = u.Quantity([freq_ref, freq_ref, freq_ref])
 
-    elif isinstance(input_map, np.ndarray):
-        if unit is None:
-            input_map *= u.dimensionless_unscaled
+    if isinstance(input_map, np.ndarray):
+        if input_map.ndim == 1:
+            zeros = np.zeros_like(input_map)
+            map_ = u.Quantity([input_map, zeros, zeros])
         else:
-            input_map *= unit
-        return StokesMap(input_map=input_map, freq_ref=freq_ref, label=label)
+            map_ = u.Quantity(input_map)
 
-    elif isinstance(input_map, (StokesMap)):
+        if isinstance(input_map, u.Quantity):
+            if unit is not None: 
+                map_.to(unit)
+
+        return StokesMap(input_map=map_, freq_ref=freq_ref, label=label)
+
+    if isinstance(input_map, StokesMap):
+        map_ = input_map.data
         if unit is not None and unit != input_map.unit:
-            input_map.to(unit)
-        return input_map
+            map_.to(unit)
+        if freq_ref is None:
+            freq_ref = input_map.freq_ref
+        if label is None:
+            label = input_map.label
+
+        return StokesMap(input_map=map_, freq_ref=freq_ref, label=label)
 
     else:
         raise NotImplementedError(
-            f'type {type(input_map)} is not supported for input_map'
+            f'type {type(input_map)} is not supported. Must be np.ndarray or '
+            'astropy.units.quantity.Quantity'
         )
 
 
+
 class StokesMap:
-    """Stokes Map object for Healpix maps with stokes I or IQU parameters.
-
-    The object provides a convenient interface for the common IQU map, with
-    integrated vectorized arithmatic operations. 
-
-    The motivation for such a map object is: 
-        1)  to have vectorized operations for IQU maps without having to 
-            initialize unpolarized maps with np.zeros in the Q and U 
-            parameters (otherwise broadcasting would fail) as this could eat 
-            up alot of memory at high nsides.
-        2)  to have common map properties, methods and meta data such as P, 
-            units, nside, fwhm be predefined attributes and methods of the map
-            it self.
+    """Stokes map object for IQU maps. 
     
-    TODO: figure out how the map object should behave under arithmetic 
-    operations.
+    The object provides a convenient interface for the common IQU map with 
+    built in methods and attributes to access and evaluate commonly associated 
+    properties of IQU maps.
 
     Args:
     -----
     input_map : astropy.units.quantity.Quantity
-        I or IQU stokes parameter map.
+        Healpix map of shape (3, nside) representing IQU stokes parameters.
     freq_ref : astropy.units.quantity.Quantity
-        I or IQU reference frequencies.
-        Default : None
+        List of reference frequencies of shape (3,) for each stokes parameter.
+        If the map is unpolarized, i.e, Q and U is zeros, then freq_ref will 
+        have the same value in all list elements for broadcasting purposes. 
+        Default: None
     label : str
-        Map label.
-        Default : None
+        A descriptive label for the map, e.g 'Dust'. Default: None
 
     """
     input_map : u.Quantity
@@ -86,17 +90,16 @@ class StokesMap:
     @u.quantity_input(freq_ref=(None, u.Hz))
     def __init__(self, input_map, freq_ref=None, label=None):
         self.data = input_map.astype(np.float32)
-        if not self._has_pol and self.data.ndim > 1:
-            self.data = np.squeeze(self.data)
-
         self.freq_ref = freq_ref
         self.label = label
 
+        if not isinstance(input_map, u.Quantity):
+            raise TypeError('input_map must be an astropy.Quantity object')
+        if input_map.shape[0] != 3:
+            raise ValueError('input_map shape must be (3, nside)')
         if self.freq_ref is not None:
-            if ((freq_ref.ndim == 0 and self._has_pol) or 
-               (freq_ref.ndim == 1 and len(freq_ref) != 3)):
-                raise ValueError('freq_ref must have length n stokes parameters')
-                    
+            if self.freq_ref.shape != (3,):
+                raise ValueError('freq_ref shape must be (3,)')
         if not hp.isnsideok(self.nside, nest=True):
             raise ValueError(f'nside: {self.nside} is not valid')
 
@@ -104,51 +107,20 @@ class StokesMap:
     @property
     def I(self):
         """Returns the stokes I map"""
-        if self._has_pol:
-            return self.data[0]
-        
-        return self.data
+        return self.data[0]
 
 
     @property
     def Q(self):
         """Returns the stokes Q map"""
-        if self._has_pol:
-            return self.data[1]
-
-        return None
+        return self.data[1]
 
 
     @property
     def U(self):
-        """Returns the I stokes paramater"""
-        if self._has_pol:
-            return self.data[2]
+        """Returns the stokes U map"""
+        return self.data[2]
         
-        return None
-
-
-    @property
-    def unit(self):
-        """Returns the units of the IQU map"""
-        unit = self.data.unit
-        if unit is None:
-            return u.dimensionless_unscaled
-
-        return unit
-
-
-    @property
-    def shape(self):
-        """Returns the shape of the IQU map"""
-        return self.data.shape
-
-
-    @property
-    def ndim(self):
-        """Returns the number of dimensions of the map"""
-        return self.data.ndim
-
 
     @property
     def P(self):
@@ -156,7 +128,22 @@ class StokesMap:
         if self._has_pol:
             return np.sqrt(self.Q**2 + self.U**2)
 
-        return None
+        return np.zeros_like(self.I)
+
+
+    @property
+    def unit(self):
+        """Returns the units of the IQU map"""
+        return self.data.unit
+
+
+    @property
+    def _has_pol(self):
+        """Returns True if self.Q is non-zero. False otherwise"""
+        if np.any(self.Q.value) and np.any(self.U.value):
+            return True
+
+        return False
 
 
     @property
@@ -166,12 +153,17 @@ class StokesMap:
 
 
     @property
-    def _has_pol(self):
-        """Returns True if self.Q is not None. False otherwise"""
-        if self.data.ndim > 1 and self.data.shape[0] == 3:
-            return True
+    def shape(self):
+        """
+        Returns the shape of the IQU map
+        """
+        return self.data.shape
 
-        return False
+
+    @property
+    def ndim(self):
+        """Returns the number of dimensions of the map"""
+        return self.data.ndim
 
 
     def mask(self, mask, sigs=None):
@@ -262,76 +254,29 @@ class StokesMap:
 
         """
         self.data = hp.smoothing(self.data, fwhm.to(u.rad).value)
-
-
-    def _arithmetic_operation(self, other, operator):
-        """Implements default arithmetic operations for the Map object
-        
-        Args:
-        -----
-        other : int, float, np.ndarray, astropy.units.quantity.Quantity
-            Object to perform operation with, e.g operator(self, other).
-        operator : operator
-            Operator function from the default operator library, e.g 
-            operator.add, operator.sub, ..
-
-        Returns:
-        -------
-        Map instance
-            A new class instance with values corresponding to the operation.
-
-        """
-        if isinstance(other, self.__class__):
-            if self._has_pol and other._has_pol:
-                input_map = operator(self.data, other.data)
-            elif self._has_pol:
-                input_map = self.data
-                input_map[0] = operator(self.data[0], other.data)
-            elif other._has_pol:
-                input_map = other.data
-                input_map[0] = operator(self.data, other.data[0])
-            return self.__class__(input_map=input_map)
-
-        return self.__class__(input_map=operator(self.data, other))
     
 
-    def __add__(self, other):
-        return self._arithmetic_operation(other, operator.add)
+    def __array__(self):
+        return np.array(self.data.value)
+
+    def __add__(self, other):        
+        return self.data + other
 
     
     def __sub__(self, other):
-        return self._arithmetic_operation(other, operator.sub)
+        return self.data - other
 
 
     def __mul__(self, other):
-        return self._arithmetic_operation(other, operator.mul)
+        return self.data * other
 
 
     def __truediv__(self, other):
-        return self._arithmetic_operation(other, operator.truediv)
+        return self.data / other
 
 
     def __pow__(self, other):
-        if isinstance(other, (self.__class__, u.Quantity)):
-            input_map = (self.data.value**other.data.value)*self.unit
-            return self.__class__(
-                input_map=input_map,
-                freq_ref=self.freq_ref,
-                label=self.label,
-            )        
-        if isinstance(other, np.ndarray):
-            input_map = (self.data.value**other)*self.unit
-            if input_map.ndim > 1 and input_map.shape[0] != 3:
-                input_map = np.squeeze(input_map)
-            return self.__class__(
-                input_map=input_map,
-                freq_ref=self.freq_ref,
-                label=self.label,
-            )
-        
-        print(self.label)
-
-        return self._arithmetic_operation(other, operator.pow)
+        return self.data ** other
 
 
     # Operations commute

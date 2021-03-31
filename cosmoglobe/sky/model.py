@@ -72,9 +72,7 @@ class Model:
             Model emission at the given frequency.
 
         """
-        return sum(
-            [comp.get_emission(freq, bandpass, output_unit) for comp in self]
-        )
+        return sum([comp.get_emission(freq, bandpass, output_unit) for comp in self])
                 
 
     def __iter__(self):
