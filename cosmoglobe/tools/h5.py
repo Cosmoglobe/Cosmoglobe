@@ -1,15 +1,186 @@
-"""
-HDH5 routines to handle commander3 chainfiles.
-"""
 from .. import sky
 
+from numba import njit
 import astropy.units as u
 import h5py
+import healpy as hp
 import numpy as np
 import inspect
 
 param_group = 'parameters'  # Model parameter group name as implemented in commander
 _ignored_comps = ['md', 'radio', 'relquad'] # These will be dropped from component lists
+
+
+def model_from_chain(file, sample='mean', burn_in=None):
+    """Returns a sky model from a commander3 chainfile.
+    
+    A cosmoglobe.sky.Model is initialized that represents the sky model used in 
+    the given Commander run.
+
+    Args:
+    -----
+    file (str):
+        Path to commander3 hdf5 chainfile.
+    sample (str, int, list):
+        If sample is 'mean', then the model will be initialized from sample 
+        averaged maps. If sample is a string (or an int), the model will be 
+        initialized from that specific sample. If sample is a list, then the 
+        model will be initialized from an average over the samples in the list.
+        Default: 'mean'
+    burn_in (str, int):
+        The sample number as a str or int where the chainfile is assumed to 
+        have sufficently burned in. All samples before the burn_in are ignored 
+        in the averaging process.
+
+    Returns:
+    --------
+    (cosmoglobe.sky.Model):
+        A sky model representing the results of a commander3 run.
+
+    """
+    if isinstance(sample, int):
+        sample = _int_to_sample(sample)
+
+    component_list = _get_components(file)
+    components = []
+    for comp in component_list:
+        if comp == 'dust' or comp == 'synch': # Delete this once all comps are implemented
+            components.append(comp_from_chain(file, comp, sample, burn_in))
+
+    return sky.Model(components, nside=1024)
+
+
+def comp_from_chain(file, component, sample='mean', burn_in=None):
+    """Returns a sky component from a commander3 chainfile.
+    
+    A sky component that subclasses cosmoglobe.sky.Component is initialized 
+    from a given commander run.
+
+    TODO: find better solution to mapping classes to components. Perhaps create 
+          a dict that represents the components used in a BP run, e.g:
+            BP9_COMPS = {
+                'synch': sky.PowerLaw,
+                'dust': sky.ModifiedBlackBody,
+                ...
+            }
+          and then pass in BP lvl (8,9,..).
+    Args:
+    -----
+    file (str):
+        Path to commander3 hdf5 chainfile.
+    component (str):
+        Name of a sky component. Must match the hdf5 component group name.
+    sample (str, int, list):
+        If sample is 'mean', then the model will be initialized from sample 
+        averaged maps. If sample is a string (or an int), the model will be 
+        initialized from that specific sample. If sample is a list, then the 
+        model will be initialized from an average over the samples in the list.
+        Default: 'mean'
+    burn_in (str, int):
+        The sample number as a str or int where the chainfile is assumed to 
+        have sufficently burned in. All samples before the burn_in are ignored 
+        in the averaging process.
+
+    Returns:
+    --------
+    (sub class of cosmoglobe.sky.Component):
+        A sky component initialized from a commander run.
+
+    """
+    if isinstance(sample, int):
+        sample = _int_to_sample(sample)
+
+    comp_classes = {
+        'dust': sky.ModifiedBlackBody,
+        'synch': sky.PowerLaw,
+    }
+    comp_class = comp_classes[component]
+    args_list = _get_comp_args(comp_class)
+    if not 'amp' in args_list or not 'freq_ref' in args_list:
+        raise ValueError(
+            "component class must contain the arguments 'amp' and 'freq_ref'"
+        )
+    
+    parameters = _get_component_params(file, component)
+    freq_ref = (parameters['nu_ref']*u.Hz).to(u.GHz)
+    fwhm = (parameters['fwhm']*u.arcmin).to(u.rad)
+    nside = parameters['nside']
+    args_list.remove('freq_ref')
+
+    unit = parameters['unit']
+    if 'k_rj' in unit.lower():
+        unit = unit[:-3]
+    elif 'k_cmb' in unit.lower():
+        unit = unit[:-4]
+    unit = u.Unit(unit)
+
+    if sample == 'mean':
+        get_items = _get_averaged_items
+        sample = _get_samples(file)
+        if burn_in is not None:
+            sample = sample[burn_in:]
+    else:
+        get_items = _get_items
+
+    alm_names = []
+    map_names = []
+    for arg in args_list:
+        if _has_precomputed_map(file, component, arg):
+            map_names.append(arg)
+        else:
+            alm_names.append(arg)
+    alms = get_items(file, sample, component, [f'{alm}_alm' for alm in alm_names ])
+    maps = get_items(file, sample, component, [f'{map_}_map' for map_ in map_names ])
+
+    if isinstance(sample, (tuple, list)):
+        sample = sample[-1]
+
+    alm_maps = []
+    for idx, alm in enumerate(alms):
+        lmax = _get_items(file, sample, component, f'{alm_names[idx]}_lmax')
+        unpacked_alm = unpack_alms_from_chain(alm, lmax)
+        alms = hp.alm2map(unpacked_alm, 
+                          nside=nside, 
+                          lmax=lmax, 
+                          fwhm=fwhm.value, 
+                          verbose=False).astype('float32')
+        alm_maps.append(alms)
+
+    args = {}
+    args.update({key:value for key, value in zip(alm_names, alm_maps)})
+    args.update({key:value for key, value in zip(map_names, maps)})
+
+
+    args['amp'] *= unit
+    args = _set_spectral_units(args)
+
+    return comp_class(comp_name=component, freq_ref=freq_ref, **args)
+
+
+def _set_spectral_units(maps):
+    """    
+    TODO: Figure out how to correctly detect unit of spectral map in chain.
+          Until then, a hardcoded dict is used:
+    """
+    units = {
+        'T': u.K,
+        'Te': u.K,
+        'nu_p' : u.GHz,
+    }
+    for map_ in maps:
+        if map_ in units:
+            maps[map_] *= units[map_]
+
+    return maps
+
+
+def _get_comp_args(component_class):
+    """Returns a list of arguments needed to initialize a component"""
+    ignored_args = ['self', 'comp_name']
+    arguments = inspect.signature(component_class.__init__)
+    arguments = str(arguments)[1:-1].split(', ')
+    return [arg for arg in arguments if arg not in ignored_args]
+
 
 def _get_samples(file):
     """Returns a list of all samples present in a chain file"""
@@ -88,7 +259,6 @@ def _get_items(file, sample, component, items):
                 items_to_return.append(f[sample][component].get(item)[()])
 
             return items_to_return
-        
         return f[sample][component].get(items)[()]
 
 
@@ -152,97 +322,45 @@ def _has_precomputed_map(file, component, item, sample=-1):
     return False
 
 
-def _get_comp_args(component_class):
-    ignored_args = ['self', 'comp_name']
-    arguments = inspect.signature(component_class.__init__)
-    arguments = str(arguments)[1:-1].split(', ')
-    return [arg for arg in arguments if arg not in ignored_args]
+@njit
+def unpack_alms_from_chain(data, lmax):
+    """Unpacks alms from the Commander chain output.
 
+    Unpacking algorithm: 
+    https://github.com/trygvels/c3pp/blob/2a2937926c260cbce15e6d6d6e0e9d23b0be1262/src/tools.py#L9
 
+    TODO: look over this function and see if it can be improved.
 
-def comp_from_chain(file, component, sample='mean', burn_in=None):
-    """Returns an initialized sky component from a chainfile.
+    Args:
+    -----
+    data (np.ndarray)
+        alms from a commander chainfile.
+    lmax : int
+        Maximum value for l used in the alms.
 
-    TODO: Figure out how to correctly detect unit of spectral map in chain
-
-    """
-    args_list = _get_comp_args(sky.ModifiedBlackBody)
-    if not 'amp' in args_list or not 'freq_ref' in args_list:
-        raise ValueError(
-            "component class must contain the arguments 'amp' and 'freq_ref'"
-        )
+    Returns:
+    --------
+    alms (np.ndarray)
+        Unpacked version of the Commander alms (2-dimensional array)
     
-    parameters = _get_component_params(file, component)
+    """
+    n = len(data)
+    n_alms = int(lmax * (2*lmax+1 - lmax) / 2 + lmax+1)
+    alms = np.zeros((n, n_alms), dtype=np.complex128)
 
-    freq_ref = parameters['nu_ref']*u.Hz
-    freq_ref = freq_ref.to(u.GHz)
-    args_list.remove('freq_ref')
+    for sigma in range(n):
+        i = 0
+        for l in range(lmax+1):
+            j_real = l**2 + l
+            alms[sigma, i] = complex(data[sigma, j_real], 0.0)
+            i += 1
 
-    unit = parameters['unit']
-    if 'k_rj' in unit.lower():
-        unit = unit[:-3]
-    elif 'k_cmb' in unit.lower():
-        unit = unit[:-4]
-    unit = u.Unit(unit)
+        for m in range(1, lmax+1):
+            for l in range(m, lmax+1):
+                j_real = l**2 + l + m
+                j_comp = l**2 + l - m
+                alms[sigma, i] = complex(data[sigma, j_real], 
+                                         data[sigma, j_comp],)/ np.sqrt(2.0)
+                i += 1
 
-    if sample == 'mean':
-        get_items = _get_averaged_items
-        sample = _get_samples(file)
-        if burn_in is not None:
-            sample = sample[burn_in:]
-    else:
-        get_items = _get_items
-
-    alm_names = []
-    map_names = []
-    for arg in args_list:
-        if _has_precomputed_map(file, component, arg):
-            map_names.append(arg)
-        else:
-            alm_names.append(arg)
-
-    args = {}
-
-    alms = get_items(file, sample, component, [f'{alm}_alm' for alm in alm_names ])
-    maps = get_items(file, sample, component, [f'{map_}_map' for map_ in map_names ])
-
-    args.update({key:value for key, value in zip(alm_names, alms)})
-    args.update({key:value for key, value in zip(map_names, maps)})
-
-    args['amp'] *= unit
-
-    print(args)
-
-def model_from_chain(file):
-    """Returns an initialized sky component from a chainfile."""
-    component_list = _get_components(file)
-    components = {}
-    for comp in component_list:
-        params = _get_component_params(file, comp)
-        print(params)
-        if comp == 'synch':
-            components['synch'] = sky.PowerLaw
-        elif comp == 'dust':
-            components['dust'] = sky.ModifiedBlackBody
-
-    # for comp_name, comp_class in components.items():
-
-        # amp, freq_ref, spectrals = _get_averaged_items(file, samples, comp_name, spectral_args)
-        
-
-
-if __name__ == '__main__':
-    test_file = '/Users/metinsan/Documents/doktor/Cosmoglobe_test_data/bla.h5'
-    samples = _get_samples(test_file)
-    # items = _get_averaged_items(test_file,
-    #                             samples,
-    #                             'ame', 
-    #                             ('amp_alm', 'nu_p_map'))
-    # print(items)
-    # items = _get_items(test_file, 
-    #                    '000039',
-    #                    'ame', 
-    #                    ('amp_alm', 'nu_p_map'))
-    # print(items)
-    # print(_get_components(test_file, ignore_comps=False))
-    print(_has_precomputed_map(test_file, 'ff', 'Te'))
+    return alms
