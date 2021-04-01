@@ -29,7 +29,7 @@ class Model:
 
     def _add_component(self, component):
         """Adds a component to the current model"""
-        if not isinstance(component, Component):
+        if not issubclass(component.__class__, Component):
             raise TypeError(f'{component} is not a subclass of Component')
 
         name = component.comp_name

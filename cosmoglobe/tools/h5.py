@@ -1,9 +1,12 @@
 """
 HDH5 routines to handle commander3 chainfiles.
 """
+from .. import sky
+
+import astropy.units as u
 import h5py
 import numpy as np
-
+import inspect
 
 param_group = 'parameters'  # Model parameter group name as implemented in commander
 _ignored_comps = ['md', 'radio', 'relquad'] # These will be dropped from component lists
@@ -56,7 +59,7 @@ def _get_component_params(file, component):
                 return_params[param] = value[()]
 
         return return_params
-
+    
 
 def _get_items(file, sample, component, items):
     """Return the value of one or many items for a component in the chain file.
@@ -114,21 +117,23 @@ def _get_averaged_items(file, samples, component, items):
     with h5py.File(file, 'r') as f:
         if isinstance(items, (tuple, list)):
             items_to_return = [[] for _ in range(len(items))]
+
             for sample in samples:
                 for idx, item in enumerate(items):
-                    items_to_return[idx].append(f[sample][component].get(item)[()])
+                    try:
+                        items_to_return[idx] += f[sample][component].get(item)[()]
+                    except ValueError:
+                        items_to_return[idx] = f[sample][component].get(item)[()]
 
-            return [np.mean(item, axis=0) for item in items_to_return]
+            return [item/len(samples) for item in items_to_return]
 
         for sample in samples:
             try:
-                item_to_return = np.append(item_to_return, 
-                                           f[sample][component].get(items)[()],
-                                           axis=0)
+                item_to_return += f[sample][component].get(items)[()]
             except UnboundLocalError:
                 item_to_return = f[sample][component].get(items)[()]
 
-        return np.mean(item_to_return, axis=0)
+        return item_to_return/len(samples)
 
 
 def _has_precomputed_map(file, component, item, sample=-1):
@@ -146,6 +151,84 @@ def _has_precomputed_map(file, component, item, sample=-1):
 
     return False
 
+
+def _get_comp_args(component_class):
+    ignored_args = ['self', 'comp_name']
+    arguments = inspect.signature(component_class.__init__)
+    arguments = str(arguments)[1:-1].split(', ')
+    return [arg for arg in arguments if arg not in ignored_args]
+
+
+
+def comp_from_chain(file, component, sample='mean', burn_in=None):
+    """Returns an initialized sky component from a chainfile.
+
+    TODO: Figure out how to correctly detect unit of spectral map in chain
+
+    """
+    args_list = _get_comp_args(sky.ModifiedBlackBody)
+    if not 'amp' in args_list or not 'freq_ref' in args_list:
+        raise ValueError(
+            "component class must contain the arguments 'amp' and 'freq_ref'"
+        )
+    
+    parameters = _get_component_params(file, component)
+
+    freq_ref = parameters['nu_ref']*u.Hz
+    freq_ref = freq_ref.to(u.GHz)
+    args_list.remove('freq_ref')
+
+    unit = parameters['unit']
+    if 'k_rj' in unit.lower():
+        unit = unit[:-3]
+    elif 'k_cmb' in unit.lower():
+        unit = unit[:-4]
+    unit = u.Unit(unit)
+
+    if sample == 'mean':
+        get_items = _get_averaged_items
+        sample = _get_samples(file)
+        if burn_in is not None:
+            sample = sample[burn_in:]
+    else:
+        get_items = _get_items
+
+    alm_names = []
+    map_names = []
+    for arg in args_list:
+        if _has_precomputed_map(file, component, arg):
+            map_names.append(arg)
+        else:
+            alm_names.append(arg)
+
+    args = {}
+
+    alms = get_items(file, sample, component, [f'{alm}_alm' for alm in alm_names ])
+    maps = get_items(file, sample, component, [f'{map_}_map' for map_ in map_names ])
+
+    args.update({key:value for key, value in zip(alm_names, alms)})
+    args.update({key:value for key, value in zip(map_names, maps)})
+
+    args['amp'] *= unit
+
+    print(args)
+
+def model_from_chain(file):
+    """Returns an initialized sky component from a chainfile."""
+    component_list = _get_components(file)
+    components = {}
+    for comp in component_list:
+        params = _get_component_params(file, comp)
+        print(params)
+        if comp == 'synch':
+            components['synch'] = sky.PowerLaw
+        elif comp == 'dust':
+            components['dust'] = sky.ModifiedBlackBody
+
+    # for comp_name, comp_class in components.items():
+
+        # amp, freq_ref, spectrals = _get_averaged_items(file, samples, comp_name, spectral_args)
+        
 
 
 if __name__ == '__main__':

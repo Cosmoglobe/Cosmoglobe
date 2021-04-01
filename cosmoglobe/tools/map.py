@@ -9,7 +9,7 @@ def to_stokes(input_map, unit=None, freq_ref=None, label=None):
     
     A StokesMap has shape (3, nside). If the input map does not match this 
     shape, e.g it is a intensity only map with shape (nside,) it will be 
-    converted to a (3,nside) array with the Q and U stokes parameters set to 
+    converted to a (3, nside) array with the Q and U stokes parameters set to 
     zeros.
     
     Args:
