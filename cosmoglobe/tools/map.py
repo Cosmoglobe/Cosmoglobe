@@ -260,23 +260,23 @@ class StokesMap:
         return np.array(self.data.value)
 
     def __add__(self, other):        
-        return self.data + other
+        return self.__class__(self.data + other)
 
     
     def __sub__(self, other):
-        return self.data - other
+        return self.__class__(self.data - other)
 
 
     def __mul__(self, other):
-        return self.data * other
+        return self.__class__(self.data * other)
 
 
     def __truediv__(self, other):
-        return self.data / other
+        return self.__class__(self.data / other)
 
 
     def __pow__(self, other):
-        return self.data ** other
+        return self.__class__(self.data ** other)
 
 
     # Operations commute
