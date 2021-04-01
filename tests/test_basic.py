@@ -45,6 +45,5 @@ scalar = 5
 model = h5.model_from_chain(file=data, sample=30)
 print(model)
 
-hp.mollview(model.get_emission(40*u.GHz).P, norm='hist')
 
 plt.show()
