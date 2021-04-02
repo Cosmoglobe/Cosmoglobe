@@ -8,7 +8,7 @@ def to_stokes(input_map, unit=None, freq_ref=None, label=None):
     """Converts a Healpix-like map to a native Stokes map object. 
     
     A StokesMap has shape (3, nside). If the input map does not match this 
-    shape, e.g it is a intensity only map with shape (nside,) it will be 
+    shape, e.g, it is an intensity only map with shape (nside,) it will be 
     converted to a (3, nside) array with the Q and U stokes parameters set to 
     zeros.
     
@@ -18,13 +18,13 @@ def to_stokes(input_map, unit=None, freq_ref=None, label=None):
         A (3, nside) or (nside,) map containing stokes I or IQU parameters.
     unit (astropy.units.Unit):
         Units of the map object. If input_map already has units it will try to 
-        convert its units to the input unit. Default: None
+        convert its units to input_unit. Default: None
     freq_ref (astropy.units.quantity.Quantity):
-        Reference frequency of the input_map. If a single value is given, the 
-        reference frequency will be assumed to be equal for all IQU maps. 
+        Reference frequencies of the input_map. If a single value is given, the 
+        reference frequency will be assumed to be equal for all IQU parameters. 
         Default: None
     label (str):
-        Map label. Used to name maps. Default: None
+        A descriptive label for the map. Default: None
 
     """
     if freq_ref is not None:
@@ -234,12 +234,12 @@ class StokesMap:
             Healpix map resolution parameter.
 
         """
-        if not hp.isnsideok(self.nside, nest=True):
-            raise ValueError(f'nside: {self.nside} is not valid.')
+        if not hp.isnsideok(new_nside, nest=True):
+            raise ValueError(f'nside: {new_nside} is not valid.')
         if new_nside == self.nside:
             return
 
-        self.data = hp.ud_grade(self.data, new_nside)
+        self.data = hp.ud_grade(self.data.value, new_nside)*self.data.unit
 
 
     @u.quantity_input(fwhm=(u.arcmin, u.deg, u.rad))
@@ -258,6 +258,7 @@ class StokesMap:
 
     def __array__(self):
         return np.array(self.data.value)
+
 
     def __add__(self, other):        
         return self.__class__(self.data + other)
@@ -288,10 +289,7 @@ class StokesMap:
 
 
     def __iter__(self):
-        if self._has_pol:
-            return iter(self.data)
-
-        return iter([self.data])
+        return iter(self.data)
 
 
     def __getitem__(self, idx):
