@@ -44,8 +44,7 @@ def model_from_chain(file, sample='mean', burn_in=None):
     component_list = _get_components(file)
     components = []
     for comp in component_list:
-        if comp == 'dust' or comp == 'synch': # Delete this once all comps are implemented
-            components.append(comp_from_chain(file, comp, sample, burn_in))
+        components.append(comp_from_chain(file, comp, sample, burn_in))
 
     return sky.Model(components, nside=1024)
 
@@ -93,9 +92,13 @@ def comp_from_chain(file, component, sample='mean', burn_in=None):
     comp_classes = {
         'dust': sky.ModifiedBlackBody,
         'synch': sky.PowerLaw,
+        'ff': sky.LinearOpticallyThinBlackBody,
+        'ame': sky.SpDust2,
+        'cmb': sky.BlackBodyCMB,
     }
     comp_class = comp_classes[component]
     args_list = _get_comp_args(comp_class)
+
     if not 'amp' in args_list or not 'freq_ref' in args_list:
         raise ValueError(
             "component class must contain the arguments 'amp' and 'freq_ref'"
@@ -139,12 +142,16 @@ def comp_from_chain(file, component, sample='mean', burn_in=None):
     for idx, alm in enumerate(alms):
         lmax = _get_items(file, sample, component, f'{alm_names[idx]}_lmax')
         unpacked_alm = unpack_alms_from_chain(alm, lmax)
+        if unpacked_alm.shape[0] != 3:
+            zeros = np.zeros(unpacked_alm.shape[1])
+            unpacked_alm = np.array([unpacked_alm[0], zeros, zeros])
         alms = hp.alm2map(unpacked_alm, 
                           nside=nside, 
                           lmax=lmax, 
                           fwhm=fwhm.value, 
                           verbose=False).astype('float32')
         alm_maps.append(alms)
+
 
     args = {}
     args.update({key:value for key, value in zip(alm_names, alm_maps)})
@@ -177,8 +184,7 @@ def _set_spectral_units(maps):
 def _get_comp_args(component_class):
     """Returns a list of arguments needed to initialize a component"""
     ignored_args = ['self', 'comp_name']
-    arguments = inspect.signature(component_class.__init__)
-    arguments = str(arguments)[1:-1].split(', ')
+    arguments = inspect.getargspec(component_class.__init__).args
     return [arg for arg in arguments if arg not in ignored_args]
 
 

@@ -1,8 +1,7 @@
 from .components import Component
 
 import astropy.units as u
-import numpy as np
-
+import healpy as hp
 
 class Model:
     """A sky model.
@@ -71,8 +70,66 @@ class Model:
             Model emission at the given frequency.
 
         """
+        if freq.ndim > 0:
+            emissions = []
+            for freq in freq:
+                emissions.append(sum([comp.get_emission(freq, bandpass, output_unit) 
+                                      for comp in self]))
+            return emissions
+
         return sum([comp.get_emission(freq, bandpass, output_unit) for comp in self])
-                
+
+
+    def insert(self, component):
+        """Insert a new component to the model.
+
+        Args:
+        -----
+        component (a subclass of cosmoglobe.sky.Component):
+            Sky component to be added to the model. Must be a subclass of 
+            cosmoglobe.sky.Component.
+
+        """
+        self._add_component(component)
+
+
+    def remove(self, name):
+        """Removes a component from the model.
+
+        Args:
+        -----
+        name (str):
+            The name of a component present in the model. This is the name in 
+            the parenthesis in the model repr.
+
+        """
+        del self[name]
+
+
+    @property
+    def component_names(self):
+        """Returns a list of the names of the components present in the model"""
+        return list(self._components.keys())
+
+
+    def to_nside(self, new_nside):
+        """ud_grades all maps in the component to a new nside.
+
+        Args:
+        -----
+        new_nside (int):
+            Healpix map resolution parameter.
+
+        """
+        if new_nside == self.nside:
+            return
+        if not hp.isnsideok(new_nside, nest=True):
+            raise ValueError(f'nside: {new_nside} is not valid.')
+        
+        for comp in self:
+            comp.to_nside(new_nside)
+
+
 
     def __iter__(self):
         return iter(self._components.values())
@@ -80,10 +137,6 @@ class Model:
 
     def __len__(self):
         return len(self._components)
-
-
-    def __setitem__(self, name, component):
-        self._add_component(name, component)
 
 
     def __delitem__(self, name):

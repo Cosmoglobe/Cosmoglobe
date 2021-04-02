@@ -1,10 +1,16 @@
 from ..tools.map import to_stokes
 from ..tools.bandpass import _extract_scalars
-from ..science.functions import blackbody_emission
+from ..science.functions import (
+    blackbody_emission, gaunt_factor, cmb_to_brightness
+)
+from .. import data as data_dir
 
-import numpy as np
-import astropy.units as u
 from scipy.interpolate import interp1d, RectBivariateSpline
+import astropy.units as u
+import numpy as np
+import healpy as hp
+import pathlib
+
 
 class Component:
     """Base class for all sky components.
@@ -30,7 +36,7 @@ class Component:
     comp_name (str):
         Name/label of the component, e.g 'dust'. Is used to set the component
         attribute in a cosmoglobe.Model.
-    amp (np.ndarray, astropy.units.quantity.Quantity, cosmoglobe.IQUMap):
+    amp (np.ndarray, astropy.units.quantity.Quantity, cosmoglobe.StokesMap):
         Amplitude templates at the reference frequencies for I or IQU stokes 
         parameters.
     freq_ref (astropy.units.quantity.Quantity):
@@ -76,7 +82,7 @@ class Component:
             Model emission at the given frequency.
 
         """
-        # Convert all values to si and prepare broadcasting
+        # Convert all values to SI and prepare broadcasting
         freq = freq.si
         freq_ref = np.expand_dims(self.amp.freq_ref.si, axis=1)
         spectrals = {key:(value.si if isinstance(value, u.Quantity) else value)
@@ -226,6 +232,30 @@ class Component:
             return NotImplemented
 
 
+    def to_nside(self, new_nside):
+        """ud_grades all maps in the component to a new nside.
+
+        Args:
+        -----
+        new_nside (int):
+            Healpix map resolution parameter.
+
+        """
+        if new_nside == self.amp.nside:
+            return
+        if not hp.isnsideok(new_nside, nest=True):
+            raise ValueError(f'nside: {new_nside} is not valid.')
+
+        self.amp.to_nside(new_nside)
+        for key, val in self._spectrals.items():
+            if isinstance(val, np.ndarray):
+                if isinstance(val, u.Quantity):
+                    self._spectrals[key] = hp.ud_grade(val.value, 
+                                                       new_nside)*val.unit
+                else:
+                    self._spectrals[key] = hp.ud_grade(val, new_nside)
+
+
     def __repr__(self):
         main_repr = f'{self.__class__.__name__}'
         main_repr += '(amp, freq_ref, '
@@ -238,7 +268,6 @@ class Component:
 
 
 
-
 class PowerLaw(Component):
     """PowerLaw component class. Represents any component with a frequency 
     scaling given by a simple power law.
@@ -248,7 +277,7 @@ class PowerLaw(Component):
     comp_name (str):
         Name/label of the component. Is used to set the component attribute 
         in a cosmoglobe.Model.
-    amp (np.ndarray, astropy.units.quantity.Quantity, cosmoglobe.IQUMap):
+    amp (np.ndarray, astropy.units.quantity.Quantity, cosmoglobe.StokesMap):
         Amplitude templates at the reference frequencies for I or IQU stokes 
         parameters.
     freq_ref (astropy.units.quantity.Quantity):
@@ -296,8 +325,8 @@ class ModifiedBlackBody(Component):
     -----
     comp_name (str):
         Name/label of the component. Is used to set the component attribute 
-        in a cosmoglobe.Model.
-    amp (np.ndarray, astropy.units.quantity.Quantity, cosmoglobe.IQUMap):
+        in a cosmoglobe.sky.Model.
+    amp (np.ndarray, astropy.units.quantity.Quantity, cosmoglobe.StokesMap):
         Amplitude templates at the reference frequencies for I or IQU stokes 
         parameters.
     freq_ref (astropy.units.quantity.Quantity):
@@ -340,5 +369,162 @@ class ModifiedBlackBody(Component):
 
         scaling = (freq/freq_ref)**(beta-2)
         scaling *= blackbody_emission(freq, T) / blackbody_emission(freq_ref, T)
-
         return scaling
+
+
+
+class LinearOpticallyThinBlackBody(Component):
+    """Linearized optically thin blackbody emission component class. Represents 
+    a component with a frequency scaling given by a linearized optically thin 
+    blacbody spectrum, strictly only valid in the optically thin case (tau << 1).
+
+    TODO: find a suiting name for this component
+
+    Args:
+    -----
+    comp_name (str):
+        Name/label of the component. Is used to set the component attribute 
+        in a cosmoglobe.sky.Model.
+    amp (np.ndarray, astropy.units.quantity.Quantity, cosmoglobe.StokesMap):
+        Amplitude templates at the reference frequencies for I or IQU stokes 
+        parameters.
+    freq_ref (astropy.units.quantity.Quantity):
+        Reference frequencies for the amplitude map in units of Hertz.
+    Te (astropy.units.quantity.Quantity):
+        Electron temperature map with unit K.
+
+    """
+    def __init__(self, comp_name, amp, freq_ref, Te):
+        super().__init__(comp_name, amp, freq_ref, Te=Te)
+
+
+    def get_freq_scaling(self, freq, freq_ref, Te):
+        """Computes the frequency scaling from the reference frequency freq_ref 
+        to an arbitrary frequency, which depends on the spectral parameter Te.
+
+        Args:
+        -----
+        freq (astropy.units.quantity.Quantity):
+            Frequency at which to evaluate the model.
+        freq_ref (astropy.units.quantity.Quantity):
+            Reference frequencies for the amplitude map.
+        Te (astropy.units.quantity.Quantity): 
+            Electron temperature.
+            
+        Returns:
+        --------
+        scaling (astropy.units.quantity.Quantity):
+            Frequency scaling factor with dimensionless units.
+
+        """
+        scaling = gaunt_factor(freq, Te) / gaunt_factor(freq_ref, Te)
+        scaling *= (freq_ref/freq)**2
+        return scaling
+
+
+
+class SpDust2(Component):
+    """Spinning dust component class using a template from the SpDust2 code.
+    For more info, please see the following papers: 
+        - Ali-Haïmoud et al. 2009
+        - Ali-Haimoud 2010
+        - Silsbee et al. 2011
+
+    TODO: find a better solution to reading in data without importing the 
+          entire data module.
+
+    Args:
+    -----
+    comp_name (str):
+        Name/label of the component. Is used to set the component attribute 
+        in a cosmoglobe.sky.Model.
+    amp (np.ndarray, astropy.units.quantity.Quantity, cosmoglobe.StokesMap):
+        Amplitude templates at the reference frequencies for I or IQU stokes 
+        parameters.
+    freq_ref (astropy.units.quantity.Quantity):
+        Reference frequencies for the amplitude map in units of Hertz.
+    nu_p (astropy.units.quantity.Quantity):
+        Peak frequency.
+
+    """
+    def __init__(self, comp_name, amp, freq_ref, nu_p):
+        super().__init__(comp_name, amp, freq_ref, nu_p=nu_p)
+
+        spdust2 = np.loadtxt(
+            pathlib.Path(data_dir.__path__[0]) / 'spdust2_cnm.dat'
+        )
+        self.spdust2_freq = u.Quantity(spdust2[:, 0], unit=u.GHz)
+        self.spdust2_amp = u.Quantity(spdust2[:, 1], unit=(u.Jy/u.sr)).to(
+            u.K, equivalencies=u.brightness_temperature(self.spdust2_freq)
+        )
+        
+
+    def get_freq_scaling(self, freq, freq_ref, nu_p):
+        """Computes the frequency scaling from the reference frequency freq_ref 
+        to an arbitrary frequency, which depends on the spectral parameter nu_p.
+
+        Args:
+        -----
+        freq (astropy.units.quantity.Quantity):
+            Frequency at which to evaluate the model.
+        freq_ref (astropy.units.quantity.Quantity):
+            Reference frequencies for the amplitude map.
+        nu_p (astropy.units.quantity.Quantity): 
+            Electron temperature.
+            
+        Returns:
+        --------
+        scaling (astropy.units.quantity.Quantity):
+            Frequency scaling factor with dimensionless units.
+
+        """
+
+        peak_scale = 30*u.GHz / nu_p
+        interp = np.interp((freq*peak_scale).si.value,
+                           self.spdust2_freq.si.value, 
+                           self.spdust2_amp.si.value)
+        interp_ref = np.interp((freq_ref*peak_scale).si.value, 
+                               self.spdust2_freq.si.value, 
+                               self.spdust2_amp.si.value)
+        scaling = interp/interp_ref
+        return scaling
+
+
+
+class BlackBodyCMB(Component):
+    """Blackbody CMB component class. Represents blackbody emission given 
+    converted from units of K_CMB to K_RJ.
+
+    TODO: find a more suiting name for this component.
+
+    Args:
+    -----
+    comp_name (str):
+        Name/label of the component. Is used to set the component attribute 
+        in a cosmoglobe.sky.Model.
+    amp (np.ndarray, astropy.units.quantity.Quantity, cosmoglobe.StokesMap):
+        Amplitude templates at the reference frequencies for I or IQU stokes 
+        parameters.
+    freq_ref (astropy.units.quantity.Quantity):
+        Reference frequencies for the amplitude map in units of Hertz.
+
+    """
+    def __init__(self, comp_name, amp, freq_ref=None):
+        super().__init__(comp_name, amp, freq_ref=freq_ref)
+
+
+    def get_freq_scaling(self, freq, freq_ref):
+        """Computes the frequency scaling from K_CMB to K_RJ as a frequency.
+
+        Args:
+        -----
+        freq (astropy.units.quantity.Quantity):
+            Frequency at which to evaluate the model.
+            
+        Returns:
+        --------
+        scaling (astropy.units.quantity.Quantity):
+            Frequency scaling factor with dimensionless units.
+
+        """
+        return cmb_to_brightness(freq)
