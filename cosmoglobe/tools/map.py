@@ -3,8 +3,8 @@ import healpy as hp
 import astropy.units as u
 
 
-@u.quantity_input(freq_ref=(None, u.Hz))
-def to_stokes(input_map, unit=None, freq_ref=None, label=None):
+@u.quantity_input(freq_ref=(None, u.Hz), fwhm=(None, u.arcmin, u.rad))
+def to_stokes(input_map, unit=None, freq_ref=None, fwhm_ref=None, label=None):
     """Converts a Healpix-like map to a native Stokes map object. 
     
     A StokesMap has shape (3, nside). If the input map does not match this 
@@ -23,6 +23,8 @@ def to_stokes(input_map, unit=None, freq_ref=None, label=None):
         Reference frequencies of the input_map. If a single value is given, the 
         reference frequency will be assumed to be equal for all IQU parameters. 
         Default: None
+    fwhm_ref (astropy.units.quantity.Quantity):
+        The fwhm of the beam used in the input_map.
     label (str):
         A descriptive label for the map. Default: None
 
@@ -42,7 +44,10 @@ def to_stokes(input_map, unit=None, freq_ref=None, label=None):
             if unit is not None: 
                 map_.to(unit)
 
-        return StokesMap(input_map=map_, freq_ref=freq_ref, label=label)
+        return StokesMap(input_map=map_, 
+                         freq_ref=freq_ref, 
+                         fwhm_ref=fwhm_ref, 
+                         label=label)
 
     if isinstance(input_map, StokesMap):
         map_ = input_map.data
@@ -52,8 +57,12 @@ def to_stokes(input_map, unit=None, freq_ref=None, label=None):
             freq_ref = input_map.freq_ref
         if label is None:
             label = input_map.label
-
-        return StokesMap(input_map=map_, freq_ref=freq_ref, label=label)
+        if fwhm_ref is None:
+            fwhm_ref = input_map.fwhm_ref
+        return StokesMap(input_map=map_, 
+                         freq_ref=freq_ref, 
+                         fwhm_ref=fwhm_ref, 
+                         label=label)
 
     else:
         raise NotImplementedError(
@@ -79,18 +88,22 @@ class StokesMap:
         If the map is unpolarized, i.e, Q and U is zeros, then freq_ref will 
         have the same value in all list elements for broadcasting purposes. 
         Default: None
+    fwhm_ref (astropy.units.quantity.Quantity):
+        The fwhm of the beam used for the input_map.
     label (str):
         A descriptive label for the map, e.g 'Dust'. Default: None
 
     """
     input_map : u.Quantity
     freq_ref : u.Quantity
+    fwhm_ref : u.Quantity
     label : str
 
-    @u.quantity_input(freq_ref=(None, u.Hz))
-    def __init__(self, input_map, freq_ref=None, label=None):
+    @u.quantity_input(freq_ref=(None, u.Hz), fwhm_ref=(None, u.arcmin, u.rad))
+    def __init__(self, input_map, freq_ref=None, fwhm_ref=None, label=None):
         self.data = input_map.astype(np.float32)
         self.freq_ref = freq_ref
+        self.fwhm_ref = fwhm_ref
         self.label = label
 
         if not isinstance(input_map, u.Quantity):
@@ -253,8 +266,17 @@ class StokesMap:
             units of arcmin, degrees or radians.
 
         """
-        self.data = hp.smoothing(self.data, fwhm.to(u.rad).value)
-    
+        fwhm = fwhm.to(u.rad)
+        if self.fwhm_ref != fwhm:
+            diff_fwhm = np.sqrt(fwhm.value**2 - self.fwhm_ref.value**2)
+            if diff_fwhm < 0:
+                raise ValueError(
+                    'cannot smooth to a higher resolution '
+                    f'(map fwhm: {self.fwhm_ref}).'
+                )
+            self.data = hp.smoothing(self.data, diff_fwhm)*self.data.unit
+            self.fwhm_ref = fwhm
+
 
     def __array__(self):
         return np.array(self.data.value)
