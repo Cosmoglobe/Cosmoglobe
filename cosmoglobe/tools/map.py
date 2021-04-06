@@ -1,166 +1,144 @@
 import numpy as np
 import healpy as hp
 import astropy.units as u
-import operator
 
 
-@u.quantity_input(nu_ref=(None, u.Hz))
-def to_IQU(input_map, unit=None, nu_ref=None, label=None):
-    """Converts a map to a native IQU map object.
+@u.quantity_input(freq_ref=(None, u.Hz), fwhm=(None, u.arcmin, u.rad))
+def to_stokes(input_map, unit=None, freq_ref=None, fwhm_ref=None, label=None):
+    """Converts a Healpix-like map to a native Stokes map object. 
+    
+    A StokesMap has shape (3, nside). If the input map does not match this 
+    shape, e.g, it is an intensity only map with shape (nside,) it will be 
+    converted to a (3, nside) array with the Q and U stokes parameters set to 
+    zeros.
     
     Args:
     -----
-    input_map : np.ndarray, astropy.units.quantity.Quantity
-        Map to be converted.
-    unit : astropy.units.Unit
-        The units of the input map. If the input map is an astropy object, 
-        unit is set the units of the input map. Else, if unit is None, 
-        unit is set to u.dimensionless_unscaled.
-        Default : None
-    nu_ref : astropy.units.quantity.Quantity
-        Reference frequency of the IQU map. Dimensions must match the input 
-        map in axis=1, e.g if input map is (3, nside), nu_ref must be (3,).
-        Default : None
-    label : str
-        Map label. Used to name maps.
-        Default : None
+    input_map (np.ndarray, astropy.units.quantity.Quantity):
+        A (3, nside) or (nside,) map containing stokes I or IQU parameters.
+    unit (astropy.units.Unit):
+        Units of the map object. If input_map already has units it will try to 
+        convert its units to input_unit. Default: None
+    freq_ref (astropy.units.quantity.Quantity):
+        Reference frequencies of the input_map. If a single value is given, the 
+        reference frequency will be assumed to be equal for all IQU parameters. 
+        Default: None
+    fwhm_ref (astropy.units.quantity.Quantity):
+        The fwhm of the beam used in the input_map.
+    label (str):
+        A descriptive label for the map. Default: None
 
     """
-    if isinstance(input_map, u.quantity.Quantity):
+    if freq_ref is not None:
+        if freq_ref.ndim == 0:
+            freq_ref = u.Quantity([freq_ref, freq_ref, freq_ref])
+
+    if isinstance(input_map, np.ndarray):
+        if input_map.ndim == 1:
+            zeros = np.zeros_like(input_map)
+            map_ = u.Quantity([input_map, zeros, zeros])
+        else:
+            map_ = u.Quantity(input_map)
+
+        if isinstance(input_map, u.Quantity):
+            if unit is not None: 
+                map_.to(unit)
+
+        return StokesMap(input_map=map_, 
+                         freq_ref=freq_ref, 
+                         fwhm_ref=fwhm_ref, 
+                         label=label)
+
+    if isinstance(input_map, StokesMap):
+        map_ = input_map.data
         if unit is not None and unit != input_map.unit:
-            input_map.to(unit)
-        if input_map.ndim == 1:
-            return IQUMap(input_map, 
-                          nu_ref=nu_ref,
-                          label=label)
-        else:
-            input_map = input_map
-            return IQUMap(I=input_map[0], 
-                          Q=input_map[1], 
-                          U=input_map[2], 
-                          nu_ref=nu_ref,
-                          label=label)
-
-    elif isinstance(input_map, np.ndarray):
-        if unit is None:
-            input_map *= u.dimensionless_unscaled
-        else:
-            input_map *= unit
-        if input_map.ndim == 1:
-            return IQUMap(input_map, nu_ref=nu_ref, label=label)
-        else:
-            return IQUMap(I=input_map[0], 
-                          Q=input_map[1], 
-                          U=input_map[2],
-                          nu_ref=nu_ref,
-                          label=label)
-
-    elif isinstance(input_map, (IQUMap)):
-        return input_map
+            map_.to(unit)
+        if freq_ref is None:
+            freq_ref = input_map.freq_ref
+        if label is None:
+            label = input_map.label
+        if fwhm_ref is None:
+            fwhm_ref = input_map.fwhm_ref
+        return StokesMap(input_map=map_, 
+                         freq_ref=freq_ref, 
+                         fwhm_ref=fwhm_ref, 
+                         label=label)
 
     else:
-        raise NotImplemented
+        raise NotImplementedError(
+            f'type {type(input_map)} is not supported. Must be np.ndarray or '
+            'astropy.units.quantity.Quantity'
+        )
 
 
 
-class IQUMap:
-    """IQU Map object for containing cosmological stokes IQU parameters.
-
-    The object provides a convenient interface for the common IQU map, with
-    integrated vectorized arithmatic operations. 
+class StokesMap:
+    """Stokes map object for IQU maps (custom array container). 
     
-    The motivation for such a map object is: 
-        1)  to have vectorized operations for IQU maps without having to 
-            initialize unpolarized maps with np.zeros in the Q and U 
-            parameters (otherwise shapes would not match) as this could eat up
-            alot of memory at high nsides.
-        2)  to have common map properties and meta data such as P, units, 
-            nside, fwhm be predefined attributes that dynamically update after 
-            operations.
+    The object provides a convenient interface for the common IQU map with 
+    built in methods and attributes to access and evaluate commonly associated 
+    properties of IQU maps.
 
-    TODO: should nu_ref be included as part of the "meta data" of a IQU map?
-    
     Args:
     -----
-    I : np.ndarray 
-        Stokes I map.    
-    Q : np.ndarray 
-        Stokes U map.
-        Default : None   
-    U : np.ndarray 
-        Stokes Q map. 
-        Default : None
-    nu_ref : astropy.units.quantity.Quantity
-        I, Q and U reference frequencies.
-        Default : None
-    label : str
-        Map label.
-        Default : None
+    input_map (astropy.units.quantity.Quantity):
+        Healpix map of shape (3, nside) representing stokes IQU parameters.
+    freq_ref (astropy.units.quantity.Quantity):
+        List of reference frequencies of shape (3,) for each stokes parameter.
+        If the map is unpolarized, i.e, Q and U is zeros, then freq_ref will 
+        have the same value in all list elements for broadcasting purposes. 
+        Default: None
+    fwhm_ref (astropy.units.quantity.Quantity):
+        The fwhm of the beam used for the input_map.
+    label (str):
+        A descriptive label for the map, e.g 'Dust'. Default: None
 
     """
-    I : u.Quantity
-    Q : u.Quantity
-    U : u.Quantity
-    nu_ref : u.Quantity
+    input_map : u.Quantity
+    freq_ref : u.Quantity
+    fwhm_ref : u.Quantity
     label : str
 
-    @u.quantity_input(nu_ref=(None, u.Hz))
-    def __init__(self, I, Q=None, U=None, nu_ref=None, label=None):
-        """Checks that I, Q, and U are all of the same length. Converts maps 
-        to type float32 to save memory.
-        """
-        self.I = I
-        self.Q = Q
-        self.U = U
-        self.nu_ref = nu_ref
+    @u.quantity_input(freq_ref=(None, u.Hz), fwhm_ref=(None, u.arcmin, u.rad))
+    def __init__(self, input_map, freq_ref=None, fwhm_ref=None, label=None):
+        self.data = input_map.astype(np.float32)
+        self.freq_ref = freq_ref
+        self.fwhm_ref = fwhm_ref
         self.label = label
 
-        self.I = self.I.astype(np.float32)
-        if self._has_pol:
-            if not (len(self.I) == len(self.Q) == len(self.U)):
-                raise ValueError('I, Q, and U must have the same nside')
-            
-            if not (self.I.unit == self.Q.unit == self.U.unit):
-                raise u.UnitsError('I, Q and U must have the same units')
-
-            self.Q = self.Q.astype(np.float32)
-            self.U = self.U.astype(np.float32)
-
-        if self.nu_ref is not None and self._has_pol:
-            try:
-                if len(nu_ref) != 3:
-                    raise ValueError('Map is polarized but nu_ref is not')
-            except TypeError:
-                raise TypeError('Map is polarized but nu_ref is not')
-
+        if not isinstance(input_map, u.Quantity):
+            raise TypeError('input_map must be an astropy.Quantity object')
+        if input_map.shape[0] != 3:
+            raise ValueError('input_map shape must be (3, nside)')
+        if self.freq_ref is not None:
+            if self.freq_ref.shape != (3,):
+                raise ValueError('freq_ref shape must be (3,)')
         if not hp.isnsideok(self.nside, nest=True):
             raise ValueError(f'nside: {self.nside} is not valid')
 
 
     @property
-    def data(self):
-        """Returns the the map data as a np.ndarray"""
+    def I(self):
+        """Returns the stokes I map"""
+        return self.data[0]
+
+
+    @property
+    def Q(self):
+        """Returns the stokes Q map"""
         if self._has_pol:
-            return np.array([self.I, self.Q, self.U])
-
-        return self.I
-
-
-    @property
-    def shape(self):
-        """Returns the shape of the IQU map"""
-        return self.data.shape
-
+            return self.data[1]
+        print("This map has no Q signal, returning zeros.")
+        return np.zeros_like(self.I)
 
     @property
-    def unit(self):
-        """Returns the units of the IQU map"""
-        unit = self.I.unit
-        if unit is None:
-            return u.dimensionless_unscaled
-
-        return unit
-
+    def U(self):
+        """Returns the stokes U map"""
+        if self._has_pol:
+            return self.data[2]
+        print("This map has no U signal, returning zeros.")
+        return np.zeros_like(self.I)
+        
 
     @property
     def P(self):
@@ -168,7 +146,23 @@ class IQUMap:
         if self._has_pol:
             return np.sqrt(self.Q**2 + self.U**2)
 
-        return None
+        print("This map has no P signal, returning zeros.")
+        return np.zeros_like(self.I)
+
+
+    @property
+    def unit(self):
+        """Returns the units of the IQU map"""
+        return self.data.unit
+
+
+    @property
+    def _has_pol(self):
+        """Returns True if self.Q is non-zero. False otherwise"""
+        if np.any(self.data[1]) and np.any(self.data[2]):
+            return True
+
+        return False
 
 
     @property
@@ -178,29 +172,28 @@ class IQUMap:
 
 
     @property
-    def _has_pol(self):
-        """Returns True if self.Q is not None. False otherwise"""
-        if self.Q is not None:
-            return True
+    def shape(self):
+        """
+        Returns the shape of the IQU map
+        """
+        return self.data.shape
 
-        return False
 
-    def mask(self, mask, sigs=None):
+    @property
+    def ndim(self):
+        """Returns the number of dimensions of the map"""
+        return self.data.ndim
+
+
+    def mask(self, mask,):
         """Applies a mask to the data"""
 
-        if sigs==None:
-            sigs = ["I"]
-            if self._has_pol:
-                sigs += ["Q", "U"]
+        if not isinstance(self.data, np.ma.core.MaskedArray):
+            self.data = hp.ma(self.data)    
+        self.data.mask = np.logical_not(mask)
 
-        for sig in sigs:
-            m = getattr(self,sig)
-            if not isinstance(m, np.ma.core.MaskedArray):
-                m = hp.ma(m)
-            m.mask = np.logical_not(mask)
-            setattr(self, sig, m)
 
-    def remove_md(self, mask, sig=None, remove_dipole=True, remove_monopole=True):
+    def remove_md(self, mdmask, sig=None, remove_dipole=True, remove_monopole=True):
         """
         This function removes the mono and dipole of the signals in the map object.
         If you only wish to remove from 1 signal, pass [0,1,2]
@@ -208,22 +201,20 @@ class IQUMap:
         if sig==None:
             sig = [0,1,2]
         pol = ["I", "Q", "U"][sig]
-        data = getattr(self, pol)
-        data = [data] if data.ndim == 1 else data
-        for i, m in enumerate(data):
-            # Make sure data is masked array type
-            if not isinstance(m, np.ma.core.MaskedArray):
-                m = hp.ma(m)
-        
-            if mask == "auto":
+        # Make sure data is masked array type
+
+        for i, m in enumerate(self):
+            if mdmask == "auto":
                 mono, dip = hp.fit_dipole(m, gal_cut=30)
             else:
-                m_masked = m
+                m_masked = m.copy()
+                if not isinstance(m, np.ma.core.MaskedArray):
+                    m_masked = hp.ma(m_masked)
                 m_masked.mask = np.logical_not(mask)
                 mono, dip = hp.fit_dipole(m_masked)
 
             # Subtract dipole map from data
-            if isinstance(remove_dipole, np.ndarray):
+            if remove_dipole:
                 print("Removing dipole:")
                 print(f"Dipole vector: {dip}")
                 print(f"Dipole amplitude: {np.sqrt(np.sum(dip ** 2))}")
@@ -232,36 +223,31 @@ class IQUMap:
                 ray = range(len(m))
                 vecs = hp.pix2vec(self.nside, ray)
                 dipole = np.dot(dip, vecs)
-                
-                m = m - dipole
+                dipole = dipole.astype('float32')
 
-            if isinstance(remove_monopole, np.ndarray):
+                m = m - dipole
+            if remove_monopole:
                 print(f"Removing monopole:")
                 print(f"Mono: {mono}")
                 m = m - mono
-            
-            setattr(self, pol[i], m)
 
-
+            self.data[i] = m
 
     def to_nside(self, new_nside):
-        """If nside is changed, automatically ud_grades I, Q and U maps to the
-        new nside.
+        """ud_grades all stokes parameters to a new nside.
 
         Args:
         -----
-        new_nside: int
-            New Healpix map resolution parameter to ud_grade the maps with.
+        new_nside (int):
+            Healpix map resolution parameter.
 
         """
-        if not hp.isnsideok(self.nside, nest=True):
-            raise ValueError(f'nside: {self.nside} is not valid.')
+        if not hp.isnsideok(new_nside, nest=True):
+            raise ValueError(f'nside: {new_nside} is not valid.')
         if new_nside == self.nside:
             return
 
-        self.I = hp.ud_grade(self.I, new_nside)
-        self.Q = hp.ud_grade(self.Q, new_nside)
-        self.U = hp.ud_grade(self.U, new_nside)
+        self.data = hp.ud_grade(self.data.value, new_nside)*self.data.unit
 
 
     @u.quantity_input(fwhm=(u.arcmin, u.deg, u.rad))
@@ -270,135 +256,45 @@ class IQUMap:
         
         Args:
         -----
-        fwhm : astropy.units.quantity.Quantity
+        fwhm (astropy.units.quantity.Quantity):
             The fwhm of the Gaussian used to smooth the map. Must be either in
             units of arcmin, degrees or radians.
 
         """
-        self.I = hp.smoothing(self.I, fwhm.to(u.rad).value)
-        self.Q = hp.smoothing(self.Q, fwhm.to(u.rad).value)
-        self.U = hp.smoothing(self.U, fwhm.to(u.rad).value)
-
-
-    def _validate_nside(self, other):
-        if self.nside != other.nside:
-            raise ValueError(
-                f'Cant perform operation on maps of different nsides'
-            )
-    
-    def _validate_unit(self, other):
-        if self.unit != other.unit:
-            raise ValueError(
-                f'Cant perform operation on maps of different units'
-            )      
-
-
-    def _arithmetic_operation(self, other, operator):
-        """Implements default arithmetic operations for the Map object
-        
-        Args:
-        -----
-        other : int, float, np.ndarray, astropy.units.quantity.Quantity
-            Object to perform operation with, e.g operator(self, other).
-        operator : operator
-            Operator function from the default operator library, e.g 
-            operator.add, operator.sub, ..
-
-        Returns:
-        -------
-        Map instance
-            A new class instance with values corresponding to the operation.
-
-        """
-        if isinstance(other, self.__class__):
-            self._validate_nside(other)
-            if self._has_pol and other._has_pol:
-                return self.__class__(
-                    I=operator(self.I, other.I),
-                    Q=operator(self.Q, other.Q),
-                    U=operator(self.U, other.U),
-                    unit=self.unit
-                )    
-            elif self._has_pol:
-                return self.__class__(
-                    I=operator(self.I, other.I),
-                    Q=self.Q,
-                    U=self.U,
-                    unit=self.unit
+        fwhm = fwhm.to(u.rad)
+        if self.fwhm_ref != fwhm:
+            diff_fwhm = np.sqrt(fwhm.value**2 - self.fwhm_ref.value**2)
+            if diff_fwhm < 0:
+                raise ValueError(
+                    'cannot smooth to a higher resolution '
+                    f'(map fwhm: {self.fwhm_ref}).'
                 )
-            return self.__class__(
-                I=operator(self.I, other.I),
-                Q=other.Q,
-                U=other.U,
-                unit=self.unit
-            )      
-
-        elif isinstance(other, np.ndarray):
-            if self.data.shape != other.shape:
-                raise ValueError('Array shapes must match')
-            if isinstance(other, u.quantity.Quantity):
-                if self.unit != other.unit:
-                    raise ValueError(
-                        f'Cant perform operation on maps of different units'
-                    )   
-            if self._has_pol:
-                return self.__class__(
-                    I=operator(self.I, other[0]),
-                    Q=operator(self.Q, other[1]),
-                    U=operator(self.U, other[2]),
-                    unit=self.unit
-                )
-            return self.__class__(
-                I=operator(self.I, other),
-                Q=self.Q,
-                U=self.U,
-                unit=self.unit
-            )
-                
-        elif isinstance(other, (int, float)):
-            if self._has_pol:
-                return self.__class__(
-                    I=operator(self.I, other),
-                    Q=operator(self.Q, other),
-                    U=operator(self.U, other),
-                    unit=self.unit
-                )
-            return self.__class__(
-                I=operator(self.I, other),
-                Q=self.Q,
-                U=self.U,
-                unit=self.unit
-            )
-            
-        else:
-            return NotImplemented         
+            self.data = hp.smoothing(self.data, diff_fwhm)*self.data.unit
+            self.fwhm_ref = fwhm
 
 
-    def __add__(self, other):
-        self._validate_unit
-        return self._arithmetic_operation(other, operator.add)
+    def __array__(self):
+        return np.array(self.data.value)
+
+
+    def __add__(self, other):        
+        return self.__class__(self.data + other)
 
     
     def __sub__(self, other):
-        self._validate_unit
-        return self._arithmetic_operation(other, operator.sub)
+        return self.__class__(self.data - other)
 
 
     def __mul__(self, other):
-        return self._arithmetic_operation(other, operator.mul)
+        return self.__class__(self.data * other)
 
 
     def __truediv__(self, other):
-        return self._arithmetic_operation(other, operator.truediv)
+        return self.__class__(self.data / other)
 
 
     def __pow__(self, other):
-        if isinstance(other, (self.__class__, u.quantity.Quantity)):
-            if other.unit is not None:
-                raise u.UnitsError(
-                    f'Can only raise something to a dimensionless quantity'
-                )
-        return self._arithmetic_operation(other, operator.pow)
+        return self.__class__(self.data ** other)
 
 
     # Operations commute
@@ -408,17 +304,18 @@ class IQUMap:
     __rtruediv__ = __truediv__
     __rpow__ = __pow__
 
-    def __iter__(self):
-        if self._has_pol:
-            return iter([self.I, self.Q, self.U,])
 
-        return iter([self.I,])
+    def __iter__(self):
+        return iter(self.data)
+
 
     def __getitem__(self, idx):
         return self.data[idx]
 
+
     def __len__(self):
         return len(self.data)
+
 
     def __repr__(self):
         return f'{self.data}'

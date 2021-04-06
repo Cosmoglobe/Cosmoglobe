@@ -1,12 +1,209 @@
-"""
-HDH5 routines to handle commander3 chainfiles.
-"""
-import h5py
-import numpy as np
+from .. import sky
+from .. tools.map import to_stokes
 
+from numba import njit
+import astropy.units as u
+import h5py
+import healpy as hp
+import numpy as np
+import inspect
 
 param_group = 'parameters'  # Model parameter group name as implemented in commander
 _ignored_comps = ['md', 'radio', 'relquad'] # These will be dropped from component lists
+
+
+def model_from_chain(file, nside=None, sample=None, burn_in=None, comps=None):
+    """Returns a sky model from a commander3 chainfile.
+    
+    A cosmoglobe.sky.Model is initialized that represents the sky model used in 
+    the given Commander run.
+
+    Args:
+    -----
+    file (str):
+        Path to commander3 hdf5 chainfile.
+    nside (int):
+        Healpix resolution parameter.
+    sample (str, int, list):
+        If sample is None, then the model will be initialized from sample 
+        averaged maps. If sample is a string (or an int), the model will be 
+        initialized from that specific sample. If sample is a list, then the 
+        model will be initialized from an average over the samples in the list.
+        Default: None
+    burn_in (str, int):
+        The sample number as a str or int where the chainfile is assumed to 
+        have sufficently burned in. All samples before the burn_in are ignored 
+        in the averaging process.
+    comps (dict):
+        Dictionary of which classes to use for each component. The keys must
+        the comp group names in the chain file. If comps is None, a default set
+        of components will be selected. Default: None
+
+    Returns:
+    --------
+    (cosmoglobe.sky.Model):
+        A sky model representing the results of a commander3 run.
+
+    """
+    model = sky.Model(nside=nside)
+
+    default_comps = {
+        'dust': sky.ModifiedBlackBody,
+        'synch': sky.PowerLaw,
+        'ff': sky.LinearOpticallyThinBlackBody,
+        'ame': sky.SpDust2,
+        'cmb': sky.BlackBodyCMB,
+    }
+    if not comps:
+        comps = default_comps
+    component_list = _get_components(file)
+
+    for comp in component_list:
+        model.insert(comp_from_chain(file, comp, comps[comp], 
+                                     nside, sample, burn_in))
+
+    return model
+
+
+def comp_from_chain(file, component, component_class, model_nside, 
+                    sample=None, burn_in=None):
+    """Returns a sky component from a commander3 chainfile.
+    
+    A sky component that subclasses cosmoglobe.sky.Component is initialized 
+    from a given commander run.
+
+    TODO: find better solution to mapping classes to components. Perhaps create 
+          a dict that represents the components used in a BP run, e.g:
+            BP9_COMPS = {
+                'synch': sky.PowerLaw,
+                'dust': sky.ModifiedBlackBody,
+                ...
+            }
+          and then pass in BP lvl (8,9,..).
+    Args:
+    -----
+    file (str):
+        Path to commander3 hdf5 chainfile.
+    component (str):
+        Name of a sky component. Must match the hdf5 component group name.
+    sample (str, int, list):
+        If sample is 'mean', then the model will be initialized from sample 
+        averaged maps. If sample is a string (or an int), the model will be 
+        initialized from that specific sample. If sample is a list, then the 
+        model will be initialized from an average over the samples in the list.
+        Default: 'mean'
+    burn_in (str, int):
+        The sample number as a str or int where the chainfile is assumed to 
+        have sufficently burned in. All samples before the burn_in are ignored 
+        in the averaging process.
+
+    Returns:
+    --------
+    (sub class of cosmoglobe.sky.Component):
+        A sky component initialized from a commander run.
+
+    """
+    args_list = _get_comp_args(component_class) 
+    args = {}
+    parameters = _get_component_params(file, component)
+
+    freq_ref = (parameters['nu_ref']*u.Hz).to(u.GHz)
+    fwhm = (parameters['fwhm']*u.arcmin).to(u.rad)
+    nside = parameters['nside']
+    if 'freq_ref' in args_list:
+        args['freq_ref'] = freq_ref
+        args_list.remove('freq_ref')
+
+    unit = parameters['unit']
+    if 'k_rj' in unit.lower():
+        unit = unit[:-3]
+    elif 'k_cmb' in unit.lower():
+        unit = unit[:-4]
+    unit = u.Unit(unit)
+
+    if sample is None:
+        get_items = _get_averaged_items
+        sample = _get_samples(file)
+        if burn_in is not None:
+            sample = sample[burn_in:]
+    else:
+        get_items = _get_items
+    if isinstance(sample, int):
+        sample = _int_to_sample(sample)
+
+    alm_names = []
+    map_names = []
+    for arg in args_list:
+        if _has_precomputed_map(file, component, arg):
+            map_names.append(arg)
+        else:
+            alm_names.append(arg)
+    alms = get_items(file, sample, component, [f'{alm}_alm' for alm in alm_names ])
+    maps_ = get_items(file, sample, component, [f'{map_}_map' for map_ in map_names ])
+
+
+
+    if model_nside is not None and nside != model_nside:
+        maps = []
+        for map_ in maps_:
+            if isinstance(map_, np.ndarray):
+                maps.append(hp.ud_grade(map_, model_nside))
+    else:
+        maps = maps_
+
+    if model_nside is None:
+        model_nside = nside
+
+    if isinstance(sample, (tuple, list)):
+        sample = sample[-1]
+
+    alm_maps = []
+    for idx, alm in enumerate(alms):
+        lmax = _get_items(file, sample, component, f'{alm_names[idx]}_lmax')
+        unpacked_alm = unpack_alms_from_chain(alm, lmax)
+        if unpacked_alm.shape[0] != 3:
+            zeros = np.zeros(unpacked_alm.shape[1])
+            unpacked_alm = np.array([unpacked_alm[0], zeros, zeros])
+        alms = hp.alm2map(unpacked_alm, 
+                          nside=model_nside, 
+                          lmax=lmax, 
+                          fwhm=fwhm.value, 
+                          verbose=False).astype('float32')
+        alm_maps.append(alms)
+
+
+    args.update({key:value for key, value in zip(alm_names, alm_maps)})
+    args.update({key:value for key, value in zip(map_names, maps)})
+
+    args['amp'] = to_stokes(args['amp'], freq_ref=freq_ref, fwhm_ref=fwhm, label=component)
+    args = _set_spectral_units(args)
+
+    return component_class(comp_name=component, **args)
+
+
+def _set_spectral_units(maps):
+    """    
+    TODO: Figure out how to correctly detect unit of spectral map in chain.
+          Until then, a hardcoded dict is used:
+    """
+    units = {
+        'T': u.K,
+        'Te': u.K,
+        'nu_p' : u.GHz,
+    }
+    for map_ in maps:
+        if map_ in units:
+            maps[map_] *= units[map_]
+
+    return maps
+
+
+def _get_comp_args(component_class):
+    """Returns a list of arguments needed to initialize a component"""
+    ignored_args = ['self', 'comp_name']
+    arguments = inspect.getargspec(component_class.__init__).args
+    return [arg for arg in arguments if arg not in ignored_args]
+
 
 def _get_samples(file):
     """Returns a list of all samples present in a chain file"""
@@ -56,7 +253,7 @@ def _get_component_params(file, component):
                 return_params[param] = value[()]
 
         return return_params
-
+    
 
 def _get_items(file, sample, component, items):
     """Return the value of one or many items for a component in the chain file.
@@ -85,7 +282,6 @@ def _get_items(file, sample, component, items):
                 items_to_return.append(f[sample][component].get(item)[()])
 
             return items_to_return
-        
         return f[sample][component].get(items)[()]
 
 
@@ -114,21 +310,23 @@ def _get_averaged_items(file, samples, component, items):
     with h5py.File(file, 'r') as f:
         if isinstance(items, (tuple, list)):
             items_to_return = [[] for _ in range(len(items))]
+
             for sample in samples:
                 for idx, item in enumerate(items):
-                    items_to_return[idx].append(f[sample][component].get(item)[()])
+                    try:
+                        items_to_return[idx] += f[sample][component].get(item)[()]
+                    except ValueError:
+                        items_to_return[idx] = f[sample][component].get(item)[()]
 
-            return [np.mean(item, axis=0) for item in items_to_return]
+            return [item/len(samples) for item in items_to_return]
 
         for sample in samples:
             try:
-                item_to_return = np.append(item_to_return, 
-                                           f[sample][component].get(items)[()],
-                                           axis=0)
+                item_to_return += f[sample][component].get(items)[()]
             except UnboundLocalError:
                 item_to_return = f[sample][component].get(items)[()]
 
-        return np.mean(item_to_return, axis=0)
+        return item_to_return/len(samples)
 
 
 def _has_precomputed_map(file, component, item, sample=-1):
@@ -147,19 +345,45 @@ def _has_precomputed_map(file, component, item, sample=-1):
     return False
 
 
+@njit
+def unpack_alms_from_chain(data, lmax):
+    """Unpacks alms from the Commander chain output.
 
-if __name__ == '__main__':
-    test_file = '/Users/metinsan/Documents/doktor/Cosmoglobe_test_data/bla.h5'
-    samples = _get_samples(test_file)
-    # items = _get_averaged_items(test_file,
-    #                             samples,
-    #                             'ame', 
-    #                             ('amp_alm', 'nu_p_map'))
-    # print(items)
-    # items = _get_items(test_file, 
-    #                    '000039',
-    #                    'ame', 
-    #                    ('amp_alm', 'nu_p_map'))
-    # print(items)
-    # print(_get_components(test_file, ignore_comps=False))
-    print(_has_precomputed_map(test_file, 'ff', 'Te'))
+    Unpacking algorithm: 
+    https://github.com/trygvels/c3pp/blob/2a2937926c260cbce15e6d6d6e0e9d23b0be1262/src/tools.py#L9
+
+    TODO: look over this function and see if it can be improved.
+
+    Args:
+    -----
+    data (np.ndarray)
+        alms from a commander chainfile.
+    lmax : int
+        Maximum value for l used in the alms.
+
+    Returns:
+    --------
+    alms (np.ndarray)
+        Unpacked version of the Commander alms (2-dimensional array)
+    
+    """
+    n = len(data)
+    n_alms = int(lmax * (2*lmax+1 - lmax) / 2 + lmax+1)
+    alms = np.zeros((n, n_alms), dtype=np.complex128)
+
+    for sigma in range(n):
+        i = 0
+        for l in range(lmax+1):
+            j_real = l**2 + l
+            alms[sigma, i] = complex(data[sigma, j_real], 0.0)
+            i += 1
+
+        for m in range(1, lmax+1):
+            for l in range(m, lmax+1):
+                j_real = l**2 + l + m
+                j_comp = l**2 + l - m
+                alms[sigma, i] = complex(data[sigma, j_real], 
+                                         data[sigma, j_comp],)/ np.sqrt(2.0)
+                i += 1
+
+    return alms
