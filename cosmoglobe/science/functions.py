@@ -39,12 +39,16 @@ def gaunt_factor(freq, T_e):
         Gaunt Factor.
 
     """
-    if isinstance(T_e, np.ndarray):
+    try:
         T_e = T_e.astype(np.float64)
-    if isinstance(freq, u.Quantity):
+    except AttributeError:
+        pass
+
+    try:
         freq = freq.si.value    
-    if isinstance(T_e, u.Quantity):
         T_e = T_e.si.value
+    except AttributeError:
+        pass    
         
     gaunt_factor = np.log(np.exp(5.96 - (np.sqrt(3)/np.pi) * np.log(freq
                   * (T_e*1e-4)**-1.5)) + np.e)

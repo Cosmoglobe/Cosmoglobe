@@ -1,4 +1,5 @@
 from .. import sky
+from .. tools.map import to_stokes
 
 from numba import njit
 import astropy.units as u
@@ -11,7 +12,7 @@ param_group = 'parameters'  # Model parameter group name as implemented in comma
 _ignored_comps = ['md', 'radio', 'relquad'] # These will be dropped from component lists
 
 
-def model_from_chain(file, sample='mean', burn_in=None):
+def model_from_chain(file, nside=None, sample=None, burn_in=None, comps=None):
     """Returns a sky model from a commander3 chainfile.
     
     A cosmoglobe.sky.Model is initialized that represents the sky model used in 
@@ -21,16 +22,22 @@ def model_from_chain(file, sample='mean', burn_in=None):
     -----
     file (str):
         Path to commander3 hdf5 chainfile.
+    nside (int):
+        Healpix resolution parameter.
     sample (str, int, list):
-        If sample is 'mean', then the model will be initialized from sample 
+        If sample is None, then the model will be initialized from sample 
         averaged maps. If sample is a string (or an int), the model will be 
         initialized from that specific sample. If sample is a list, then the 
         model will be initialized from an average over the samples in the list.
-        Default: 'mean'
+        Default: None
     burn_in (str, int):
         The sample number as a str or int where the chainfile is assumed to 
         have sufficently burned in. All samples before the burn_in are ignored 
         in the averaging process.
+    comps (dict):
+        Dictionary of which classes to use for each component. The keys must
+        the comp group names in the chain file. If comps is None, a default set
+        of components will be selected. Default: None
 
     Returns:
     --------
@@ -38,18 +45,28 @@ def model_from_chain(file, sample='mean', burn_in=None):
         A sky model representing the results of a commander3 run.
 
     """
-    if isinstance(sample, int):
-        sample = _int_to_sample(sample)
+    model = sky.Model(nside=nside)
 
+    default_comps = {
+        'dust': sky.ModifiedBlackBody,
+        'synch': sky.PowerLaw,
+        'ff': sky.LinearOpticallyThinBlackBody,
+        'ame': sky.SpDust2,
+        'cmb': sky.BlackBodyCMB,
+    }
+    if not comps:
+        comps = default_comps
     component_list = _get_components(file)
-    components = []
+
     for comp in component_list:
-        components.append(comp_from_chain(file, comp, sample, burn_in))
+        model.insert(comp_from_chain(file, comp, comps[comp], 
+                                     nside, sample, burn_in))
 
-    return sky.Model(components, nside=1024)
+    return model
 
 
-def comp_from_chain(file, component, sample='mean', burn_in=None):
+def comp_from_chain(file, component, component_class, model_nside, 
+                    sample=None, burn_in=None):
     """Returns a sky component from a commander3 chainfile.
     
     A sky component that subclasses cosmoglobe.sky.Component is initialized 
@@ -86,29 +103,16 @@ def comp_from_chain(file, component, sample='mean', burn_in=None):
         A sky component initialized from a commander run.
 
     """
-    if isinstance(sample, int):
-        sample = _int_to_sample(sample)
-
-    comp_classes = {
-        'dust': sky.ModifiedBlackBody,
-        'synch': sky.PowerLaw,
-        'ff': sky.LinearOpticallyThinBlackBody,
-        'ame': sky.SpDust2,
-        'cmb': sky.BlackBodyCMB,
-    }
-    comp_class = comp_classes[component]
-    args_list = _get_comp_args(comp_class)
-
-    if not 'amp' in args_list or not 'freq_ref' in args_list:
-        raise ValueError(
-            "component class must contain the arguments 'amp' and 'freq_ref'"
-        )
-    
+    args_list = _get_comp_args(component_class) 
+    args = {}
     parameters = _get_component_params(file, component)
+
     freq_ref = (parameters['nu_ref']*u.Hz).to(u.GHz)
     fwhm = (parameters['fwhm']*u.arcmin).to(u.rad)
     nside = parameters['nside']
-    args_list.remove('freq_ref')
+    if 'freq_ref' in args_list:
+        args['freq_ref'] = freq_ref
+        args_list.remove('freq_ref')
 
     unit = parameters['unit']
     if 'k_rj' in unit.lower():
@@ -117,13 +121,15 @@ def comp_from_chain(file, component, sample='mean', burn_in=None):
         unit = unit[:-4]
     unit = u.Unit(unit)
 
-    if sample == 'mean':
+    if sample is None:
         get_items = _get_averaged_items
         sample = _get_samples(file)
         if burn_in is not None:
             sample = sample[burn_in:]
     else:
         get_items = _get_items
+    if isinstance(sample, int):
+        sample = _int_to_sample(sample)
 
     alm_names = []
     map_names = []
@@ -133,7 +139,20 @@ def comp_from_chain(file, component, sample='mean', burn_in=None):
         else:
             alm_names.append(arg)
     alms = get_items(file, sample, component, [f'{alm}_alm' for alm in alm_names ])
-    maps = get_items(file, sample, component, [f'{map_}_map' for map_ in map_names ])
+    maps_ = get_items(file, sample, component, [f'{map_}_map' for map_ in map_names ])
+
+
+
+    if model_nside is not None and nside != model_nside:
+        maps = []
+        for map_ in maps_:
+            if isinstance(map_, np.ndarray):
+                maps.append(hp.ud_grade(map_, model_nside))
+    else:
+        maps = maps_
+
+    if model_nside is None:
+        model_nside = nside
 
     if isinstance(sample, (tuple, list)):
         sample = sample[-1]
@@ -146,22 +165,20 @@ def comp_from_chain(file, component, sample='mean', burn_in=None):
             zeros = np.zeros(unpacked_alm.shape[1])
             unpacked_alm = np.array([unpacked_alm[0], zeros, zeros])
         alms = hp.alm2map(unpacked_alm, 
-                          nside=nside, 
+                          nside=model_nside, 
                           lmax=lmax, 
                           fwhm=fwhm.value, 
                           verbose=False).astype('float32')
         alm_maps.append(alms)
 
 
-    args = {}
     args.update({key:value for key, value in zip(alm_names, alm_maps)})
     args.update({key:value for key, value in zip(map_names, maps)})
 
-
-    args['amp'] *= unit
+    args['amp'] = to_stokes(args['amp'], freq_ref=freq_ref, fwhm_ref=fwhm, label=component)
     args = _set_spectral_units(args)
 
-    return comp_class(comp_name=component, freq_ref=freq_ref, **args)
+    return component_class(comp_name=component, **args)
 
 
 def _set_spectral_units(maps):

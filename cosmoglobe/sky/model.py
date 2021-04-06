@@ -6,78 +6,91 @@ import healpy as hp
 class Model:
     """A sky model.
 
-    This class acts as a container for the various components making up the 
+    This class acts as a container for the various components making up the
     sky model. It provides methods that operate on all components.
 
-    TODO: Should all components be smoothed to the same beam before any 
-    evaluation can be done? 
+    TODO: Should all components be smoothed to the same beam before any
+    evaluation can be done?
 
     Args:
     -----
     components (list):
-        A list of cosmoglobe.Component objects that will be added to the model.
+        A list of `cosmoglobe.sky.Component` objects that will be added to the
+        model.
+    nside (int):
+        Healpix map resolution. Represents the resolution of the sky model. If
+        None, nside will be set to the nside of the first inserted component.
+        Default: None
 
     """
-    _components = {}
-    def __init__(self, components, nside=None, fwhm=None):
+    def __init__(self, components=None, nside=None):
         self.nside = nside
-        self.fwhm = fwhm
-        for component in components:
-            self._add_component(component)
+        self.components = {}
+        if components:
+            for component in components:
+                self._add_component(component)
 
 
     def _add_component(self, component):
-        """Adds a component to the current model"""
         if not issubclass(component.__class__, Component):
-            raise TypeError(f'{component} is not a subclass of Component')
-
-        name = component.comp_name
-        if name in self._components:
-            raise KeyError(f'component {name} already exists in model')
-        if component.amp.nside != self.nside:
-            raise ValueError(
-                f'component {name!r} has a reference map at NSIDE'
-                f'{component.amp.nside}, but model NSIDE is set to {self.nside}'
+            raise TypeError(
+                f'{component} is not a subclass of cosmoglobe.sky.Component'
             )
 
-        self._components[name] = component
+        name = component.comp_name
+        nside = component.amp.nside
+        if name in self.components:
+            raise KeyError(f'component {name} already exists in model')
+        if nside != self.nside:
+            if self.nside is None:
+                self.nside = nside
+            else:
+                raise ValueError(
+                    f'component {name!r} has a reference map at NSIDE'
+                    f'{nside}, but model NSIDE is set to {self.nside}'
+                )
+
         setattr(self, name, component)
+        self.components[name] = component
 
 
     @u.quantity_input(freq=u.Hz, bandpass=(u.Jy/u.sr, u.K, None))
     def get_emission(self, freq, bandpass=None, output_unit=None):
-        """Returns the full model sky emission at an arbitrary frequency.
+        """Returns the full model sky emission at a single or multiple
+        frequencies.
 
         TODO: add possibility to choose output_unit.
 
         Args:
         -----
-        freq (astropy.units.quantity.Quantity):
-            A frequency, or list of frequencies for which to evaluate the 
+        freq (`astropy.units.Quantity`):
+            A frequency, or list of frequencies for which to evaluate the
             component emission. Must be in units of Hertz.
-        bandpass (astropy.units.quantity.Quantity):
-            Bandpass profile corresponding to the frequency list. If None, a 
-            delta peak in frequency is assumed at the given frequencies. 
+        bandpass (`astropy.units.Quantity`):
+            Bandpass profile corresponding to the frequency list. If None, a
+            delta peak in frequency is assumed at the given frequencies.
             Default: None
-        output_unit (astropy.units.Unit):
-            The desired output units of the emission. Must be signal units, e.g 
+        output_unit (`astropy.units.Unit`):
+            The desired output units of the emission. Must be signal units, e.g
             Jy/sr or K. Default : None
 
 
-        Returns
-        -------
-        astropy.units.quantity.Quantity
+        Returns:
+        --------
+        (`astropy.units.Quantity`)
             Model emission at the given frequency.
 
         """
         if freq.ndim > 0:
-            emissions = []
-            for freq in freq:
-                emissions.append(sum([comp.get_emission(freq, bandpass, output_unit) 
-                                      for comp in self]))
-            return emissions
+            return [self._get_model_emission(freq, bandpass, output_unit)
+                    for freq in freq]
 
-        return sum([comp.get_emission(freq, bandpass, output_unit) for comp in self])
+        return self._get_model_emission(freq, bandpass, output_unit)
+
+
+    def _get_model_emission(self, freq, bandpass, output_unit):
+        return sum(comp.get_emission(freq, bandpass, output_unit) 
+                   for comp in self)
 
 
     def insert(self, component):
@@ -85,9 +98,9 @@ class Model:
 
         Args:
         -----
-        component (a subclass of cosmoglobe.sky.Component):
+        component (a subclass of `cosmoglobe.sky.Component`):
             Sky component to be added to the model. Must be a subclass of 
-            cosmoglobe.sky.Component.
+            `cosmoglobe.sky.Component`.
 
         """
         self._add_component(component)
@@ -99,8 +112,7 @@ class Model:
         Args:
         -----
         name (str):
-            The name of a component present in the model. This is the name in 
-            the parenthesis in the model repr.
+            Component attribute name.
 
         """
         del self[name]
@@ -108,8 +120,7 @@ class Model:
 
     @property
     def component_names(self):
-        """Returns a list of the names of the components present in the model"""
-        return list(self._components.keys())
+        return list(self.components.keys())
 
 
     def to_nside(self, new_nside):
@@ -130,26 +141,25 @@ class Model:
             comp.to_nside(new_nside)
 
 
-
     def __iter__(self):
-        return iter(self._components.values())
+        return iter(self.components.values())
 
 
     def __len__(self):
-        return len(self._components)
+        return len(self.components)
 
 
     def __delitem__(self, name):
-        if name not in self._components:
-            raise KeyError(f'compmonent {name} doesnt exists')
+        if name not in self.components:
+            raise KeyError(f'component {name} does not exist')
 
-        del self._components[name]
         delattr(self, name)
+        del self.components[name]
 
 
     def __repr__(self):
         reprs = []
-        for key, component in self._components.items():
+        for key, component in self.components.items():
             component_repr = repr(component) + '\n'
             reprs.append(f'({key}): {component_repr}')
 
