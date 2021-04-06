@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as col
 import astropy.units as u
 from astropy.units import cm, imperial
-from cosmoglobe.tools.map import to_IQU, IQUMap
+from cosmoglobe.tools.map import to_stokes, StokesMap
 
 hp.disable_warnings()
 # Fix for macos openMP duplicate bug
@@ -31,8 +31,9 @@ def mollplot(
     mask=None,
     mfill=None,
     logscale=False,
-    remove_dipole=None,
-    remove_monopole=None,
+    mdmask=None,
+    remove_dipole=True,
+    remove_monopole=True,
     cmap=None,
     title=None,
     ltitle=None,
@@ -97,12 +98,17 @@ def mollplot(
         Color to fill masked area, for example "gray".
         Transparent by default.
         defualt : None
-    remove_dipole : str
-        Fits and removes a dipole. Specify mask for fit, or "auto".
+    mdmask : str or array
+        Mask for mono-dipole removal. If "auto", uses 30 degree cutoff.
+        Removes both by default. Toggle off dipole or monopole removal with
+        remove_dipole or remove_monopole arguments.
         default = None
-    remove_monopole : str
-        Fits and removes a monopole. Specify mask for fit, or "auto".
-        default = None
+    remove_dipole : bool
+        If mdmask is specified, fits and removes a dipole. 
+        default = True
+    remove_monopole : bool
+        If mdmask is specified, fits and removes a monopole. 
+        default = True
     logscale : str
         Normalizes data using a semi-logscale linear between -1 and 1.
         Autodetector uses this sometimes, you will be warned.
@@ -162,8 +168,8 @@ def mollplot(
         default = False
     """
     # Check if input is cosmoglobe map object
-    if not isinstance(map_, (IQUMap)):
-        map_ = to_IQU(map_)
+    if not isinstance(map_, (StokesMap)):
+        map_ = to_stokes(map_)
 
     nside = map_.nside
     unit = map_.unit
@@ -177,11 +183,8 @@ def mollplot(
     )
 
     # Mask map
-    domask = isinstance(mask, np.ndarray)
-    dodipole = isinstance(remove_dipole, np.ndarray)
-    domonopole = isinstance(remove_monopole, np.ndarray)
-    if domask:
-        print("applying mask")
+    if mask: 
+        "Applying mask"
         map_.mask(mask)
 
     # Set plotting rcParams
@@ -196,18 +199,15 @@ def mollplot(
             pol = ["I", "Q", "U"][pol]
 
         # Remove mono/dipole
-        if dodipole or domonopole:
-            # These tests are dumb rewrite these pls
-            if dodipole:
-                mdmask = remove_dipole
-            if domonopole:
-                mdmask = remove_monopole
-
-            map_.remove_md(mdmask, sig=i, remove_dipole=dodipole, remove_monopole=domonopole)
+        if mdmask:
+            # If mdmask exists, remove mono and dipole. Manually toggle either off.
+            map_.remove_md(mdmask, sig=i, remove_dipole=remove_dipole, remove_monopole=remove_monopole)
+        elif remove_dipole or remove_monopole:
+                print("To remove monopole or dipole, please provide mdmask or set mdmask=auto")
 
         # Put signal into map object
         m = getattr(map_, pol)
-        grid_mask = m.mask[grid_pix] if domask else None
+        grid_mask = m.mask[grid_pix] if mask else None
         grid_map = np.ma.MaskedArray(m[grid_pix], grid_mask)
 
         """
