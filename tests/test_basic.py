@@ -18,5 +18,5 @@ map_ = to_stokes(map_, label="cmb")
 #mask = np.random.randint(2, size=len(map_))
 mask=map_.data>0
 mask[1] = mask[0]
-cgp.mollplot(map_, colorbar=True, mdmask="auto")
-#plt.show()
+cgp.mollplot(map_, colorbar=True, auto=True)
+plt.show()

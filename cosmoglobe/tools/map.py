@@ -100,7 +100,7 @@ class StokesMap:
     label : str
 
     @u.quantity_input(freq_ref=(None, u.Hz), fwhm_ref=(None, u.arcmin, u.rad))
-    def __init__(self, input_map, freq_ref=None, fwhm_ref=None, label=None):
+    def __init__(self, input_map, freq_ref=None, fwhm_ref=None, label=None,):
         self.data = input_map.astype(np.float32)
         self.freq_ref = freq_ref
         self.fwhm_ref = fwhm_ref
@@ -122,7 +122,6 @@ class StokesMap:
         """Returns the stokes I map"""
         return self.data[0]
 
-
     @property
     def Q(self):
         """Returns the stokes Q map"""
@@ -139,7 +138,6 @@ class StokesMap:
         print("This map has no U signal, returning zeros.")
         return np.zeros_like(self.I)
         
-
     @property
     def P(self):
         """Polarized map signal. P = sqrt(Q^2 + U^2)"""
@@ -148,7 +146,6 @@ class StokesMap:
 
         print("This map has no P signal, returning zeros.")
         return np.zeros_like(self.I)
-
 
     @property
     def unit(self):
@@ -159,7 +156,7 @@ class StokesMap:
     @property
     def _has_pol(self):
         """Returns True if self.Q is non-zero. False otherwise"""
-        if np.any(self.data[1]) and np.any(self.data[2]):
+        if np.any(self.data.value[1]) and np.any(self.data.value[2]):
             return True
 
         return False
@@ -198,10 +195,9 @@ class StokesMap:
         This function removes the mono and dipole of the signals in the map object.
         If you only wish to remove from 1 signal, pass [0,1,2]
         """
-        if sig==None:
-            sig = [0,1,2]
+        if sig==None: sig = [0,1,2]
         pol = ["I", "Q", "U"][sig]
-        # Make sure data is masked array type
+
 
         for i, m in enumerate(self):
             if mdmask == "auto":
