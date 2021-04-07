@@ -3,6 +3,7 @@ from .components import Component
 import astropy.units as u
 import healpy as hp
 
+
 class Model:
     """A sky model.
 
@@ -163,8 +164,10 @@ class Model:
             component_repr = repr(component) + '\n'
             reprs.append(f'({key}): {component_repr}')
 
-        main_repr = 'Model('
+        main_repr = f'Model('
         main_repr += '\n ' + ' '.join(reprs)
-        main_repr += ')'
+        main_repr += f'), nside={self.nside}'
 
         return main_repr
+
+
