@@ -1,4 +1,3 @@
-from urllib.request import Request
 from .model import Model
 
 from astropy.utils.data import download_file
@@ -21,7 +20,9 @@ def load_model(path_to_model: str) -> Model:
         Loaded cosmoglobe sky model.
 
     """
-    model = pickle.load(path_to_model)
+    with open(path_to_model, 'rb') as f:
+        model =  pickle.load(f)
+
     if not isinstance(model, Model):
         raise TypeError(f'{path_to_model} is not a valid cosmoglobe.sky.Model')
 
@@ -41,7 +42,9 @@ def save_model(model: Model, filename: str) -> None:
     """
     if not isinstance(model, Model):
         raise TypeError(f'{model} is not a valid cosmoglobe.sky.Model')
-    pickle.dump(model, filename)
+        
+    with open(filename, 'wb') as f:
+        pickle.dump(model, f)
 
 
 def _download_BP_model(release: int, nside: int, cache=True) -> Model:
