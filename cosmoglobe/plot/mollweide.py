@@ -314,14 +314,13 @@ def mollplot(
                 fontsize, linthresh=1, logscale=params["logscale"])
 
         #### Right Title ####
-        if params["title"] is not None:
-            plt.text(
-                4.5,
-                1.1,
-                params["title"],
-                ha="center",
-                va="center",
-                fontsize=fontsize)
+        plt.text(
+            4.5,
+            1.1,
+            params["title"],
+            ha="center",
+            va="center",
+            fontsize=fontsize)
 
         #### Left Title (stokes parameter label by default) ####
         plt.text(
