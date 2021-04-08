@@ -238,7 +238,7 @@ def mollplot(
     # Smooth map
     if fwhm>0.0: map_.to_fwhm(fwhm*u.arcmin)
 
-    print(f"Plotting {map_.label} nside {nside}")
+    if verbose: print(f"Plotting {map_.label} nside {nside}")
 
     # Projection arrays
     grid_pix, longitude, latitude = project_map(
@@ -278,16 +278,14 @@ def mollplot(
         #### Color map #####
         cmap = load_cmap(cmap, logscale)
 
-        # Terminal ouput
-        print(f'FWHM: {fwhm}')
-        print(f'nside: {nside}')
-        print(f'Ticks: {ticklabels}')
-        print(f'Unit: {params["unit"]}')
-        print(f'Title: {params["title"]}')
-
-        #fig = plt.figure(figsize=(width.value, height.value))
-        #ax = fig.add_subplot(111, projection="mollweide")
-        
+        if verbose:
+            # Terminal ouput
+            print(f'FWHM: {fwhm}')
+            print(f'nside: {nside}')
+            print(f'Ticks: {ticklabels}')
+            print(f'Unit: {params["unit"]}')
+            print(f'Title: {params["title"]}')
+            
         image = plt.pcolormesh(
             longitude[::-1],
             latitude,
@@ -406,7 +404,7 @@ def apply_logscale(m, ticks, linthresh=1):
     This function converts the data to logscale, 
     and also converts the tick locations correspondingly
     """
-    print("Applying semi-logscale")
+    if verbose: print("Applying semi-logscale")
     m = symlog(m,linthresh)
     new_ticks = []
     for i in ticks:
