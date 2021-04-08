@@ -271,16 +271,17 @@ def mollplot(
         if ticks==None: ticks = get_percentile(m, 97.5)
  
         #### Logscale ####
+        ticklabels = [fmt(i, 1) for i in ticks]
         if params["logscale"]: 
             m, ticks = apply_logscale(m, ticks, linthresh=1)
-            
+
         #### Color map #####
         cmap = load_cmap(cmap, logscale)
 
         # Terminal ouput
         print(f'FWHM: {fwhm}')
         print(f'nside: {nside}')
-        print(f'Ticks: {ticks}')
+        print(f'Ticks: {ticklabels}')
         print(f'Unit: {params["unit"]}')
         print(f'Title: {params["title"]}')
 
@@ -301,7 +302,7 @@ def mollplot(
         #### Graticule ####
         if graticule: apply_graticule(ax, plt.gcf().get_size_inches()[0])
         ax.xaxis.set_ticklabels([])
-        ax.yaxis.set_ticklabels([])  # rm lonlat ticklabs
+        ax.yaxis.set_ticklabels([])
 
         for i in ["title","unit","ltitle"]:
             if params[i] and params[i]!="": 
@@ -310,7 +311,7 @@ def mollplot(
         #### Colorbar ####
         if colorbar:
             apply_colorbar(
-                fig, ax, image, ticks, params["unit"], 
+                fig, ax, image, ticks, ticklabels, params["unit"], 
                 fontsize, linthresh=1, logscale=params["logscale"])
 
         #### Right Title ####
@@ -334,12 +335,11 @@ def mollplot(
 
         return fig, ax
 
-def apply_colorbar(fig, ax, image, ticks, unit, fontsize, linthresh, logscale=False):
+def apply_colorbar(fig, ax, image, ticks, ticklabels, unit, fontsize, linthresh, logscale=False):
     """
     This function applies a colorbar to the figure and formats the ticks.
     """
     from matplotlib.ticker import FuncFormatter
-    ticklabels = [fmt(i, 1) for i in ticks]
 
     cb = fig.colorbar(image, ax=ax, orientation="horizontal", shrink=0.4, pad=0.04, ticks=ticks, format=FuncFormatter(fmt),)
     cb.ax.set_xticklabels(ticklabels)
@@ -357,7 +357,7 @@ def apply_colorbar(fig, ax, image, ticks, unit, fontsize, linthresh, logscale=Fa
 
         logticks = symlog(ticks_, linthresh)
         logticks = [x for x in logticks if x not in ticks]
-        cb.set_ticks(np.concatenate((ticks,logticks ))) # Set major ticks
+        cb.set_ticks(np.concatenate((ticks,logticks))) # Set major ticks
         cb.ax.set_xticklabels(ticklabels + ['']*len(logticks))
 
         minorticks = np.linspace(-linthresh, linthresh, 5)
