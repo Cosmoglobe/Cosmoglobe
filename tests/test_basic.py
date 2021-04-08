@@ -13,10 +13,11 @@ import cosmoglobe.plot as cgp
 path = "/Users/svalheim/work/cosmoglobe-workdir/"
 hp.disable_warnings()
 map_=hp.read_map(path+"cmb_c0001_k000200.fits", field=None)
-map_ = to_stokes(map_, label="cmb")
+map_ = to_stokes(map_, label="synch_beta")
 
 #mask = np.random.randint(2, size=len(map_))
 mask=map_.data>0
 mask[1] = mask[0]
-cgp.mollplot(map_, colorbar=True, auto=True)
+
+cgp.mollplot(map_, colorbar=True, auto=True, sig=0, nside=16)
 plt.show()

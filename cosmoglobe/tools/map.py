@@ -190,14 +190,13 @@ class StokesMap:
         self.data.mask = np.logical_not(mask)
 
 
-    def remove_md(self, mdmask, sig=None, remove_dipole=True, remove_monopole=True):
+    def remove_md(self, mdmask="auto", sig=None, remove_dipole=True, remove_monopole=True):
         """
         This function removes the mono and dipole of the signals in the map object.
         If you only wish to remove from 1 signal, pass [0,1,2]
         """
         if sig==None: sig = [0,1,2]
         pol = ["I", "Q", "U"][sig]
-
 
         for i, m in enumerate(self):
             if mdmask == "auto":
@@ -259,13 +258,18 @@ class StokesMap:
         """
         fwhm = fwhm.to(u.rad)
         if self.fwhm_ref != fwhm:
-            diff_fwhm = np.sqrt(fwhm.value**2 - self.fwhm_ref.value**2)
+
+            if self.fwhm_ref is None:
+                diff_fwhm = fwhm
+            else:
+                diff_fwhm = np.sqrt(fwhm.value**2 - self.fwhm_ref.value**2)
+
             if diff_fwhm < 0:
                 raise ValueError(
                     'cannot smooth to a higher resolution '
                     f'(map fwhm: {self.fwhm_ref}).'
                 )
-            self.data = hp.smoothing(self.data, diff_fwhm)*self.data.unit
+            self.data = hp.smoothing(self.data, diff_fwhm.value)*self.data.unit
             self.fwhm_ref = fwhm
 
 
