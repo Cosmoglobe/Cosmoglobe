@@ -1,11 +1,9 @@
-import sys
 import os
 import healpy as hp
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as col
 import astropy.units as u
-from astropy.units import cm, imperial
 from cosmoglobe.tools.map import to_stokes, StokesMap
 from pathlib import Path
 from .. import data as data_dir
@@ -25,20 +23,23 @@ def mollplot(
     colorbar=False,
     unit=None,
     graticule=False,
-    lmax=None,
     fwhm=0.0,
+    nside=None,
     mask=None,
-    mfill=None,
     logscale=None,
-    mdmask=None,
-    remove_dipole=True,
-    remove_monopole=True,
+    remove_dipole=False,
+    remove_monopole=False,
     cmap=None,
     title=None,
     ltitle=None,
-    size="m",
+    figsize=(6, 3),
     darkmode=False,
-    fontsize=11,):
+    fontsize=11,
+    fignum=None,
+    subplot=None,
+    hold=False,
+    reuse_axes=False,
+    ):
     """
     Plots a fits file, a h5 data structure or a data array in Mollview with
     pretty formatting. Option of autodecting component base on file-string with
@@ -125,8 +126,58 @@ def mollplot(
     fontsize : int
         Fontsize
         default = 11
-    """
 
+    fignum : int or None, optional
+      The figure number to use. Default: create a new figure
+    hold : bool, optional
+      If True, replace the current Axes by a MollweideAxes.
+      use this if you want to have multiple maps on the same
+      figure. Default: False
+    sub : int, scalar or sequence, optional
+      Use only a zone of the current figure (same syntax as subplot).
+      Default: None
+    reuse_axes : bool, optional
+      If True, reuse the current Axes (should be a MollweideAxes). This is
+      useful if you want to overplot with a partially transparent colormap,
+      such as for plotting a line integral convolution. Default: False
+    """
+    # Pick sizes from size dictionary for page width plots
+    if isinstance(figsize, str):
+        width = {"x": 2.75, "s": 3.5, "m": 4.7, "l": 7,}[figsize]
+        height = width / 2.0
+    else:
+        width, height = figsize
+    if colorbar: height*=1.275  # Size correction with cbar
+
+    # From healpy
+    nrows, ncols, idx = (1,1,1)
+    if not (hold or subplot or reuse_axes):
+        fig = plt.figure(fignum, figsize=(width,height))
+    elif hold:
+        fig = plt.gcf()
+        left, bottom, right, top = np.array(fig.gca().get_position()).ravel()
+        fig.delaxes(fig.gca())
+    elif reuse_axes:
+        fig = plt.gcf()
+    else:  # using subplot syntax
+        if hasattr(subplot, "__len__"):
+            nrows, ncols, idx = subplot
+        else:
+            nrows, ncols, idx = subplot // 100, (subplot % 100) // 10, (subplot % 10)
+        
+        # If figure exists, get. If not, create.
+        from matplotlib import _pylab_helpers
+        figManager = _pylab_helpers.Gcf.get_active()
+        if figManager is not None:
+            fig = figManager.canvas.figure
+        else:
+            figsize = (width*ncols, height*nrows)
+            fig = plt.figure(figsize=figsize)
+
+        if idx < 1 or idx > ncols * nrows:
+            raise ValueError("Wrong values for subplot: %d, %d, %d" % (nrows, ncols, idx))
+
+    ax = fig.add_subplot(int(f"{nrows}{ncols}{idx}"), projection='mollweide')
 
     # Translate sig to correct format
     stokes=["I", "Q", "U"]
@@ -138,10 +189,7 @@ def mollplot(
     if not isinstance(map_, (StokesMap)):
         map_ = to_stokes(map_)
 
-    nside = map_.nside
-    #unit = map_.unit
     comp = map_.label
-
     if auto: 
         import json
         with open(Path(data_dir.__path__[0]) /'autoparams.json', 'r') as f:
@@ -177,7 +225,19 @@ def mollplot(
                     "cmap": cmap,
                 }
 
-    
+    # Set plotting rcParams
+    set_style(darkmode)
+
+    # Mask map
+    if mask: map_.mask(mask)
+    # udgrade map
+    if (nside != None and nside!=map_.nside): 
+        map_.to_nside(nside)        
+    else:
+        nside = map_.nside
+    # Smooth map
+    if fwhm>0.0: map_.to_fwhm(fwhm*u.arcmin)
+
     print(f"Plotting {map_.label} nside {nside}")
 
     # Projection arrays
@@ -187,14 +247,8 @@ def mollplot(
         ysize=1000,
     )
 
-    # Mask map
-    if mask: map_.mask(mask)
-
-    # Set plotting rcParams
-    set_style(darkmode)
-
     for i, p in enumerate(sig):
-        s = stokes[p] # Stokes parameter string
+        params["ltitle"] = stokes[p] # Stokes parameter string
 
         # If l=0 use intensity cmap and ticks, else use QU
         l = 0 if p<1 else 1
@@ -204,17 +258,12 @@ def mollplot(
             ticks = params["ticks"][l]
 
         # Remove mono/dipole
-        if mdmask:
+        if (remove_dipole or remove_monopole):
             # If mdmask exists, remove mono and dipole. Manually toggle either off.
-            map_.remove_md(mdmask, sig=p, remove_dipole=remove_dipole, remove_monopole=remove_monopole)
-        elif remove_dipole or remove_monopole:
-            print("To remove monopole or dipole, please provide mdmask or set mdmask=auto")
-
-        # Smooth map
-        # udgrade map
+            map_.remove_md(sig=p, remove_dipole=remove_dipole, remove_monopole=remove_monopole)
 
         # Put signal into map object
-        m = getattr(map_, s)
+        m = getattr(map_, params["ltitle"])
         grid_mask = m.mask[grid_pix] if mask else None
         grid_map = np.ma.MaskedArray(m[grid_pix], grid_mask)
 
@@ -235,70 +284,67 @@ def mollplot(
         print(f'Unit: {params["unit"]}')
         print(f'Title: {params["title"]}')
 
-        # Pick sizes from size dictionary
-        sizes = [{"x": 7, "s": 8.8, "m": 12.0, "l": 18.0,}[x] * cm for x in size]
-        # Plot different sizes
-        for width in sizes:
-            print(f"size: {str(width)}")
-            width = width.to(imperial.inch)
-            height = width / 2.0
-            if colorbar: height *= 1.275  # Size correction with cbar
-            fig = plt.figure(figsize=(width.value, height.value))
-            ax = fig.add_subplot(111, projection="mollweide")
+        #fig = plt.figure(figsize=(width.value, height.value))
+        #ax = fig.add_subplot(111, projection="mollweide")
+        
+        image = plt.pcolormesh(
+            longitude[::-1],
+            latitude,
+            grid_map,
+            vmin=ticks[0],
+            vmax=ticks[-1],
+            rasterized=True,
+            cmap=cmap,
+            shading="auto",
+        )
 
-            image = plt.pcolormesh(
-                longitude[::-1],
-                latitude,
-                grid_map,
-                vmin=ticks[0],
-                vmax=ticks[-1],
-                rasterized=True,
-                cmap=cmap,
-                shading="auto",
-            )
+        #### Graticule ####
+        if graticule: apply_graticule(ax, plt.gcf().get_size_inches()[0])
+        ax.xaxis.set_ticklabels([])
+        ax.yaxis.set_ticklabels([])  # rm lonlat ticklabs
 
-            #### Graticule ####
-            if graticule: apply_graticule(ax, width)
-            ax.xaxis.set_ticklabels([])
-            ax.yaxis.set_ticklabels([])  # rm lonlat ticklabs
+        for i in ["title","unit","ltitle"]:
+            if params[i] and params[i]!="": 
+                params[i]=r"$"+params[i]+"$"
 
-            #### Colorbar ####
-            if colorbar:
-                apply_colorbar(
-                    fig, image, ticks, params["unit"], 
-                    fontsize, linthresh=1, logscale=params["logscale"])
+        #### Colorbar ####
+        if colorbar:
+            apply_colorbar(
+                fig, ax, image, ticks, params["unit"], 
+                fontsize, linthresh=1, logscale=params["logscale"])
 
-            #### Right Title ####
-            if params["title"] is not None:
-                plt.text(
-                    4.5,
-                    1.1,
-                    r"$"+params["title"]+"$",
-                    ha="center",
-                    va="center",
-                    fontsize=fontsize)
-
-            #### Left Title (stokes parameter label by default) ####
+        #### Right Title ####
+        if params["title"] is not None:
             plt.text(
-                -4.5,
+                4.5,
                 1.1,
-                r"$"+s+"$",
+                params["title"],
                 ha="center",
                 va="center",
-                fontsize=fontsize,
-            )
+                fontsize=fontsize)
 
+        #### Left Title (stokes parameter label by default) ####
+        plt.text(
+            -4.5,
+            1.1,
+            params["ltitle"],
+            ha="center",
+            va="center",
+            fontsize=fontsize,
+        )
 
-def apply_colorbar(fig, image, ticks, unit, fontsize, linthresh, logscale=False):
+        return fig, ax
+
+def apply_colorbar(fig, ax, image, ticks, unit, fontsize, linthresh, logscale=False):
     """
     This function applies a colorbar to the figure and formats the ticks.
     """
     from matplotlib.ticker import FuncFormatter
     ticklabels = [fmt(i, 1) for i in ticks]
 
-    cb = fig.colorbar(image, orientation="horizontal", shrink=0.4, pad=0.04, ticks=ticks, format=FuncFormatter(fmt),)
+    cb = fig.colorbar(image, ax=ax, orientation="horizontal", shrink=0.4, pad=0.04, ticks=ticks, format=FuncFormatter(fmt),)
     cb.ax.set_xticklabels(ticklabels)
-    cb.ax.xaxis.set_label_text(r"$"+unit+"$")
+    cb.ax.xaxis.set_label_text(unit)
     cb.ax.xaxis.label.set_size(fontsize)
     if logscale:
         linticks = np.linspace(-1, 1, 3)*linthresh
