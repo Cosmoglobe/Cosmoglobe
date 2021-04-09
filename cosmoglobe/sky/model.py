@@ -10,9 +10,6 @@ class Model:
     This class acts as a container for the various components making up the
     sky model. It provides methods that operate on all components.
 
-    TODO: Should all components be smoothed to the same beam before any
-    evaluation can be done?
-
     Args:
     -----
     components (list):
@@ -82,7 +79,7 @@ class Model:
             Model emission at the given frequency.
 
         """
-        if freq.ndim > 0:
+        if bandpass is None and freq.ndim > 0:
             return [self._get_model_emission(freq, bandpass, output_unit)
                     for freq in freq]
 

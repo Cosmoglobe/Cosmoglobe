@@ -1,5 +1,5 @@
 from ..tools.map import StokesMap, to_stokes
-from ..tools.bandpass import _extract_scalars
+from ..tools.bandpass import _normalize_bandpass, _get_interp_params
 from ..science.functions import (
     blackbody_emission, gaunt_factor, cmb_to_brightness
 )
@@ -55,10 +55,7 @@ class Component:
         self.comp_name = comp_name
         self.freq_ref = freq_ref
         self.amp = to_stokes(amp, freq_ref=self.freq_ref, label=self.comp_name)
-
         self.spectral_parameters = spectral_parameters
-        for key, value in self.spectral_parameters.items():
-            setattr(self, key, value)
 
 
     @u.quantity_input(freq=u.Hz, bandpass=(u.Jy/u.sr, u.K, None))
@@ -86,19 +83,30 @@ class Component:
             Model emission at the given frequency.
 
         """
-        # Convert all values to SI and prepare broadcasting
+        # Convert all values to SI units and reshape arrays for broadcasting
         freq = freq.si
-        try: 
+        if self.freq_ref is not None:
             freq_ref = np.expand_dims(self.freq_ref.si, axis=1)
-        except AttributeError:
+        else:
             freq_ref = self.freq_ref
-        spectral_parameters = {
-            key:(value.si if isinstance(value, u.Quantity) else value)
-            for key, value in self.spectral_parameters.items()
-        }
+    
+        spectral_parameters = {}
+        for key, value in self.spectral_parameters.items():
+            if isinstance(value, u.Quantity): 
+                value = value.si
+            # If shapes of spectral parameters are (3,) or (1,), i,e they are
+            # scalars and not maps, the scaling factor wont be broadcastable 
+            # with the amp, which is always (3, nside), so we expand the shapes
+            # to be (3, 1) or (1, 1)
+            if value.ndim == 1:
+                value = np.expand_dims(value, axis=1)
+            spectral_parameters[key] = value
+
 
         if bandpass is not None:
-            scaling = self._get_bandpass_conversion(freq, freq_ref, bandpass)
+            bandpass = _normalize_bandpass(bandpass, freq)
+            scaling = self._get_bandpass_conversion(freq, freq_ref, bandpass, 
+                                                    spectral_parameters)
 
         else:
             if freq.ndim > 0:
@@ -112,7 +120,7 @@ class Component:
         return self.amp*scaling
 
 
-    def _get_bandpass_conversion(self, freqs, freq_ref, bandpass_array, n=10):
+    def _get_bandpass_conversion(self, freqs, freq_ref, bandpass, spectral_parameters):
         """Returns the frequency scaling factor given a frequency array and a 
         bandpass profile.
 
@@ -143,102 +151,103 @@ class Component:
             Frequency scaling factor given a bandpass.
 
         """
-        if self.amp._has_pol:
-            component_is_polarized = True
-        else:
-            component_is_polarized = False
+        _get_interp_params(spectral_parameters)
+        # if self.amp._has_pol:
+        #     component_is_polarized = True
+        # else:
+        #     component_is_polarized = False
 
-        scalars = _extract_scalars(self.spectral_parameters)
-        interp_ranges = {}
+        # scalars = _extract_scalars(self.spectral_parameters)
+        # interp_ranges = {}
 
-        for key, value in self.spectral_parameters.items():
-            if scalars is None or key not in scalars:
-                interp_ranges[key] = np.linspace(np.amin(value), 
-                                                 np.amax(value), 
-                                                 n) * value.unit
+        # for key, value in self.spectral_parameters.items():
+        #     if scalars is None or key not in scalars:
+        #         interp_ranges[key] = np.linspace(np.amin(value), 
+        #                                          np.amax(value), 
+        #                                          n) * value.unit
 
-        # All spectral parameters are scalars. No need to interpolate
-        if not interp_ranges:
-            freq_scaling = self.get_freq_scaling(freqs, freq_ref, **scalars)
-            integral = np.trapz(freq_scaling*bandpass_array, freqs)
-            if self.amp._has_pol:
-                integral = np.expand_dims(integral, axis=1)            
-            return integral
+        # # All spectral parameters are scalars. No need to interpolate
+        # if not interp_ranges:
+        #     freq_scaling = self.get_freq_scaling(freqs, freq_ref, **scalars)
+        #     integral = np.trapz(freq_scaling*bandpass_array, freqs)
+        #     if self.amp._has_pol:
+        #         integral = np.expand_dims(integral, axis=1)            
+        #     return integral
 
-        # Interpolating over one spectral parameter
-        elif len(interp_ranges) == 1:
-            integrals = []
-            for key, value in interp_ranges.items():
-                for spec in value:
-                    spectrals = {key:spec}
-                    if scalars is not None:
-                        spectrals.update(scalars)
-                    freq_scaling = self.get_freq_scaling(freqs, freq_ref, 
-                                                         **spectrals)
-                    integrals.append(
-                        np.trapz(freq_scaling*bandpass_array, freqs)
-                    )
+        # # Interpolating over one spectral parameter
+        # elif len(interp_ranges) == 1:
+        #     integrals = []
+        #     for key, value in interp_ranges.items():
+        #         for spec in value:
+        #             spectrals = {key:spec}
+        #             if scalars is not None:
+        #                 spectrals.update(scalars)
+        #             freq_scaling = self.get_freq_scaling(freqs, freq_ref, 
+        #                                                  **spectrals)
+        #             integrals.append(
+        #                 np.trapz(freq_scaling*bandpass_array, freqs)
+        #             )
 
-                interp_range = interp_ranges[key]
-                spectral_parameter = self.spectral_parameters[key]
-                if component_is_polarized:
-                    # If component is polarized, converts list to shape (3, n)
-                    integrals = np.transpose(integrals)
-                    conversion_factor = []
-                    for i in range(3):
-                        f = interp1d(interp_range, integrals[i])
-                        if spectral_parameter.ndim > 1:
-                            conversion_factor.append(f(spectral_parameter[i]))
-                        else:
-                            conversion_factor.append(f(spectral_parameter)[0])
-                    return conversion_factor
+        #         interp_range = interp_ranges[key]
+        #         spectral_parameter = self.spectral_parameters[key]
+        #         if component_is_polarized:
+        #             # If component is polarized, converts list to shape (3, n)
+        #             integrals = np.transpose(integrals)
+        #             conversion_factor = []
+        #             for i in range(3):
+        #                 f = interp1d(interp_range, integrals[i])
+        #                 if spectral_parameter.ndim > 1:
+        #                     conversion_factor.append(f(spectral_parameter[i]))
+        #                 else:
+        #                     conversion_factor.append(f(spectral_parameter)[0])
+        #             return conversion_factor
                 
-                # print(integrals)
-                print(np.array(integrals))
-                f = interp1d(interp_range, integrals)
-                return f(spectral_parameter)
+        #         # print(integrals)
+        #         print(np.array(integrals))
+        #         f = interp1d(interp_range, integrals)
+        #         return f(spectral_parameter)
 
-        # Interpolating over two spectral parameter
-        elif len(interp_ranges) == 2:
-            spectrals_keys = list(interp_ranges.keys())
-            spectrals_values = list(interp_ranges.values())
-            meshgrid = np.meshgrid(*spectrals_values)
+        # # Interpolating over two spectral parameter
+        # elif len(interp_ranges) == 2:
+        #     spectrals_keys = list(interp_ranges.keys())
+        #     spectrals_values = list(interp_ranges.values())
+        #     meshgrid = np.meshgrid(*spectrals_values)
 
-            # Converting np.zeros array to correct units
-            integral_unit = (bandpass_array.unit * freqs.unit)
-            if component_is_polarized:
-                integrals = np.zeros((n, n, 3)) * integral_unit
-            else:
-                integrals = np.zeros((n, n)) * integral_unit
+        #     # Converting np.zeros array to correct units
+        #     integral_unit = (bandpass_array.unit * freqs.unit)
+        #     if component_is_polarized:
+        #         integrals = np.zeros((n, n, 3)) * integral_unit
+        #     else:
+        #         integrals = np.zeros((n, n)) * integral_unit
                 
-            for i in range(n):
-                for j in range(n):
-                    # Unpacking a dictionary makes sure that the spectral
-                    # values are mapped to the correct parameters. 
-                    spectrals = {
-                        spectrals_keys[0]: meshgrid[0][i,j],
-                        spectrals_keys[1]: meshgrid[1][i,j]
-                    }
-                    freq_scaling = self.get_freq_scaling(freqs, freq_ref, 
-                                                         **spectrals)
-                    integral = np.trapz(freq_scaling*bandpass_array, freqs)
-                    integrals[i,j] = integral
+        #     for i in range(n):
+        #         for j in range(n):
+        #             # Unpacking a dictionary makes sure that the spectral
+        #             # values are mapped to the correct parameters. 
+        #             spectrals = {
+        #                 spectrals_keys[0]: meshgrid[0][i,j],
+        #                 spectrals_keys[1]: meshgrid[1][i,j]
+        #             }
+        #             freq_scaling = self.get_freq_scaling(freqs, freq_ref, 
+        #                                                  **spectrals)
+        #             integral = np.trapz(freq_scaling*bandpass_array, freqs)
+        #             integrals[i,j] = integral
 
-            if component_is_polarized:
-                integrals = np.transpose(integrals)
-                conversion_factor = []
-                spectral_values = list(self.spectral_parameters.values())
-                for i in range(3):
-                    f = RectBivariateSpline(*spectrals_values, integrals[i])
-                    # conversion_factor.append(f(list(zip(*spectral_values))[i], grid=False))
-                return conversion_factor
+        #     if component_is_polarized:
+        #         integrals = np.transpose(integrals)
+        #         conversion_factor = []
+        #         spectral_values = list(self.spectral_parameters.values())
+        #         for i in range(3):
+        #             f = RectBivariateSpline(*spectrals_values, integrals[i])
+        #             # conversion_factor.append(f(list(zip(*spectral_values))[i], grid=False))
+        #         return conversion_factor
 
-            f = RectBivariateSpline(*spectrals_values, integrals)
-            return f(*list(self.spectral_parameters.values()), grid=False)
+        #     f = RectBivariateSpline(*spectrals_values, integrals)
+        #     return f(*list(self.spectral_parameters.values()), grid=False)
 
-        else:
-            return NotImplemented
-
+        # else:
+        #     return NotImplemented
+        return 1
 
     def to_nside(self, new_nside):
         """ud_grades all maps in the component to a new nside.
@@ -261,6 +270,7 @@ class Component:
                                                             new_nside)*val.unit
             except AttributeError:
                 self.spectral_parameters[key] = hp.ud_grade(val, new_nside)
+
 
 
     def __repr__(self):
@@ -375,6 +385,7 @@ class ModifiedBlackBody(Component):
         """
 
         scaling = (freq/freq_ref)**(beta-2)
+        print(np.shape(scaling), np.shape(freq_ref), np.shape(beta))
         scaling *= blackbody_emission(freq, T) / blackbody_emission(freq_ref, T)
         return scaling
 
