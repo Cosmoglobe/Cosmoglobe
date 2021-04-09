@@ -1,5 +1,5 @@
 from .. import sky
-from .. tools.map import to_stokes
+from ..tools import utils
 
 from numba import njit
 import astropy.units as u
@@ -171,28 +171,12 @@ def comp_from_chain(file, component, component_class, model_nside,
 
         alms[key] = alms_
     args.update(alms)
-
     args['amp'] = args['amp']*unit
-    args = _set_spectral_units(args)
-    
+    args = utils._set_spectral_units(args)
+    scalars = utils._extract_scalars(args)    # converts scalar maps to scalar values
+    args.update(scalars)
+
     return component_class(comp_name=component, **args)
-
-
-def _set_spectral_units(maps):
-    """    
-    TODO: Figure out how to correctly detect unit of spectral map in chain.
-          Until then, a hardcoded dict is used:
-    """
-    units = {
-        'T': u.K,
-        'Te': u.K,
-        'nu_p' : u.GHz,
-    }
-    for map_ in maps:
-        if map_ in units:
-            maps[map_] *= units[map_]
-
-    return maps
 
 
 def _get_comp_args(component_class):

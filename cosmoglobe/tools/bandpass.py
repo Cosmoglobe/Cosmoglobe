@@ -1,51 +1,63 @@
-from cosmoglobe.tools.map import StokesMap
+from ..tools import utils
+
 import numpy as np
+import astropy.units as u
+
+import sys
+
+def _normalize_bandpass(bandpass: u.Quantity, freqs: u.Quantity) -> u.Quantity:
+    if bandpass.si.unit != u.K:
+        bandpass = bandpass.to(u.K, equivalencies=u.brightness_temperature(freqs))
+
+    return bandpass / np.trapz(bandpass.si.value, freqs.si.value)
 
 
-def _extract_scalars(iterator):
-    """Returns all scalars from an iterator.
-    
-    A scalar here refers to either an int, float or array filled with a 
-    single value.
+def _get_interp_params(spectral_parameters):
 
-    Args:
-    -----
-    iterator : tuple, list, dict
-        Iterator object. Can be any object with the method __iter__ defined.
+        print(spectral_parameters)
+        interpolation_parameters = {}
+        for key, value in spectral_parameters.items():
+            min_, max_ = np.amin(value), np.amax(value)
+            print(min_, max_)
 
-    Returns:
-    --------
-    scalars : tuple, list, dict
-        Iterator containing extracted scalars. The returned iterator will 
-        match the type of the input iterator. If no scalars are present, 
-        returns None
+        # interp_ranges = {}
 
-    """
-    if isinstance(iterator, (tuple, list)):
-        scalars = []
-        for value in iterator:
-            uniques = np.unique(value.data)
-            if len(uniques) == 1:
-                scalar = uniques[0]
-                scalars.append(scalar)
+        # for key, value in self.spectral_parameters.items():
+        #     if scalars is None or key not in scalars:
+        #         interp_ranges[key] = np.linspace(np.amin(value), 
+        #                                          np.amax(value), 
+        #                                          n) * value.unit
+
+
+                
+
+
+
+    # if isinstance(iterator, (tuple, list)):
+    #     scalars = []
+    #     for value in iterator:
+    #         uniques = np.unique(value.data)
+    #         if len(uniques) == 1:
+    #             scalar = uniques[0]
+    #             scalars.append(scalar)
         
-        if scalars:
-            if isinstance(iterator, tuple):
-                return tuple(scalars)
+    #     if scalars:
+    #         if isinstance(iterator, tuple):
+    #             return tuple(scalars)
 
-            return scalars
+    #         return scalars
     
-    if isinstance(iterator, dict):
-        scalars = {}
-        for key, value in iterator.items():
-            uniques = np.unique(value.data)
-            if len(uniques) == 1:
-                scalar = uniques[0]
-                scalars[key] = scalar
+    # if isinstance(iterator, dict):
+    #     scalars = {}
+    #     for key, value in iterator.items():
+    #         uniques = np.unique(value.data)
+    #         if len(uniques) == 1:
+    #             scalar = uniques[0]
+    #             scalars[key] = scalar
 
-        if scalars:
-            return scalars
+    #     if scalars:
+    #         return scalars
 
-    return
+    # return
 
 
