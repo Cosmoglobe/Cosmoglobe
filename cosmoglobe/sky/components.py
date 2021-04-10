@@ -1,5 +1,14 @@
+import sys
+from astropy.units import equivalencies
+from astropy.units.quantity import Quantity
+from numpy.lib.function_base import interp
 from ..tools.map import StokesMap, to_stokes
-from ..tools.bandpass import _normalize_bandpass, _get_interp_params
+from ..tools.bandpass import (
+    _get_normalized_bandpass, 
+    _get_interp_parameters,
+    _get_unit_conversion,
+    _interp1d,
+)
 from ..science.functions import (
     blackbody_emission, gaunt_factor, cmb_to_brightness
 )
@@ -46,6 +55,9 @@ class Component:
         initialized.
     freq_ref (`astropy.units.Quantity`):
         Reference frequencies for the amplitude template in units of Hertz.
+        If the component is polarized, freq_ref needs to be a list of two
+        items, i.e [freq_ref_I, freq_ref_P]. If component is unpolarized,
+        freq_ref can be a scalar or a list with one scalar.
     spectral_parameters (dict):
         Spectral parameters required to compute the frequency scaling factor. 
         can be scalars, numpy ndarrays or astropy quantities. Default: None
@@ -53,8 +65,8 @@ class Component:
     """
     def __init__(self, comp_name, amp, freq_ref, **spectral_parameters):
         self.comp_name = comp_name
+        self.amp = amp
         self.freq_ref = freq_ref
-        self.amp = to_stokes(amp, freq_ref=self.freq_ref, label=self.comp_name)
         self.spectral_parameters = spectral_parameters
 
 
@@ -83,30 +95,26 @@ class Component:
             Model emission at the given frequency.
 
         """
-        # Convert all values to SI units and reshape arrays for broadcasting
+        # Convert all values to SI units
         freq = freq.si
         if self.freq_ref is not None:
-            freq_ref = np.expand_dims(self.freq_ref.si, axis=1)
+            freq_ref = self.freq_ref.si
         else:
             freq_ref = self.freq_ref
-    
-        spectral_parameters = {}
-        for key, value in self.spectral_parameters.items():
-            if isinstance(value, u.Quantity): 
-                value = value.si
-            # If shapes of spectral parameters are (3,) or (1,), i,e they are
-            # scalars and not maps, the scaling factor wont be broadcastable 
-            # with the amp, which is always (3, nside), so we expand the shapes
-            # to be (3, 1) or (1, 1)
-            if value.ndim == 1:
-                value = np.expand_dims(value, axis=1)
-            spectral_parameters[key] = value
+        spectral_parameters = {
+            key:(value.si if isinstance(value, u.Quantity) else value)
+            for key, value in self.spectral_parameters.items()
+        }
 
-
+        input_unit = self.amp.unit
         if bandpass is not None:
-            bandpass = _normalize_bandpass(bandpass, freq)
+            unit_conversion_factor = (
+                _get_unit_conversion(bandpass, freq, output_unit, input_unit)
+            )
+            bandpass = _get_normalized_bandpass(bandpass, freq, input_unit)
             scaling = self._get_bandpass_conversion(freq, freq_ref, bandpass, 
                                                     spectral_parameters)
+            return self.amp*scaling*unit_conversion_factor
 
         else:
             if freq.ndim > 0:
@@ -117,6 +125,11 @@ class Component:
                 scaling = self.get_freq_scaling(freq, freq_ref, 
                                                 **spectral_parameters)
 
+        if input_unit != output_unit:
+            return (self.amp*scaling).to(
+                output_unit, equivalencies=u.brightness_temperature(freq)
+            )
+        print((self.amp*scaling).unit)
         return self.amp*scaling
 
 
@@ -127,11 +140,11 @@ class Component:
         Makes use of the mixing matrix implementation from Commander3. For 
         more information, see section 4.2 in https://arxiv.org/abs/2011.05609.
 
-        TODO: FIX 2D interp case.
-        TODO: Test that this actually works for real components. Use the fact 
-        that.
-        TODO: Rewrite in a more functional and general way.
-        dicts are ordered in >3.6
+        comp A with n spectral_parameters:
+            
+
+
+
 
         Args:
         -----
@@ -151,11 +164,31 @@ class Component:
             Frequency scaling factor given a bandpass.
 
         """
-        _get_interp_params(spectral_parameters)
-        # if self.amp._has_pol:
-        #     component_is_polarized = True
-        # else:
-        #     component_is_polarized = False
+        interp_parameters = _get_interp_parameters(spectral_parameters)
+        if not interp_parameters:
+            freq_scaling = self.get_freq_scaling(freqs, freq_ref, 
+                                                 **spectral_parameters)
+            # Reshape to support broadcasting for comps where freq_ref = None 
+            # e.g cmb
+            if freq_scaling.ndim > 1:
+                return np.expand_dims(
+                    np.trapz(freq_scaling*bandpass, freqs), axis=1
+                )
+            return np.trapz(freq_scaling*bandpass, freqs)
+    
+
+        elif len(interp_parameters) == 1:
+            return _interp1d(self, bandpass, freqs, freq_ref, 
+                             interp_parameters, spectral_parameters)
+
+        # elif len(interp_parameters) == 2:
+        #     _intepr2d(interp_parameters)
+
+        else:
+            raise NotImplementedError(
+                'Bandpass integration for comps with more than two spectral '
+                'parameters is not implemented'
+            )
 
         # scalars = _extract_scalars(self.spectral_parameters)
         # interp_ranges = {}
@@ -272,6 +305,13 @@ class Component:
                 self.spectral_parameters[key] = hp.ud_grade(val, new_nside)
 
 
+    @property
+    def _is_polarized(self):
+        """Returns True if component is polarized and False if not"""
+        if self.amp.shape[0] == 3:
+            return True
+        return False
+
 
     def __repr__(self):
         main_repr = f'{self.__class__.__name__}'
@@ -385,7 +425,6 @@ class ModifiedBlackBody(Component):
         """
 
         scaling = (freq/freq_ref)**(beta-2)
-        print(np.shape(scaling), np.shape(freq_ref), np.shape(beta))
         scaling *= blackbody_emission(freq, T) / blackbody_emission(freq_ref, T)
         return scaling
 
