@@ -100,22 +100,22 @@ def comp_from_chain(file, component, component_class, model_nside,
     freq_ref = (parameters['nu_ref']*u.Hz).to(u.GHz)
     fwhm_ref = (parameters['fwhm']*u.arcmin).to(u.rad)
     nside = parameters['nside']
-    unit = parameters['unit']
-    # Astropy doesnt have built in K_RJ or K_CMB so unit manually set to K
-    if 'k_rj' in unit.lower():
-        unit = unit[:-3]
-    elif 'k_cmb' in unit.lower():
-        unit = unit[:-4]
-    unit = u.Unit(unit)
+    amp_unit = parameters['unit']
+    if parameters['polarization'] == 'True':
+        comp_is_polarized = True
+    else:
+        comp_is_polarized = False
+
+    # Astropy doesnt have built in K_RJ or K_CMB so we manually set it to K
+    if 'k_rj' in amp_unit.lower():
+        amp_unit = amp_unit[:-3]
+    elif 'k_cmb' in amp_unit.lower():
+        amp_unit = amp_unit[:-4]
+    amp_unit = u.Unit(amp_unit)
 
     # Getting arguments required to initialize component
     args_list = _get_comp_args(component_class) 
     args = {}
-    # freq_ref is extracted from the parameters group and is therefore treated 
-    # differently
-    if 'freq_ref' in args_list: 
-        args['freq_ref'] = freq_ref
-        args_list.remove('freq_ref')
 
     if sample is None:
         get_items = _get_averaged_items
@@ -131,12 +131,13 @@ def comp_from_chain(file, component, component_class, model_nside,
     alm_names = []
     map_names = []
     for arg in args_list:
-        if _item_alm_exists(file, component, arg):
-            alm_names.append(arg)
-        elif _item_map_exists(file,component, arg):
-            map_names.append(arg)
-        else:
-            raise KeyError(f'item {arg} is not present in the chain')
+        if arg != 'freq_ref':
+            if _item_alm_exists(file, component, arg):
+                alm_names.append(arg)
+            elif _item_map_exists(file,component, arg):
+                map_names.append(arg)
+            else:
+                raise KeyError(f'item {arg} is not present in the chain')
 
 
     maps_ = get_items(file, sample, component, [f'{map_}_map' for map_ in map_names])
@@ -145,7 +146,6 @@ def comp_from_chain(file, component, component_class, model_nside,
         maps = {key:hp.ud_grade(value, model_nside) if isinstance(value, np.ndarray) 
                 else value for key, value in maps.items()}
     args.update(maps)
-
 
     if model_nside is None:
         model_nside = nside
@@ -170,12 +170,19 @@ def comp_from_chain(file, component, component_class, model_nside,
                           verbose=False).astype('float32')
 
         alms[key] = alms_
+
     args.update(alms)
-    args['amp'] = args['amp']*unit
+    args['amp'] = args['amp']*amp_unit
     args = utils._set_spectral_units(args)
     scalars = utils._extract_scalars(args)    # converts scalar maps to scalar values
     args.update(scalars)
-
+    if 'freq_ref' in args_list:
+        if comp_is_polarized:
+            freq = np.expand_dims(freq_ref, axis=1)
+        else:
+            freq = u.Quantity(freq_ref[0])
+        args['freq_ref'] = freq
+            
     return component_class(comp_name=component, **args)
 
 
