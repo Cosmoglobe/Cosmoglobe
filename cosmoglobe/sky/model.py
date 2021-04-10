@@ -2,7 +2,7 @@ from .components import Component
 
 import astropy.units as u
 import healpy as hp
-
+import numpy as np
 
 class Model:
     """A sky model.
@@ -36,7 +36,7 @@ class Model:
             )
 
         name = component.comp_name
-        nside = component.amp.nside
+        nside = hp.get_nside(component.amp)
         if name in self.components:
             raise KeyError(f'component {name} already exists in model')
         if nside != self.nside:
@@ -53,7 +53,7 @@ class Model:
 
 
     @u.quantity_input(freq=u.Hz, bandpass=(u.Jy/u.sr, u.K, None))
-    def get_emission(self, freq, bandpass=None, output_unit=None):
+    def get_emission(self, freq, bandpass=None, output_unit=u.uK):
         """Returns the full model sky emission at a single or multiple
         frequencies.
 
@@ -87,8 +87,18 @@ class Model:
 
 
     def _get_model_emission(self, freq, bandpass, output_unit):
-        return sum(comp.get_emission(freq, bandpass, output_unit) 
-                   for comp in self)
+        if self.is_polarized:
+            model_emission = np.zeros((3, hp.nside2npix(self.nside)))
+        else:
+            model_emission = np.zeros((1, hp.nside2npix(self.nside)))
+        model_emission *= output_unit
+
+        for comp in self:
+            comp_emission = comp.get_emission(freq, bandpass, output_unit)
+            for idx, col in enumerate(comp_emission):
+                model_emission[idx] += col
+
+        return model_emission
 
 
     def insert(self, component):
@@ -120,6 +130,12 @@ class Model:
     def component_names(self):
         return list(self.components.keys())
 
+    @property
+    def is_polarized(self):
+        for comp in self:
+            if comp._is_polarized:
+                return True
+        return False
 
     def to_nside(self, new_nside):
         """ud_grades all maps in the component to a new nside.
