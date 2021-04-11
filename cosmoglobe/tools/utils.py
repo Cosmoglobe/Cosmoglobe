@@ -18,10 +18,8 @@ def _extract_scalars(spectral_parameters):
 
 
 def _set_spectral_units(maps):
-    """    
-    TODO: Figure out how to correctly detect unit of spectral map in chain.
-          Until then, a hardcoded dict is used:
-    """
+    #TODO: Figure out how to correctly detect unit of spectral map in chain.
+    #      Until then, a hardcoded dict is used:
     units = {
         'T': u.K,
         'Te': u.K,
