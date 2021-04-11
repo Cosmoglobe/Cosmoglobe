@@ -97,7 +97,6 @@ class Model:
             The desired output units of the emission. Must be signal units. 
             Default : uK
 
-
         Returns:
         --------
         (`astropy.units.Quantity`)
@@ -146,6 +145,9 @@ class Model:
 
     @property
     def is_polarized(self):
+        """Returns True if model includes a polarized component and False 
+        otherwise.
+        """
         for comp in self:
             if comp._is_polarized:
                 return True
