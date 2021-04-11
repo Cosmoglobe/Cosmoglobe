@@ -24,7 +24,10 @@ def _get_unit_conversion(bandpass, freqs, output_unit, input_unit):
     return np.trapz(bandpass_output, freqs)/np.trapz(bandpass_input, freqs)
 
 
-def _get_interp_parameters(spectral_parameters, n=10):
+def _get_interp_parameters(spectral_parameters, n):
+    """Returns a dictionary with a regular grid with n points for all spectral
+    parameters that vary across the sky.
+    """
     interp_parameters = {}
     for key, value in spectral_parameters.items():
         if value.ndim > 1:

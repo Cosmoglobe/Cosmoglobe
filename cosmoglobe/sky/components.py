@@ -175,7 +175,7 @@ class Component:
             Frequency scaling factor given a bandpass.
 
         """
-        interp_parameters = _get_interp_parameters(spectral_parameters)
+        interp_parameters = _get_interp_parameters(spectral_parameters, n)
         if not interp_parameters:
             freq_scaling = self.get_freq_scaling(freqs, freq_ref, 
                                                  **spectral_parameters)
