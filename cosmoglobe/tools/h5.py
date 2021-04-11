@@ -178,7 +178,7 @@ def comp_from_chain(file, component, component_class, model_nside,
     args.update(scalars)
     if 'freq_ref' in args_list:
         if comp_is_polarized:
-            freq = np.expand_dims(freq_ref, axis=1)
+            freq = u.Quantity(freq_ref[:-1])
         else:
             freq = u.Quantity(freq_ref[0])
         args['freq_ref'] = freq

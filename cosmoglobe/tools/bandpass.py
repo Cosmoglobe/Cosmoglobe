@@ -1,5 +1,7 @@
 import numpy as np
 import astropy.units as u
+from scipy.interpolate import RectBivariateSpline
+
 
 @u.quantity_input(bandpass=(u.Jy/u.sr, u.K), freqs=u.Hz)
 def _get_normalized_bandpass(bandpass, freqs, input_unit):
@@ -29,7 +31,7 @@ def _get_interp_parameters(spectral_parameters, n=10):
             if value.shape[1] > 1:
                 min_, max_ = np.amin(value), np.amax(value)
                 interp = np.linspace(min_, max_, n)
-                interp_parameters[key] = interp*value.unit
+                interp_parameters[key] = interp
 
     return interp_parameters
 
@@ -49,8 +51,48 @@ def _interp1d(comp, bandpass, freqs, freq_ref, interp_parameter,
         if integrals.ndim == 1:
             integrals = np.expand_dims(integrals, axis=0)
 
-        scaling =  [np.interp(comp.spectral_parameters[key][idx].value, 
-                              interp_param.value, 
-                              col.value)
-                    for idx, col in enumerate(integrals)]
+        if len(comp.spectral_parameters[key]) == 3:
+            scaling =  [np.interp(comp.spectral_parameters[key][idx].value, 
+                                  interp_param.value, 
+                                  col.value)
+                        for idx, col in enumerate(integrals)]
+        else:
+            scaling =  [np.interp(comp.spectral_parameters[key].value, 
+                                  interp_param.value, 
+                                  col.value)
+                        for col in integrals]
         return scaling
+
+
+def _interp2d(comp, bandpass, freqs, freq_ref, interp_parameters,
+              spectral_parameters):
+    n = len(list(interp_parameters.values())[0])
+    # Square n x n grid for each spectral_parameter
+    grid = {
+        key: value for key, value in zip(
+            interp_parameters.keys(), np.meshgrid(*interp_parameters.values())
+        )
+    }
+
+    if comp._is_polarized:
+        integrals = np.zeros((n, n, 3))
+    else:
+        integrals = np.zeros((n, n, 1))
+    for i in range(n):
+        for j in range(n):
+            grid_spectrals = {key: value[i,j] for key, value in grid.items()}
+            freq_scaling = comp.get_freq_scaling(freqs, freq_ref, 
+                                                 **grid_spectrals)
+            integrals[i,j] = np.trapz(freq_scaling*bandpass, freqs)
+    integrals = np.transpose(integrals)
+
+    scaling = []
+    for idx, col in enumerate(integrals):
+        f = RectBivariateSpline(*interp_parameters.values(), col)
+        packed_spectrals = [spectral[idx] if spectral.shape[0] == 3 else spectral[0]
+                            for spectral in spectral_parameters.values()]
+        scaling.append(
+            f(*packed_spectrals, grid=False)
+        )
+    
+    return scaling
