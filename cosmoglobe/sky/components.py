@@ -114,13 +114,17 @@ class Component:
         """
         freq_ref = self.freq_ref
         input_unit = self.amp.unit
-        # Expand dimension on 1d spectral parameters from from (n,) to (n, 1) 
-        # to support broadcasting
+        # Expand dimension on 1d amp and spectral parameters from from (n,)
+        # to (n, 1) to support broadcasting
+        if self.amp.ndim == 1:
+            amp = np.expand_dims(self.amp, axis=0)
+        else:
+            amp = self.amp
         spectral_parameters = {
             key: (np.expand_dims(value, axis=0) if value.ndim == 1 else value)
             for key, value in self.spectral_parameters.items()
         }
-
+        
         if bandpass is not None:
             unit_conversion_factor = (
                 _get_unit_conversion(bandpass, freq, output_unit, input_unit)
@@ -130,7 +134,7 @@ class Component:
                 self._get_bandpass_conversion(freq, freq_ref, bandpass, 
                                               spectral_parameters)
             )
-            return self.amp*bandpass_conversion_factor*unit_conversion_factor
+            return amp*bandpass_conversion_factor*unit_conversion_factor
 
         else:
             if freq.ndim > 0:
@@ -142,10 +146,10 @@ class Component:
                                                 **spectral_parameters)
 
         if output_unit is not None and input_unit != output_unit:
-            return (self.amp*scaling).to(
+            return (amp*scaling).to(
                 output_unit, equivalencies=u.brightness_temperature(freq)
             )
-        return self.amp*scaling
+        return amp*scaling
 
 
     def _get_bandpass_conversion(self, freqs, freq_ref, bandpass, 
