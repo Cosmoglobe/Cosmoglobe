@@ -7,6 +7,8 @@ import h5py
 import healpy as hp
 import numpy as np
 import inspect
+from tqdm import tqdm
+import sys
 
 # Model parameter group name as implemented in commander
 param_group = 'parameters'
@@ -60,10 +62,15 @@ def model_from_chain(file, nside=None, sample=None, burn_in=None, comps=None):
         comps = default_comps
 
     component_list = _get_components(file)
-    for comp in component_list:
-        model.insert(comp_from_chain(file, comp, comps[comp], 
+    with tqdm(total=len(component_list), file=sys.stdout) as pbar:
+        padding = len(max(component_list, key=len))
+        print('Loading components from chain')
+        for comp in component_list:
+            pbar.set_description(f'{comp:<{padding}}')
+            model.insert(comp_from_chain(file, comp, comps[comp], 
                                      nside, sample, burn_in))
-
+            pbar.update(1)
+        pbar.set_description('done')
     return model
 
 
