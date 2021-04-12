@@ -62,9 +62,9 @@ def model_from_chain(file, nside=None, sample=None, burn_in=None, comps=None):
         comps = default_comps
 
     component_list = _get_components(file)
+    print('Loading components from chain')
     with tqdm(total=len(component_list), file=sys.stdout) as pbar:
         padding = len(max(component_list, key=len))
-        print('Loading components from chain')
         for comp in component_list:
             pbar.set_description(f'{comp:<{padding}}')
             model.insert(comp_from_chain(file, comp, comps[comp], 
