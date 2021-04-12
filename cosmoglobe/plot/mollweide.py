@@ -12,7 +12,6 @@ hp.disable_warnings()
 # Fix for macos openMP duplicate bug
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
-
 def mollplot(
     map_,
     sig=0,
