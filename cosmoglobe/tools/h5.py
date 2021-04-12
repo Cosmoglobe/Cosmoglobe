@@ -8,8 +8,10 @@ import healpy as hp
 import numpy as np
 import inspect
 
-param_group = 'parameters'  # Model parameter group name as implemented in commander
-_ignored_comps = ['md', 'radio', 'relquad'] # These will be dropped from component lists
+# Model parameter group name as implemented in commander
+param_group = 'parameters'
+# These will be dropped from component lists
+_ignored_comps = ['md', 'radio', 'relquad']
 
 
 def model_from_chain(file, nside=None, sample=None, burn_in=None, comps=None):
@@ -140,19 +142,23 @@ def comp_from_chain(file, component, component_class, model_nside,
                 raise KeyError(f'item {arg} is not present in the chain')
 
 
-    maps_ = get_items(file, sample, component, [f'{map_}_map' for map_ in map_names])
+    maps_ = get_items(file, sample, component, 
+                      [f'{map_}_map' for map_ in map_names])
     maps = dict(zip(map_names, maps_))
     if model_nside is not None and nside != model_nside:
-        maps = {key:hp.ud_grade(value, model_nside) if isinstance(value, np.ndarray) 
+        maps = {key:hp.ud_grade(value, model_nside) 
+                if isinstance(value, np.ndarray) 
                 else value for key, value in maps.items()}
     args.update(maps)
 
     if model_nside is None:
         model_nside = nside
 
-    alms_ = get_items(file, sample, component, [f'{alm}_alm' for alm in alm_names])
+    alms_ = get_items(file, sample, component, 
+                      [f'{alm}_alm' for alm in alm_names])
     alms = dict(zip(alm_names, alms_))
-    alms_lmax_ = get_items(file, sample, component, [f'{alm}_lmax' for alm in alm_names])
+    alms_lmax_ = get_items(file, sample, component, 
+                           [f'{alm}_lmax' for alm in alm_names])
     alms_lmax = dict(zip(alm_names, [int(lmax) for lmax in alms_lmax_]))
 
     for key, value in alms.items():
@@ -174,7 +180,7 @@ def comp_from_chain(file, component, component_class, model_nside,
     args.update(alms)
     args['amp'] = args['amp']*amp_unit
     args = utils._set_spectral_units(args)
-    scalars = utils._extract_scalars(args)    # converts scalar maps to scalar values
+    scalars = utils._extract_scalars(args) # dont save scalar maps
     args.update(scalars)
     if 'freq_ref' in args_list:
         if comp_is_polarized:
@@ -302,9 +308,13 @@ def _get_averaged_items(file, samples, component, items):
             for sample in samples:
                 for idx, item in enumerate(items):
                     try:
-                        items_to_return[idx] += f[sample][component].get(item)[()]
+                        items_to_return[idx] += (
+                            f[sample][component].get(item)[()]
+                        )
                     except IndexError:
-                        items_to_return.append(f[sample][component].get(item)[()])
+                        items_to_return.append(
+                            f[sample][component].get(item)[()]
+                        )
 
             return [item/len(samples) for item in items_to_return]
 
