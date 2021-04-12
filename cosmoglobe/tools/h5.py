@@ -1,5 +1,5 @@
 from .. import sky
-from .. tools.map import to_stokes
+from ..tools import utils
 
 from numba import njit
 import astropy.units as u
@@ -56,8 +56,8 @@ def model_from_chain(file, nside=None, sample=None, burn_in=None, comps=None):
     }
     if not comps:
         comps = default_comps
-    component_list = _get_components(file)
 
+    component_list = _get_components(file)
     for comp in component_list:
         model.insert(comp_from_chain(file, comp, comps[comp], 
                                      nside, sample, burn_in))
@@ -72,14 +72,6 @@ def comp_from_chain(file, component, component_class, model_nside,
     A sky component that subclasses cosmoglobe.sky.Component is initialized 
     from a given commander run.
 
-    TODO: find better solution to mapping classes to components. Perhaps create 
-          a dict that represents the components used in a BP run, e.g:
-            BP9_COMPS = {
-                'synch': sky.PowerLaw,
-                'dust': sky.ModifiedBlackBody,
-                ...
-            }
-          and then pass in BP lvl (8,9,..).
     Args:
     -----
     file (str):
@@ -103,23 +95,27 @@ def comp_from_chain(file, component, component_class, model_nside,
         A sky component initialized from a commander run.
 
     """
+    # Getting component parameters from chain
+    parameters = _get_component_params(file, component)
+    freq_ref = (parameters['nu_ref']*u.Hz).to(u.GHz)
+    fwhm_ref = (parameters['fwhm']*u.arcmin).to(u.rad)
+    nside = parameters['nside']
+    amp_unit = parameters['unit']
+    if parameters['polarization'] == 'True':
+        comp_is_polarized = True
+    else:
+        comp_is_polarized = False
+
+    # Astropy doesnt have built in K_RJ or K_CMB so we manually set it to K
+    if 'k_rj' in amp_unit.lower():
+        amp_unit = amp_unit[:-3]
+    elif 'k_cmb' in amp_unit.lower():
+        amp_unit = amp_unit[:-4]
+    amp_unit = u.Unit(amp_unit)
+
+    # Getting arguments required to initialize component
     args_list = _get_comp_args(component_class) 
     args = {}
-    parameters = _get_component_params(file, component)
-
-    freq_ref = (parameters['nu_ref']*u.Hz).to(u.GHz)
-    fwhm = (parameters['fwhm']*u.arcmin).to(u.rad)
-    nside = parameters['nside']
-    if 'freq_ref' in args_list:
-        args['freq_ref'] = freq_ref
-        args_list.remove('freq_ref')
-
-    unit = parameters['unit']
-    if 'k_rj' in unit.lower():
-        unit = unit[:-3]
-    elif 'k_cmb' in unit.lower():
-        unit = unit[:-4]
-    unit = u.Unit(unit)
 
     if sample is None:
         get_items = _get_averaged_items
@@ -131,76 +127,68 @@ def comp_from_chain(file, component, component_class, model_nside,
     if isinstance(sample, int):
         sample = _int_to_sample(sample)
 
+    # Find which args are alms and which are precomputed maps
     alm_names = []
     map_names = []
     for arg in args_list:
-        if _has_precomputed_map(file, component, arg):
-            map_names.append(arg)
-        else:
-            alm_names.append(arg)
-    alms = get_items(file, sample, component, [f'{alm}_alm' for alm in alm_names ])
-    maps_ = get_items(file, sample, component, [f'{map_}_map' for map_ in map_names ])
+        if arg != 'freq_ref':
+            if _item_alm_exists(file, component, arg):
+                alm_names.append(arg)
+            elif _item_map_exists(file,component, arg):
+                map_names.append(arg)
+            else:
+                raise KeyError(f'item {arg} is not present in the chain')
 
 
-
+    maps_ = get_items(file, sample, component, [f'{map_}_map' for map_ in map_names])
+    maps = dict(zip(map_names, maps_))
     if model_nside is not None and nside != model_nside:
-        maps = []
-        for map_ in maps_:
-            if isinstance(map_, np.ndarray):
-                maps.append(hp.ud_grade(map_, model_nside))
-    else:
-        maps = maps_
+        maps = {key:hp.ud_grade(value, model_nside) if isinstance(value, np.ndarray) 
+                else value for key, value in maps.items()}
+    args.update(maps)
 
     if model_nside is None:
         model_nside = nside
 
-    if isinstance(sample, (tuple, list)):
-        sample = sample[-1]
+    alms_ = get_items(file, sample, component, [f'{alm}_alm' for alm in alm_names])
+    alms = dict(zip(alm_names, alms_))
+    alms_lmax_ = get_items(file, sample, component, [f'{alm}_lmax' for alm in alm_names])
+    alms_lmax = dict(zip(alm_names, [int(lmax) for lmax in alms_lmax_]))
 
-    alm_maps = []
-    for idx, alm in enumerate(alms):
-        lmax = _get_items(file, sample, component, f'{alm_names[idx]}_lmax')
-        unpacked_alm = unpack_alms_from_chain(alm, lmax)
-        if unpacked_alm.shape[0] != 3:
-            zeros = np.zeros(unpacked_alm.shape[1])
-            unpacked_alm = np.array([unpacked_alm[0], zeros, zeros])
-        alms = hp.alm2map(unpacked_alm, 
+    for key, value in alms.items():
+        unpacked_alm = unpack_alms_from_chain(value, alms_lmax[key])
+        if 'key' == 'amp':
+            pol = True
+        else:
+            pol = False
+
+        alms_ = hp.alm2map(unpacked_alm, 
                           nside=model_nside, 
-                          lmax=lmax, 
-                          fwhm=fwhm.value, 
+                          lmax=alms_lmax[key], 
+                          fwhm=fwhm_ref.value,
+                          pol=pol,
                           verbose=False).astype('float32')
-        alm_maps.append(alms)
 
+        alms[key] = alms_
 
-    args.update({key:value for key, value in zip(alm_names, alm_maps)})
-    args.update({key:value for key, value in zip(map_names, maps)})
-
-    args['amp'] = to_stokes(args['amp'], freq_ref=freq_ref, fwhm_ref=fwhm, label=component)
-    args = _set_spectral_units(args)
-
-    return component_class(comp_name=component, **args)
-
-
-def _set_spectral_units(maps):
-    """    
-    TODO: Figure out how to correctly detect unit of spectral map in chain.
-          Until then, a hardcoded dict is used:
-    """
-    units = {
-        'T': u.K,
-        'Te': u.K,
-        'nu_p' : u.GHz,
-    }
-    for map_ in maps:
-        if map_ in units:
-            maps[map_] *= units[map_]
-
-    return maps
+    args.update(alms)
+    args['amp'] = args['amp']*amp_unit
+    args = utils._set_spectral_units(args)
+    scalars = utils._extract_scalars(args)    # converts scalar maps to scalar values
+    args.update(scalars)
+    if 'freq_ref' in args_list:
+        if comp_is_polarized:
+            freq = u.Quantity(freq_ref[:-1])
+        else:
+            freq = u.Quantity(freq_ref[0])
+        args['freq_ref'] = freq
+            
+    return component_class(name=component, **args)
 
 
 def _get_comp_args(component_class):
     """Returns a list of arguments needed to initialize a component"""
-    ignored_args = ['self', 'comp_name']
+    ignored_args = ['self', 'name']
     arguments = inspect.getargspec(component_class.__init__).args
     return [arg for arg in arguments if arg not in ignored_args]
 
@@ -276,13 +264,14 @@ def _get_items(file, sample, component, items):
     
     """
     with h5py.File(file, 'r') as f:
-        if isinstance(items, (tuple, list)):
-            items_to_return = []
+        items_to_return = []
+        try:
             for item in items:
                 items_to_return.append(f[sample][component].get(item)[()])
 
             return items_to_return
-        return f[sample][component].get(items)[()]
+        except TypeError:
+            return f[sample][component].get(items)[()]
 
 
 def _get_averaged_items(file, samples, component, items):
@@ -309,14 +298,13 @@ def _get_averaged_items(file, samples, component, items):
     """
     with h5py.File(file, 'r') as f:
         if isinstance(items, (tuple, list)):
-            items_to_return = [[] for _ in range(len(items))]
-
+            items_to_return = []
             for sample in samples:
                 for idx, item in enumerate(items):
                     try:
                         items_to_return[idx] += f[sample][component].get(item)[()]
-                    except ValueError:
-                        items_to_return[idx] = f[sample][component].get(item)[()]
+                    except IndexError:
+                        items_to_return.append(f[sample][component].get(item)[()])
 
             return [item/len(samples) for item in items_to_return]
 
@@ -329,12 +317,26 @@ def _get_averaged_items(file, samples, component, items):
         return item_to_return/len(samples)
 
 
-def _has_precomputed_map(file, component, item, sample=-1):
+def _item_alm_exists(file, component, item):
+    """Returns True if component contains alms for the given item, else 
+    returns False.
+    """
+    sample = _get_samples(file)[-1]
+
+    with h5py.File(file, 'r') as f:
+        params = list(f[sample][component].keys())
+
+    if f'{item}_alm' in params:
+        return True
+
+    return False
+
+
+def _item_map_exists(file, component, item):
     """Returns True if component contains precomputed map for item, else 
     returns False.
     """
-    if sample == -1:
-        sample = _get_samples(file)[-1]
+    sample = _get_samples(file)[-1]
 
     with h5py.File(file, 'r') as f:
         params = list(f[sample][component].keys())

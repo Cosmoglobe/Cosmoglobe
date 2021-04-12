@@ -1,16 +1,16 @@
 from .components import Component
+from ..tools.exceptions import NsideError
 
 import astropy.units as u
 import healpy as hp
+import numpy as np
 
 class Model:
     """A sky model.
 
     This class acts as a container for the various components making up the
-    sky model. It provides methods that operate on all components.
-
-    TODO: Should all components be smoothed to the same beam before any
-    evaluation can be done?
+    sky model and provides methods to simulate the sky emission at a given
+    frequency or over a bandpass.
 
     Args:
     -----
@@ -37,60 +37,21 @@ class Model:
                 f'{component} is not a subclass of cosmoglobe.sky.Component'
             )
 
-        name = component.comp_name
-        nside = component.amp.nside
+        name = component.name
+        nside = hp.get_nside(component.amp)
         if name in self.components:
             raise KeyError(f'component {name} already exists in model')
         if nside != self.nside:
             if self.nside is None:
                 self.nside = nside
             else:
-                raise ValueError(
-                    f'component {name!r} has a reference map at NSIDE'
+                raise NsideError(
+                    f'component {name!r} has a reference map at NSIDE='
                     f'{nside}, but model NSIDE is set to {self.nside}'
                 )
 
         setattr(self, name, component)
         self.components[name] = component
-
-
-    @u.quantity_input(freq=u.Hz, bandpass=(u.Jy/u.sr, u.K, None))
-    def get_emission(self, freq, bandpass=None, output_unit=None):
-        """Returns the full model sky emission at a single or multiple
-        frequencies.
-
-        TODO: add possibility to choose output_unit.
-
-        Args:
-        -----
-        freq (`astropy.units.Quantity`):
-            A frequency, or list of frequencies for which to evaluate the
-            component emission. Must be in units of Hertz.
-        bandpass (`astropy.units.Quantity`):
-            Bandpass profile corresponding to the frequency list. If None, a
-            delta peak in frequency is assumed at the given frequencies.
-            Default: None
-        output_unit (`astropy.units.Unit`):
-            The desired output units of the emission. Must be signal units, e.g
-            Jy/sr or K. Default : None
-
-
-        Returns:
-        --------
-        (`astropy.units.Quantity`)
-            Model emission at the given frequency.
-
-        """
-        if freq.ndim > 0:
-            return [self._get_model_emission(freq, bandpass, output_unit)
-                    for freq in freq]
-
-        return self._get_model_emission(freq, bandpass, output_unit)
-
-
-    def _get_model_emission(self, freq, bandpass, output_unit):
-        return sum(comp.get_emission(freq, bandpass, output_unit) 
-                   for comp in self)
 
 
     def insert(self, component):
@@ -118,9 +79,50 @@ class Model:
         del self[name]
 
 
-    @property
-    def component_names(self):
-        return list(self.components.keys())
+    @u.quantity_input(freq=u.Hz, bandpass=(u.Jy/u.sr, u.K, None))
+    def get_emission(self, freq, bandpass=None, output_unit=u.uK):
+        """Returns the full model sky emission at a single or multiple
+        frequencies.
+
+        Args:
+        -----
+        freq (`astropy.units.Quantity`):
+            A frequency, or list of frequencies for which to evaluate the
+            component emission. Must be in units of Hertz.
+        bandpass (`astropy.units.Quantity`):
+            Bandpass profile corresponding to the frequency list. If None, a
+            delta peak in frequency is assumed at the given frequencies.
+            Default: None
+        output_unit (`astropy.units.Unit`):
+            The desired output units of the emission. Must be signal units. 
+            Default : uK
+
+        Returns:
+        --------
+        (`astropy.units.Quantity`)
+            Model emission at the given frequency.
+
+        """
+        if bandpass is None and freq.ndim > 0:
+            return [self._get_model_emission(freq, bandpass, output_unit)
+                    for freq in freq]
+
+        return self._get_model_emission(freq, bandpass, output_unit)
+
+
+    def _get_model_emission(self, freq, bandpass, output_unit):
+        if self.is_polarized:
+            model_emission = np.zeros((3, hp.nside2npix(self.nside)))
+        else:
+            model_emission = np.zeros((1, hp.nside2npix(self.nside)))
+        model_emission = u.Quantity(model_emission, unit=output_unit)
+
+        for comp in self:
+            comp_emission = comp.get_emission(freq, bandpass, output_unit)
+            for idx, col in enumerate(comp_emission):
+                model_emission[idx] += col
+
+        return model_emission
 
 
     def to_nside(self, new_nside):
@@ -137,8 +139,20 @@ class Model:
         if not hp.isnsideok(new_nside, nest=True):
             raise ValueError(f'nside: {new_nside} is not valid.')
         
+        self.nside = new_nside
         for comp in self:
             comp.to_nside(new_nside)
+        
+
+    @property
+    def is_polarized(self):
+        """Returns True if model includes a polarized component and False 
+        otherwise.
+        """
+        for comp in self:
+            if comp.is_polarized:
+                return True
+        return False
 
 
     def __iter__(self):
@@ -163,8 +177,8 @@ class Model:
             component_repr = repr(component) + '\n'
             reprs.append(f'({key}): {component_repr}')
 
-        main_repr = 'Model('
+        main_repr = f'Model('
         main_repr += '\n ' + ' '.join(reprs)
-        main_repr += ')'
+        main_repr += f'), nside={self.nside}'
 
         return main_repr

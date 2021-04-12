@@ -37,6 +37,9 @@ def to_stokes(input_map, unit=None, freq_ref=None, fwhm_ref=None, label=None):
         if input_map.ndim == 1:
             zeros = np.zeros_like(input_map)
             map_ = u.Quantity([input_map, zeros, zeros])
+        elif input_map.shape[0] == 1:
+            zeros = np.zeros_like(input_map[0])
+            map_ = u.Quantity([input_map[0], zeros, zeros])
         else:
             map_ = u.Quantity(input_map)
 
