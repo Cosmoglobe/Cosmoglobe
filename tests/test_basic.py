@@ -7,7 +7,7 @@ import numpy as np
 import healpy as hp
 from context import cosmoglobe
 
-print("hello world2")
+print("hello wor ld2")
 from cosmoglobe.tools.map import to_stokes
 import cosmoglobe.plot as cgp
 path = "/Users/svalheim/work/cosmoglobe-workdir/"
