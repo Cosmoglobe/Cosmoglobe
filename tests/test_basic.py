@@ -13,9 +13,9 @@ map_path = '/Users/metinsan/Documents/doktor/Cosmoglobe/cosmoglobe/data/BP7_70GH
 bandpass_data = '../../Cosmoglobe_test_data/wmap_bandpass.txt'
 nu_array, bandpass_array, _ = np.loadtxt(bandpass_data, unpack=True)
 
-nside = 256
-model = sky.model_from_chain(data, nside=nside, sample=None)
-model.to_nside(16)
+nside = 512
+model = sky.model_from_chain(data, nside=nside, sample=20)
+# model.to_nside(16)
 # print('16',hp.nside2npix(16))
 # print('256',hp.nside2npix(256))
 # for comp in model:
@@ -40,9 +40,9 @@ model.to_nside(16)
 # print((model.cmb.get_emission(400*u.GHz)).shape)
 # print((model.synch.get_emission(400*u.GHz)).shape)
 # print(model.dust.spectral_parameters)
-for comp in model:
-    for idx, col in enumerate(comp.amp):
-        hp.mollview(col, norm='hist', title=f'{comp.name} {idx}')
+# for comp in model:
+    # for idx, col in enumerate(comp.amp):
+        # hp.mollview(col, norm='hist', title=f'{comp.name} {idx}')
 
 
 # emission = model.get_emission(nu_array*u.GHz, bandpass_array*u.uK)
@@ -52,10 +52,10 @@ for comp in model:
 # hp.mollview(emission[1], norm='hist', title="bp Q")
 # hp.mollview(emission[2], norm='hist', title="bp U")
 
-emission = model.get_emission(150*u.GHz)
+# emission = model.get_emission(150*u.GHz)
 # emission = model.get_emission(150*u.GHz, output_unit=(u.MJy/u.sr))
-hp.mollview(emission[0], norm='hist', title="150 I")
-hp.mollview(emission[1], norm='hist', title="150 Q")
-hp.mollview(emission[2], norm='hist', title="150 U")
+# hp.mollview(emission[0], norm='hist', title="150 I")
+# hp.mollview(emission[1], norm='hist', title="150 Q")
+# hp.mollview(emission[2], norm='hist', title="150 U")
 
-plt.show()
+# plt.show()
