@@ -114,13 +114,18 @@ class Component:
         """
         freq_ref = self.freq_ref
         input_unit = self.amp.unit
-        # Expand dimension on 1d spectral parameters from from (n,) to (n, 1) 
-        # to support broadcasting
+        # Expand dimension on rank-1 arrays from from (n,) to (n, 1) to support
+        # broadcasting
+        if self.amp.ndim == 1:
+            amp = np.expand_dims(self.amp, axis=0)
+        else:
+            amp = self.amp
         spectral_parameters = {
             key: (np.expand_dims(value, axis=0) if value.ndim == 1 else value)
             for key, value in self.spectral_parameters.items()
         }
 
+        # Perform bandpass integration
         if bandpass is not None:
             unit_conversion_factor = (
                 _get_unit_conversion(bandpass, freq, output_unit, input_unit)
@@ -130,8 +135,9 @@ class Component:
                 self._get_bandpass_conversion(freq, freq_ref, bandpass, 
                                               spectral_parameters)
             )
-            return self.amp*bandpass_conversion_factor*unit_conversion_factor
+            return amp*bandpass_conversion_factor*unit_conversion_factor
 
+        # Assume delta frequencies
         else:
             if freq.ndim > 0:
                 scaling = (self.get_freq_scaling(freq, freq_ref, 
@@ -142,10 +148,10 @@ class Component:
                                                 **spectral_parameters)
 
         if output_unit is not None and input_unit != output_unit:
-            return (self.amp*scaling).to(
+            return (amp*scaling).to(
                 output_unit, equivalencies=u.brightness_temperature(freq)
             )
-        return self.amp*scaling
+        return amp*scaling
 
 
     def _get_bandpass_conversion(self, freqs, freq_ref, bandpass, 
@@ -156,6 +162,8 @@ class Component:
         For more information on the computations, see section 4.2 in 
         https://arxiv.org/abs/2011.05609.
 
+        TODO: find the perfect default n value
+
         Args:
         -----
         freqs (`astropy.units.Quantity`):
@@ -165,7 +173,8 @@ class Component:
         bandpass (`astropy.units.Quantity`):
             Normalized bandpass profile. Must have signal units.
         spectral_parameters (dict):
-            Spectral parameters required to compute the frequency scaling factor. 
+            Spectral parameters required to compute the frequency scaling 
+            factor. 
         n (int):
             Number of points in the regular interpolation grid. Default: 20
 
@@ -345,7 +354,9 @@ class ModifiedBlackBody(Component):
             Frequency scaling factor with dimensionless units.
 
         """
-        blackbody_ratio = blackbody_emission(freq, T) / blackbody_emission(freq_ref, T)
+        blackbody_ratio = (
+            blackbody_emission(freq, T) / blackbody_emission(freq_ref, T)
+        )
         scaling = (freq/freq_ref)**(beta-2) * blackbody_ratio
         return scaling
 
@@ -354,7 +365,8 @@ class ModifiedBlackBody(Component):
 class LinearOpticallyThinBlackBody(Component):
     """Linearized optically thin blackbody emission component class. Represents 
     a component with a frequency scaling given by a linearized optically thin 
-    blacbody spectrum, strictly only valid in the optically thin case (tau << 1).
+    blacbody spectrum, strictly only valid in the optically thin case 
+    (tau << 1).
 
     TODO: find a more general name for this class
 
@@ -457,10 +469,11 @@ class SpDust2(Component):
 
         """
         spdust2 = self.spdust2
-        peak_scale = (30*u.GHz / nu_p)
+        peak_scale = 30*u.GHz / nu_p
         interp = np.interp((freq*peak_scale).si.value, spdust2[0], spdust2[1])
-        interp_ref = np.interp((freq_ref*peak_scale).si.value, spdust2[0], spdust2[1])
-
+        interp_ref = (
+            np.interp((freq_ref*peak_scale).si.value, spdust2[0], spdust2[1])
+        )
         scaling = interp/interp_ref
         return scaling
 
