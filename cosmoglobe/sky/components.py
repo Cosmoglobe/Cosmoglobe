@@ -30,8 +30,8 @@ class Component:
         import cosmoglobe.sky as sky
 
         class PowerLaw(sky.Component):
-            def __init__(self, comp_name, amp, freq_ref, beta):
-                super().__init__(comp_name, amp, freq_ref, beta=beta)
+            def __init__(self, name, amp, freq_ref, beta):
+                super().__init__(name, amp, freq_ref, beta=beta)
 
             def get_freq_scaling(self, freq, freq_ref, beta):
                 return (freq/freq_ref)**beta
@@ -46,7 +46,7 @@ class Component:
 
     Args:
     -----
-    comp_name (str):
+    name (str):
         The name or label of the component. The label becomes the attribute 
         name of the component in a `cosmoglobe.sky.Model`.
     amp (`astropy.units.Quantity`):
@@ -65,8 +65,8 @@ class Component:
         Default: None
 
     """
-    def __init__(self, comp_name, amp, freq_ref, **spectral_parameters):
-        self.comp_name = comp_name
+    def __init__(self, name, amp, freq_ref, **spectral_parameters):
+        self.name = name
         self.amp = amp
         self.freq_ref = self._set_freq_ref(freq_ref)
         self.spectral_parameters = spectral_parameters
@@ -141,7 +141,7 @@ class Component:
                 scaling = self.get_freq_scaling(freq, freq_ref, 
                                                 **spectral_parameters)
 
-        if input_unit != output_unit:
+        if output_unit is not None and input_unit != output_unit:
             return (self.amp*scaling).to(
                 output_unit, equivalencies=u.brightness_temperature(freq)
             )
@@ -211,22 +211,24 @@ class Component:
             Healpix map resolution parameter.
 
         """
-        if new_nside == self.amp.nside:
+        comp_nside = hp.get_nside(self.amp)
+        if new_nside == comp_nside:
             return
         if not hp.isnsideok(new_nside, nest=True):
             raise ValueError(f'nside: {new_nside} is not valid.')
 
-        self.amp.to_nside(new_nside)
+        self.amp = hp.ud_grade(self.amp.value, new_nside)*self.amp.unit
         for key, val in self.spectral_parameters.items():
-            try:
-                self.spectral_parameters[key] = hp.ud_grade(val.value, 
+            if hp.nside2npix(comp_nside) in np.shape(val):
+                try:
+                    self.spectral_parameters[key] = hp.ud_grade(val.value, 
                                                             new_nside)*val.unit
-            except AttributeError:
-                self.spectral_parameters[key] = hp.ud_grade(val, new_nside)
+                except AttributeError:
+                    self.spectral_parameters[key] = hp.ud_grade(val, new_nside)
 
 
     @property
-    def _is_polarized(self):
+    def is_polarized(self):
         """Returns True if component is polarized and False if not"""
         if self.amp.shape[0] == 3:
             return True
@@ -251,7 +253,7 @@ class PowerLaw(Component):
 
     Args:
     -----
-    comp_name (str):
+    name (str):
         Name/label of the component. Is used to set the component attribute 
         in a `cosmoglobe.Model`.
     amp (`numpy.ndarray`, `astropy.units.Quantity`, `cosmoglobe.StokesMap`):
@@ -265,8 +267,8 @@ class PowerLaw(Component):
         take the value of a scalar.
 
     """
-    def __init__(self, comp_name, amp, freq_ref, beta):
-        super().__init__(comp_name, amp, freq_ref, beta=beta)
+    def __init__(self, name, amp, freq_ref, beta):
+        super().__init__(name, amp, freq_ref, beta=beta)
 
 
     def get_freq_scaling(self, freq, freq_ref, beta):
@@ -300,7 +302,7 @@ class ModifiedBlackBody(Component):
 
     Args:
     -----
-    comp_name (str):
+    name (str):
         Name/label of the component. Is used to set the component attribute 
         in a `cosmoglobe.sky.Model`.
     amp (`numpy.ndarray`, `astropy.units.Quantity`, `cosmoglobe.StokesMap`):
@@ -317,8 +319,8 @@ class ModifiedBlackBody(Component):
         also take the value of a scalar similar to beta.
 
     """
-    def __init__(self, comp_name, amp, freq_ref, beta, T):
-        super().__init__(comp_name, amp, freq_ref, beta=beta, T=T)
+    def __init__(self, name, amp, freq_ref, beta, T):
+        super().__init__(name, amp, freq_ref, beta=beta, T=T)
 
 
     def get_freq_scaling(self, freq, freq_ref, beta, T):
@@ -358,7 +360,7 @@ class LinearOpticallyThinBlackBody(Component):
 
     Args:
     -----
-    comp_name (str):
+    name (str):
         Name/label of the component. Is used to set the component attribute 
         in a `cosmoglobe.sky.Model`.
     amp (`numpy.ndarray`, `astropy.units.Quantity`, `cosmoglobe.StokesMap`):
@@ -370,8 +372,8 @@ class LinearOpticallyThinBlackBody(Component):
         Electron temperature map with unit K.
 
     """
-    def __init__(self, comp_name, amp, freq_ref, Te):
-        super().__init__(comp_name, amp, freq_ref, Te=Te)
+    def __init__(self, name, amp, freq_ref, Te):
+        super().__init__(name, amp, freq_ref, Te=Te)
 
 
     def get_freq_scaling(self, freq, freq_ref, Te):
@@ -411,7 +413,7 @@ class SpDust2(Component):
 
     Args:
     -----
-    comp_name (str):
+    name (str):
         Name/label of the component. Is used to set the component attribute 
         in a `cosmoglobe.sky.Model`.
     amp (`numpy.ndarray`, `astropy.units.Quantity`, `cosmoglobe.StokesMap`):
@@ -423,8 +425,8 @@ class SpDust2(Component):
         Peak frequency.
 
     """
-    def __init__(self, comp_name, amp, freq_ref, nu_p):
-        super().__init__(comp_name, amp, freq_ref, nu_p=nu_p)
+    def __init__(self, name, amp, freq_ref, nu_p):
+        super().__init__(name, amp, freq_ref, nu_p=nu_p)
         spdust2_freq, spdust2_amp = np.loadtxt(
             pathlib.Path(data_dir.__path__[0]) / 'spdust2_cnm.dat', unpack=True
         )
@@ -472,7 +474,7 @@ class BlackBodyCMB(Component):
 
     Args:
     -----
-    comp_name (str):
+    name (str):
         Name/label of the component. Is used to set the component attribute 
         in a `cosmoglobe.sky.Model`.
     amp (`numpy.ndarray`, `astropy.units.Quantity`, `cosmoglobe.StokesMap`):
@@ -482,8 +484,8 @@ class BlackBodyCMB(Component):
         Reference frequencies for the amplitude map in units of Hertz.
 
     """
-    def __init__(self, comp_name, amp):
-        super().__init__(comp_name, amp, freq_ref=None)
+    def __init__(self, name, amp):
+        super().__init__(name, amp, freq_ref=None)
 
 
     def get_freq_scaling(self, freq, freq_ref):
