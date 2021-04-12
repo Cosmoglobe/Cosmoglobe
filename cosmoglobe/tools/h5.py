@@ -183,12 +183,12 @@ def comp_from_chain(file, component, component_class, model_nside,
             freq = u.Quantity(freq_ref[0])
         args['freq_ref'] = freq
             
-    return component_class(comp_name=component, **args)
+    return component_class(name=component, **args)
 
 
 def _get_comp_args(component_class):
     """Returns a list of arguments needed to initialize a component"""
-    ignored_args = ['self', 'comp_name']
+    ignored_args = ['self', 'name']
     arguments = inspect.getargspec(component_class.__init__).args
     return [arg for arg in arguments if arg not in ignored_args]
 

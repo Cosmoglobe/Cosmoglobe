@@ -37,7 +37,7 @@ class Model:
                 f'{component} is not a subclass of cosmoglobe.sky.Component'
             )
 
-        name = component.comp_name
+        name = component.name
         nside = hp.get_nside(component.amp)
         if name in self.components:
             raise KeyError(f'component {name} already exists in model')
@@ -139,9 +139,10 @@ class Model:
         if not hp.isnsideok(new_nside, nest=True):
             raise ValueError(f'nside: {new_nside} is not valid.')
         
+        self.nside = new_nside
         for comp in self:
             comp.to_nside(new_nside)
-
+        
 
     @property
     def is_polarized(self):
@@ -149,7 +150,7 @@ class Model:
         otherwise.
         """
         for comp in self:
-            if comp._is_polarized:
+            if comp.is_polarized:
                 return True
         return False
 
