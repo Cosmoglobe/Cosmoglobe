@@ -233,9 +233,15 @@ def mollplot(
     # Smooth map
     if fwhm>0.0: 
         m = hp.smoothing(m, fwhm)
+<<<<<<< HEAD
 
     if verbose: print(f"Plotting {auto}, title {title}, nside {nside}")
 
+=======
+
+    if verbose: print(f"Plotting {auto}, title {title}, nside {nside}")
+
+>>>>>>> trygve
     # Projection arrays
     grid_pix, lon, lat = project_map(nside, xsize=2000, ysize=1000,)
     print(m)

@@ -103,7 +103,7 @@ class StokesMap:
     label : str
 
     @u.quantity_input(freq_ref=(None, u.Hz), fwhm_ref=(None, u.arcmin, u.rad))
-    def __init__(self, input_map, freq_ref=None, fwhm_ref=None, label=None):
+    def __init__(self, input_map, freq_ref=None, fwhm_ref=None, label=None,):
         self.data = input_map.astype(np.float32)
         self.freq_ref = freq_ref
         self.fwhm_ref = fwhm_ref
@@ -125,27 +125,30 @@ class StokesMap:
         """Returns the stokes I map"""
         return self.data[0]
 
-
     @property
     def Q(self):
         """Returns the stokes Q map"""
-        return self.data[1]
-
+        if self._has_pol:
+            return self.data[1]
+        print("This map has no Q signal, returning zeros.")
+        return np.zeros_like(self.I)
 
     @property
     def U(self):
         """Returns the stokes U map"""
-        return self.data[2]
+        if self._has_pol:
+            return self.data[2]
+        print("This map has no U signal, returning zeros.")
+        return np.zeros_like(self.I)
         
-
     @property
     def P(self):
         """Polarized map signal. P = sqrt(Q^2 + U^2)"""
         if self._has_pol:
             return np.sqrt(self.Q**2 + self.U**2)
 
+        print("This map has no P signal, returning zeros.")
         return np.zeros_like(self.I)
-
 
     @property
     def unit(self):
@@ -156,7 +159,7 @@ class StokesMap:
     @property
     def _has_pol(self):
         """Returns True if self.Q is non-zero. False otherwise"""
-        if np.any(self.Q.value) and np.any(self.U.value):
+        if np.any(self.data.value[1]) and np.any(self.data.value[2]):
             return True
 
         return False
@@ -182,46 +185,34 @@ class StokesMap:
         return self.data.ndim
 
 
-    def mask(self, mask, sigs=None):
+    def mask(self, mask,):
         """Applies a mask to the data"""
 
-        if sigs==None:
-            sigs = ["I"]
-            if self._has_pol:
-                sigs += ["Q", "U"]
-
-        for sig in sigs:
-            m = getattr(self,sig)
-            if not isinstance(m, np.ma.core.MaskedArray):
-                m = hp.ma(m)
-            m.mask = np.logical_not(mask)
-            setattr(self, sig, m)
+        if not isinstance(self.data, np.ma.core.MaskedArray):
+            self.data = hp.ma(self.data)    
+        self.data.mask = np.logical_not(mask)
 
 
-    def remove_md(self, mask, sig=None, remove_dipole=True, remove_monopole=True):
+    def remove_md(self, mdmask="auto", sig=None, remove_dipole=True, remove_monopole=True):
         """
         This function removes the mono and dipole of the signals in the map object.
         If you only wish to remove from 1 signal, pass [0,1,2]
         """
-        if sig==None:
-            sig = [0,1,2]
+        if sig==None: sig = [0,1,2]
         pol = ["I", "Q", "U"][sig]
-        data = getattr(self, pol)
-        data = [data] if data.ndim == 1 else data
-        for i, m in enumerate(data):
-            # Make sure data is masked array type
-            if not isinstance(m, np.ma.core.MaskedArray):
-                m = hp.ma(m)
-        
-            if mask == "auto":
+
+        for i, m in enumerate(self):
+            if mdmask == "auto":
                 mono, dip = hp.fit_dipole(m, gal_cut=30)
             else:
-                m_masked = m
+                m_masked = m.copy()
+                if not isinstance(m, np.ma.core.MaskedArray):
+                    m_masked = hp.ma(m_masked)
                 m_masked.mask = np.logical_not(mask)
                 mono, dip = hp.fit_dipole(m_masked)
 
             # Subtract dipole map from data
-            if isinstance(remove_dipole, np.ndarray):
+            if remove_dipole:
                 print("Removing dipole:")
                 print(f"Dipole vector: {dip}")
                 print(f"Dipole amplitude: {np.sqrt(np.sum(dip ** 2))}")
@@ -230,16 +221,15 @@ class StokesMap:
                 ray = range(len(m))
                 vecs = hp.pix2vec(self.nside, ray)
                 dipole = np.dot(dip, vecs)
-                
-                m = m - dipole
+                dipole = dipole.astype('float32')
 
-            if isinstance(remove_monopole, np.ndarray):
+                m = m - dipole
+            if remove_monopole:
                 print(f"Removing monopole:")
                 print(f"Mono: {mono}")
                 m = m - mono
-            
-            setattr(self, pol[i], m)
 
+            self.data[i] = m
 
     def to_nside(self, new_nside):
         """ud_grades all stokes parameters to a new nside.
@@ -271,13 +261,18 @@ class StokesMap:
         """
         fwhm = fwhm.to(u.rad)
         if self.fwhm_ref != fwhm:
-            diff_fwhm = np.sqrt(fwhm.value**2 - self.fwhm_ref.value**2)
+
+            if self.fwhm_ref is None:
+                diff_fwhm = fwhm
+            else:
+                diff_fwhm = np.sqrt(fwhm.value**2 - self.fwhm_ref.value**2)
+
             if diff_fwhm < 0:
                 raise ValueError(
                     'cannot smooth to a higher resolution '
                     f'(map fwhm: {self.fwhm_ref}).'
                 )
-            self.data = hp.smoothing(self.data, diff_fwhm)*self.data.unit
+            self.data = hp.smoothing(self.data, diff_fwhm.value)*self.data.unit
             self.fwhm_ref = fwhm
 
 
