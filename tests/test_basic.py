@@ -1,49 +1,61 @@
-"""
-For testing Cosmoglobe during development.
-
-"""
+"""For testing Cosmoglobe during development."""
+from context import cosmoglobe
+import cosmoglobe.sky as sky
 import astropy.units as u
 import healpy as hp
-import matplotlib.pyplot as plt
 import numpy as np
-from context import cosmoglobe
+import matplotlib.pyplot as plt
 
 hp.disable_warnings()
+
 data = '../../Cosmoglobe_test_data/bla.h5'
-
-
-import healpy as hp
-import cosmoglobe.sky as sky
-from cosmoglobe.tools.map import to_stokes
-from cosmoglobe.tools.h5 import model_from_chain
-
 map_path = '/Users/metinsan/Documents/doktor/Cosmoglobe/cosmoglobe/data/BP7_70GHz_nocmb_n0256.fits'
-
 bandpass_data = '../../Cosmoglobe_test_data/wmap_bandpass.txt'
 nu_array, bandpass_array, _ = np.loadtxt(bandpass_data, unpack=True)
 
-nside = 64
-iqu = np.random.randint(low=1, high=5, size=(3, hp.nside2npix(nside)))
-# iqu = np.ones((3, hp.nside2npix(nside)))
-i = np.random.randint(low=1, high=5, size=(hp.nside2npix(nside)))
-# i = np.ones(hp.nside2npix(nside))
-scalar = 5
+nside = 256
+model = sky.model_from_chain(data, nside=nside, sample=None)
+model.to_nside(16)
+# print('16',hp.nside2npix(16))
+# print('256',hp.nside2npix(256))
+# for comp in model:
+#     print(comp.amp.shape)
+#     for key, value in comp.spectral_parameters.items():
+#         print(comp.name, key, np.shape(value))
 
-
-# dust = sky.BlackBodyCMB('dust', amp=i*u.uK)
-# print(dust.amp)
-# model = model_from_chain(data, nside=16, burn_in=20)
+# model.dust.spectral_parameters['T'] = i2*u.K
+# model.dust.spectral_parameters['beta'] = i2*u.dimensionless_unscaled
 # print(model)
-# emission = model.get_emission([10, 500]*u.GHz)
-# hp.mollview(emission[0].I, norm='hist')
-# hp.mollview(emission[1].I, norm='hist')
+# for comp in model:
+#     print(comp.name, comp.amp.unit, comp.get_emission(150*u.GHz))
+# print((model.ff.amp).shape)
+# print((model.dust.amp).shape)
+# print((model.ame.amp).shape)
+# print((model.cmb.amp).shape)
+# print((model.synch.amp).shape)
 
-i_30 = hp.smoothing(i, (30*u.arcmin).to(u.rad).value, use_pixel_weights=True)
-i_60 = hp.smoothing(i_30, (np.sqrt(60**2 - 30**2)*u.arcmin).to(u.rad).value, use_pixel_weights=True)
-i__60 = hp.smoothing(i, (60*u.arcmin).to(u.rad).value, use_pixel_weights=True)
+# print((model.ff.get_emission(400*u.GHz)).shape)
+# print((model.dust.get_emission(400*u.GHz)).shape)
+# print((model.ame.get_emission(400*u.GHz)).shape)
+# print((model.cmb.get_emission(400*u.GHz)).shape)
+# print((model.synch.get_emission(400*u.GHz)).shape)
+# print(model.dust.spectral_parameters)
+for comp in model:
+    for idx, col in enumerate(comp.amp):
+        hp.mollview(col, norm='hist', title=f'{comp.name} {idx}')
 
-print(i_60 - i__60)
-hp.mollview(i_60)
-hp.mollview(i__60)
-hp.mollview(i_60-i__60)
+
+# emission = model.get_emission(nu_array*u.GHz, bandpass_array*u.uK)
+# emission = model.get_emission(nu_array*u.GHz, bandpass_array*u.uK, output_unit=(u.MJy/u.sr))
+# print(emission.unit)
+# hp.mollview(emission[0], norm='hist', title="bp I")
+# hp.mollview(emission[1], norm='hist', title="bp Q")
+# hp.mollview(emission[2], norm='hist', title="bp U")
+
+emission = model.get_emission(150*u.GHz)
+# emission = model.get_emission(150*u.GHz, output_unit=(u.MJy/u.sr))
+hp.mollview(emission[0], norm='hist', title="150 I")
+hp.mollview(emission[1], norm='hist', title="150 Q")
+hp.mollview(emission[2], norm='hist', title="150 U")
+
 plt.show()
