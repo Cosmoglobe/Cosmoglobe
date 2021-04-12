@@ -49,3 +49,6 @@ distribute-*.tar.gz
 
 *.log
 *.out
+
+# Ignore test files
+tests/
