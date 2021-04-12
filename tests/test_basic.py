@@ -46,7 +46,7 @@ model = sky.model_from_chain(data, nside=nside, sample=20)
 
 
 # emission = model.get_emission(nu_array*u.GHz, bandpass_array*u.uK)
-# emission = model.get_emission(nu_array*u.GHz, bandpass_array*u.uK, output_unit=(u.MJy/u.sr))
+emission = model.get_emission(nu_array*u.GHz, bandpass_array*u.uK, output_unit=(u.MJy/u.sr))
 # print(emission.unit)
 # hp.mollview(emission[0], norm='hist', title="bp I")
 # hp.mollview(emission[1], norm='hist', title="bp Q")
@@ -54,8 +54,8 @@ model = sky.model_from_chain(data, nside=nside, sample=20)
 
 # emission = model.get_emission(150*u.GHz)
 # emission = model.get_emission(150*u.GHz, output_unit=(u.MJy/u.sr))
-# hp.mollview(emission[0], norm='hist', title="150 I")
+hp.mollview(emission[0], norm='hist', title="150 I")
 # hp.mollview(emission[1], norm='hist', title="150 Q")
 # hp.mollview(emission[2], norm='hist', title="150 U")
 
-# plt.show()
+plt.show()
