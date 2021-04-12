@@ -48,4 +48,18 @@ distribute-*.tar.gz
 .DS_Store
 
 *.log
+<<<<<<< HEAD
+<<<<<<< HEAD
 *.out
+
+# Ignore test files
+tests/
+=======
+*.out
+>>>>>>> d2387d3e3215ae8835f0c053b5f3522cadf74bc5
+=======
+*.out
+
+# Ignore test files
+tests/
+>>>>>>> trygve
