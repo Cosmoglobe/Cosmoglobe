@@ -157,7 +157,7 @@
         "title": "A_",
         "unit": "\\mu\\mathrm{K}",
         "cmap": ["planck", "planck"], 
-        "ticks": ["auto", "auto"],
+        "ticks": [null, null],
         "logscale": false,
         "special": false
     },
@@ -185,7 +185,7 @@
         "title": null,
         "unit": "",
         "cmap": ["planck"], 
-        "ticks": ["auto"],
+        "ticks": [null],
         "logscale": false,
         "special": false
     }

@@ -15,20 +15,18 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
 def mollplot(
     map_,
-    sig=[
-        0,
-    ],
-    auto=False,
+    sig=0,
+    auto=None,
     ticks=None,
-    colorbar=False,
+    colorbar=True,
     unit=None,
     graticule=False,
     fwhm=0.0,
     nside=None,
     mask=None,
     logscale=None,
-    remove_dipole=False,
-    remove_monopole=False,
+    remove_dip=False,
+    remove_mono=False,
     cmap=None,
     title=None,
     ltitle=None,
@@ -39,6 +37,7 @@ def mollplot(
     subplot=None,
     hold=False,
     reuse_axes=False,
+    verbose=False,
     ):
     """
     Plots a fits file, a h5 data structure or a data array in Mollview with
@@ -53,52 +52,33 @@ def mollplot(
         Signal indices to be plotted. 0, 1, 2 interprated as IQU.
         Supports multiple, such that -sig 1 -sig 2.
         default = [0,]
-    auto : bool
-        Toggle parameter autodetector. Automatic identification of plotting
-        parameters based on information from autoparams.json default = False
-    min :  str
-        Minimum value of colorbar. Overrides autodetector.
-        default = False
-    max :  str
-        Maximum value of colorbar. Overrides autodetector.
-        default = False
-    mid : list
-        Adds tick values between min and max. Accepts multiple ex. -mid 2 -mid
-        3. default = []
-    range : str
-        Min and max value around 0 (ex. 10).
-        Also compatible with "auto": sets to 97.5 percentile of data.
-        Also compatible with "minmax": sets to min and max values.
-        default = "auto"
+    auto : String
+        Component label for automatic identification of plotting
+        parameters based on information from autoparams.json default = None
+    ticks : list or str
+        Min and max value for data. If None, uses 97.5th percentile.
+        default = None
     colorbar : bool
         Adds a colorbar, and "cb" to output filename.
         default = False
     graticule : bool
         Adds graticule to figure.
         default = False
-    lmax : float
-        Set the lmax of alm input data from hdf.
-        If reading hdf and not set, this is automatically found.
-        default = None
     fwhm : float
         Optional map smoothing. FWHM of gaussian smoothing in arcmin.
         default = 0.0
     mask : array of healpix mask
         Apply a mask file to data
         default = None
-    mfill : str
-        Color to fill masked area, for example "gray".
-        Transparent by default.
-        defualt : None
     mdmask : str or array
         Mask for mono-dipole removal. If "auto", uses 30 degree cutoff.
         Removes both by default. Toggle off dipole or monopole removal with
         remove_dipole or remove_monopole arguments.
         default = None
-    remove_dipole : bool
+    remove_dip : bool
         If mdmask is specified, fits and removes a dipole. 
         default = True
-    remove_monopole : bool
+    remove_mono : bool
         If mdmask is specified, fits and removes a monopole. 
         default = True
     logscale : str
@@ -181,33 +161,42 @@ def mollplot(
 
     # Translate sig to correct format
     stokes=["I", "Q", "U"]
-    if isinstance(sig, (int,str)): sig=[sig] # Signal should be list
-    if any(isinstance(x, str) for x in sig):
-        sig=[sig.index(x) for x in sig]
+    if isinstance(sig, str): sig=stokes.index(sig)
 
-    # Check if input is cosmoglobe map object
-    if not isinstance(map_, (StokesMap)):
-        map_ = to_stokes(map_)
-
-    comp = map_.label
-    if auto: 
+    if auto is not None: 
         import json
         with open(Path(data_dir.__path__[0]) /'autoparams.json', 'r') as f:
             autoparams = json.load(f)
         try:
-            params = autoparams[comp]
+            params = autoparams[auto]
         except:
-            print(f"Component label {comp} not found. Using unidentified profile.")
+            print(f"Component label {auto} not found. Using unidentified profile.")
             print(autoparams.keys())
             params = autoparams["unidentified"]
 
         #If none will be set to IQU
-        params["left_title"] = None 
+        params["left_title"] = stokes[sig]
 
-        if any(j in comp for j in ["residual", "freqmap", "bpcorr", "smap"]):
+        # If l=0 use intensity cmap and ticks, else use QU
+        l = 0 if sig<1 else 1
+        params["cmap"] = params["cmap"][l]
+        params["ticks"] = params["ticks"][l]
+
+        if any(j in auto for j in ["residual", "freqmap", "bpcorr", "smap"]):
             # Add number, such as frequency, to title.
-            number = ''.join(filter(lambda i: i.isdigit(), comp))
+            number = ''.join(filter(lambda i: i.isdigit(), auto))
             params["title"]=params["title"]+"{"+number+"}"
+
+        if "rms" in auto:
+            params["title"] += "^{\mathrm{RMS}}"
+            params["cmap"] = "neutral"
+            params["ticks"] = "auto"
+        if "stddev" in auto:
+            params["title"] = "\sigma_{\mathrm{" + param["title"] + "}}"
+            params["cmap"] = "neutral"
+            params["ticks"] = "auto"
+        if "mean" in auto:
+            params["title"] =  "\langle " + comp["title"] +"\rangle"
 
         # This is messy
         if title is not None: params["title"] = title
@@ -218,7 +207,7 @@ def mollplot(
         if cmap is not None: params["cmap"] = cmap
     else:
         params = {"title": title, 
-                    "left_title": ltitle,
+                    "left_title": stokes[sig],
                     "unit": unit,
                     "ticks": ticks,
                     "logscale": logscale,
@@ -227,111 +216,108 @@ def mollplot(
 
     # Set plotting rcParams
     set_style(darkmode)
+    if isinstance(map_, str):
+        map_=hp.read_map(map_, field=sig)
+    m = map_[sig] if map_.ndim > 1 else map_
 
     # Mask map
-    if mask: map_.mask(mask)
-    # udgrade map
-    if (nside != None and nside!=map_.nside): 
-        map_.to_nside(nside)        
-    else:
-        nside = map_.nside
-    # Smooth map
-    if fwhm>0.0: map_.to_fwhm(fwhm*u.arcmin)
+    if mask is not None: 
+        m = hp.ma(m)    
+        m.mask = np.logical_not(mask)
 
-    if verbose: print(f"Plotting {map_.label} nside {nside}")
+    # udgrade map
+    if (nside != None and nside!=hp.get_nside(m)): 
+        m = hp.ud_grade(m, nside)
+    else:
+        nside = hp.get_nside(m)
+
+    # Smooth map
+    if fwhm>0.0: 
+        m = hp.smoothing(m, fwhm)
+
+    if verbose: print(f"Plotting {auto}, title {title}, nside {nside}")
 
     # Projection arrays
-    grid_pix, longitude, latitude = project_map(
-        nside,
-        xsize=2000,
-        ysize=1000,
+    grid_pix, lon, lat = project_map(nside, xsize=2000, ysize=1000,)
+    print(m)
+    # Remove mono/dipole
+    if remove_dip:
+        m = hp.remove_dipole(m, gal_cut=30, copy=True, verbose=True)
+    elif remove_mono:
+        m = hp.remove_monopole(m, gal_cut=30, copy=True, verbose=True)
+
+    # Put signal into map object
+
+    grid_mask = m.mask[grid_pix] if mask else None
+    grid_map = np.ma.MaskedArray(m[grid_pix], grid_mask)
+
+    # Ticks and ticklabels
+    ticks = params["ticks"]
+    if ticks==None: ticks = get_percentile(m, 97.5)
+
+    #### Logscale ####
+    ticklabels = [fmt(i, 1) for i in ticks]
+    if params["logscale"]: 
+        m, ticks = apply_logscale(m, ticks, linthresh=1)
+
+    #### Color map #####
+    cmap = load_cmap(params["cmap"], logscale)
+
+    if verbose:
+        # Terminal ouput
+        print(f'FWHM: {fwhm}')
+        print(f'nside: {nside}')
+        print(f'Ticks: {ticklabels}')
+        print(f'Unit: {params["unit"]}')
+        print(f'Title: {params["title"]}')
+        
+    # Plot image
+    image = plt.pcolormesh(
+        lon[::-1],
+        lat,
+        grid_map,
+        vmin=ticks[0],
+        vmax=ticks[-1],
+        rasterized=True,
+        cmap=cmap,
+        shading="auto",
     )
 
-    for i, p in enumerate(sig):
-        params["ltitle"] = stokes[p] # Stokes parameter string
+    #### Graticule ####
+    if graticule: apply_graticule(ax, plt.gcf().get_size_inches()[0])
+    ax.xaxis.set_ticklabels([])
+    ax.yaxis.set_ticklabels([])
 
-        # If l=0 use intensity cmap and ticks, else use QU
-        l = 0 if p<1 else 1
-        if isinstance(params["cmap"][0], list):
-            cmap = params["cmap"][l]
-        if isinstance(params["ticks"][0], list):
-            ticks = params["ticks"][l]
+    for i in ["title","unit","left_title"]:
+        if params[i] and params[i]!="": 
+            params[i]=r"$"+params[i]+"$"
 
-        # Remove mono/dipole
-        if (remove_dipole or remove_monopole):
-            # If mdmask exists, remove mono and dipole. Manually toggle either off.
-            map_.remove_md(sig=p, remove_dipole=remove_dipole, remove_monopole=remove_monopole)
+    #### Colorbar ####
+    if colorbar:
+        apply_colorbar(
+            fig, ax, image, ticks, ticklabels, params["unit"], 
+            fontsize, linthresh=1, logscale=params["logscale"])
 
-        # Put signal into map object
-        m = getattr(map_, params["ltitle"])
-        grid_mask = m.mask[grid_pix] if mask else None
-        grid_map = np.ma.MaskedArray(m[grid_pix], grid_mask)
+    #### Right Title ####
+    plt.text(
+        4.5,
+        1.1,
+        params["title"],
+        ha="center",
+        va="center",
+        fontsize=fontsize)
 
-        # Ticks and ticklabels
-        if ticks==None: ticks = get_percentile(m, 97.5)
- 
-        #### Logscale ####
-        ticklabels = [fmt(i, 1) for i in ticks]
-        if params["logscale"]: 
-            m, ticks = apply_logscale(m, ticks, linthresh=1)
+    #### Left Title (stokes parameter label by default) ####
+    plt.text(
+        -4.5,
+        1.1,
+        params["left_title"],
+        ha="center",
+        va="center",
+        fontsize=fontsize,
+    )
 
-        #### Color map #####
-        cmap = load_cmap(cmap, logscale)
-
-        if verbose:
-            # Terminal ouput
-            print(f'FWHM: {fwhm}')
-            print(f'nside: {nside}')
-            print(f'Ticks: {ticklabels}')
-            print(f'Unit: {params["unit"]}')
-            print(f'Title: {params["title"]}')
-            
-        image = plt.pcolormesh(
-            longitude[::-1],
-            latitude,
-            grid_map,
-            vmin=ticks[0],
-            vmax=ticks[-1],
-            rasterized=True,
-            cmap=cmap,
-            shading="auto",
-        )
-
-        #### Graticule ####
-        if graticule: apply_graticule(ax, plt.gcf().get_size_inches()[0])
-        ax.xaxis.set_ticklabels([])
-        ax.yaxis.set_ticklabels([])
-
-        for i in ["title","unit","ltitle"]:
-            if params[i] and params[i]!="": 
-                params[i]=r"$"+params[i]+"$"
-
-        #### Colorbar ####
-        if colorbar:
-            apply_colorbar(
-                fig, ax, image, ticks, ticklabels, params["unit"], 
-                fontsize, linthresh=1, logscale=params["logscale"])
-
-        #### Right Title ####
-        plt.text(
-            4.5,
-            1.1,
-            params["title"],
-            ha="center",
-            va="center",
-            fontsize=fontsize)
-
-        #### Left Title (stokes parameter label by default) ####
-        plt.text(
-            -4.5,
-            1.1,
-            params["ltitle"],
-            ha="center",
-            va="center",
-            fontsize=fontsize,
-        )
-
-        return fig, ax
+    return fig, ax
 
 def apply_colorbar(fig, ax, image, ticks, ticklabels, unit, fontsize, linthresh, logscale=False):
     """
@@ -404,7 +390,7 @@ def apply_logscale(m, ticks, linthresh=1):
     This function converts the data to logscale, 
     and also converts the tick locations correspondingly
     """
-    if verbose: print("Applying semi-logscale")
+    print("Applying semi-logscale")
     m = symlog(m,linthresh)
     new_ticks = []
     for i in ticks:
@@ -420,13 +406,6 @@ def set_style(darkmode):
     # rcParameters
     plt.rcParams["mathtext.fontset"] = "stix"
     plt.rcParams["axes.linewidth"] = 1
-
-    # Preset high resolution parameters for superbig plots
-
-    ## Set backend based on output filename or
-    # plt.rcParams["backend"] = "agg" if png else "pdf"
-    # if outname:
-    #    plt.rcParams["backend"] = "agg" if outname.endswith("png") else "pdf"
 
     ## If darkmode plot (white frames), change colors:
     if darkmode:
