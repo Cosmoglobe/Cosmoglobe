@@ -1,5 +1,7 @@
 from .. import sky
 from ..tools import utils
+from ..science.functions import K_CMB_to_K_RJ
+from ..science.constants import T_0
 
 from numba import njit
 import astropy.units as u
@@ -54,9 +56,9 @@ def model_from_chain(file, nside=None, sample=None, burn_in=None, comps=None):
     default_comps = {
         'dust': sky.ModifiedBlackBody,
         'synch': sky.PowerLaw,
-        'ff': sky.LinearOpticallyThinBlackBody,
+        'ff': sky.FreeFree,
         'ame': sky.SpDust2,
-        'cmb': sky.BlackBodyCMB,
+        'cmb': sky.BlackBody,
     }
     if not comps:
         comps = default_comps
@@ -115,16 +117,21 @@ def comp_from_chain(file, component, component_class, model_nside,
     else:
         comp_is_polarized = False
 
-    # Astropy doesnt have built in K_RJ or K_CMB so we manually set it to K
-    if 'k_rj' in amp_unit.lower():
-        amp_unit = amp_unit[:-3]
-    elif 'k_cmb' in amp_unit.lower():
-        amp_unit = amp_unit[:-4]
-    amp_unit = u.Unit(amp_unit)
 
     # Getting arguments required to initialize component
     args_list = _get_comp_args(component_class) 
     args = {}
+
+    # Astropy doesnt have built in K_RJ or K_CMB so we manually set it to K
+    if 'k_rj' in amp_unit.lower():
+        amp_unit = amp_unit[:-3]
+
+    #comp is CMB. Commander only outputs 'amp', so we manually remove 'T'
+    elif 'k_cmb' in amp_unit.lower():
+        amp_unit = amp_unit[:-4]
+        if 'T' in args_list:
+            args_list.remove('T')
+    amp_unit = u.Unit(amp_unit)
 
     if sample is None:
         get_items = _get_averaged_items
@@ -181,7 +188,6 @@ def comp_from_chain(file, component, component_class, model_nside,
                           fwhm=fwhm_ref.value,
                           pol=pol,
                           verbose=False).astype('float32')
-
         alms[key] = alms_
 
     args.update(alms)
@@ -195,7 +201,12 @@ def comp_from_chain(file, component, component_class, model_nside,
         else:
             freq = u.Quantity(freq_ref[0])
         args['freq_ref'] = freq
-            
+
+    if component == 'cmb':  
+        # Convert to K_RJ at the reference frequency and set T manually to T_0
+        args['amp'] *= K_CMB_to_K_RJ(freq_ref[0])
+        args['T'] = args['amp'].si + T_0
+
     return component_class(name=component, **args)
 
 

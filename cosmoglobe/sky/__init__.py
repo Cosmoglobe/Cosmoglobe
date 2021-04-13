@@ -1,10 +1,10 @@
 from .components import (
     Component, 
-    PowerLaw, 
+    PowerLaw,
+    BlackBody,
     ModifiedBlackBody, 
-    LinearOpticallyThinBlackBody,
+    FreeFree,
     SpDust2, 
-    BlackBodyCMB,
 )
 from .model import Model
 from .hub import (

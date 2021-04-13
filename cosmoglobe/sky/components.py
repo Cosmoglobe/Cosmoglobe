@@ -8,7 +8,7 @@ from ..tools.bandpass import (
 from ..science.functions import (
     blackbody_emission, 
     gaunt_factor, 
-    cmb_to_brightness
+    K_CMB_to_K_RJ
 )
 from .. import data as data_dir
 
@@ -265,11 +265,16 @@ class PowerLaw(Component):
     name (str):
         Name/label of the component. Is used to set the component attribute 
         in a `cosmoglobe.Model`.
-    amp (`numpy.ndarray`, `astropy.units.Quantity`, `cosmoglobe.StokesMap`):
-        Amplitude templates at the reference frequencies for I or IQU stokes 
-        parameters.
+    amp (`astropy.units.Quantity`):
+        Emission templates of the component at the reference frequencies given
+        by freq_ref.
     freq_ref (`astropy.units.Quantity`):
-        Reference frequencies for the amplitude map in units of Hertz.
+        Reference frequencies for the amplitude template in units of Hertz.
+        The input must be an astropy quantity containing the the reference 
+        frequency for the stokes I amplitude template, and optionally the
+        reference frequency for the soktes Q and U templates if the component 
+        is polarized. Example: freq_ref=freq_ref_I*u.GHz, or 
+        freq_ref=[freq_ref_I, freq_ref_P]*u.GHz
     beta (`numpy.ndarray`, `astropy.units.Quantity`):
         The power law spectral index. The spectral index can vary over the sky, 
         and is therefore commonly given as a shape (3, nside) array, but it can 
@@ -304,6 +309,56 @@ class PowerLaw(Component):
         return scaling
 
 
+class BlackBody(Component):
+    """Blackbody component class. Represents emission given by a blackbody.
+
+    Args:
+    -----
+    name (str):
+        Name/label of the component. Is used to set the component attribute 
+        in a `cosmoglobe.sky.Model`.
+    amp (`astropy.units.Quantity`):
+        Emission templates of the component at the reference frequencies given
+        by freq_ref.
+    freq_ref (`astropy.units.Quantity`):
+        Reference frequencies for the amplitude template in units of Hertz.
+        The input must be an astropy quantity containing the the reference 
+        frequency for the stokes I amplitude template, and optionally the
+        reference frequency for the soktes Q and U templates if the component 
+        is polarized. Example: freq_ref=freq_ref_I*u.GHz, or 
+        freq_ref=[freq_ref_I, freq_ref_P]*u.GHz
+    T (`astropy.units.Quantity`):
+        Temperature sclar, or map of the blackbody with unit K and shape 
+        (nside,) or (3, nside).
+
+    """
+    def __init__(self, name, amp, freq_ref, T):
+        super().__init__(name, amp, freq_ref, T=T)
+
+
+    def get_freq_scaling(self, freq, freq_ref, T):
+        """Computes the frequency scaling from K_CMB to K_RJ as a frequency.
+
+        Args:
+        -----
+        freq (`astropy.units.Quantity`):
+            Frequency at which to evaluate the model.
+        freq_ref (`astropy.units.Quantity`):
+            Reference frequencies for the amplitude map.
+        T (`astropy.units.Quantity`): 
+            Temperature of the blackbody.  
+
+        Returns:
+        --------
+        scaling (`astropy.units.Quantity`):
+            Frequency scaling factor with dimensionless units.
+
+        """
+        print(blackbody_emission(freq, T) / blackbody_emission(freq_ref, T))
+        blackbody_ratio = blackbody_emission(freq, T) / blackbody_emission(freq_ref, T)
+        scaling = (freq/freq_ref)**-2 * blackbody_ratio
+        return scaling
+
     
 class ModifiedBlackBody(Component):
     """Modified blackbody component class. Represents any component with a 
@@ -314,11 +369,16 @@ class ModifiedBlackBody(Component):
     name (str):
         Name/label of the component. Is used to set the component attribute 
         in a `cosmoglobe.sky.Model`.
-    amp (`numpy.ndarray`, `astropy.units.Quantity`, `cosmoglobe.StokesMap`):
-        Amplitude templates at the reference frequencies for I or IQU stokes 
-        parameters.
+    amp (`astropy.units.Quantity`):
+        Emission templates of the component at the reference frequencies given
+        by freq_ref.
     freq_ref (`astropy.units.Quantity`):
-        Reference frequencies for the amplitude map in units of Hertz.
+        Reference frequencies for the amplitude template in units of Hertz.
+        The input must be an astropy quantity containing the the reference 
+        frequency for the stokes I amplitude template, and optionally the
+        reference frequency for the soktes Q and U templates if the component 
+        is polarized. Example: freq_ref=freq_ref_I*u.GHz, or 
+        freq_ref=[freq_ref_I, freq_ref_P]*u.GHz
     beta (`numpy.ndarray`, `astropy.units.Quantity`):
         The power law spectral index. The spectral index can vary over the sky, 
         and is therefore commonly given as a shape (3, nside) array, but it can 
@@ -362,24 +422,26 @@ class ModifiedBlackBody(Component):
 
 
 
-class LinearOpticallyThinBlackBody(Component):
-    """Linearized optically thin blackbody emission component class. Represents 
-    a component with a frequency scaling given by a linearized optically thin 
-    blacbody spectrum, strictly only valid in the optically thin case 
-    (tau << 1).
-
-    TODO: find a more general name for this class
+class FreeFree(Component):
+    """FreeFree emission component class. Represents a component with a 
+    frequency scaling given by a linearized optically thin blacbody spectrum,
+    strictly only valid in the optically thin case (tau << 1).
 
     Args:
     -----
     name (str):
         Name/label of the component. Is used to set the component attribute 
         in a `cosmoglobe.sky.Model`.
-    amp (`numpy.ndarray`, `astropy.units.Quantity`, `cosmoglobe.StokesMap`):
-        Amplitude templates at the reference frequencies for I or IQU stokes 
-        parameters.
+    amp (`astropy.units.Quantity`):
+        Emission templates of the component at the reference frequencies given
+        by freq_ref.
     freq_ref (`astropy.units.Quantity`):
-        Reference frequencies for the amplitude map in units of Hertz.
+        Reference frequencies for the amplitude template in units of Hertz.
+        The input must be an astropy quantity containing the the reference 
+        frequency for the stokes I amplitude template, and optionally the
+        reference frequency for the soktes Q and U templates if the component 
+        is polarized. Example: freq_ref=freq_ref_I*u.GHz, or 
+        freq_ref=[freq_ref_I, freq_ref_P]*u.GHz
     Te (`astropy.units.Quantity`):
         Electron temperature map with unit K.
 
@@ -414,7 +476,8 @@ class LinearOpticallyThinBlackBody(Component):
 
 
 class SpDust2(Component):
-    """Spinning dust component class using a template from the SpDust2 code.
+    """Spinning dust component class using a precomputed template from the
+    SpDust2 code to interpolate.
     For more info, please see the following papers: 
         - Ali-Haïmoud et al. (2009)
         - Ali-Haimoud (2010)
@@ -428,11 +491,16 @@ class SpDust2(Component):
     name (str):
         Name/label of the component. Is used to set the component attribute 
         in a `cosmoglobe.sky.Model`.
-    amp (`numpy.ndarray`, `astropy.units.Quantity`, `cosmoglobe.StokesMap`):
-        Amplitude templates at the reference frequencies for I or IQU stokes 
-        parameters.
+    amp (`astropy.units.Quantity`):
+        Emission templates of the component at the reference frequencies given
+        by freq_ref.
     freq_ref (`astropy.units.Quantity`):
-        Reference frequencies for the amplitude map in units of Hertz.
+        Reference frequencies for the amplitude template in units of Hertz.
+        The input must be an astropy quantity containing the the reference 
+        frequency for the stokes I amplitude template, and optionally the
+        reference frequency for the soktes Q and U templates if the component 
+        is polarized. Example: freq_ref=freq_ref_I*u.GHz, or 
+        freq_ref=[freq_ref_I, freq_ref_P]*u.GHz
     nu_p (`astropy.units.Quantity`):
         Peak frequency.
 
@@ -476,43 +544,3 @@ class SpDust2(Component):
         )
         scaling = interp/interp_ref
         return scaling
-
-
-
-class BlackBodyCMB(Component):
-    """Blackbody CMB component class. Represents blackbody emission of the CMB
-    converted from units of K_CMB to K_RJ.
-
-    TODO: find a more suiting name for this component.
-
-    Args:
-    -----
-    name (str):
-        Name/label of the component. Is used to set the component attribute 
-        in a `cosmoglobe.sky.Model`.
-    amp (`numpy.ndarray`, `astropy.units.Quantity`, `cosmoglobe.StokesMap`):
-        Amplitude templates at the reference frequencies for I or IQU stokes 
-        parameters.
-    freq_ref (`astropy.units.Quantity`):
-        Reference frequencies for the amplitude map in units of Hertz.
-
-    """
-    def __init__(self, name, amp):
-        super().__init__(name, amp, freq_ref=None)
-
-
-    def get_freq_scaling(self, freq, freq_ref):
-        """Computes the frequency scaling from K_CMB to K_RJ as a frequency.
-
-        Args:
-        -----
-        freq (`astropy.units.Quantity`):
-            Frequency at which to evaluate the model.
-            
-        Returns:
-        --------
-        scaling (`astropy.units.Quantity`):
-            Frequency scaling factor with dimensionless units.
-
-        """
-        return cmb_to_brightness(freq)
