@@ -2,9 +2,15 @@ from .constants import h, c, k_B, T_0
 import numpy as np
 import astropy.units as u
 
+pos = 1118.87
+fwhm = 1.59
+area = 95.31
+label = f'pos: {pos:<10}fwhm: {fwhm:<10}area: {area:<10}'
+print(label)
+
 def blackbody_emission(freq, T):
     """Returns the emission emitted by a blackbody with with temperature T at 
-    a frequency freq in SI units.
+    a frequency freq in SI units: W/(m^2 Hz sr).
 
     Args:
     -----
@@ -19,7 +25,13 @@ def blackbody_emission(freq, T):
         Blackbody emission in units in SI units.
 
     """
-    return ((2*h*freq**3)/c**2) / np.expm1((h*freq) / (k_B*T))
+    try:
+        T = T.astype(np.float64)
+    except AttributeError:
+        pass
+
+    emission = ((2*h*freq**3)/c**2) / np.expm1((h*freq)/(k_B*T)) / u.sr
+    return emission.to(u.W/(u.m**2 * u.Hz * u.sr))
 
 
 def gaunt_factor(freq, T_e):
@@ -57,7 +69,7 @@ def gaunt_factor(freq, T_e):
 
 
 
-def cmb_to_brightness(freq):
+def K_CMB_to_K_RJ(freq):
     """Returns the conversion factor between CMB and brightness temperatures 
     (K_CMB and K_RJ).
 
@@ -75,4 +87,4 @@ def cmb_to_brightness(freq):
 
     """  
     x = ((h*freq) / (k_B*T_0))
-    return (x**2 * np.exp(x)) / (np.expm1(x)**2)
+    return ((x**2 * np.exp(x)) / (np.expm1(x)**2)).si

@@ -1,3 +1,4 @@
+from astropy.units import equivalencies
 from ..tools.bandpass import (
     _get_normalized_bandpass, 
     _get_interp_parameters, 
@@ -115,7 +116,7 @@ class Component:
         freq_ref = self.freq_ref
         input_unit = self.amp.unit
         # Expand dimension on rank-1 arrays from from (n,) to (n, 1) to support
-        # broadcasting
+        # broadcasting with (1, nside) or (3, nside) arrays
         if self.amp.ndim == 1:
             amp = np.expand_dims(self.amp, axis=0)
         else:
@@ -135,9 +136,10 @@ class Component:
                 self._get_bandpass_conversion(freq, freq_ref, bandpass, 
                                               spectral_parameters)
             )
-            return amp*bandpass_conversion_factor*unit_conversion_factor
+            emission = amp*bandpass_conversion_factor*unit_conversion_factor
+            return emission
 
-        # Assume delta frequencies
+        # Assuming delta frequencies
         else:
             if freq.ndim > 0:
                 scaling = (self.get_freq_scaling(freq, freq_ref, 
@@ -147,11 +149,24 @@ class Component:
                 scaling = self.get_freq_scaling(freq, freq_ref, 
                                                 **spectral_parameters)
 
-        if output_unit is not None and input_unit != output_unit:
-            return (amp*scaling).to(
+        emission = amp*scaling
+
+        if output_unit is not None:
+            #If output unit is a str, convert to astropy unit and handle K_CMB
+            try:
+                output_unit = u.Unit(output_unit)
+            except ValueError:
+                if output_unit.lower().endswith('k_rj'):
+                    output_unit = u.Unit(output_unit[:-3])
+                elif output_unit.lower().endswith('k_cmb'):
+                    output_unit = u.Unit(output_unit[:-4])
+                    # Unit conversion from K_RJ -> K_CMB
+                    emission /= K_CMB_to_K_RJ(freq)
+            return emission.to(
                 output_unit, equivalencies=u.brightness_temperature(freq)
             )
-        return amp*scaling
+
+        return emission
 
 
     def _get_bandpass_conversion(self, freqs, freq_ref, bandpass, 
@@ -162,7 +177,7 @@ class Component:
         For more information on the computations, see section 4.2 in 
         https://arxiv.org/abs/2011.05609.
 
-        TODO: find the perfect default n value
+        TODO: find a good default n value
 
         Args:
         -----
@@ -309,6 +324,7 @@ class PowerLaw(Component):
         return scaling
 
 
+
 class BlackBody(Component):
     """Blackbody component class. Represents emission given by a blackbody.
 
@@ -354,10 +370,12 @@ class BlackBody(Component):
             Frequency scaling factor with dimensionless units.
 
         """
-        print(blackbody_emission(freq, T) / blackbody_emission(freq_ref, T))
-        blackbody_ratio = blackbody_emission(freq, T) / blackbody_emission(freq_ref, T)
+        blackbody_ratio = (
+            blackbody_emission(freq, T) / blackbody_emission(freq_ref, T)
+        )
         scaling = (freq/freq_ref)**-2 * blackbody_ratio
         return scaling
+
 
     
 class ModifiedBlackBody(Component):
@@ -544,3 +562,37 @@ class SpDust2(Component):
         )
         scaling = interp/interp_ref
         return scaling
+
+
+
+class CMB(Component):
+    """CMB component class. Assumes that the component amplitude template is in
+    units of K_CMB. The emission is defined as the conversion between K_CMB and
+    K_RJ units.
+
+    Args:
+    -----
+    name (str):
+        Name/label of the component. Is used to set the component attribute 
+        in a `cosmoglobe.sky.Model`.
+    amp (`numpy.ndarray`, `astropy.units.Quantity`, `cosmoglobe.StokesMap`):
+        Amplitude templates at the reference frequencies for I or IQU stokes 
+        parameters.
+    """
+    def __init__(self, name, amp):
+        super().__init__(name, amp, freq_ref=None)
+
+
+    def get_freq_scaling(self, freq, freq_ref):
+        """Computes the frequency scaling from K_CMB to K_RJ as a frequency.
+        Args:
+        -----
+        freq (`astropy.units.Quantity`):
+            Frequency at which to evaluate the model.
+            
+        Returns:
+        --------
+        scaling (`astropy.units.Quantity`):
+            Frequency scaling factor with dimensionless units.
+        """
+        return K_CMB_to_K_RJ(freq)

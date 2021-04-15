@@ -115,7 +115,15 @@ class Model:
             model_emission = np.zeros((3, hp.nside2npix(self.nside)))
         else:
             model_emission = np.zeros((1, hp.nside2npix(self.nside)))
-        model_emission = u.Quantity(model_emission, unit=output_unit)
+
+        try:
+            unit = u.Unit(output_unit)
+        except ValueError:
+            if output_unit.lower().endswith('k_rj'):
+                unit = u.Unit(output_unit[:-3])
+            elif output_unit.lower().endswith('k_cmb'):
+                unit = u.Unit(output_unit[:-4])
+        model_emission = u.Quantity(model_emission, unit=unit)
 
         for comp in self:
             comp_emission = comp.get_emission(freq, bandpass, output_unit)

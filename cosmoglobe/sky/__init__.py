@@ -4,7 +4,8 @@ from .components import (
     BlackBody,
     ModifiedBlackBody, 
     FreeFree,
-    SpDust2, 
+    SpDust2,
+    CMB,
 )
 from .model import Model
 from .hub import (

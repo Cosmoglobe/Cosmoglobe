@@ -58,7 +58,7 @@ def model_from_chain(file, nside=None, sample=None, burn_in=None, comps=None):
         'synch': sky.PowerLaw,
         'ff': sky.FreeFree,
         'ame': sky.SpDust2,
-        'cmb': sky.BlackBody,
+        'cmb': sky.CMB,
     }
     if not comps:
         comps = default_comps
@@ -202,10 +202,11 @@ def comp_from_chain(file, component, component_class, model_nside,
             freq = u.Quantity(freq_ref[0])
         args['freq_ref'] = freq
 
-    if component == 'cmb':  
+    if component_class == sky.BlackBody:
         # Convert to K_RJ at the reference frequency and set T manually to T_0
+        # args['amp'] += T_0
         args['amp'] *= K_CMB_to_K_RJ(freq_ref[0])
-        args['T'] = args['amp'].si + T_0
+        args['T'] = T_0
 
     return component_class(name=component, **args)
 

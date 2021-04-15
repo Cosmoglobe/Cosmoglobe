@@ -49,3 +49,6 @@ distribute-*.tar.gz
 
 *.log
 *.out
+
+#testfiles
+test_basic.py
