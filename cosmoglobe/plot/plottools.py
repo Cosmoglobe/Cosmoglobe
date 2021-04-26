@@ -42,6 +42,7 @@ def set_style(darkmode):
         for p in params:
             plt.rcParams[p] = "white"
 
+
 def load_cmap(cmap,logscale):
     """
     This function takes the colormap label and loads the colormap object
@@ -251,3 +252,116 @@ def make_fig(figsize, fignum, hold, subplot, reuse_axes, projection=None):
     ax = fig.add_subplot(int(f"{nrows}{ncols}{idx}"), projection=projection)
 
     return fig, ax
+
+def legend_positions(df, y, scaling):
+    """
+    Calculate position of labels to the right in plot... 
+    """
+    positions = {}
+    for column in y:
+        positions[column] = df[column].values[-1] - 0.005
+
+    def push(dpush):
+        """
+        ...by puting them to the last y value and
+        pushing until no overlap
+        """
+        collisions = 0
+        for column1, value1 in positions.items():
+            for column2, value2 in positions.items():
+                if column1 != column2:
+                    dist = abs(value1-value2)
+                    if dist < scaling:# 0.075: #0.075: #0.023:
+                        collisions += 1
+                        if value1 < value2:
+                            positions[column1] -= dpush
+                            positions[column2] += dpush
+                        else:
+                            positions[column1] += dpush
+                            positions[column2] -= dpush
+                            return True
+    dpush = .001
+    pushings = 0
+    while True:
+        if pushings == 1000:
+            dpush*=10
+            pushings = 0
+        pushed = push(dpush)
+        if not pushed:
+            break
+
+        pushings+=1
+
+    return positions
+
+
+def gradient_fill(x, y, fill_color=None, ax=None, alpha=1.0, invert=False, **kwargs):
+    """
+    Plot a line with a linear alpha gradient filled beneath it.
+
+    Parameters
+    ----------
+    x, y : array-like
+        The data values of the line.
+    fill_color : a matplotlib color specifier (string, tuple) or None
+        The color for the fill. If None, the color of the line will be used.
+    ax : a matplotlib Axes instance
+        The axes to plot on. If None, the current pyplot axes will be used.
+    Additional arguments are passed on to matplotlib's ``plot`` function.
+
+    Returns
+    -------
+    line : a Line2D instance
+        The line plotted.
+    im : an AxesImage instance
+        The transparent gradient clipped to just the area beneath the curve.
+    """
+    import matplotlib.colors as mcolors
+    from matplotlib.patches import Polygon
+
+    if ax is None:
+        ax = plt.gca()
+
+    line, = ax.plot(x, y, **kwargs)
+    if fill_color is None:
+        fill_color = line.get_color()
+
+    zorder = line.get_zorder()
+    #alpha = line.get_alpha()
+    alpha = 1.0 if alpha is None else alpha
+
+    z = np.empty((100, 1, 4), dtype=float)
+    rgb = mcolors.colorConverter.to_rgb(fill_color)
+    z[:,:,:3] = rgb
+    z[:,:,-1] = np.linspace(0, alpha, 100)[:,None]
+
+    xmin, xmax, ymin, ymax = x.min(), x.max(), y.min(), y.max()
+    if invert:
+        ymin,ymax = (ymax,ymin)
+    im = ax.imshow(z, aspect='auto', extent=[xmin, xmax, ymin, ymax],
+                   origin='lower', zorder=zorder)
+
+    xy = np.column_stack([x, y])
+    xy = np.vstack([[xmin, ymin], xy, [xmax, ymin], [xmin, ymin]])
+    clip_path = Polygon(xy, facecolor='none', edgecolor='none', closed=True)
+    ax.add_patch(clip_path)
+    im.set_clip_path(clip_path)
+
+    ax.autoscale(True)
+    return line, im
+
+def gradient_fill_between(ax, x, y1, y2, color="#ffa15a", alpha=0.5):
+    N = 100
+    y = np.zeros((N, len(y1)))
+    for i in range(len(y1)):
+        y[:,i] = np.linspace(y1[i], y2[i], N)
+
+    alpha=np.linspace(0,alpha,100)**1.5
+    for i in range(1,N):
+        ax.fill_between(x, y[i-1], y[i], color=color, alpha=alpha[i], zorder=-10)
+        ax.set_rasterization_zorder(-1)
+
+def find_nearest(array, value):
+    array = np.asarray(array)
+    idx = (np.abs(array - value)).argmin()
+    return array[idx], idx

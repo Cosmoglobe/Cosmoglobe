@@ -103,7 +103,6 @@ def mollplot(
     fontsize : int
         Fontsize
         default = 11
-
     fignum : int or None, optional
       The figure number to use. Default: create a new figure
     hold : bool, optional

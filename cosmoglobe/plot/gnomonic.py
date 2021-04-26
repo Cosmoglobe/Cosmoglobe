@@ -53,7 +53,7 @@ def gnomplot(map_, lon, lat, auto=None, sig=0, size=20, vmin=None, vmax=None, rn
         if params[i] and params[i]!="": 
             params[i]=r"$"+params[i]+"$"
 
-    fig, ax = make_fig(figsize, fignum, hold, subplot, reuse_axes,) #plt.subplots()
+    fig, ax = make_fig(figsize, fignum, hold, subplot, reuse_axes,)
     image = plt.imshow(reproj_im, origin='lower', interpolation='nearest', vmin=vmin, vmax=vmax, cmap=cmap)
     plt.xticks([])
     plt.yticks([])
