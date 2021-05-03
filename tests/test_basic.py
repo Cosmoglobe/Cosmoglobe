@@ -9,6 +9,7 @@ from context import cosmoglobe
 import matplotlib.pyplot as plt
 from cosmoglobe.tools.map import to_stokes
 import cosmoglobe.plot as cgp
+import cosmoglobe.tools.h5 as h5
 path = "/Users/svalheim/work/cosmoglobe-workdir/"
 hp.disable_warnings()
 """
@@ -33,6 +34,12 @@ input[1] =  np.random.normal(-2.8,0.1, N)
 cgp.traceplot(input, header=["first", "second"], labelval=True, subplot=(2,1,1))
 cgp.traceplot(input+0.1, header=["third", "forth"], labelval=True, subplot=(2,1,2))
 plt.show()
+
+chainfile = "chain_c0001.h5"
+cgp.traceplot(input, header=["first", "second"], labelval=True, subplot=(2,1,1))
+components = {"bandpass": , "synch": ["beta_pixreg_val"], "dust": ["beta_alm", "T_alm"], "ame": ["nu_p_pixreg_val"] }
+
+_get_items(chainfile, sample, component, items):
 
 """
 Stort plot

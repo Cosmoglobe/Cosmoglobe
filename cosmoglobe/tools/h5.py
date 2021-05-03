@@ -7,11 +7,6 @@ import h5py
 import healpy as hp
 import numpy as np
 import inspect
-<<<<<<< HEAD
-
-param_group = 'parameters'  # Model parameter group name as implemented in commander
-_ignored_comps = ['md', 'radio', 'relquad'] # These will be dropped from component lists
-=======
 from tqdm import tqdm
 import sys
 
@@ -19,7 +14,6 @@ import sys
 param_group = 'parameters'
 # These will be dropped from component lists
 _ignored_comps = ['md', 'radio', 'relquad']
->>>>>>> d2387d3e3215ae8835f0c053b5f3522cadf74bc5
 
 
 def model_from_chain(file, nside=None, sample=None, burn_in=None, comps=None):
@@ -68,12 +62,6 @@ def model_from_chain(file, nside=None, sample=None, burn_in=None, comps=None):
         comps = default_comps
 
     component_list = _get_components(file)
-<<<<<<< HEAD
-    for comp in component_list:
-        model.insert(comp_from_chain(file, comp, comps[comp], 
-                                     nside, sample, burn_in))
-
-=======
     print('Loading components from chain')
     with tqdm(total=len(component_list), file=sys.stdout) as pbar:
         padding = len(max(component_list, key=len))
@@ -83,7 +71,6 @@ def model_from_chain(file, nside=None, sample=None, burn_in=None, comps=None):
                                      nside, sample, burn_in))
             pbar.update(1)
         pbar.set_description('done')
->>>>>>> d2387d3e3215ae8835f0c053b5f3522cadf74bc5
     return model
 
 
@@ -162,36 +149,23 @@ def comp_from_chain(file, component, component_class, model_nside,
                 raise KeyError(f'item {arg} is not present in the chain')
 
 
-<<<<<<< HEAD
-    maps_ = get_items(file, sample, component, [f'{map_}_map' for map_ in map_names])
-    maps = dict(zip(map_names, maps_))
-    if model_nside is not None and nside != model_nside:
-        maps = {key:hp.ud_grade(value, model_nside) if isinstance(value, np.ndarray) 
-=======
     maps_ = get_items(file, sample, component, 
                       [f'{map_}_map' for map_ in map_names])
     maps = dict(zip(map_names, maps_))
     if model_nside is not None and nside != model_nside:
         maps = {key:hp.ud_grade(value, model_nside) 
                 if isinstance(value, np.ndarray) 
->>>>>>> d2387d3e3215ae8835f0c053b5f3522cadf74bc5
                 else value for key, value in maps.items()}
     args.update(maps)
 
     if model_nside is None:
         model_nside = nside
 
-<<<<<<< HEAD
-    alms_ = get_items(file, sample, component, [f'{alm}_alm' for alm in alm_names])
-    alms = dict(zip(alm_names, alms_))
-    alms_lmax_ = get_items(file, sample, component, [f'{alm}_lmax' for alm in alm_names])
-=======
     alms_ = get_items(file, sample, component, 
                       [f'{alm}_alm' for alm in alm_names])
     alms = dict(zip(alm_names, alms_))
     alms_lmax_ = get_items(file, sample, component, 
                            [f'{alm}_lmax' for alm in alm_names])
->>>>>>> d2387d3e3215ae8835f0c053b5f3522cadf74bc5
     alms_lmax = dict(zip(alm_names, [int(lmax) for lmax in alms_lmax_]))
 
     for key, value in alms.items():
@@ -213,11 +187,7 @@ def comp_from_chain(file, component, component_class, model_nside,
     args.update(alms)
     args['amp'] = args['amp']*amp_unit
     args = utils._set_spectral_units(args)
-<<<<<<< HEAD
-    scalars = utils._extract_scalars(args)    # converts scalar maps to scalar values
-=======
     scalars = utils._extract_scalars(args) # dont save scalar maps
->>>>>>> d2387d3e3215ae8835f0c053b5f3522cadf74bc5
     args.update(scalars)
     if 'freq_ref' in args_list:
         if comp_is_polarized:
@@ -345,11 +315,6 @@ def _get_averaged_items(file, samples, component, items):
             for sample in samples:
                 for idx, item in enumerate(items):
                     try:
-<<<<<<< HEAD
-                        items_to_return[idx] += f[sample][component].get(item)[()]
-                    except IndexError:
-                        items_to_return.append(f[sample][component].get(item)[()])
-=======
                         items_to_return[idx] += (
                             f[sample][component].get(item)[()]
                         )
@@ -357,7 +322,6 @@ def _get_averaged_items(file, samples, component, items):
                         items_to_return.append(
                             f[sample][component].get(item)[()]
                         )
->>>>>>> d2387d3e3215ae8835f0c053b5f3522cadf74bc5
 
             return [item/len(samples) for item in items_to_return]
 
