@@ -253,25 +253,23 @@ def make_fig(figsize, fignum, hold, subplot, reuse_axes, projection=None):
 
     return fig, ax
 
-def legend_positions(df, y, scaling):
+def legend_positions(input,):
     """
     Calculate position of labels to the right in plot... 
     """
-    positions = {}
-    for column in y:
-        positions[column] = df[column].values[-1] - 0.005
-
+    positions = input[:, -1]
+  
     def push(dpush):
         """
         ...by puting them to the last y value and
         pushing until no overlap
         """
         collisions = 0
-        for column1, value1 in positions.items():
-            for column2, value2 in positions.items():
+        for column1, value1 in enumerate(positions):
+            for column2, value2 in enumerate(positions):
                 if column1 != column2:
                     dist = abs(value1-value2)
-                    if dist < scaling:# 0.075: #0.075: #0.023:
+                    if dist < dpush*5:
                         collisions += 1
                         if value1 < value2:
                             positions[column1] -= dpush
@@ -280,7 +278,8 @@ def legend_positions(df, y, scaling):
                             positions[column1] += dpush
                             positions[column2] -= dpush
                             return True
-    dpush = .001
+
+    dpush = abs((max(positions)-min(positions))/100)
     pushings = 0
     while True:
         if pushings == 1000:
@@ -293,7 +292,6 @@ def legend_positions(df, y, scaling):
         pushings+=1
 
     return positions
-
 
 def gradient_fill(x, y, fill_color=None, ax=None, alpha=1.0, invert=False, **kwargs):
     """
