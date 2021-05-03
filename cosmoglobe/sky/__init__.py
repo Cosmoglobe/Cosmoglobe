@@ -12,4 +12,4 @@ from .hub import (
     save_model, 
     BP,
 )
-from ..tools.h5 import model_from_chain
+#from ..tools.h5 import model_from_chain

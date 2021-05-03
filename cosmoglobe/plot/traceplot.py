@@ -24,7 +24,7 @@ def traceplot(input, header=None, labelval=False, xlabel=None, ylabel=None, nbin
     positions = legend_positions(input,)
 
     for i in range(N_comps):
-        plt.plot(input[i], color=cmap(i), linestyle=":", linewidth=2,)
+        plt.plot(input[i], color=cmap(i), linewidth=2,)
 
         # Add the text to the right
         if header is not None:

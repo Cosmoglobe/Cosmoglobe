@@ -7,10 +7,7 @@ import numpy as np
 import healpy as hp
 from context import cosmoglobe
 import matplotlib.pyplot as plt
-from cosmoglobe.tools.map import to_stokes
 import cosmoglobe.plot as cgp
-import cosmoglobe.tools.h5 as h5
-path = "/Users/svalheim/work/cosmoglobe-workdir/"
 hp.disable_warnings()
 """
 map_=hp.read_map(path+"cmb_c0001_k000200.fits", field=None)
@@ -27,6 +24,7 @@ cgp.gnomplot(map_, 0,-70, auto="cmb", remove_dip=True, subplot=(1,2,2))
 #x = np.random.normal(-2.8,0.1, 1000)
 #cgp.hist(x, bins=50, prior=(-2.8,0.1), label="lol2")
 #plt.legend(frameon=False, loc="upper right")
+"""
 N = 1000
 input = np.zeros((2,N))
 input[0] =  np.random.normal(-3.1,0.1, N)
@@ -34,36 +32,33 @@ input[1] =  np.random.normal(-2.8,0.1, N)
 cgp.traceplot(input, header=["first", "second"], labelval=True, subplot=(2,1,1))
 cgp.traceplot(input+0.1, header=["third", "forth"], labelval=True, subplot=(2,1,2))
 plt.show()
-
-chainfile = "chain_c0001.h5"
-cgp.traceplot(input, header=["first", "second"], labelval=True, subplot=(2,1,1))
-components = {"bandpass": , "synch": ["beta_pixreg_val"], "dust": ["beta_alm", "T_alm"], "ame": ["nu_p_pixreg_val"] }
-
-_get_items(chainfile, sample, component, items):
-
 """
-Stort plot
-Traceplot:
-chisq
-Dust beta
-dust temp
-synch beta
-nu_p
+chainfile="/mn/stornext/u3/trygvels/compsep/cdata/like/commander_workdirs/BP8/chains_leak1/chain_c0001.h5"
 
-chisq_c0001_k000029.fits
-cmb_c0001_k000029.fits
-  res_0.4-Haslam_c0001_k000029.fits
-  res_030-WMAP_Ka_c0001_k000029.fits
-  res_030_c0001_k000029.fits
-  res_033-WMAP_Ka_P_c0001_k000029.fits
-  res_040-WMAP_Q1_c0001_k000029.fits
-  res_040-WMAP_Q2_c0001_k000029.fits
-  res_041-WMAP_Q_P_c0001_k000029.fits
-  res_044_c0001_k000029.fits
-  res_060-WMAP_V1_c0001_k000029.fits
-  res_060-WMAP_V2_c0001_k000029.fits
-  res_061-WMAP_V_P_c0001_k000029.fits
-  res_070_c0001_k000029.fits
-  res_353_c0001_k000029.fits
-  res_857_c0001_k000029.fits
-"""
+#cgp.traceplot(input, header=["first", "second"], labelval=True, subplot=(2,1,1))
+components = {"bandpass": ["030", "044", "070"], "synch": ["beta_pixreg_val"], "dust": ["beta_alm",], "ame": ["nu_p_pixreg_val"] }
+
+from cosmoglobe.tools.h5 import _get_samples, _get_items
+
+
+i=1
+for comp in components.keys():
+    for value in components[comp]:
+        label = comp+"-"+value
+        dat = []
+        for sample in _get_samples(chainfile):
+            dat.append(_get_items(chainfile, sample, comp, value))
+        
+        dat = np.array(dat).T
+        if "alm" in value:
+            dat /= np.sqrt(4*np.pi)
+
+        for p in range(dat.shape[1]):
+            cgp.traceplot(dat[:,p,:],ylabel=label, labelval=True, figsize=(12,4),  subplot=(6,1,i))
+
+        i+=1
+
+
+plt.savefig("trace.png")
+
+

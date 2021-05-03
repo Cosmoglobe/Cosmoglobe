@@ -269,7 +269,7 @@ def legend_positions(input,):
             for column2, value2 in enumerate(positions):
                 if column1 != column2:
                     dist = abs(value1-value2)
-                    if dist < dpush*5:
+                    if dist < dpush*10:
                         collisions += 1
                         if value1 < value2:
                             positions[column1] -= dpush
@@ -279,7 +279,11 @@ def legend_positions(input,):
                             positions[column2] -= dpush
                             return True
 
-    dpush = abs((max(positions)-min(positions))/100)
+    min_ = np.min(np.min(input))
+    max_ = np.max(np.max(input))
+    dpush = np.abs(max_-min_)*0.01
+    print(min_, max_, dpush)
+
     pushings = 0
     while True:
         if pushings == 1000:
@@ -290,7 +294,7 @@ def legend_positions(input,):
             break
 
         pushings+=1
-
+    print(pushings)
     return positions
 
 def gradient_fill(x, y, fill_color=None, ax=None, alpha=1.0, invert=False, **kwargs):
