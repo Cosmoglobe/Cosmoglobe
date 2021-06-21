@@ -1,11 +1,65 @@
 from .sky.model import Model
+from .sky import components
+from .utils.utils import ModelError
 
+import numpy as np
 from astropy.utils.data import download_file
 import pickle
 
 data_url = 'http://cosmoglobe.uio.no/BeyondPlanck/precomputed/'
 
-def load_model(path_to_model: str) -> Model:
+COSMOGLOBE_COMPS = {
+    'dust': components.ModifiedBlackBody,
+    'synch': components.PowerLaw,
+    'ff': components.FreeFree,
+    'ame': components.SpDust2,
+    'cmb': components.CMB,
+}
+
+
+def save_model(model, filename):
+    """Saves a model to file in form of a dictionary.
+    
+    Args:
+    -----
+    model (cosmoglobe.sky.Model):
+        The sky model to save.
+    filename (str):
+        Save filename.
+
+    """
+
+    model_dict = {}
+    try:
+        for comp in model:
+            freq_ref =  comp.freq_ref
+            if freq_ref is not None:
+                if freq_ref.ndim > 0:
+                    # freq_ref is stored as (3,1) or (1,1) arrays in model for broadcasting
+                    freq_ref = np.squeeze(freq_ref)
+                    freq_ref = [freq_ref[0].value, freq_ref[-1].value]*freq_ref.unit
+                else:
+                    freq_ref = freq_ref
+            
+            comp_dict = {
+                comp.name : {
+                    'amp': comp.amp,
+                    'freq_ref': freq_ref,
+                    'spectral_parameters': comp.spectral_parameters,
+                }
+            }
+            model_dict.update(comp_dict)
+
+    except AttributeError:
+        raise ModelError(
+            'Model is not compatible with the current Cosmoglobe Sky Model'
+        )
+
+    with open(filename, 'wb') as f:
+        pickle.dump(model_dict, f)
+
+
+def load_model(path_to_model):
     """Loads a model from file.
     
     Args:
@@ -20,31 +74,41 @@ def load_model(path_to_model: str) -> Model:
 
     """
     with open(path_to_model, 'rb') as f:
-        model =  pickle.load(f)
+        model_dict =  pickle.load(f)
 
-    if not isinstance(model, Model):
-        raise TypeError(f'{path_to_model} is not a valid cosmoglobe.sky.Model')
+    model = model_from_dict(model_dict)
 
     return model
 
 
-def save_model(model: Model, filename: str) -> None:
-    """Saves a model to file.
+
+def model_from_dict(model_dict):
+    """Creates and returns a cosmoglobe.sky.Model from a model dictionary."""
+    model = Model()
+    for key, value in model_dict.items():
+        try:
+            comp = COSMOGLOBE_COMPS[key]
+        except KeyError:
+            raise ModelError(
+                'Model components does not match the Cosmoglobe Sky Model'
+            )
+
+        comp_dict = value
+        try:
+            amp = comp_dict['amp']
+            freq_ref = comp_dict['freq_ref']
+            spectral_parameters = comp_dict['spectral_parameters']
+        except KeyError as e:
+            raise e
+
+        if freq_ref is not None: #CMB is initialized without a reference freq
+            model.insert(comp(key, amp, freq_ref, **spectral_parameters))    
+        else:
+            model.insert(comp(key, amp, **spectral_parameters))    
+        
+    return model
+
     
-    Args:
-    -----
-    model (cosmoglobe.sky.Model):
-        The sky model to save.
-    filename (str):
-        Save filename.
-
-    """
-    if not isinstance(model, Model):
-        raise TypeError(f'{model} is not a valid cosmoglobe.sky.Model')
-
-    with open(filename, 'wb') as f:
-        pickle.dump(model, f)
-
 
 def _download_BP_model(release: int, nside: int, cache: bool = True) -> Model:
     model_name = f'BP_test_model_r{release}_n{nside}.pkl'

@@ -10,6 +10,7 @@ from ..sky.components import (
 from ..utils.functions import K_CMB_to_K_RJ
 from ..utils.constants import T_0
 from ..utils import utils
+from ..hub import COSMOGLOBE_COMPS
 
 from numba import njit
 import astropy.units as u
@@ -61,13 +62,7 @@ def model_from_chain(file, nside=None, sample=None, burn_in=None, comps=None):
     """
     model = Model(nside=nside)
 
-    default_comps = {
-        'dust': ModifiedBlackBody,
-        'synch': PowerLaw,
-        'ff': FreeFree,
-        'ame': SpDust2,
-        'cmb': CMB,
-    }
+    default_comps = COSMOGLOBE_COMPS
     if not comps:
         comps = default_comps
 
@@ -80,7 +75,7 @@ def model_from_chain(file, nside=None, sample=None, burn_in=None, comps=None):
             model.insert(comp_from_chain(file, comp, comps[comp], 
                                      nside, sample, burn_in))
             pbar.update(1)
-        pbar.set_description('done')
+        pbar.set_description('Done')
     return model
 
 
