@@ -1,12 +1,11 @@
-from astropy.units import equivalencies
-from ..tools.bandpass import (
+from ..utils.bandpass import (
     _get_normalized_bandpass, 
     _get_interp_parameters, 
     _get_unit_conversion,
     _interp1d,
     _interp2d,
 )
-from ..science.functions import (
+from ..utils.functions import (
     blackbody_emission, 
     gaunt_factor, 
     K_CMB_to_K_RJ
@@ -90,8 +89,8 @@ class Component:
 
 
     @u.quantity_input(freq=u.Hz, bandpass=(u.Jy/u.sr, u.K, None))
-    def get_emission(self, freq, bandpass=None, output_unit=None):
-        """Returns the component emission at an arbitrary frequency or
+    def __call__(self, freq, bandpass=None, output_unit=None):
+        """Simulates the component emission at an arbitrary frequency or
         integrated over a bandpass.
 
         Args:
@@ -261,10 +260,13 @@ class Component:
 
     def __repr__(self):
         main_repr = f'{self.__class__.__name__}'
-        main_repr += '(amp, freq_ref, '
-        for spectral in self.spectral_parameters:
-            main_repr += f'{spectral}, '
-        main_repr = main_repr[:-2]
+        main_repr += '('
+        extra_repr = ''
+        for key, value in self.spectral_parameters.items():
+            extra_repr += f'{key}, '
+        if extra_repr:
+            extra_repr = extra_repr[:-2]
+        main_repr += extra_repr
         main_repr += ')'
 
         return main_repr

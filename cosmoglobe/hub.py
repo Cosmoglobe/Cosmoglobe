@@ -1,4 +1,4 @@
-from .model import Model
+from .sky.model import Model
 
 from astropy.utils.data import download_file
 import pickle

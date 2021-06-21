@@ -1,5 +1,5 @@
 from .components import Component
-from ..tools.exceptions import NsideError
+from ..utils.utils import NsideError
 
 import astropy.units as u
 import healpy as hp
@@ -79,10 +79,44 @@ class Model:
         del self[name]
 
 
+    def to_nside(self, new_nside):
+        """ud_grades all maps in the component to a new nside.
+
+        Args:
+        -----
+        new_nside (int):
+            Healpix map resolution parameter.
+
+        """
+        if new_nside == self.nside:
+            return
+        if not hp.isnsideok(new_nside, nest=True):
+            raise ValueError(f'nside: {new_nside} is not valid.')
+        
+        self.nside = new_nside
+        for comp in self:
+            comp.to_nside(new_nside)
+        
+
+    @property
+    def is_polarized(self):
+        """Returns True if model includes a polarized component and False 
+        otherwise.
+        """
+        for comp in self:
+            if comp.is_polarized:
+                return True
+        return False
+
+
     @u.quantity_input(freq=u.Hz, bandpass=(u.Jy/u.sr, u.K, None))
-    def get_emission(self, freq, bandpass=None, output_unit=u.uK):
-        """Returns the full model sky emission at a single or multiple
+    def __call__(self, freq, bandpass=None, output_unit=u.uK):
+        """Simulates the model emission given a single, or, a set of
         frequencies.
+
+        Optionally, a bandpass can be given along with the corresponding
+        frequencies resulting in the integration model emission over the
+        bandpass.
 
         Args:
         -----
@@ -126,41 +160,11 @@ class Model:
         model_emission = u.Quantity(model_emission, unit=unit)
 
         for comp in self:
-            comp_emission = comp.get_emission(freq, bandpass, output_unit)
+            comp_emission = comp(freq, bandpass, output_unit)
             for idx, col in enumerate(comp_emission):
                 model_emission[idx] += col
 
         return model_emission
-
-
-    def to_nside(self, new_nside):
-        """ud_grades all maps in the component to a new nside.
-
-        Args:
-        -----
-        new_nside (int):
-            Healpix map resolution parameter.
-
-        """
-        if new_nside == self.nside:
-            return
-        if not hp.isnsideok(new_nside, nest=True):
-            raise ValueError(f'nside: {new_nside} is not valid.')
-        
-        self.nside = new_nside
-        for comp in self:
-            comp.to_nside(new_nside)
-        
-
-    @property
-    def is_polarized(self):
-        """Returns True if model includes a polarized component and False 
-        otherwise.
-        """
-        for comp in self:
-            if comp.is_polarized:
-                return True
-        return False
 
 
     def __iter__(self):
@@ -174,7 +178,6 @@ class Model:
     def __delitem__(self, name):
         if name not in self.components:
             raise KeyError(f'component {name} does not exist')
-
         delattr(self, name)
         del self.components[name]
 
@@ -186,7 +189,10 @@ class Model:
             reprs.append(f'({key}): {component_repr}')
 
         main_repr = f'Model('
-        main_repr += '\n ' + ' '.join(reprs)
-        main_repr += f'), nside={self.nside}'
+        main_repr += f'\n  nside: {self.nside}'
+        main_repr += '\n  components( '
+        main_repr += '\n    ' + '    '.join(reprs)
+        main_repr += f'  )'
+        main_repr += f'\n)'
 
         return main_repr

@@ -2,12 +2,6 @@ from .constants import h, c, k_B, T_0
 import numpy as np
 import astropy.units as u
 
-pos = 1118.87
-fwhm = 1.59
-area = 95.31
-label = f'pos: {pos:<10}fwhm: {fwhm:<10}area: {area:<10}'
-print(label)
-
 def blackbody_emission(freq, T):
     """Returns the emission emitted by a blackbody with with temperature T at 
     a frequency freq in SI units: W/(m^2 Hz sr).
@@ -57,13 +51,13 @@ def gaunt_factor(freq, T_e):
         pass
 
     try:
-        freq = freq.si.value    
-        T_e = T_e.si.value
+        freq = (freq.to(u.GHz)).value   
+        T_e = (T_e.to(u.kK).value)/10
     except AttributeError:
         pass    
         
     gaunt_factor = np.log(np.exp(5.96 - (np.sqrt(3)/np.pi) * np.log(freq
-                  * (T_e*1e-4)**-1.5)) + np.e)
+                  * (T_e)**-1.5)) + np.e)
 
     return u.Quantity(gaunt_factor)
 

@@ -1,6 +1,11 @@
 import numpy as np
 import astropy.units as u
 
+class NsideError(Exception):
+    """Raised if there is a NSIDE related problem"""
+    pass
+
+
 def _extract_scalars(spectral_parameters):
     """Extracts scalars from a spectral_parameter dict. If a map is constant
     in all dims, then it is converted to a (ndim,) array"""
