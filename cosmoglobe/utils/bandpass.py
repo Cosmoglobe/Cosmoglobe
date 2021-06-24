@@ -1,7 +1,8 @@
+from .functions import brightness_temperature, bprime, iras
 import numpy as np
 import astropy.units as u
 from scipy.interpolate import RectBivariateSpline
-
+import sys
 
 @u.quantity_input(bandpass=(u.Jy/u.sr, u.K), freqs=u.Hz)
 def _get_normalized_bandpass(bandpass, freqs, input_unit):
@@ -12,16 +13,40 @@ def _get_normalized_bandpass(bandpass, freqs, input_unit):
     return bandpass/np.trapz(bandpass, freqs)
 
 
-@u.quantity_input(bandpass=(u.Jy/u.sr, u.K), freqs=u.Hz)
-def _get_unit_conversion(bandpass, freqs, output_unit, input_unit):
-    """Unit conversion factor given a input and output unit"""
-    bandpass_output = bandpass.to(
-        output_unit, equivalencies=u.brightness_temperature(freqs)
-    )
-    bandpass_input = bandpass.to(
-        input_unit, equivalencies=u.brightness_temperature(freqs)
-    )
-    return np.trapz(bandpass_output, freqs)/np.trapz(bandpass_input, freqs)
+@u.quantity_input(bandpass=u.Hz**-1, freqs=u.Hz)
+def _get_unit_conversion_factor(bandpass, freqs, unit):
+    """Unit conversion factor given an output unit"""
+    #input unit will always be K_RJ
+    intensity_derivative_i = brightness_temperature(freqs)
+
+    try:
+        unit = u.Unit(unit)
+        if u.K in unit.si.bases:
+            intensity_derivative_j = brightness_temperature(freqs)
+        elif unit == u.MJy/u.sr:
+            intensity_derivative_j = iras(freqs, np.mean(freqs))
+
+    except ValueError:
+        if isinstance(unit, str):
+            if unit.lower().endswith('k_rj'):
+                intensity_derivative_j = brightness_temperature(freqs)
+            elif unit.lower().endswith('k_cmb'):
+                intensity_derivative_j = bprime(freqs)
+            else:
+                raise NotImplementedError(
+                    f'output_unit {unit} is not implemented'
+                )
+
+    U = (
+        np.trapz(bandpass*intensity_derivative_i, freqs)/
+        np.trapz(bandpass*intensity_derivative_j, freqs)
+        )
+
+
+    if U.ndim > 0:
+        U = np.expand_dims(U, axis=1)
+
+    return U
 
 
 def _get_interp_parameters(spectral_parameters, n):

@@ -2,9 +2,9 @@ from .sky.model import Model
 from .sky import components
 from .utils.utils import ModelError
 
-import numpy as np
 from astropy.utils.data import download_file
-import pickle
+from astropy.io.misc import fnpickle, fnunpickle
+import numpy as np
 
 data_url = 'http://cosmoglobe.uio.no/BeyondPlanck/precomputed/'
 
@@ -55,8 +55,7 @@ def save_model(model, filename):
             'Model is not compatible with the current Cosmoglobe Sky Model'
         )
 
-    with open(filename, 'wb') as f:
-        pickle.dump(model_dict, f)
+    fnpickle(model_dict, filename)
 
 
 def load_model(path_to_model):
@@ -73,8 +72,7 @@ def load_model(path_to_model):
         Loaded cosmoglobe sky model.
 
     """
-    with open(path_to_model, 'rb') as f:
-        model_dict =  pickle.load(f)
+    model_dict =  fnunpickle(path_to_model)
 
     model = model_from_dict(model_dict)
 
@@ -93,11 +91,10 @@ def model_from_dict(model_dict):
                 'Model components does not match the Cosmoglobe Sky Model'
             )
 
-        comp_dict = value
         try:
-            amp = comp_dict['amp']
-            freq_ref = comp_dict['freq_ref']
-            spectral_parameters = comp_dict['spectral_parameters']
+            amp = value['amp']
+            freq_ref = value['freq_ref']
+            spectral_parameters = value['spectral_parameters']
         except KeyError as e:
             raise e
 

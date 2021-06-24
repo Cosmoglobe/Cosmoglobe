@@ -1,48 +1,35 @@
 from ..utils.bandpass import (
     _get_normalized_bandpass, 
     _get_interp_parameters, 
-    _get_unit_conversion,
+    _get_unit_conversion_factor,
     _interp1d,
     _interp2d,
 )
 from ..utils.functions import (
     blackbody_emission, 
     gaunt_factor, 
-    K_CMB_to_K_RJ
+    thermodynamical_to_brightness
 )
+
+from ..utils.utils import _get_astropy_unit
+
 from .. import data as data_dir
 
 import astropy.units as u
 import numpy as np
 import healpy as hp
 import pathlib
-
+from sys import exit
 
 class Component:
     """Base class for all sky components.
 
-    Any sky component you make should subclass this class. All components must
-    implement the get_freq_scaling method. This method needs to return the
-    frequency scaling factor from the reference frequency of the amplitude
-    template to a arbritrary frequency. Following is an example of a custom 
-    implementation of a component whos emission scales as a simple power law::
-
-        import cosmoglobe.sky as sky
-
-        class PowerLaw(sky.Component):
-            def __init__(self, name, amp, freq_ref, beta):
-                super().__init__(name, amp, freq_ref, beta=beta)
-
-            def get_freq_scaling(self, freq, freq_ref, beta):
-                return (freq/freq_ref)**beta
-
-    A component is essentially defined by its get_freq_scaling function, 
-    which it is required to implement. This function is required to take in 
-    a freq and a freq_ref at minimum (even if it is not required to evalute 
-    the emission). Further, the get_freq_scaling function can take in any 
-    number of spectral parameters, although a model with more than two spectral
-    parameters that varies across the sky is not supported under bandpass
-    integration.
+    A component is defined by its get_freq_scaling function, which it is 
+    required to implement. This function is required to take in a freq and a 
+    freq_ref at minimum (even if it is not required to evalute the emission). 
+    Further, the get_freq_scaling function can take in any number of spectral 
+    parameters, although a model with more than two spectral parameters that 
+    varies across the sky is currently not supported under bandpass integration.
 
     Args:
     -----
@@ -125,47 +112,50 @@ class Component:
             for key, value in self.spectral_parameters.items()
         }
 
+        #Assuming delta frequencies
+        if bandpass is None:
+            if freq.ndim == 0:
+                scaling = self.get_freq_scaling(freq, freq_ref, 
+                                                **spectral_parameters)
+            else:
+                scaling = (self.get_freq_scaling(freq, freq_ref, 
+                                                 **spectral_parameters)
+                           for freq in freq)
+            emission = amp*scaling
+            
+            if output_unit is not None:
+                try:
+                    output_unit = u.Unit(output_unit)
+                except ValueError:
+                    if output_unit.lower().endswith('k_rj'):
+                        output_unit = u.Unit(output_unit[:-3])
+                        return emission.to(output_unit)
+                    elif output_unit.lower().endswith('k_cmb'):
+                        output_unit = u.Unit(output_unit[:-4])   
+                        emission /= thermodynamical_to_brightness(freq)
+                        return emission.to(output_unit)
+
+                emission = emission.to(
+                    output_unit, equivalencies=u.brightness_temperature(freq)
+                )
+
         # Perform bandpass integration
-        if bandpass is not None:
-            unit_conversion_factor = (
-                _get_unit_conversion(bandpass, freq, output_unit, input_unit)
-            )
+        else:
+
             bandpass = _get_normalized_bandpass(bandpass, freq, input_unit)
+            unit_conversion_factor = (
+                _get_unit_conversion_factor(bandpass, freq, output_unit)
+            ).si
+
             bandpass_conversion_factor = (
                 self._get_bandpass_conversion(freq, freq_ref, bandpass, 
                                               spectral_parameters)
             )
+
             emission = amp*bandpass_conversion_factor*unit_conversion_factor
-            return emission
 
-        # Assuming delta frequencies
-        else:
-            if freq.ndim > 0:
-                scaling = (self.get_freq_scaling(freq, freq_ref, 
-                                                 **spectral_parameters)
-                           for freq in freq)
-            else:
-                scaling = self.get_freq_scaling(freq, freq_ref, 
-                                                **spectral_parameters)
-
-        emission = amp*scaling
-
-        if output_unit is not None:
-            #If output unit is a str, convert to astropy unit and handle K_CMB
-            try:
-                output_unit = u.Unit(output_unit)
-            except ValueError:
-                if output_unit.lower().endswith('k_rj'):
-                    output_unit = u.Unit(output_unit[:-3])
-                elif output_unit.lower().endswith('k_cmb'):
-                    output_unit = u.Unit(output_unit[:-4])
-                    # Unit conversion from K_RJ -> K_CMB
-                    emission /= K_CMB_to_K_RJ(freq)
-            return emission.to(
-                output_unit, equivalencies=u.brightness_temperature(freq)
-            )
-
-        return emission
+        output_unit = _get_astropy_unit(output_unit)
+        return emission.to(output_unit)
 
 
     def _get_bandpass_conversion(self, freqs, freq_ref, bandpass, 
@@ -324,60 +314,7 @@ class PowerLaw(Component):
         """
         scaling = (freq/freq_ref)**beta
         return scaling
-
-
-
-class BlackBody(Component):
-    """Blackbody component class. Represents emission given by a blackbody.
-
-    Args:
-    -----
-    name (str):
-        Name/label of the component. Is used to set the component attribute 
-        in a `cosmoglobe.sky.Model`.
-    amp (`astropy.units.Quantity`):
-        Emission templates of the component at the reference frequencies given
-        by freq_ref.
-    freq_ref (`astropy.units.Quantity`):
-        Reference frequencies for the amplitude template in units of Hertz.
-        The input must be an astropy quantity containing the the reference 
-        frequency for the stokes I amplitude template, and optionally the
-        reference frequency for the soktes Q and U templates if the component 
-        is polarized. Example: freq_ref=freq_ref_I*u.GHz, or 
-        freq_ref=[freq_ref_I, freq_ref_P]*u.GHz
-    T (`astropy.units.Quantity`):
-        Temperature sclar, or map of the blackbody with unit K and shape 
-        (nside,) or (3, nside).
-
-    """
-    def __init__(self, name, amp, freq_ref, T):
-        super().__init__(name, amp, freq_ref, T=T)
-
-
-    def get_freq_scaling(self, freq, freq_ref, T):
-        """Computes the frequency scaling from K_CMB to K_RJ as a frequency.
-
-        Args:
-        -----
-        freq (`astropy.units.Quantity`):
-            Frequency at which to evaluate the model.
-        freq_ref (`astropy.units.Quantity`):
-            Reference frequencies for the amplitude map.
-        T (`astropy.units.Quantity`): 
-            Temperature of the blackbody.  
-
-        Returns:
-        --------
-        scaling (`astropy.units.Quantity`):
-            Frequency scaling factor with dimensionless units.
-
-        """
-        blackbody_ratio = (
-            blackbody_emission(freq, T) / blackbody_emission(freq_ref, T)
-        )
-        scaling = (freq/freq_ref)**-2 * blackbody_ratio
-        return scaling
-
+        
 
     
 class ModifiedBlackBody(Component):
@@ -533,7 +470,7 @@ class SpDust2(Component):
         spdust2_freq = u.Quantity(spdust2_freq, unit=u.GHz)
         spdust2_amp = u.Quantity(spdust2_amp, unit=(u.Jy/u.sr)).to(
             u.K, equivalencies=u.brightness_temperature(spdust2_freq)
-        )
+        )        
         self.spdust2 = np.array([spdust2_freq.si.value, spdust2_amp.si.value])
 
 
@@ -557,6 +494,7 @@ class SpDust2(Component):
 
         """
         spdust2 = self.spdust2
+
         peak_scale = 30*u.GHz / nu_p
         interp = np.interp((freq*peak_scale).si.value, spdust2[0], spdust2[1])
         interp_ref = (
@@ -597,4 +535,4 @@ class CMB(Component):
         scaling (`astropy.units.Quantity`):
             Frequency scaling factor with dimensionless units.
         """
-        return K_CMB_to_K_RJ(freq)
+        return thermodynamical_to_brightness(freq)

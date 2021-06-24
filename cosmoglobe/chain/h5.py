@@ -1,16 +1,6 @@
 from ..sky import Model
-from ..sky.components import (
-    ModifiedBlackBody,
-    BlackBody,
-    PowerLaw,
-    FreeFree,
-    SpDust2,
-    CMB,
-)
-from ..utils.functions import K_CMB_to_K_RJ
-from ..utils.constants import T_0
-from ..utils import utils
 from ..hub import COSMOGLOBE_COMPS
+from ..utils import utils
 
 from numba import njit
 import astropy.units as u
@@ -27,7 +17,7 @@ param_group = 'parameters'
 _ignored_comps = ['md', 'radio', 'relquad']
 
 
-def model_from_chain(file, nside=None, sample=None, burn_in=None, comps=None):
+def model_from_chain(file, nside=None, samples='all', burn_in=None, comps=None):
     """Returns a sky model from a commander3 chainfile.
     
     A cosmoglobe.sky.Model is initialized that represents the sky model used in 
@@ -63,24 +53,43 @@ def model_from_chain(file, nside=None, sample=None, burn_in=None, comps=None):
     model = Model(nside=nside)
 
     default_comps = COSMOGLOBE_COMPS
-    if not comps:
-        comps = default_comps
 
-    component_list = _get_components(file)
+    if comps is None:
+        comps = default_comps
+    else:
+        if not isinstance(comps, list):
+            comps = [comps]
+        comps = {comp:default_comps[comp] for comp in comps}
+    
+    chain_components = _get_components(file)
+    component_list = [comp for comp in comps if comp in chain_components]
+
+    if samples == 'all':
+        samples = _get_samples(file)
+    elif isinstance(samples, int):
+        samples = _int_to_sample(samples)
+    if burn_in is not None:
+        if len(samples) > burn_in:
+            samples = samples[burn_in:]
+        else:
+            raise ValueError('burn_in sample is out of range')
+
     print('Loading components from chain')
     with tqdm(total=len(component_list), file=sys.stdout) as pbar:
         padding = len(max(component_list, key=len))
         for comp in component_list:
             pbar.set_description(f'{comp:<{padding}}')
-            model.insert(comp_from_chain(file, comp, comps[comp], 
-                                     nside, sample, burn_in))
+            comp = comp_from_chain(file, comp, comps[comp], 
+                                     nside, samples)                                           
+            model.insert(comp)
             pbar.update(1)
+
         pbar.set_description('Done')
+
     return model
 
 
-def comp_from_chain(file, component, component_class, model_nside, 
-                    sample=None, burn_in=None):
+def comp_from_chain(file, component, component_class, model_nside, samples):
     """Returns a sky component from a commander3 chainfile.
     
     A sky component that subclasses cosmoglobe.sky.Component is initialized 
@@ -106,7 +115,7 @@ def comp_from_chain(file, component, component_class, model_nside,
     Returns:
     --------
     (sub class of cosmoglobe.sky.Component):
-        A sky component initialized from a commander run.
+        A sky component initialized from a chain.
 
     """
     # Getting component parameters from chain
@@ -114,40 +123,24 @@ def comp_from_chain(file, component, component_class, model_nside,
     freq_ref = (parameters['nu_ref']*u.Hz).to(u.GHz)
     fwhm_ref = (parameters['fwhm']*u.arcmin).to(u.rad)
     nside = parameters['nside']
-    amp_unit = parameters['unit']
     if parameters['polarization'] == 'True':
         comp_is_polarized = True
     else:
         comp_is_polarized = False
 
+    # Commander outputs units in uK_RJ for all comps except for CMB which is in
+    # K_CMB. This is manually handeled in the CMB component. NB! If this 
+    # changes in future Commander versions, this part needs to be updated.
+    amp_unit = u.uK
 
     # Getting arguments required to initialize component
     args_list = _get_comp_args(component_class) 
     args = {}
 
-    # Astropy doesnt have built in K_RJ or K_CMB so we manually set it to K
-    if 'k_rj' in amp_unit.lower():
-        amp_unit = amp_unit[:-3]
-
-    #comp is CMB. Commander only outputs 'amp', so we manually remove 'T'
-    elif 'k_cmb' in amp_unit.lower():
-        amp_unit = amp_unit[:-4]
-        if 'T' in args_list:
-            args_list.remove('T')
-    amp_unit = u.Unit(amp_unit)
-
-    if sample is None:
+    if len(samples) > 1:
         get_items = _get_averaged_items
-        sample = _get_samples(file)
-        if burn_in is not None:
-            if len(sample) > burn_in:
-                sample = sample[burn_in:]
-            else:
-                raise ValueError('burn_in sample is out of range')
     else:
         get_items = _get_items
-    if isinstance(sample, int):
-        sample = _int_to_sample(sample)
 
     # Find which args are alms and which are precomputed maps
     alm_names = []
@@ -162,22 +155,23 @@ def comp_from_chain(file, component, component_class, model_nside,
                 raise KeyError(f'item {arg} is not present in the chain')
 
 
-    maps_ = get_items(file, sample, component, 
+    maps_ = get_items(file, samples, component, 
                       [f'{map_}_map' for map_ in map_names])
     maps = dict(zip(map_names, maps_))
-    if model_nside is not None and nside != model_nside:
-        maps = {key:hp.ud_grade(value, model_nside) 
-                if isinstance(value, np.ndarray) 
-                else value for key, value in maps.items()}
+    if maps:
+        if model_nside is not None and nside != model_nside:
+            maps = {key:hp.ud_grade(value, model_nside) 
+                    if isinstance(value, np.ndarray) 
+                    else value for key, value in maps.items()}
     args.update(maps)
 
     if model_nside is None:
         model_nside = nside
 
-    alms_ = get_items(file, sample, component, 
+    alms_ = get_items(file, samples, component, 
                       [f'{alm}_alm' for alm in alm_names])
     alms = dict(zip(alm_names, alms_))
-    alms_lmax_ = get_items(file, sample, component, 
+    alms_lmax_ = get_items(file, samples, component, 
                            [f'{alm}_lmax' for alm in alm_names])
     alms_lmax = dict(zip(alm_names, [int(lmax) for lmax in alms_lmax_]))
 
@@ -188,16 +182,15 @@ def comp_from_chain(file, component, component_class, model_nside,
         else:
             pol = False
 
-        alms_ = hp.alm2map(unpacked_alm, 
+        alms[key] = hp.alm2map(unpacked_alm, 
                           nside=model_nside, 
                           lmax=alms_lmax[key], 
                           fwhm=fwhm_ref.value,
                           pol=pol,
                           verbose=False).astype('float32')
-        alms[key] = alms_
 
     args.update(alms)
-    args['amp'] = args['amp']*amp_unit
+    args['amp'] *= amp_unit
     args = utils._set_spectral_units(args)
     scalars = utils._extract_scalars(args) # dont save scalar maps
     args.update(scalars)
@@ -207,12 +200,6 @@ def comp_from_chain(file, component, component_class, model_nside,
         else:
             freq = u.Quantity(freq_ref[0])
         args['freq_ref'] = freq
-
-    if component_class == BlackBody:
-        # Convert to K_RJ at the reference frequency and set T manually to T_0
-        # args['amp'] += T_0
-        args['amp'] *= K_CMB_to_K_RJ(freq_ref[0])
-        args['T'] = T_0
 
     return component_class(name=component, **args)
 

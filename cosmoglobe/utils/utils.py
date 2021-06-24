@@ -41,3 +41,16 @@ def _set_spectral_units(maps):
             maps[map_] *= u.dimensionless_unscaled
 
     return maps
+
+
+def _get_astropy_unit(unit):
+    try:
+        output_unit = u.Unit(unit)
+    except ValueError:
+        if unit.lower().endswith('k_rj'):
+            output_unit = u.Unit(unit[:-3])
+            
+        elif unit.lower().endswith('k_cmb'):
+            output_unit = u.Unit(unit[:-4])
+
+    return output_unit
