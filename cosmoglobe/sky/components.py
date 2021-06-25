@@ -1,18 +1,17 @@
 from ..utils.bandpass import (
     get_normalized_bandpass, 
     get_bandpass_coefficient,
-    _get_interp_parameters, 
-    _interp1d,
-    _interp2d,
+    get_interp_parameters, 
+    interp1d,
+    interp2d,
 )
 from ..utils.functions import (
-    blackbody_emission, 
+    blackbody_emission,
     gaunt_factor, 
+    brightness_to_thermodynamical, 
     thermodynamical_to_brightness
 )
-
 from ..utils.utils import _get_astropy_unit
-
 from .. import data as data_dir
 
 import astropy.units as u
@@ -22,7 +21,7 @@ import pathlib
 from sys import exit
 
 class Component:
-    """Base class for all sky components.
+    """Base class for a sky component from the Cosmoglobe Sky Model.
 
     A component is defined by its get_freq_scaling function, which it is 
     required to implement. This function is required to take in a freq and a 
@@ -101,12 +100,10 @@ class Component:
         """
         freq_ref = self.freq_ref
         input_unit = self.amp.unit
+
         # Expand dimension on rank-1 arrays from from (n,) to (n, 1) to support
         # broadcasting with (1, nside) or (3, nside) arrays
-        if self.amp.ndim == 1:
-            amp = np.expand_dims(self.amp, axis=0)
-        else:
-            amp = self.amp
+        amp = self.amp if self.amp.ndim != 1 else np.expand_dims(self.amp, axis=0)
         spectral_parameters = {
             key: (np.expand_dims(value, axis=0) if value.ndim == 1 else value)
             for key, value in self.spectral_parameters.items()
@@ -115,12 +112,14 @@ class Component:
         #Assuming delta frequencies
         if bandpass is None:
             if freq.ndim == 0:
-                scaling = self.get_freq_scaling(freq, freq_ref, 
-                                                **spectral_parameters)
+                scaling = self.get_freq_scaling(
+                    freq, freq_ref, **spectral_parameters
+                )
             else:
-                scaling = (self.get_freq_scaling(freq, freq_ref, 
-                                                 **spectral_parameters)
-                           for freq in freq)
+                scaling = (
+                    self.get_freq_scaling(freq, freq_ref, **spectral_parameters)
+                    for freq in freq
+                )
             emission = amp*scaling
             
             if output_unit is not None:
@@ -132,7 +131,7 @@ class Component:
                         return emission.to(output_unit)
                     elif output_unit.lower().endswith('k_cmb'):
                         output_unit = u.Unit(output_unit[:-4])   
-                        emission /= thermodynamical_to_brightness(freq)
+                        emission *= brightness_to_thermodynamical(freq)
                         return emission.to(output_unit)
 
                 emission = emission.to(
@@ -141,46 +140,32 @@ class Component:
 
         # Perform bandpass integration
         else:
-
             bandpass = get_normalized_bandpass(bandpass, freq, input_unit)
-            bandpass_coefficient = (
-                get_bandpass_coefficient(bandpass, freq, output_unit)
-            ).si
-
-            scaling = (
-                self._get_bandpass_conversion(freq, freq_ref, bandpass, 
-                                              spectral_parameters)
+            bandpass_coefficient = get_bandpass_coefficient(
+                bandpass, freq, output_unit
+            )
+            bandpass_scaling = self._get_bandpass_scaling(
+                freq, bandpass, spectral_parameters
             )
 
-            emission = amp*scaling*bandpass_coefficient
+            emission = amp*bandpass_scaling*bandpass_coefficient
 
-        output_unit = _get_astropy_unit(output_unit)
-        return emission.to(output_unit)
+        return emission.to(_get_astropy_unit(output_unit))
 
 
-    def _get_bandpass_conversion(self, freqs, freq_ref, bandpass, 
-                                 spectral_parameters, n=20):
-        """Returns the frequency scaling factor given a frequency array and a 
-        bandpass profile.
-
-        For more information on the computations, see section 4.2 in 
-        https://arxiv.org/abs/2011.05609.
-
-        TODO: find a good default n value
+    def _get_bandpass_scaling(self, freqs, bandpass, spectral_parameters):
+        """Returns the frequency scaling factor given a bandpass profile and a
+        corresponding frequency array.
 
         Args:
         -----
         freqs (`astropy.units.Quantity`):
-            Frequencies corresponding to the bandpass weights.
-        freq_ref (`numpy.ndarray`):
-            Reference frequencies for the amplitude map.
+            Bandpass profile frequencies.
         bandpass (`astropy.units.Quantity`):
-            Normalized bandpass profile. Must have signal units.
+            Normalized bandpass profile.
         spectral_parameters (dict):
             Spectral parameters required to compute the frequency scaling 
             factor. 
-        n (int):
-            Number of points in the regular interpolation grid. Default: 20
 
         Returns:
         --------
@@ -188,10 +173,11 @@ class Component:
             Frequency scaling factor given a bandpass.
 
         """
-        interp_parameters = _get_interp_parameters(spectral_parameters, n)
+        interp_parameters = get_interp_parameters(spectral_parameters)
+
+        # Component does not have any spatially varying spectral parameters
         if not interp_parameters:
-            freq_scaling = self.get_freq_scaling(freqs, freq_ref, 
-                                                 **spectral_parameters)
+            freq_scaling = self.get_freq_scaling(freqs, self.freq_ref, **spectral_parameters)
             # Reshape to support broadcasting for comps where freq_ref = None 
             # e.g cmb
             if freq_scaling.ndim > 1:
@@ -200,13 +186,17 @@ class Component:
                 )
             return np.trapz(freq_scaling*bandpass, freqs)
 
+        # Component has one sptatially varying spectral parameter
         elif len(interp_parameters) == 1:
-            return _interp1d(self, bandpass, freqs, freq_ref, 
-                             interp_parameters, spectral_parameters.copy())
+            return interp1d(
+                self, freqs, bandpass, interp_parameters, spectral_parameters.copy()
+            )
 
+        # Component has two sptatially varying spectral parameter
         elif len(interp_parameters) == 2:
-            return _interp2d(self, bandpass, freqs, freq_ref, 
-                             interp_parameters, spectral_parameters.copy())
+            return interp2d(
+                self, freqs, bandpass, interp_parameters, spectral_parameters.copy()
+            )
 
         else:
             raise NotImplementedError(

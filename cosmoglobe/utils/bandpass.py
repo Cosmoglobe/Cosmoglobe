@@ -18,10 +18,9 @@ def get_normalized_bandpass(bandpass, freqs, unit=u.K):
     unit: `astropy.units.UnitBase`
         The unit we want to convert to.
     """
-    if bandpass.unit == (u.MJy/u.sr) or bandpass.unit == (u.Jy/u.sr):
-        bandpass = bandpass.to(
-            unit=unit, equivalencies=u.brightness_temperature(freqs)
-        )
+    bandpass = bandpass.to(
+        unit=unit, equivalencies=u.brightness_temperature(freqs)
+    )
 
     return bandpass/np.trapz(bandpass, freqs)
 
@@ -80,9 +79,23 @@ def get_bandpass_coefficient(bandpass, freqs, output_unit):
     return bandpass_coefficient
 
 
-def _get_interp_parameters(spectral_parameters, n):
-    """Returns a dictionary with a regular grid with n points for all spectral
-    parameters that vary across the sky.
+def get_interp_parameters(spectral_parameters, n=20):
+    """Returns the interpolation range of the spectral parameters of a 
+    sky component. We use a regular grid with n points for the range.
+    
+    Parameters
+    ----------
+    spectral_parameters: dict
+        Dictionary containing the spectral parameters of a given component.
+    n: int
+        Number of points in the regular interpolation grid. Default: 20
+
+    Returns
+    -------
+    interp_parameters: dict
+        Dictionary with a interpolation grid for each spatially varying
+        spectral parameter
+
     """
     interp_parameters = {}
     for key, value in spectral_parameters.items():
@@ -95,73 +108,115 @@ def _get_interp_parameters(spectral_parameters, n):
     return interp_parameters
 
 
-def _interp1d(comp, bandpass, freqs, freq_ref, interp_parameter, 
-              spectral_parameters):
+def interp1d(comp, freqs, bandpass, interp_parameter, spectral_parameters):
+    """Performs a 1-dimensional bandpass integration (numpy interp1d) for a 
+    sky component and returns the frequency scaling factor.
+    
+    Parameters
+    ----------
+    comp: `cosmoglobe.sky.Component`
+        A Cosmoglobe sky component object.
+    freqs: `astropy.units.Quantity`
+        Frequencies corresponding to the bandpass profile.
+    bandpass: `astropy.units.Quantity`
+        Normalized bandpass profile in units of 1/Hz.    
+    interp_parameter: `astropy.units.Quantity`
+        Spectral parameter *grid* to interpolate over.
+    spectral_parameters: dict
+        Dictionary containing *all* the spectral parameters of the component. 
+
+    Returns
+    -------
+    scaling: `astropy.units.Quantity`
+        Frequency scaling factor obtained by integrating over the bandpass.
+        
+    """
     integrals = []
     for key, interp_param in interp_parameter.items():
         for grid_point in interp_param:
             spectral_parameters[key] = grid_point
-            freq_scaling = comp.get_freq_scaling(freqs, freq_ref, 
+            freq_scaling = comp.get_freq_scaling(freqs, comp.freq_ref, 
                                                  **spectral_parameters)
             integrals.append(np.trapz(freq_scaling*bandpass, freqs))
 
-        #convert shape to (3, n) 
+        #Reshape integrals list to (3, n) 
         integrals = u.Quantity(np.transpose(integrals), unit=integrals[0].unit)
         if integrals.ndim == 1:
             integrals = np.expand_dims(integrals, axis=0)
 
+        # Find integrated scaling factor for IQU
         if len(comp.spectral_parameters[key]) == 3:
-            scaling =  [np.interp(comp.spectral_parameters[key][idx].value, 
-                                  interp_param.value, 
-                                  col.value)
-                        for idx, col in enumerate(integrals)]
+            scaling =  [
+                np.interp(comp.spectral_parameters[key][idx].value, 
+                interp_param.value, col.value)
+                for idx, col in enumerate(integrals)
+            ]
+
+        # Find integrated scaling factor for I
         else:
-            scaling =  [np.interp(comp.spectral_parameters[key].value, 
-                                  interp_param.value, 
-                                  col.value)
-                        for col in integrals]
+            scaling =  [
+                np.interp(comp.spectral_parameters[key].value, 
+                interp_param.value, col.value) for col in integrals
+            ]
         return scaling
 
 
-def _interp2d(comp, bandpass, freqs, freq_ref, interp_parameters,
-              spectral_parameters):
+def interp2d(comp, freqs, bandpass, interp_parameters, spectral_parameters):
+    """Performs a 2-dimensional bandpass integration 
+    (scipy RectBivariateSpline) for a sky component and returns the frequency 
+    scaling factor.
+    
+    Parameters
+    ----------
+    comp: `cosmoglobe.sky.Component`
+        A Cosmoglobe sky component object.
+    freqs: `astropy.units.Quantity`
+        Frequencies corresponding to the bandpass profile.
+    bandpass: `astropy.units.Quantity`
+        Normalized bandpass profile in units of 1/Hz.    
+    interp_parameters: `astropy.units.Quantity`
+        Spectral parameters *grids* to interpolate over.
+    spectral_parameters: dict
+        Dictionary containing *all* the spectral parameters of the component. 
+
+    Returns
+    -------
+    scaling: `astropy.units.Quantity`
+        Frequency scaling factor obtained by integrating over the bandpass.
+        
+    """
+    # Make n x n mesh grid for the spectral parameters
     n = len(list(interp_parameters.values())[0])
-    # Square n x n grid for each spectral_parameter
     grid = {
         key: value for key, value in zip(
             interp_parameters.keys(), np.meshgrid(*interp_parameters.values())
         )
     }
 
-    if comp._is_polarized:
-        integrals = np.zeros((n, n, 3))
-    else:
-        integrals = np.zeros((n, n, 1))
+    integrals = np.zeros((n, n, 3)) if comp._is_polarized else np.zeros((n, n, 1))
     for i in range(n):
         for j in range(n):
             grid_spectrals = {key: value[i,j] for key, value in grid.items()}
-            freq_scaling = comp.get_freq_scaling(freqs, freq_ref, 
-                                                 **grid_spectrals)
+            freq_scaling = comp.get_freq_scaling(
+                freqs, comp.freq_ref, **grid_spectrals
+            )
             integrals[i,j] = np.trapz(freq_scaling*bandpass, freqs)
     integrals = np.transpose(integrals)
 
     scaling = []
     for idx, col in enumerate(integrals):
         f = RectBivariateSpline(*interp_parameters.values(), col)
-        packed_spectrals = [spectral[idx] if spectral.shape[0] == 3 else spectral[0]
-                            for spectral in spectral_parameters.values()]
-        scaling.append(
-            f(*packed_spectrals, grid=False)
-        )
+        packed_spectrals = [
+            spectral[idx] if spectral.shape[0] == 3 else spectral[0]
+            for spectral in spectral_parameters.values()
+        ]
+        scaling.append(f(*packed_spectrals, grid=False))
     
     return scaling
 
 
 
-
-
-# Intensity derivatives with respect to unit conventions
-# ======================================================
+# Intensity derivatives
 def b_rj(freq):
     """The intensity derivative in unit convention K_RJ.
 

@@ -114,9 +114,9 @@ class Model:
         """Simulates the model emission given a single, or, a set of
         frequencies.
 
-        Optionally, a bandpass can be given along with the corresponding
-        frequencies resulting in the integration model emission over the
-        bandpass.
+        Optionally, a bandpass profile can be given along with the 
+        corresponding frequencies resulting in the integrated model emission 
+        over the profile.
 
         Args:
         -----
