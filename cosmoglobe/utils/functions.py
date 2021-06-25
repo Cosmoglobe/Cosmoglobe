@@ -100,8 +100,12 @@ def brightness_to_thermodynamical(freq):
     return 1/thermodynamical_to_brightness(freq)
 
 
-def brightness_temperature(freq):
-    """Returns the conversion factor between Jy/sr and K_RJ
+
+
+# Intensity derivatives with respect to unit conventions
+# ======================================================
+def b_rj(freq):
+    """The intensity derivative in unit convention K_RJ.
 
     Args:
     -----
@@ -114,15 +118,44 @@ def brightness_temperature(freq):
         Jy/sr -> K_RJ factor.
 
     """
-    # print(((2*k_B*freq**2)/c**2).unit)
-    # exit()
     return (2*k_B*freq**2)/(c**2 * u.sr)
 
 
-def bprime(freq, T=T_0):
+def b_cmb(freq, T=T_0):
+    """The intensity derivative in unit convention K_CMB.
+
+    Parameters:
+    -----------
+    freq (astropy.units.quantity.Quantity):
+        Frequency in units of Hertz.   
+    T (astropy.units.quantity.Quantity):
+        The CMB emperature. Default is T_0.
+
+    Returns:
+    --------
+    (astropy.units.quantity.Quantity):
+        Bandpass coefficient
+
+    """
     x = (h*freq)/(k_B*T)
-    return (2*h*freq**3)/(c**2 * np.expm1(x)) * (np.exp(x)/np.expm1(x))*((h*freq)/(k_B*T**2)) * u.sr**-1
+    return (
+        (2*h*freq**3)/(c**2 * np.expm1(x)) * 
+        (np.exp(x)/np.expm1(x))*((h*freq)/(k_B*T**2)) * u.sr**-1
+    )
 
 
-def iras(freq, freq_ref):
+def b_iras(freq, freq_ref):
+    """The intensity derivative in the IRAS unit convention (MJy/sr).
+
+    Parameters:
+    -----------
+    freq (astropy.units.quantity.Quantity):
+        Frequency in units of Hertz.   
+
+    Returns:
+    --------
+    (astropy.units.quantity.Quantity):
+        Bandpass coefficient
+
+    """
     return (freq_ref/freq)

@@ -1,7 +1,7 @@
 from ..utils.bandpass import (
-    _get_normalized_bandpass, 
+    get_normalized_bandpass, 
+    get_bandpass_coefficient,
     _get_interp_parameters, 
-    _get_unit_conversion_factor,
     _interp1d,
     _interp2d,
 )
@@ -142,17 +142,17 @@ class Component:
         # Perform bandpass integration
         else:
 
-            bandpass = _get_normalized_bandpass(bandpass, freq, input_unit)
-            unit_conversion_factor = (
-                _get_unit_conversion_factor(bandpass, freq, output_unit)
+            bandpass = get_normalized_bandpass(bandpass, freq, input_unit)
+            bandpass_coefficient = (
+                get_bandpass_coefficient(bandpass, freq, output_unit)
             ).si
 
-            bandpass_conversion_factor = (
+            scaling = (
                 self._get_bandpass_conversion(freq, freq_ref, bandpass, 
                                               spectral_parameters)
             )
 
-            emission = amp*bandpass_conversion_factor*unit_conversion_factor
+            emission = amp*scaling*bandpass_coefficient
 
         output_unit = _get_astropy_unit(output_unit)
         return emission.to(output_unit)

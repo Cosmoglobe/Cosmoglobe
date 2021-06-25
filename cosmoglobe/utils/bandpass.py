@@ -1,52 +1,82 @@
-from .functions import brightness_temperature, bprime, iras
+from .functions import b_rj, b_cmb, b_iras
 import numpy as np
 import astropy.units as u
 from scipy.interpolate import RectBivariateSpline
-import sys
 
 @u.quantity_input(bandpass=(u.Jy/u.sr, u.K), freqs=u.Hz)
-def _get_normalized_bandpass(bandpass, freqs, input_unit):
-    """Normalize bandpass to integrate to unity under numpy trapzoidal"""
-    bandpass = bandpass.to(
-        input_unit, equivalencies=u.brightness_temperature(freqs)
-    )
+def get_normalized_bandpass(bandpass, freqs, unit=u.K):
+    """Returns a bandpass profile normalized to unity when integrated over all 
+    frequencies corresponding to the profile in units of K_RJ.
+
+    Parameters
+    ----------
+    bandpass: `astropy.units.Quantity`
+        Bandpass profile in signal units.    
+    freqs: `astropy.units.Quantity`
+        Frequencies corresponding to the bandpass profile.
+    unit: `astropy.units.UnitBase`
+        The unit we want to convert to.
+    """
+    if bandpass.unit == (u.MJy/u.sr) or bandpass.unit == (u.Jy/u.sr):
+        bandpass = bandpass.to(
+            unit=unit, equivalencies=u.brightness_temperature(freqs)
+        )
+
     return bandpass/np.trapz(bandpass, freqs)
 
 
 @u.quantity_input(bandpass=u.Hz**-1, freqs=u.Hz)
-def _get_unit_conversion_factor(bandpass, freqs, unit):
-    """Unit conversion factor given an output unit"""
-    #input unit will always be K_RJ
-    intensity_derivative_i = brightness_temperature(freqs)
+def get_bandpass_coefficient(bandpass, freqs, output_unit):
+    """Computes the bandpass coefficient for a map that has been calibrated in 
+    K_RJ to some output unit, after taking into account the bandpass.
 
+    Parameters
+    ----------
+    bandpass: `astropy.units.Quantity`
+        Normalized bandpass profile in units of 1/Hz.    
+    freqs: `astropy.units.Quantity`
+        Frequencies corresponding to the bandpass profile.
+    unit: `astropy.units.UnitBase`
+        The unit we want to convert to.
+
+    Returns
+    -------
+    bandpass_coefficient: `astropy.units.Quantity`
+        The bandpass coefficient.
+        
+    """
+    intensity_derivative_i = b_rj(freqs)
+
+    #Selecting the intensity derivative expression given an output_unit
     try:
-        unit = u.Unit(unit)
-        if u.K in unit.si.bases:
-            intensity_derivative_j = brightness_temperature(freqs)
-        elif unit == u.MJy/u.sr:
-            intensity_derivative_j = iras(freqs, np.mean(freqs))
+        output_unit = u.Unit(output_unit)
+        if u.K in output_unit.si.bases:
+            intensity_derivative_j = b_rj(freqs)
+        elif output_unit == u.MJy/u.sr:
+            intensity_derivative_j = b_iras(freqs, np.mean(freqs))
 
     except ValueError:
-        if isinstance(unit, str):
-            if unit.lower().endswith('k_rj'):
-                intensity_derivative_j = brightness_temperature(freqs)
-            elif unit.lower().endswith('k_cmb'):
-                intensity_derivative_j = bprime(freqs)
+        if isinstance(output_unit, str):
+            if output_unit.lower().endswith('k_rj'):
+                intensity_derivative_j = b_rj(freqs)
+            elif output_unit.lower().endswith('k_cmb'):
+                intensity_derivative_j = b_cmb(freqs)
             else:
                 raise NotImplementedError(
-                    f'output_unit {unit} is not implemented'
+                    f'output_unit {output_unit} is not implemented'
                 )
 
-    U = (
+    bandpass_coefficient = (
         np.trapz(bandpass*intensity_derivative_i, freqs)/
         np.trapz(bandpass*intensity_derivative_j, freqs)
-        )
+    )
 
+    # The coefficient has shape (3,) for conversions to MJy/sr. To allow for 
+    # broadcasting the coefficient with the emission we expand its dimensions.
+    if bandpass_coefficient.ndim > 0:
+        bandpass_coefficient = np.expand_dims(bandpass_coefficient, axis=1)
 
-    if U.ndim > 0:
-        U = np.expand_dims(U, axis=1)
-
-    return U
+    return bandpass_coefficient
 
 
 def _get_interp_parameters(spectral_parameters, n):
