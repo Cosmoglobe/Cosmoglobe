@@ -1,7 +1,8 @@
-from .functions import b_rj, b_cmb, b_iras
-import numpy as np
-import astropy.units as u
+from .constants import h, c, k_B, T_0
+
 from scipy.interpolate import RectBivariateSpline
+import astropy.units as u
+import numpy as np
 
 @u.quantity_input(bandpass=(u.Jy/u.sr, u.K), freqs=u.Hz)
 def get_normalized_bandpass(bandpass, freqs, unit=u.K):
@@ -154,3 +155,65 @@ def _interp2d(comp, bandpass, freqs, freq_ref, interp_parameters,
         )
     
     return scaling
+
+
+
+
+
+# Intensity derivatives with respect to unit conventions
+# ======================================================
+def b_rj(freq):
+    """The intensity derivative in unit convention K_RJ.
+
+    Args:
+    -----
+    freq (astropy.units.quantity.Quantity):
+        Frequency in units of Hertz.   
+
+    Returns:
+    --------
+    (astropy.units.quantity.Quantity):
+        Jy/sr -> K_RJ factor.
+
+    """
+    return (2*k_B*freq**2)/(c**2 * u.sr)
+
+
+def b_cmb(freq, T=T_0):
+    """The intensity derivative in unit convention K_CMB.
+
+    Parameters:
+    -----------
+    freq (astropy.units.quantity.Quantity):
+        Frequency in units of Hertz.   
+    T (astropy.units.quantity.Quantity):
+        The CMB emperature. Default is T_0.
+
+    Returns:
+    --------
+    (astropy.units.quantity.Quantity):
+        Bandpass coefficient
+
+    """
+    x = (h*freq)/(k_B*T)
+    return (
+        (2*h*freq**3)/(c**2 * np.expm1(x)) * 
+        (np.exp(x)/np.expm1(x))*((h*freq)/(k_B*T**2)) * u.sr**-1
+    )
+
+
+def b_iras(freq, freq_ref):
+    """The intensity derivative in the IRAS unit convention (MJy/sr).
+
+    Parameters:
+    -----------
+    freq (astropy.units.quantity.Quantity):
+        Frequency in units of Hertz.   
+
+    Returns:
+    --------
+    (astropy.units.quantity.Quantity):
+        Bandpass coefficient
+
+    """
+    return (freq_ref/freq)
