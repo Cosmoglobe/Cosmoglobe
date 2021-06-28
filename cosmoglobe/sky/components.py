@@ -1,24 +1,23 @@
-from ..utils.bandpass import (
-    get_normalized_bandpass, 
+from cosmoglobe.utils.bandpass import (
     get_bandpass_coefficient,
     get_interp_parameters, 
+    get_normalized_bandpass, 
     interp1d,
     interp2d,
 )
-from ..utils.functions import (
+from cosmoglobe.utils.functions import (
     blackbody_emission,
-    gaunt_factor, 
     brightness_to_thermodynamical, 
+    gaunt_factor, 
     thermodynamical_to_brightness
 )
-from ..utils.utils import _get_astropy_unit
-from .. import data as data_dir
+from cosmoglobe.utils.utils import _get_astropy_unit
 
+from pathlib import Path
+from sys import exit
 import astropy.units as u
 import numpy as np
 import healpy as hp
-import pathlib
-from sys import exit
 
 class Component:
     """Base class for a sky component from the Cosmoglobe Sky Model.
@@ -144,16 +143,14 @@ class Component:
             bandpass_coefficient = get_bandpass_coefficient(
                 bandpass, freq, output_unit
             )
-            bandpass_scaling = self._get_bandpass_scaling(
-                freq, bandpass, spectral_parameters
-            )
+            bandpass_scaling = self._get_bandpass_scaling(freq, bandpass)
 
             emission = amp*bandpass_scaling*bandpass_coefficient
 
         return emission.to(_get_astropy_unit(output_unit))
 
 
-    def _get_bandpass_scaling(self, freqs, bandpass, spectral_parameters):
+    def _get_bandpass_scaling(self, freqs, bandpass):
         """Returns the frequency scaling factor given a bandpass profile and a
         corresponding frequency array.
 
@@ -163,9 +160,6 @@ class Component:
             Bandpass profile frequencies.
         bandpass (`astropy.units.Quantity`):
             Normalized bandpass profile.
-        spectral_parameters (dict):
-            Spectral parameters required to compute the frequency scaling 
-            factor. 
 
         Returns:
         --------
@@ -173,11 +167,13 @@ class Component:
             Frequency scaling factor given a bandpass.
 
         """
-        interp_parameters = get_interp_parameters(spectral_parameters)
+        interp_parameters = get_interp_parameters(self.spectral_parameters)
 
         # Component does not have any spatially varying spectral parameters
         if not interp_parameters:
-            freq_scaling = self.get_freq_scaling(freqs, self.freq_ref, **spectral_parameters)
+            freq_scaling = self.get_freq_scaling(
+                freqs, self.freq_ref, **self.spectral_parameters
+            )
             # Reshape to support broadcasting for comps where freq_ref = None 
             # e.g cmb
             if freq_scaling.ndim > 1:
@@ -189,13 +185,15 @@ class Component:
         # Component has one sptatially varying spectral parameter
         elif len(interp_parameters) == 1:
             return interp1d(
-                self, freqs, bandpass, interp_parameters, spectral_parameters.copy()
+                self, freqs, bandpass, interp_parameters, 
+                self.spectral_parameters.copy()
             )
 
         # Component has two sptatially varying spectral parameter
         elif len(interp_parameters) == 2:
             return interp2d(
-                self, freqs, bandpass, interp_parameters, spectral_parameters.copy()
+                self, freqs, bandpass, interp_parameters, 
+                self.spectral_parameters.copy()
             )
 
         else:
@@ -214,15 +212,16 @@ class Component:
             Healpix map resolution parameter.
 
         """
-        comp_nside = hp.get_nside(self.amp)
-        if new_nside == comp_nside:
+        nside = hp.get_nside(self.amp)
+        if new_nside == nside:
+            print(f'Model is already at nside {nside}')
             return
         if not hp.isnsideok(new_nside, nest=True):
             raise ValueError(f'nside: {new_nside} is not valid.')
 
         self.amp = hp.ud_grade(self.amp.value, new_nside)*self.amp.unit
         for key, val in self.spectral_parameters.items():
-            if hp.nside2npix(comp_nside) in np.shape(val):
+            if hp.nside2npix(nside) in np.shape(val):
                 try:
                     self.spectral_parameters[key] = hp.ud_grade(val.value, 
                                                             new_nside)*val.unit
@@ -242,7 +241,7 @@ class Component:
         main_repr = f'{self.__class__.__name__}'
         main_repr += '('
         extra_repr = ''
-        for key, value in self.spectral_parameters.items():
+        for key in self.spectral_parameters.keys():
             extra_repr += f'{key}, '
         if extra_repr:
             extra_repr = extra_repr[:-2]
@@ -254,8 +253,8 @@ class Component:
 
 
 class PowerLaw(Component):
-    """PowerLaw component class. Represents any component with a frequency 
-    scaling given by a simple power law.
+    """PowerLaw component class. Represents Synchrotron emission in the 
+    Cosmoglobe Sky Model.
 
     Args:
     -----
@@ -269,7 +268,7 @@ class PowerLaw(Component):
         Reference frequencies for the amplitude template in units of Hertz.
         The input must be an astropy quantity containing the the reference 
         frequency for the stokes I amplitude template, and optionally the
-        reference frequency for the soktes Q and U templates if the component 
+        reference frequency for the stokes Q and U templates if the component 
         is polarized. Example: freq_ref=freq_ref_I*u.GHz, or 
         freq_ref=[freq_ref_I, freq_ref_P]*u.GHz
     beta (`numpy.ndarray`, `astropy.units.Quantity`):
@@ -304,12 +303,11 @@ class PowerLaw(Component):
         """
         scaling = (freq/freq_ref)**beta
         return scaling
-        
 
-    
+
 class ModifiedBlackBody(Component):
-    """Modified blackbody component class. Represents any component with a 
-    frequency scaling given by a simple power law times a blackbody.
+    """Modified blackbody component class. Represents thermal dust in the
+    Cosmoglobe Sky Model.
 
     Args:
     -----
@@ -370,9 +368,8 @@ class ModifiedBlackBody(Component):
 
 
 class FreeFree(Component):
-    """FreeFree emission component class. Represents a component with a 
-    frequency scaling given by a linearized optically thin blacbody spectrum,
-    strictly only valid in the optically thin case (tau << 1).
+    """FreeFree emission component class. Represents FreeFree in the
+    Cosmoglobe Sky Model
 
     Args:
     -----
@@ -454,9 +451,11 @@ class SpDust2(Component):
     """
     def __init__(self, name, amp, freq_ref, nu_p):
         super().__init__(name, amp, freq_ref, nu_p=nu_p)
-        spdust2_freq, spdust2_amp = np.loadtxt(
-            pathlib.Path(data_dir.__path__[0]) / 'spdust2_cnm.dat', unpack=True
-        )
+
+        # Read in spdust2 template
+        data_dir = Path(__file__).resolve().parent.parent / 'data'
+        spdust2_file = data_dir / 'spdust2_cnm.dat'
+        spdust2_freq, spdust2_amp = np.loadtxt(spdust2_file, unpack=True)
         spdust2_freq = u.Quantity(spdust2_freq, unit=u.GHz)
         spdust2_amp = u.Quantity(spdust2_amp, unit=(u.Jy/u.sr)).to(
             u.K, equivalencies=u.brightness_temperature(spdust2_freq)
