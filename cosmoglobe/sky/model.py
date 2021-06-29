@@ -1,5 +1,5 @@
-from .components import Component
-from ..utils.utils import NsideError
+from cosmoglobe.sky.components import Component
+from cosmoglobe.utils.utils import NsideError
 
 import astropy.units as u
 import healpy as hp
@@ -89,6 +89,7 @@ class Model:
 
         """
         if new_nside == self.nside:
+            print(f'Model is already at nside {new_nside}')
             return
         if not hp.isnsideok(new_nside, nest=True):
             raise ValueError(f'nside: {new_nside} is not valid.')
@@ -110,7 +111,7 @@ class Model:
 
 
     @u.quantity_input(freq=u.Hz, bandpass=(u.Jy/u.sr, u.K, None))
-    def __call__(self, freq, bandpass=None, output_unit=u.uK):
+    def __call__(self, freq, bandpass=None, fwhm=None, output_unit=u.uK):
         """Simulates the model emission given a single, or, a set of
         frequencies.
 
@@ -138,13 +139,13 @@ class Model:
 
         """
         if bandpass is None and freq.ndim > 0:
-            return [self._get_model_emission(freq, bandpass, output_unit)
+            return [self._get_model_emission(freq, bandpass, fwhm, output_unit)
                     for freq in freq]
 
-        return self._get_model_emission(freq, bandpass, output_unit)
+        return self._get_model_emission(freq, bandpass, fwhm, output_unit)
 
 
-    def _get_model_emission(self, freq, bandpass, output_unit):
+    def _get_model_emission(self, freq, bandpass, fwhm, output_unit):
         if self.is_polarized:
             model_emission = np.zeros((3, hp.nside2npix(self.nside)))
         else:
@@ -164,6 +165,8 @@ class Model:
             for idx, col in enumerate(comp_emission):
                 model_emission[idx] += col
 
+        if fwhm is not None:
+            model_emission = hp.smoothing(model_emission.value, fwhm=fwhm.to(u.rad).value)
         return model_emission
 
 

@@ -453,9 +453,9 @@ class SpDust2(Component):
         super().__init__(name, amp, freq_ref, nu_p=nu_p)
 
         # Read in spdust2 template
-        data_dir = Path(__file__).resolve().parent.parent / 'data'
-        spdust2_file = data_dir / 'spdust2_cnm.dat'
-        spdust2_freq, spdust2_amp = np.loadtxt(spdust2_file, unpack=True)
+        DATA_DIR = Path(__file__).resolve().parent.parent / 'data'
+        SPDUST2_FILE = DATA_DIR / 'spdust2_cnm.dat'
+        spdust2_freq, spdust2_amp = np.loadtxt(SPDUST2_FILE, unpack=True)
         spdust2_freq = u.Quantity(spdust2_freq, unit=u.GHz)
         spdust2_amp = u.Quantity(spdust2_amp, unit=(u.Jy/u.sr)).to(
             u.K, equivalencies=u.brightness_temperature(spdust2_freq)

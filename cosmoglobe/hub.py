@@ -1,6 +1,6 @@
-from .sky.model import Model
-from .sky import components
-from .utils.utils import ModelError
+from cosmoglobe.sky.model import Model
+from cosmoglobe.sky import components
+from cosmoglobe.utils.utils import ModelError
 
 from astropy.utils.data import download_file
 from astropy.io.misc import fnpickle, fnunpickle
@@ -8,13 +8,13 @@ import numpy as np
 
 data_url = 'http://cosmoglobe.uio.no/BeyondPlanck/precomputed/'
 
-COSMOGLOBE_COMPS = {
-    'dust': components.ModifiedBlackBody,
-    'synch': components.PowerLaw,
-    'ff': components.FreeFree,
-    'ame': components.SpDust2,
-    'cmb': components.CMB,
-}
+COSMOGLOBE_COMPS = dict(
+    dust=components.ModifiedBlackBody,
+    synch=components.PowerLaw,
+    ff=components.FreeFree,
+    ame=components.SpDust2,
+    cmb=components.CMB,
+)
 
 
 def save_model(model, filename):

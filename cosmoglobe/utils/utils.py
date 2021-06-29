@@ -29,11 +29,11 @@ def _extract_scalars(spectral_parameters):
 def _set_spectral_units(maps):
     #TODO: Figure out how to correctly detect unit of spectral map in chain.
     #      Until then, a hardcoded dict is used:
-    units = {
-        'T': u.K,
-        'Te': u.K,
-        'nu_p' : u.GHz,
-    }
+    units = dict(
+        T=u.K,
+        Te=u.K,
+        nu_p=u.GHz,
+    )
     for map_ in maps:
         if map_ in units:
             maps[map_] *= units[map_]

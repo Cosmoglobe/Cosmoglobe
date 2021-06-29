@@ -1,20 +1,20 @@
-from ..sky import Model
-from ..hub import COSMOGLOBE_COMPS
-from ..utils import utils
+from cosmoglobe.sky import Model
+from cosmoglobe.hub import COSMOGLOBE_COMPS
+from cosmoglobe.utils import utils
 
-from numba import njit
 import astropy.units as u
 import h5py
 import healpy as hp
 import numpy as np
+import sys
 import inspect
 from tqdm import tqdm
-import sys
+from numba import njit
 
 # Model parameter group name as implemented in commander
 param_group = 'parameters'
 # These will be dropped from component lists
-_ignored_comps = ['md', 'radio', 'relquad']
+_ignored_comps = ['md', 'relquad', 'radio']
 
 
 def model_from_chain(file, nside=None, samples='all', burn_in=None, comps=None):
@@ -411,3 +411,40 @@ def unpack_alms_from_chain(data, lmax):
                 i += 1
 
     return alms
+
+
+# class Chain:
+#     def __init__(self, file):
+#         self.file = file
+#         self.samples = _get_samples(file)
+#         self.start = _sample_to_int(self.samples[0])
+#         self.end = _sample_to_int(self.samples[-1])
+#         self.current = _sample_to_int(self.start)
+
+#     def __iter__(self):
+#         return self
+
+#     def __next__(self):
+#         return self.next()
+
+#     def next(self):
+#         if self.current > self.end:
+#             raise StopIteration
+
+#         chain_content = {}
+#         with h5py.File(self.file, 'r') as f:
+#             sample = f[_int_to_sample(self.current)]
+
+#             for group in list(sample.keys()):
+#                 chain_content[group] = {}
+#                 for value in sample[group]:
+#                     try:
+#                         chain_content[group][value] = sample[group][value][()]
+#                     except AttributeError:
+#                         chain_content[group][value] = {}
+#                         for sub_value in sample[group][value]:
+#                             chain_content[group][value][sub_value] = sample[group][value][sub_value][()]
+            
+#         self.current += 1
+#         return chain_content
+            
