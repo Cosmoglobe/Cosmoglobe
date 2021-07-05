@@ -1,9 +1,10 @@
 from cosmoglobe.sky.components import Component
-from cosmoglobe.utils.utils import NsideError
+from cosmoglobe.utils.utils import NsideError, _get_astropy_unit
 
 import astropy.units as u
 import healpy as hp
 import numpy as np
+import tqdm as tqdm
 
 class Model:
     """A sky model.
@@ -26,6 +27,7 @@ class Model:
     def __init__(self, components=None, nside=None):
         self.nside = nside
         self.components = {}
+        self.disabled_components = {}
         if components:
             for component in components:
                 self._add_component(component)
@@ -37,24 +39,155 @@ class Model:
                 f'{component} is not a subclass of cosmoglobe.sky.Component'
             )
 
-        name = component.name
-        nside = hp.get_nside(component.amp)
+        name = component.label
         if name in self.components:
             raise KeyError(f'component {name} already exists in model')
-        if nside != self.nside:
-            if self.nside is None:
-                self.nside = nside
-            else:
-                raise NsideError(
-                    f'component {name!r} has a reference map at NSIDE='
-                    f'{nside}, but model NSIDE is set to {self.nside}'
-                )
 
+        if component.diffuse:
+            nside = hp.get_nside(component.amp)
+            if nside != self.nside:
+                if self.nside is None:
+                    self.nside = nside
+                else:
+                    raise NsideError(
+                        f'component {name!r} has a reference map at NSIDE='
+                        f'{nside}, but model NSIDE is set to {self.nside}'
+                    )
+        # Explicitly set nside for non diffuse components since most attributes
+        # are not stored in maps           
+        else:
+            try:
+                component._set_nside(self.nside)
+            except AttributeError:
+                pass
+            
         setattr(self, name, component)
         self.components[name] = component
 
 
-    def insert(self, component):
+    @u.quantity_input(freq=u.Hz, bandpass=(u.Jy/u.sr, u.K, None), 
+                      fwhm=(u.rad, u.deg, u.arcmin))
+    def __call__(self, freq, bandpass=None, fwhm=0.0*u.rad, output_unit=u.uK):
+        """Simulates the model emission given a single, or, a set of
+        frequencies.
+
+        Optionally, a bandpass profile can be given along with the 
+        corresponding frequencies resulting in the integrated model emission 
+        over the profile.
+
+        Args:
+        -----
+        freq (`astropy.units.Quantity`):
+            A frequency, or list of frequencies for which to evaluate the
+            component emission. Must be in units of Hertz.
+        bandpass (`astropy.units.Quantity`):
+            Bandpass profile corresponding to the frequency list. If None, a
+            delta peak in frequency is assumed at the given frequencies.
+            Default: None
+        output_unit (`astropy.units.Unit`):
+            The desired output units of the emission. Must be signal units. 
+            Default : uK
+
+        Returns:
+        --------
+        (`astropy.units.Quantity`)
+            Model emission at the given frequency.
+
+        """
+        if bandpass is None and freq.ndim > 0:
+            return [
+                self._get_model_emission(freq, bandpass, fwhm, output_unit)
+                for freq in freq
+            ]
+
+        return self._get_model_emission(freq, bandpass, fwhm, output_unit)
+
+
+    def _get_model_emission(self, freq, bandpass, fwhm, output_unit):
+        if self.is_polarized:
+            shape = (3, hp.nside2npix(self.nside))
+        else:
+            shape = (1, hp.nside2npix(self.nside))
+        diffuse_emission = np.zeros(shape)
+        ptsrc_emission = np.zeros(shape)
+
+        unit = _get_astropy_unit(output_unit)
+        diffuse_emission = u.Quantity(diffuse_emission, unit=unit)
+        ptsrc_emission = u.Quantity(ptsrc_emission, unit=unit)
+
+        for comp in self:
+            if comp.diffuse:
+                comp_emission = comp(freq, bandpass, output_unit=output_unit)
+                for idx, col in enumerate(comp_emission):
+                    diffuse_emission[idx] += col
+            else:
+                comp_emission = comp(freq, bandpass, fwhm=fwhm, output_unit=output_unit)
+                for idx, col in enumerate(comp_emission):
+                    ptsrc_emission[idx] += col
+
+        if fwhm is not None:
+            # If diffuse emission is non-zero
+            print('Smoothing diffuse emission')
+            if diffuse_emission.value.any():
+                diffuse_emission = hp.smoothing(
+                    diffuse_emission, fwhm.to(u.rad).value
+                ) * diffuse_emission.unit
+
+        return diffuse_emission + ptsrc_emission
+
+
+    def disable(self, component):
+        """Disable a component in the model.
+
+        Parameters:
+        -----------
+        component : str, `cosmoglobe.sky.Component`
+            The name of a component or the the component class in the model.
+
+        """
+        if isinstance(component, str):
+            comp = component
+        elif isinstance(component.__class__, Component):
+            comp = component.label
+        else:
+            raise ValueError(
+                'component must be the component label in the model or the '
+                'component object'
+            )
+        try:
+            self.disabled_components[comp] = self.components[comp]
+        except KeyError:
+            raise KeyError(f'{comp} is not enabled')
+        del self.components[comp]
+
+
+    def enable(self, component):
+        """enable a disabled component.
+
+        Parameters:
+        -----------
+        component : str, `cosmoglobe.sky.Component`
+            The name of a component or the the component class in the model.
+
+        """
+        if isinstance(component, str):
+            comp = component
+        elif isinstance(component.__class__, Component):
+            comp = component.label
+        else:
+            raise ValueError(
+                'component must be the component label in the model or the '
+                'component object'
+            )
+
+        try:
+            self.components[comp] = self.disabled_components[comp]
+        except KeyError:
+            raise KeyError(f'{comp} is not disabled')
+        del self.disabled_components[comp]
+
+
+    def _insert_component(self, component):
         """Insert a new component to the model.
 
         Args:
@@ -67,7 +200,7 @@ class Model:
         self._add_component(component)
 
 
-    def remove(self, name):
+    def _remove_component(self, name):
         """Removes a component from the model.
 
         Args:
@@ -97,7 +230,9 @@ class Model:
         self.nside = new_nside
         for comp in self:
             comp.to_nside(new_nside)
-        
+
+
+
 
     @property
     def is_polarized(self):
@@ -108,66 +243,6 @@ class Model:
             if comp.is_polarized:
                 return True
         return False
-
-
-    @u.quantity_input(freq=u.Hz, bandpass=(u.Jy/u.sr, u.K, None))
-    def __call__(self, freq, bandpass=None, fwhm=None, output_unit=u.uK):
-        """Simulates the model emission given a single, or, a set of
-        frequencies.
-
-        Optionally, a bandpass profile can be given along with the 
-        corresponding frequencies resulting in the integrated model emission 
-        over the profile.
-
-        Args:
-        -----
-        freq (`astropy.units.Quantity`):
-            A frequency, or list of frequencies for which to evaluate the
-            component emission. Must be in units of Hertz.
-        bandpass (`astropy.units.Quantity`):
-            Bandpass profile corresponding to the frequency list. If None, a
-            delta peak in frequency is assumed at the given frequencies.
-            Default: None
-        output_unit (`astropy.units.Unit`):
-            The desired output units of the emission. Must be signal units. 
-            Default : uK
-
-        Returns:
-        --------
-        (`astropy.units.Quantity`)
-            Model emission at the given frequency.
-
-        """
-        if bandpass is None and freq.ndim > 0:
-            return [self._get_model_emission(freq, bandpass, fwhm, output_unit)
-                    for freq in freq]
-
-        return self._get_model_emission(freq, bandpass, fwhm, output_unit)
-
-
-    def _get_model_emission(self, freq, bandpass, fwhm, output_unit):
-        if self.is_polarized:
-            model_emission = np.zeros((3, hp.nside2npix(self.nside)))
-        else:
-            model_emission = np.zeros((1, hp.nside2npix(self.nside)))
-
-        try:
-            unit = u.Unit(output_unit)
-        except ValueError:
-            if output_unit.lower().endswith('k_rj'):
-                unit = u.Unit(output_unit[:-3])
-            elif output_unit.lower().endswith('k_cmb'):
-                unit = u.Unit(output_unit[:-4])
-        model_emission = u.Quantity(model_emission, unit=unit)
-
-        for comp in self:
-            comp_emission = comp(freq, bandpass, output_unit)
-            for idx, col in enumerate(comp_emission):
-                model_emission[idx] += col
-
-        if fwhm is not None:
-            model_emission = hp.smoothing(model_emission.value, fwhm=fwhm.to(u.rad).value)
-        return model_emission
 
 
     def __iter__(self):

@@ -65,16 +65,10 @@ def get_bandpass_coefficient(bandpass, freqs, output_unit):
                 raise NotImplementedError(
                     f'output_unit {output_unit} is not implemented'
                 )
-
     bandpass_coefficient = (
         np.trapz(bandpass*intensity_derivative_i, freqs)/
         np.trapz(bandpass*intensity_derivative_j, freqs)
     )
-
-    # The coefficient has shape (3,) for conversions to MJy/sr. To allow for 
-    # broadcasting the coefficient with the emission we expand its dimensions.
-    if bandpass_coefficient.ndim > 0:
-        bandpass_coefficient = np.expand_dims(bandpass_coefficient, axis=1)
 
     return bandpass_coefficient
 
@@ -112,8 +106,8 @@ def interp1d(comp, freqs, bandpass, interp_parameter, spectral_parameters):
     """Performs a 1-dimensional bandpass integration (numpy interp1d) for a 
     sky component and returns the frequency scaling factor.
     
-    Parameters
-    ----------
+    Parameters:
+    -----------
     comp: `cosmoglobe.sky.Component`
         A Cosmoglobe sky component object.
     freqs: `astropy.units.Quantity`
@@ -125,18 +119,20 @@ def interp1d(comp, freqs, bandpass, interp_parameter, spectral_parameters):
     spectral_parameters: dict
         Dictionary containing *all* the spectral parameters of the component. 
 
-    Returns
-    -------
+    Returns:
+    --------
     scaling: `astropy.units.Quantity`
         Frequency scaling factor obtained by integrating over the bandpass.
         
     """
+
     integrals = []
     for key, interp_param in interp_parameter.items():
         for grid_point in interp_param:
             spectral_parameters[key] = grid_point
             freq_scaling = comp.get_freq_scaling(freqs, comp.freq_ref, 
                                                  **spectral_parameters)
+
             integrals.append(np.trapz(freq_scaling*bandpass, freqs))
 
         #Reshape integrals list to (3, n) 

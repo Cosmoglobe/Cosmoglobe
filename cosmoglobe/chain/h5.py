@@ -1,3 +1,4 @@
+from itertools import chain
 from cosmoglobe.sky import Model
 from cosmoglobe.hub import COSMOGLOBE_COMPS
 from cosmoglobe.utils import utils
@@ -14,7 +15,8 @@ from numba import njit
 # Model parameter group name as implemented in commander
 param_group = 'parameters'
 # These will be dropped from component lists
-_ignored_comps = ['md', 'relquad', 'radio']
+_ignored_comps = ['md', 'relquad']
+# _ignored_comps = ['md', 'relquad', 'radio']
 
 
 def model_from_chain(file, nside=None, samples='all', burn_in=None, comps=None):
@@ -60,12 +62,17 @@ def model_from_chain(file, nside=None, samples='all', burn_in=None, comps=None):
         if not isinstance(comps, list):
             comps = [comps]
         comps = {comp:default_comps[comp] for comp in comps}
-    
+
+    if not comps:
+        raise ValueError('No comps selected')
+
     chain_components = _get_components(file)
     component_list = [comp for comp in comps if comp in chain_components]
 
     if samples == 'all':
         samples = _get_samples(file)
+    elif samples == -1:
+        samples = _get_samples(file)[-1]
     elif isinstance(samples, int):
         samples = _int_to_sample(samples)
     if burn_in is not None:
@@ -81,7 +88,7 @@ def model_from_chain(file, nside=None, samples='all', burn_in=None, comps=None):
             pbar.set_description(f'{comp:<{padding}}')
             comp = comp_from_chain(file, comp, comps[comp], 
                                      nside, samples)                                           
-            model.insert(comp)
+            model._insert_component(comp)
             pbar.update(1)
 
         pbar.set_description('Done')
@@ -136,8 +143,7 @@ def comp_from_chain(file, component, component_class, model_nside, samples):
     # Getting arguments required to initialize component
     args_list = _get_comp_args(component_class) 
     args = {}
-
-    if len(samples) > 1:
+    if isinstance(samples, list) and len(samples) > 1:
         get_items = _get_averaged_items
     else:
         get_items = _get_items
@@ -145,16 +151,22 @@ def comp_from_chain(file, component, component_class, model_nside, samples):
     # Find which args are alms and which are precomputed maps
     alm_names = []
     map_names = []
+    other_items_names = []
     for arg in args_list:
         if arg != 'freq_ref':
             if _item_alm_exists(file, component, arg):
                 alm_names.append(arg)
             elif _item_map_exists(file,component, arg):
                 map_names.append(arg)
+            elif _item_exists(file, component, arg):
+                other_items_names.append(arg)
             else:
                 raise KeyError(f'item {arg} is not present in the chain')
 
 
+    other_items_ = get_items(file, samples, component, 
+                      [item for item in other_items_names])
+    other_items = dict(zip(other_items_names, other_items_))
     maps_ = get_items(file, samples, component, 
                       [f'{map_}_map' for map_ in map_names])
     maps = dict(zip(map_names, maps_))
@@ -164,7 +176,7 @@ def comp_from_chain(file, component, component_class, model_nside, samples):
                     if isinstance(value, np.ndarray) 
                     else value for key, value in maps.items()}
     args.update(maps)
-
+    args.update(other_items)
     if model_nside is None:
         model_nside = nside
 
@@ -201,7 +213,7 @@ def comp_from_chain(file, component, component_class, model_nside, samples):
             freq = u.Quantity(freq_ref[0])
         args['freq_ref'] = freq
 
-    return component_class(name=component, **args)
+    return component_class(**args)
 
 
 def _get_comp_args(component_class):
@@ -239,8 +251,7 @@ def _int_to_sample(samples, start=0):
 def _get_components(file, ignore_comps=True):
     """Returns a list of all components present in a chain file"""
     with h5py.File(file, 'r') as f:
-        components = list(f[param_group].keys())
-
+        components = list(f[f'{1:06d}'].keys())
     if ignore_comps:    
         return [comp for comp in components if comp not in _ignored_comps]
 
@@ -364,6 +375,20 @@ def _item_map_exists(file, component, item):
         params = list(f[sample][component].keys())
 
     if f'{item}_map' in params:
+        return True
+
+    return False
+
+def _item_exists(file, component, item):
+    """Returns True if component contains the item (array or scalar), else 
+    returns False.
+    """
+    sample = _get_samples(file)[-1]
+
+    with h5py.File(file, 'r') as f:
+        params = list(f[sample][component].keys())
+
+    if f'{item}' in params:
         return True
 
     return False

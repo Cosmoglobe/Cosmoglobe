@@ -15,7 +15,7 @@ def _extract_scalars(spectral_parameters):
     in all dims, then it is converted to a (ndim,) array"""
     scalars = {}
     for key, value in spectral_parameters.items():
-        if value.ndim > 1:
+        if value.size > 1:
             uniques = [np.unique(col) for col in value.value]
             all_is_unique = all([len(col) == 1 for col in uniques])
             if all_is_unique:
@@ -54,3 +54,17 @@ def _get_astropy_unit(unit):
             output_unit = u.Unit(unit[:-4])
 
     return output_unit
+
+
+def gaussian_beam_2D(r, sigma):
+    """Returns the Gaussian beam in 2D in polar coordinates.
+
+    Parameters:
+    -----------
+    r : float
+        Angular distance.
+    sigma : float
+        The sigma of the Gaussian (beam radius).
+    
+    """
+    return r*np.exp(-(r**2)/(2 * sigma**2))/(sigma*np.sqrt(2*np.pi))

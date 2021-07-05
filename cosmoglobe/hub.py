@@ -14,6 +14,7 @@ COSMOGLOBE_COMPS = dict(
     ff=components.FreeFree,
     ame=components.SpDust2,
     cmb=components.CMB,
+    radio=components.Radio
 )
 
 
