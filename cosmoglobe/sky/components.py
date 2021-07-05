@@ -11,7 +11,7 @@ from cosmoglobe.utils.functions import (
     gaunt_factor, 
     thermodynamical_to_brightness
 )
-from cosmoglobe.utils.utils import NsideError, _get_astropy_unit, gaussian_beam_2D
+from cosmoglobe.utils.utils import _get_astropy_unit, gaussian_beam_2D
 
 from pathlib import Path
 from sys import exit
@@ -554,7 +554,7 @@ class CMB(Component):
             )
             dipole = self.amp[0] - amp_without_dipole
             self.amp[0] = amp_without_dipole
-            
+
             return dipole
 
 

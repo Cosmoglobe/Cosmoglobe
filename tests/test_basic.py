@@ -23,8 +23,9 @@ chain_dir = pathlib.Path("/Users/metinsan/Documents/doktor/Cosmoglobe_test_data/
 chain = chain_dir / "chain_test.h5"
 # chain = chain_dir / "bla.h5"
 bandpass = chain_dir / "wmap_bandpass.txt"
+wmap = hp.read_map(chain_dir / 'wmap_band_iqusmap_r9_9yr_K_v5.fits')
 
-model = model_from_chain(chain, nside=256)
+model = model_from_chain(chain, nside=128)
 # model = model_from_chain(chain, nside=256, burn_in=20)
 # model.remove('radio')
 bp_freqs, bp, _ = np.loadtxt(bandpass, unpack=True)
@@ -32,7 +33,11 @@ bp_freqs*= u.GHz
 bp *= u.K
 # model(fwhm)
 # model.dust(freq, fwhm)
-model.disable('cmb')
+# model.disable('cmb')
+dipole = model.cmb.remove_dipole(return_dipole=True)
+# hp.mollview(dipole, min=-3400, max=3400)
+# hp.mollview(model.cmb.amp[0], min=-200, max=200)
+
 # model.disable('radio')
 
 # freqs = np.flip(np.logspace(0.1, 2.7, 12)*u.GHz)
@@ -45,12 +50,15 @@ model.disable('cmb')
 # for freq, emission in zip(freqs, emissions):
 #     hp.mollview(emission[0], norm='hist', title=f'{int(freq.value)}')
 # hp.mollview(model(10*u.GHz, fwhm=20*u.arcmin)[0], norm='hist')
-
-# hp.mollview(model(31*u.GHz, fwhm=30*u.arcmin)[0], norm='hist', cmap='CMRmap')
+# hp.mollview(model.ame.amp[0], norm='hist')
+# hp.mollview(model(353*u.GHz, fwhm=30*u.arcmin)[0], norm='hist', cmap='CMRmap')
+# hp.mollview(model(353*u.GHz, fwhm=30*u.arcmin)[0], norm='hist')
 # hp.mollview(model.radio.get_map(model.radio.amp, nside=64, fwhm=50*u.arcmin)[0], norm='hist', cmap='CMRmap')
 # hp.mollview(model(30*u.GHz, fwhm=0.88*u.deg)[0], min=-200, max=5000,)
 # hp.mollview(model(100*u.GHz, fwhm=30*u.arcmin)[0], norm='hist')
-hp.mollview(model(bp_freqs, bp, fwhm=0.88*u.deg, output_unit='MJy/sr')[0],norm='hist')
+
+
+hp.mollview(model(bp_freqs, bp, fwhm=0.88*u.deg, output_unit='mK')[0], norm='hist')
 
 # model(50*u.GHz, )
 # nside = 64

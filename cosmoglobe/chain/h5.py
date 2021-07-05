@@ -1,6 +1,5 @@
-from itertools import chain
-from cosmoglobe.sky import Model
 from cosmoglobe.hub import COSMOGLOBE_COMPS
+from cosmoglobe.sky import Model
 from cosmoglobe.utils import utils
 
 import astropy.units as u

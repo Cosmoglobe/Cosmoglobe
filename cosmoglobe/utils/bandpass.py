@@ -1,4 +1,4 @@
-from .constants import h, c, k_B, T_0
+from cosmoglobe.utils.constants import h, c, k_B, T_0
 
 from scipy.interpolate import RectBivariateSpline
 import astropy.units as u
@@ -73,7 +73,7 @@ def get_bandpass_coefficient(bandpass, freqs, output_unit):
     return bandpass_coefficient
 
 
-def get_interp_parameters(spectral_parameters, n=20):
+def get_interp_parameters(spectral_parameters):
     """Returns the interpolation range of the spectral parameters of a 
     sky component. We use a regular grid with n points for the range.
     
@@ -81,8 +81,6 @@ def get_interp_parameters(spectral_parameters, n=20):
     ----------
     spectral_parameters: dict
         Dictionary containing the spectral parameters of a given component.
-    n: int
-        Number of points in the regular interpolation grid. Default: 20
 
     Returns
     -------
@@ -91,13 +89,24 @@ def get_interp_parameters(spectral_parameters, n=20):
         spectral parameter
 
     """
+    dim = 0
+    for value in spectral_parameters.values():
+        if value.size > 3:
+            dim += 1
+        
     interp_parameters = {}
+    if dim == 0:
+        return interp_parameters
+    elif dim == 1:
+        n = 1000
+    elif dim == 2:
+        n = 100
+
     for key, value in spectral_parameters.items():
-        if value.ndim > 1:
-            if value.shape[1] > 1:
-                min_, max_ = np.amin(value), np.amax(value)
-                interp = np.linspace(min_, max_, n)
-                interp_parameters[key] = interp
+        if value.size > 3:
+            min_, max_ = np.amin(value), np.amax(value)
+            interp = np.linspace(min_, max_, n)
+            interp_parameters[key] = interp
 
     return interp_parameters
 
