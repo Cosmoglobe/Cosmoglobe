@@ -533,6 +533,31 @@ class CMB(Component):
         super().__init__(amp, freq_ref=None)
 
 
+    def remove_dipole(self, return_dipole=False, gal_cut=10):
+        """Removes the solar dipole from the reference amplitude map.
+
+        Parameters:
+        -----------
+        return_dipole : bool
+            If True, a map of the dipole is returned. Defaut: False
+        gal_cut : float
+            Galactic latitude coordinate. Default: 10 degrees.
+            
+        """
+        if not return_dipole:
+            hp.remove_dipole(self.amp[0], gal_cut=gal_cut, copy=False)
+        else: 
+            amp_without_dipole = u.Quantity(
+                hp.remove_dipole(
+                    self.amp[0], gal_cut=gal_cut
+                ), unit=self.amp.unit
+            )
+            dipole = self.amp[0] - amp_without_dipole
+            self.amp[0] = amp_without_dipole
+            
+            return dipole
+
+
     def get_freq_scaling(self, freq, freq_ref):
         """Computes the frequency scaling from K_CMB to K_RJ as a frequency.
         Args:
@@ -680,7 +705,7 @@ class Radio(Component):
             pix_res = hp.nside2resol(nside)
             if fwhm.value < pix_res:
                 raise ValueError(
-                    'fwhm must be >= pixel resolution to resolve the'
+                    'fwhm must be >= pixel resolution to resolve the '
                     'point sources.'
                 )
             beam_area = 2 * np.pi * sigma**2
