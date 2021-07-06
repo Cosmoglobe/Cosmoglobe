@@ -1,54 +1,42 @@
-from ..tools.bandpass import (
-    _get_normalized_bandpass, 
-    _get_interp_parameters, 
-    _get_unit_conversion,
-    _interp1d,
-    _interp2d,
+from cosmoglobe.utils.bandpass import (
+    get_bandpass_coefficient,
+    get_interp_parameters, 
+    get_normalized_bandpass, 
+    interp1d,
+    interp2d,
 )
-from ..science.functions import (
-    blackbody_emission, 
+from cosmoglobe.utils.functions import (
+    blackbody_emission,
+    brightness_to_thermodynamical, 
     gaunt_factor, 
-    cmb_to_brightness
+    thermodynamical_to_brightness
 )
-from .. import data as data_dir
+from cosmoglobe.utils.utils import _get_astropy_unit, gaussian_beam_2D
 
+from pathlib import Path
+from sys import exit
+import warnings
+from tqdm import tqdm
 import astropy.units as u
 import numpy as np
 import healpy as hp
-import pathlib
+import sys
+
+DATA_DIR = Path(__file__).resolve().parent.parent / 'data'
 
 
 class Component:
-    """Base class for all sky components.
+    """Base class for a sky component from the Cosmoglobe Sky Model.
 
-    Any sky component you make should subclass this class. All components must
-    implement the get_freq_scaling method. This method needs to return the
-    frequency scaling factor from the reference frequency of the amplitude
-    template to a arbritrary frequency. Following is an example of a custom 
-    implementation of a component whos emission scales as a simple power law::
-
-        import cosmoglobe.sky as sky
-
-        class PowerLaw(sky.Component):
-            def __init__(self, name, amp, freq_ref, beta):
-                super().__init__(name, amp, freq_ref, beta=beta)
-
-            def get_freq_scaling(self, freq, freq_ref, beta):
-                return (freq/freq_ref)**beta
-
-    A component is essentially defined by its get_freq_scaling function, 
-    which it is required to implement. This function is required to take in 
-    a freq and a freq_ref at minimum (even if it is not required to evalute 
-    the emission). Further, the get_freq_scaling function can take in any 
-    number of spectral parameters, although a model with more than two spectral
-    parameters that varies across the sky is not supported under bandpass
-    integration.
+    A component is defined by its get_freq_scaling function, which it is 
+    required to implement. This function is required to take in a freq and a 
+    freq_ref at minimum (even if it is not required to evalute the emission). 
+    Further, the get_freq_scaling function can take in any number of spectral 
+    parameters, although a model with more than two spectral parameters that 
+    varies across the sky is currently not supported under bandpass integration.
 
     Args:
     -----
-    name (str):
-        The name or label of the component. The label becomes the attribute 
-        name of the component in a `cosmoglobe.sky.Model`.
     amp (`astropy.units.Quantity`):
         Emission templates of the component at the reference frequencies given
         by freq_ref.
@@ -65,8 +53,7 @@ class Component:
         Default: None
 
     """
-    def __init__(self, name, amp, freq_ref, **spectral_parameters):
-        self.name = name
+    def __init__(self, amp, freq_ref, **spectral_parameters):
         self.amp = amp
         self.freq_ref = self._set_freq_ref(freq_ref)
         self.spectral_parameters = spectral_parameters
@@ -88,9 +75,10 @@ class Component:
             raise ValueError('freq_ref must have a maximum len of 2')
 
 
-    @u.quantity_input(freq=u.Hz, bandpass=(u.Jy/u.sr, u.K, None))
-    def get_emission(self, freq, bandpass=None, output_unit=None):
-        """Returns the component emission at an arbitrary frequency or
+    @u.quantity_input(freq=u.Hz, bandpass=(u.Jy/u.sr, u.K, None), 
+                      fwhm=(u.rad, u.deg, u.arcmin))
+    def __call__(self, freq, bandpass=None, fwhm=0.0*u.rad, output_unit=u.uK):
+        """Simulates the component emission at an arbitrary frequency or
         integrated over a bandpass.
 
         Args:
@@ -105,6 +93,8 @@ class Component:
         output_unit (`astropy.units.Unit`):
             The desired output unit of the emission. Must be signal units. 
             Default: None
+        fwhm : `astropy.units.Quantity`
+            The full width half max parameter of the beam. Default: None
 
         Returns
         -------
@@ -113,70 +103,83 @@ class Component:
 
         """
         freq_ref = self.freq_ref
-        input_unit = self.amp.unit
+        input_unit = u.Unit('uK')
+
         # Expand dimension on rank-1 arrays from from (n,) to (n, 1) to support
-        # broadcasting
-        if self.amp.ndim == 1:
-            amp = np.expand_dims(self.amp, axis=0)
-        else:
-            amp = self.amp
+        # broadcasting with (1, nside) or (3, nside) arrays
+        amp = self.amp if self.amp.ndim != 1 else np.expand_dims(self.amp, axis=0)
         spectral_parameters = {
             key: (np.expand_dims(value, axis=0) if value.ndim == 1 else value)
             for key, value in self.spectral_parameters.items()
         }
 
-        # Perform bandpass integration
-        if bandpass is not None:
-            unit_conversion_factor = (
-                _get_unit_conversion(bandpass, freq, output_unit, input_unit)
-            )
-            bandpass = _get_normalized_bandpass(bandpass, freq, input_unit)
-            bandpass_conversion_factor = (
-                self._get_bandpass_conversion(freq, freq_ref, bandpass, 
-                                              spectral_parameters)
-            )
-            return amp*bandpass_conversion_factor*unit_conversion_factor
-
-        # Assume delta frequencies
-        else:
-            if freq.ndim > 0:
-                scaling = (self.get_freq_scaling(freq, freq_ref, 
-                                                 **spectral_parameters)
-                           for freq in freq)
+        #Assuming delta frequencies
+        if bandpass is None:
+            if freq.size == 1:
+                scaling = self.get_freq_scaling(
+                    freq, freq_ref, **spectral_parameters
+                )
             else:
-                scaling = self.get_freq_scaling(freq, freq_ref, 
-                                                **spectral_parameters)
+                scaling = (
+                    self.get_freq_scaling(freq, freq_ref, **spectral_parameters)
+                    for freq in freq
+                )
+            if self.diffuse:
+                emission = amp*scaling
+            else:
+                # self.amp is not a healpix map for non diffuse comps
+                emission = self.get_map(amp=amp*scaling, fwhm=fwhm)
+            
+            if output_unit is not None:
+                try:
+                    output_unit = u.Unit(output_unit)
+                    emission = emission.to(
+                        output_unit, equivalencies=u.brightness_temperature(freq)
+                    )
+                except ValueError:
+                    if output_unit.lower().endswith('k_rj'):
+                        output_unit = u.Unit(output_unit[:-3])
+                    elif output_unit.lower().endswith('k_cmb'):
+                        output_unit = u.Unit(output_unit[:-4])   
+                        emission *= brightness_to_thermodynamical(freq)
 
-        if output_unit is not None and input_unit != output_unit:
-            return (amp*scaling).to(
-                output_unit, equivalencies=u.brightness_temperature(freq)
+            return emission
+
+        # Perform bandpass integration
+        else:
+            bandpass = get_normalized_bandpass(bandpass, freq, input_unit)
+            bandpass_coefficient = get_bandpass_coefficient(
+                bandpass, freq, output_unit
             )
-        return amp*scaling
+            bandpass_scaling = self._get_bandpass_scaling(
+                freq, bandpass, spectral_parameters
+            )
+
+            if self.diffuse:
+                emission = amp*bandpass_scaling*bandpass_coefficient
+                if fwhm.value != 0.0:
+                    emission = hp.smoothing(
+                        emission, fwhm.to(u.rad).value
+                    )*emission.unit
+
+            else:
+                emission = self.get_map(
+                    amp=amp*bandpass_scaling, fwhm=fwhm
+                )*bandpass_coefficient
+
+            return emission.to(_get_astropy_unit(output_unit))
 
 
-    def _get_bandpass_conversion(self, freqs, freq_ref, bandpass, 
-                                 spectral_parameters, n=20):
-        """Returns the frequency scaling factor given a frequency array and a 
-        bandpass profile.
-
-        For more information on the computations, see section 4.2 in 
-        https://arxiv.org/abs/2011.05609.
-
-        TODO: find the perfect default n value
+    def _get_bandpass_scaling(self, freqs, bandpass, spectral_parameters):
+        """Returns the frequency scaling factor given a bandpass profile and a
+        corresponding frequency array.
 
         Args:
         -----
         freqs (`astropy.units.Quantity`):
-            Frequencies corresponding to the bandpass weights.
-        freq_ref (`numpy.ndarray`):
-            Reference frequencies for the amplitude map.
+            Bandpass profile frequencies.
         bandpass (`astropy.units.Quantity`):
-            Normalized bandpass profile. Must have signal units.
-        spectral_parameters (dict):
-            Spectral parameters required to compute the frequency scaling 
-            factor. 
-        n (int):
-            Number of points in the regular interpolation grid. Default: 20
+            Normalized bandpass profile.
 
         Returns:
         --------
@@ -184,10 +187,13 @@ class Component:
             Frequency scaling factor given a bandpass.
 
         """
-        interp_parameters = _get_interp_parameters(spectral_parameters, n)
+        interp_parameters = get_interp_parameters(spectral_parameters)
+
+        # Component does not have any spatially varying spectral parameters
         if not interp_parameters:
-            freq_scaling = self.get_freq_scaling(freqs, freq_ref, 
-                                                 **spectral_parameters)
+            freq_scaling = self.get_freq_scaling(
+                freqs, self.freq_ref, **spectral_parameters
+            )
             # Reshape to support broadcasting for comps where freq_ref = None 
             # e.g cmb
             if freq_scaling.ndim > 1:
@@ -196,13 +202,19 @@ class Component:
                 )
             return np.trapz(freq_scaling*bandpass, freqs)
 
+        # Component has one sptatially varying spectral parameter
         elif len(interp_parameters) == 1:
-            return _interp1d(self, bandpass, freqs, freq_ref, 
-                             interp_parameters, spectral_parameters.copy())
+            return interp1d(
+                self, freqs, bandpass, interp_parameters, 
+                spectral_parameters.copy()
+            )
 
-        elif len(interp_parameters) == 2:
-            return _interp2d(self, bandpass, freqs, freq_ref, 
-                             interp_parameters, spectral_parameters.copy())
+        # Component has two sptatially varying spectral parameter
+        elif len(interp_parameters) == 2:    
+            return interp2d(
+                self, freqs, bandpass, interp_parameters, 
+                spectral_parameters.copy()
+            )
 
         else:
             raise NotImplementedError(
@@ -220,15 +232,19 @@ class Component:
             Healpix map resolution parameter.
 
         """
-        comp_nside = hp.get_nside(self.amp)
-        if new_nside == comp_nside:
+        if not self.diffuse:
+            return
+
+        nside = hp.get_nside(self.amp)
+        if new_nside == nside:
+            print(f'Model is already at nside {nside}')
             return
         if not hp.isnsideok(new_nside, nest=True):
             raise ValueError(f'nside: {new_nside} is not valid.')
 
         self.amp = hp.ud_grade(self.amp.value, new_nside)*self.amp.unit
         for key, val in self.spectral_parameters.items():
-            if hp.nside2npix(comp_nside) in np.shape(val):
+            if hp.nside2npix(nside) in np.shape(val):
                 try:
                     self.spectral_parameters[key] = hp.ud_grade(val.value, 
                                                             new_nside)*val.unit
@@ -246,10 +262,13 @@ class Component:
 
     def __repr__(self):
         main_repr = f'{self.__class__.__name__}'
-        main_repr += '(amp, freq_ref, '
-        for spectral in self.spectral_parameters:
-            main_repr += f'{spectral}, '
-        main_repr = main_repr[:-2]
+        main_repr += '('
+        extra_repr = ''
+        for key in self.spectral_parameters.keys():
+            extra_repr += f'{key}, '
+        if extra_repr:
+            extra_repr = extra_repr[:-2]
+        main_repr += extra_repr
         main_repr += ')'
 
         return main_repr
@@ -257,27 +276,32 @@ class Component:
 
 
 class PowerLaw(Component):
-    """PowerLaw component class. Represents any component with a frequency 
-    scaling given by a simple power law.
+    """PowerLaw component class. Represents Synchrotron emission in the 
+    Cosmoglobe Sky Model.
 
     Args:
     -----
-    name (str):
-        Name/label of the component. Is used to set the component attribute 
-        in a `cosmoglobe.Model`.
-    amp (`numpy.ndarray`, `astropy.units.Quantity`, `cosmoglobe.StokesMap`):
-        Amplitude templates at the reference frequencies for I or IQU stokes 
-        parameters.
+    amp (`astropy.units.Quantity`):
+        Emission templates of the component at the reference frequencies given
+        by freq_ref.
     freq_ref (`astropy.units.Quantity`):
-        Reference frequencies for the amplitude map in units of Hertz.
+        Reference frequencies for the amplitude template in units of Hertz.
+        The input must be an astropy quantity containing the the reference 
+        frequency for the stokes I amplitude template, and optionally the
+        reference frequency for the stokes Q and U templates if the component 
+        is polarized. Example: freq_ref=freq_ref_I*u.GHz, or 
+        freq_ref=[freq_ref_I, freq_ref_P]*u.GHz
     beta (`numpy.ndarray`, `astropy.units.Quantity`):
         The power law spectral index. The spectral index can vary over the sky, 
         and is therefore commonly given as a shape (3, nside) array, but it can 
         take the value of a scalar.
-
     """
-    def __init__(self, name, amp, freq_ref, beta):
-        super().__init__(name, amp, freq_ref, beta=beta)
+    label = 'synch'
+    diffuse = True
+
+
+    def __init__(self, amp, freq_ref, beta):
+        super().__init__(amp, freq_ref, beta=beta)
 
 
     def get_freq_scaling(self, freq, freq_ref, beta):
@@ -304,21 +328,22 @@ class PowerLaw(Component):
         return scaling
 
 
-    
 class ModifiedBlackBody(Component):
-    """Modified blackbody component class. Represents any component with a 
-    frequency scaling given by a simple power law times a blackbody.
+    """Modified blackbody component class. Represents thermal dust in the
+    Cosmoglobe Sky Model.
 
     Args:
     -----
-    name (str):
-        Name/label of the component. Is used to set the component attribute 
-        in a `cosmoglobe.sky.Model`.
-    amp (`numpy.ndarray`, `astropy.units.Quantity`, `cosmoglobe.StokesMap`):
-        Amplitude templates at the reference frequencies for I or IQU stokes 
-        parameters.
+    amp (`astropy.units.Quantity`):
+        Emission templates of the component at the reference frequencies given
+        by freq_ref.
     freq_ref (`astropy.units.Quantity`):
-        Reference frequencies for the amplitude map in units of Hertz.
+        Reference frequencies for the amplitude template in units of Hertz.
+        The input must be an astropy quantity containing the the reference 
+        frequency for the stokes I amplitude template, and optionally the
+        reference frequency for the soktes Q and U templates if the component 
+        is polarized. Example: freq_ref=freq_ref_I*u.GHz, or 
+        freq_ref=[freq_ref_I, freq_ref_P]*u.GHz
     beta (`numpy.ndarray`, `astropy.units.Quantity`):
         The power law spectral index. The spectral index can vary over the sky, 
         and is therefore commonly given as a shape (3, nside) array, but it can 
@@ -326,10 +351,13 @@ class ModifiedBlackBody(Component):
     T (`astropy.units.Quantity`):
         Temperature map of the blackbody with unit K and shape (nside,). Can 
         also take the value of a scalar similar to beta.
-
     """
-    def __init__(self, name, amp, freq_ref, beta, T):
-        super().__init__(name, amp, freq_ref, beta=beta, T=T)
+    label = 'dust'
+    diffuse = True
+
+
+    def __init__(self, amp, freq_ref, beta, T):
+        super().__init__(amp, freq_ref, beta=beta, T=T)
 
 
     def get_freq_scaling(self, freq, freq_ref, beta, T):
@@ -362,30 +390,31 @@ class ModifiedBlackBody(Component):
 
 
 
-class LinearOpticallyThinBlackBody(Component):
-    """Linearized optically thin blackbody emission component class. Represents 
-    a component with a frequency scaling given by a linearized optically thin 
-    blacbody spectrum, strictly only valid in the optically thin case 
-    (tau << 1).
-
-    TODO: find a more general name for this class
+class FreeFree(Component):
+    """FreeFree emission component class. Represents FreeFree in the
+    Cosmoglobe Sky Model.
 
     Args:
     -----
-    name (str):
-        Name/label of the component. Is used to set the component attribute 
-        in a `cosmoglobe.sky.Model`.
-    amp (`numpy.ndarray`, `astropy.units.Quantity`, `cosmoglobe.StokesMap`):
-        Amplitude templates at the reference frequencies for I or IQU stokes 
-        parameters.
+    amp (`astropy.units.Quantity`):
+        Emission templates of the component at the reference frequencies given
+        by freq_ref.
     freq_ref (`astropy.units.Quantity`):
-        Reference frequencies for the amplitude map in units of Hertz.
+        Reference frequencies for the amplitude template in units of Hertz.
+        The input must be an astropy quantity containing the the reference 
+        frequency for the stokes I amplitude template, and optionally the
+        reference frequency for the soktes Q and U templates if the component 
+        is polarized. Example: freq_ref=freq_ref_I*u.GHz, or 
+        freq_ref=[freq_ref_I, freq_ref_P]*u.GHz
     Te (`astropy.units.Quantity`):
         Electron temperature map with unit K.
-
     """
-    def __init__(self, name, amp, freq_ref, Te):
-        super().__init__(name, amp, freq_ref, Te=Te)
+    label = 'ff'
+    diffuse = True
+
+
+    def __init__(self, amp, freq_ref, Te):
+        super().__init__(amp, freq_ref, Te=Te)
 
 
     def get_freq_scaling(self, freq, freq_ref, Te):
@@ -414,7 +443,8 @@ class LinearOpticallyThinBlackBody(Component):
 
 
 class SpDust2(Component):
-    """Spinning dust component class using a template from the SpDust2 code.
+    """Spinning dust component class using a precomputed template from the
+    SpDust2 code to interpolate.
     For more info, please see the following papers: 
         - Ali-Haïmoud et al. (2009)
         - Ali-Haimoud (2010)
@@ -425,27 +455,32 @@ class SpDust2(Component):
 
     Args:
     -----
-    name (str):
-        Name/label of the component. Is used to set the component attribute 
-        in a `cosmoglobe.sky.Model`.
-    amp (`numpy.ndarray`, `astropy.units.Quantity`, `cosmoglobe.StokesMap`):
-        Amplitude templates at the reference frequencies for I or IQU stokes 
-        parameters.
+    amp (`astropy.units.Quantity`):
+        Emission templates of the component at the reference frequencies given
+        by freq_ref.
     freq_ref (`astropy.units.Quantity`):
-        Reference frequencies for the amplitude map in units of Hertz.
+        Reference frequencies for the amplitude template in units of Hertz.
+        The input must be an astropy quantity containing the the reference 
+        frequency for the stokes I amplitude template, and optionally the
+        reference frequency for the soktes Q and U templates if the component 
+        is polarized. Example: freq_ref=freq_ref_I*u.GHz, or 
+        freq_ref=[freq_ref_I, freq_ref_P]*u.GHz
     nu_p (`astropy.units.Quantity`):
         Peak frequency.
-
     """
-    def __init__(self, name, amp, freq_ref, nu_p):
-        super().__init__(name, amp, freq_ref, nu_p=nu_p)
-        spdust2_freq, spdust2_amp = np.loadtxt(
-            pathlib.Path(data_dir.__path__[0]) / 'spdust2_cnm.dat', unpack=True
-        )
+    label = 'ame'
+    diffuse = True
+
+    def __init__(self, amp, freq_ref, nu_p):
+        super().__init__(amp, freq_ref, nu_p=nu_p)
+
+        # Read in spdust2 template
+        SPDUST2_FILE = DATA_DIR / 'spdust2_cnm.dat'
+        spdust2_freq, spdust2_amp = np.loadtxt(SPDUST2_FILE, unpack=True)
         spdust2_freq = u.Quantity(spdust2_freq, unit=u.GHz)
         spdust2_amp = u.Quantity(spdust2_amp, unit=(u.Jy/u.sr)).to(
             u.K, equivalencies=u.brightness_temperature(spdust2_freq)
-        )
+        )        
         self.spdust2 = np.array([spdust2_freq.si.value, spdust2_amp.si.value])
 
 
@@ -479,31 +514,51 @@ class SpDust2(Component):
 
 
 
-class BlackBodyCMB(Component):
-    """Blackbody CMB component class. Represents blackbody emission of the CMB
-    converted from units of K_CMB to K_RJ.
-
-    TODO: find a more suiting name for this component.
+class CMB(Component):
+    """CMB component class. Assumes that the component amplitude template is in
+    units of K_CMB. The emission is defined as the conversion between K_CMB and
+    K_RJ units.
 
     Args:
     -----
-    name (str):
-        Name/label of the component. Is used to set the component attribute 
-        in a `cosmoglobe.sky.Model`.
     amp (`numpy.ndarray`, `astropy.units.Quantity`, `cosmoglobe.StokesMap`):
         Amplitude templates at the reference frequencies for I or IQU stokes 
-        parameters.
-    freq_ref (`astropy.units.Quantity`):
-        Reference frequencies for the amplitude map in units of Hertz.
-
+        parameters in K_CMB units.
     """
-    def __init__(self, name, amp):
-        super().__init__(name, amp, freq_ref=None)
+    label = 'cmb'
+    diffuse = True
+
+    def __init__(self, amp):
+        super().__init__(amp, freq_ref=None)
+
+
+    def remove_dipole(self, return_dipole=False, gal_cut=10):
+        """Removes the solar dipole from the reference amplitude map.
+
+        Parameters:
+        -----------
+        return_dipole : bool
+            If True, a map of the dipole is returned. Defaut: False
+        gal_cut : float
+            Galactic latitude coordinate. Default: 10 degrees.
+            
+        """
+        if not return_dipole:
+            hp.remove_dipole(self.amp[0], gal_cut=gal_cut, copy=False)
+        else: 
+            amp_without_dipole = u.Quantity(
+                hp.remove_dipole(
+                    self.amp[0], gal_cut=gal_cut
+                ), unit=self.amp.unit
+            )
+            dipole = self.amp[0] - amp_without_dipole
+            self.amp[0] = amp_without_dipole
+
+            return dipole
 
 
     def get_freq_scaling(self, freq, freq_ref):
         """Computes the frequency scaling from K_CMB to K_RJ as a frequency.
-
         Args:
         -----
         freq (`astropy.units.Quantity`):
@@ -513,6 +568,190 @@ class BlackBodyCMB(Component):
         --------
         scaling (`astropy.units.Quantity`):
             Frequency scaling factor with dimensionless units.
+        """
+        return thermodynamical_to_brightness(freq)
+
+
+
+class Radio(Component):
+    """Radio emission component class. Represents point sources in the
+    Cosmoglobe Sky Model. This component is not diffuse and hence behaves 
+    differently from the other components.
+
+    Args:
+    -----
+    amp (`numpy.ndarray`, `astropy.units.Quantity`, `cosmoglobe.StokesMap`):
+        Amplitude values for each cataloged source point at the reference 
+        frequencies in K_RJ units.
+    freq_ref (`astropy.units.Quantity`):
+        Reference frequencies for the amplitude values in units of Hertz.
+        The input must be an astropy quantity containing the the reference 
+        frequency for the stokes I amplitude template, and optionally the
+        reference frequency for the soktes Q and U templates if the component 
+        is polarized. Example: freq_ref=freq_ref_I*u.GHz, or 
+        freq_ref=[freq_ref_I, freq_ref_P]*u.GHz
+    alpha (`numpy.ndarray`, `astropy.units.Quantity`):
+        The power law spectral index. The spectral index can vary over the sky, 
+        and is therefore commonly given as a shape (3, nside) array, but it can 
+        take the value of a scalar.
+    """
+    label = 'radio'
+    diffuse = False
+
+
+    def __init__(self, amp, freq_ref, specind):
+        super().__init__(amp, freq_ref, specind=specind)
+        self.amp = u.Quantity(self.amp.value, unit='mJy')
+        self.angular_coords = self._read_angular_coords()
+        self.spectral_parameters['specind'] = np.squeeze(
+            self.spectral_parameters['specind'][0]
+        )
+
+
+    def _set_nside(self, nside):
+        """Imports the nside of the sky model."""
+        self.nside = nside
+
+
+    def _read_angular_coords(self, catalog=DATA_DIR/'radio_catalog.dat'):
+        """Reads in the angular coordinates of the point sources from a given 
+        catalog.
+
+        TODO: Make sure that the correct catalog is selected for a given chain
+        (in case catalogs change from run to run)
+
+        Parameters:
+        -----------
+        catalog: str
+            Path to the point source catalog. Default is the COM_GB6 catalog.
+        
+        Returns:
+        --------
+        coords : `numpy.ndarray`
+            Longitude and latitude values of each point source. Shape is 
+            (2,n_pointsources).
 
         """
-        return cmb_to_brightness(freq)
+        try:
+            coords = np.loadtxt(catalog, usecols=(0,1))
+        except OSError:
+            raise OSError('Could not find point source catalog')
+
+        if len(coords) == len(self.amp[0]):
+            return coords
+        else:
+            raise ValueError('Cataloge does not match chain catalog')
+        
+
+    @u.quantity_input(amp=u.Jy, fwhm=(u.rad, u.arcmin, u.deg))
+    def get_map(self, amp, nside='model_nside', fwhm=0.0*u.rad, 
+                sigma=None, n_fwhm=2):
+        """Maps the cataloged radio source points onto a healpix map with a 
+        truncated gaussian beam.
+
+        Parameters:
+        -----------
+        amp : `astropy.units.Quantity`
+            Amplitude of the radio sources.
+        nside : int
+            The nside of the output map. If component is part of a sky model, 
+            we automatically select the model nside. Must be >= 32 to not throw
+            exception. Default: 'model_nside.
+        fwhm : float
+            The full width half max parameter of the Gaussian. Default: 0.0
+        sigma : float
+            The sigma of the Gaussian (beam radius). Overrides fwhm. 
+            Default: None
+        n_fwhm : int, float
+            The fwhm multiplier used in computing radial cut off r_max 
+            calculated as r_max = n_fwhm * fwhm of the Gaussian.
+            Default: 2 (see section 4.1 in https://arxiv.org/pdf/1005.1929.pdf
+            for more information).
+
+        """
+        if nside == 'model_nside':
+            try:
+                nside = self.nside
+            # Can occur when the radio component is used outside of a sky model
+            except AttributeError:
+                raise AttributeError(
+                    'Component is not part of a sky model. Please provide an explicit nside'
+                )
+        
+        amp = np.squeeze(amp)
+        radio_template = u.Quantity(
+            np.zeros(hp.nside2npix(nside)), unit=amp.unit
+        )
+        pix_lon, pix_lat = hp.pix2ang(
+            nside, np.arange(hp.nside2npix(nside)), lonlat=True
+        )
+        # Point source coordinates
+        angular_coords = self.angular_coords
+
+        fwhm = fwhm.to(u.rad)
+        if sigma is None:
+            sigma = fwhm / (2*np.sqrt(2 * np.log(2)))
+
+        # No smoothing nesecarry. Directly map sources to pixels
+        if sigma == 0.0:
+            warnings.warn('mapping point sources to pixels without beam smoothing.')
+            pixels = hp.ang2pix(nside, *angular_coords.T, lonlat=True)
+            beam_area = hp.nside2pixarea(nside)*u.sr
+            radio_template[pixels] = amp
+
+        # Apply gaussian (or other beam) to point source and neighboring pixels
+        else:
+            pix_res = hp.nside2resol(nside)
+            if fwhm.value < pix_res:
+                raise ValueError(
+                    'fwhm must be >= pixel resolution to resolve the '
+                    'point sources.'
+                )
+            beam_area = 2 * np.pi * sigma**2
+            r_max = n_fwhm * fwhm.value
+
+            with tqdm(total=len(angular_coords), file=sys.stdout) as pbar:
+                sigma = sigma.value
+                print('Smoothing point sources')
+
+                for idx, (lon, lat) in enumerate(angular_coords):
+                    vec = hp.ang2vec(lon, lat, lonlat=True)
+                    inds = hp.query_disc(nside, vec, r_max)
+                    r = hp.rotator.angdist(
+                        np.array(
+                            [pix_lon[inds], pix_lat[inds]]), np.array([lon, lat]
+                        ), lonlat=True
+                    )
+                    radio_template[inds] += amp[idx]*gaussian_beam_2D(r, sigma)
+                    pbar.update()
+
+        radio_template = radio_template.to(
+            u.uK, u.brightness_temperature(self.freq_ref, beam_area)
+        )
+
+        return np.expand_dims(radio_template, axis=0)
+
+
+    def get_freq_scaling(self, freq, freq_ref, specind):
+        """Computes the frequency scaling from the reference frequency freq_ref 
+        to an arbitrary frequency, which depends on the spectral parameter
+        specind.
+
+        Args:
+        -----
+        freq (`astropy.units.Quantity`):
+            Frequency at which to evaluate the model.
+        freq_ref (`astropy.units.Quantity`):
+            Reference frequencies for the amplitude map.
+        specind (`numpy.ndarray`, `astropy.units.Quantity`):
+            The power law spectral index.
+            
+        Returns:
+        --------
+        scaling (`astropy.units.Quantity`):
+            Frequency scaling factor with dimensionless units.
+
+        """
+
+        scaling = (freq/freq_ref)**(specind-2)
+        return scaling

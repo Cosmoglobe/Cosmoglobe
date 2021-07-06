@@ -1,22 +1,24 @@
-from .. import sky
-from ..tools import utils
+from cosmoglobe.hub import COSMOGLOBE_COMPS
+from cosmoglobe.sky import Model
+from cosmoglobe.utils import utils
 
-from numba import njit
 import astropy.units as u
 import h5py
 import healpy as hp
 import numpy as np
+import sys
 import inspect
 from tqdm import tqdm
-import sys
+from numba import njit
 
 # Model parameter group name as implemented in commander
 param_group = 'parameters'
 # These will be dropped from component lists
-_ignored_comps = ['md', 'radio', 'relquad']
+_ignored_comps = ['md', 'relquad']
+# _ignored_comps = ['md', 'relquad', 'radio']
 
 
-def model_from_chain(file, nside=None, sample=None, burn_in=None, comps=None):
+def model_from_chain(file, nside=None, samples='all', burn_in=None, comps=None):
     """Returns a sky model from a commander3 chainfile.
     
     A cosmoglobe.sky.Model is initialized that represents the sky model used in 
@@ -49,33 +51,51 @@ def model_from_chain(file, nside=None, sample=None, burn_in=None, comps=None):
         A sky model representing the results of a commander3 run.
 
     """
-    model = sky.Model(nside=nside)
+    model = Model(nside=nside)
 
-    default_comps = {
-        'dust': sky.ModifiedBlackBody,
-        'synch': sky.PowerLaw,
-        'ff': sky.LinearOpticallyThinBlackBody,
-        'ame': sky.SpDust2,
-        'cmb': sky.BlackBodyCMB,
-    }
-    if not comps:
+    default_comps = COSMOGLOBE_COMPS
+
+    if comps is None:
         comps = default_comps
+    else:
+        if not isinstance(comps, list):
+            comps = [comps]
+        comps = {comp:default_comps[comp] for comp in comps}
 
-    component_list = _get_components(file)
+    if not comps:
+        raise ValueError('No comps selected')
+
+    chain_components = _get_components(file)
+    component_list = [comp for comp in comps if comp in chain_components]
+
+    if samples == 'all':
+        samples = _get_samples(file)
+    elif samples == -1:
+        samples = _get_samples(file)[-1]
+    elif isinstance(samples, int):
+        samples = _int_to_sample(samples)
+    if burn_in is not None:
+        if len(samples) > burn_in:
+            samples = samples[burn_in:]
+        else:
+            raise ValueError('burn_in sample is out of range')
+
     print('Loading components from chain')
     with tqdm(total=len(component_list), file=sys.stdout) as pbar:
         padding = len(max(component_list, key=len))
         for comp in component_list:
             pbar.set_description(f'{comp:<{padding}}')
-            model.insert(comp_from_chain(file, comp, comps[comp], 
-                                     nside, sample, burn_in))
+            comp = comp_from_chain(file, comp, comps[comp], 
+                                     nside, samples)                                           
+            model._insert_component(comp)
             pbar.update(1)
-        pbar.set_description('done')
+
+        pbar.set_description('Done')
+
     return model
 
 
-def comp_from_chain(file, component, component_class, model_nside, 
-                    sample=None, burn_in=None):
+def comp_from_chain(file, component, component_class, model_nside, samples):
     """Returns a sky component from a commander3 chainfile.
     
     A sky component that subclasses cosmoglobe.sky.Component is initialized 
@@ -101,7 +121,7 @@ def comp_from_chain(file, component, component_class, model_nside,
     Returns:
     --------
     (sub class of cosmoglobe.sky.Component):
-        A sky component initialized from a commander run.
+        A sky component initialized from a chain.
 
     """
     # Getting component parameters from chain
@@ -109,62 +129,60 @@ def comp_from_chain(file, component, component_class, model_nside,
     freq_ref = (parameters['nu_ref']*u.Hz).to(u.GHz)
     fwhm_ref = (parameters['fwhm']*u.arcmin).to(u.rad)
     nside = parameters['nside']
-    amp_unit = parameters['unit']
     if parameters['polarization'] == 'True':
         comp_is_polarized = True
     else:
         comp_is_polarized = False
 
-    # Astropy doesnt have built in K_RJ or K_CMB so we manually set it to K
-    if 'k_rj' in amp_unit.lower():
-        amp_unit = amp_unit[:-3]
-    elif 'k_cmb' in amp_unit.lower():
-        amp_unit = amp_unit[:-4]
-    amp_unit = u.Unit(amp_unit)
+    # Commander outputs units in uK_RJ for all comps except for CMB which is in
+    # K_CMB. This is manually handeled in the CMB component. NB! If this 
+    # changes in future Commander versions, this part needs to be updated.
+    amp_unit = u.uK
 
     # Getting arguments required to initialize component
     args_list = _get_comp_args(component_class) 
     args = {}
-
-    if sample is None:
+    if isinstance(samples, list) and len(samples) > 1:
         get_items = _get_averaged_items
-        sample = _get_samples(file)
-        if burn_in is not None:
-            sample = sample[burn_in:]
     else:
         get_items = _get_items
-    if isinstance(sample, int):
-        sample = _int_to_sample(sample)
 
     # Find which args are alms and which are precomputed maps
     alm_names = []
     map_names = []
+    other_items_names = []
     for arg in args_list:
         if arg != 'freq_ref':
             if _item_alm_exists(file, component, arg):
                 alm_names.append(arg)
             elif _item_map_exists(file,component, arg):
                 map_names.append(arg)
+            elif _item_exists(file, component, arg):
+                other_items_names.append(arg)
             else:
                 raise KeyError(f'item {arg} is not present in the chain')
 
 
-    maps_ = get_items(file, sample, component, 
+    other_items_ = get_items(file, samples, component, 
+                      [item for item in other_items_names])
+    other_items = dict(zip(other_items_names, other_items_))
+    maps_ = get_items(file, samples, component, 
                       [f'{map_}_map' for map_ in map_names])
     maps = dict(zip(map_names, maps_))
-    if model_nside is not None and nside != model_nside:
-        maps = {key:hp.ud_grade(value, model_nside) 
-                if isinstance(value, np.ndarray) 
-                else value for key, value in maps.items()}
+    if maps:
+        if model_nside is not None and nside != model_nside:
+            maps = {key:hp.ud_grade(value, model_nside) 
+                    if isinstance(value, np.ndarray) 
+                    else value for key, value in maps.items()}
     args.update(maps)
-
+    args.update(other_items)
     if model_nside is None:
         model_nside = nside
 
-    alms_ = get_items(file, sample, component, 
+    alms_ = get_items(file, samples, component, 
                       [f'{alm}_alm' for alm in alm_names])
     alms = dict(zip(alm_names, alms_))
-    alms_lmax_ = get_items(file, sample, component, 
+    alms_lmax_ = get_items(file, samples, component, 
                            [f'{alm}_lmax' for alm in alm_names])
     alms_lmax = dict(zip(alm_names, [int(lmax) for lmax in alms_lmax_]))
 
@@ -175,17 +193,15 @@ def comp_from_chain(file, component, component_class, model_nside,
         else:
             pol = False
 
-        alms_ = hp.alm2map(unpacked_alm, 
+        alms[key] = hp.alm2map(unpacked_alm, 
                           nside=model_nside, 
                           lmax=alms_lmax[key], 
                           fwhm=fwhm_ref.value,
                           pol=pol,
                           verbose=False).astype('float32')
 
-        alms[key] = alms_
-
     args.update(alms)
-    args['amp'] = args['amp']*amp_unit
+    args['amp'] *= amp_unit
     args = utils._set_spectral_units(args)
     scalars = utils._extract_scalars(args) # dont save scalar maps
     args.update(scalars)
@@ -195,13 +211,13 @@ def comp_from_chain(file, component, component_class, model_nside,
         else:
             freq = u.Quantity(freq_ref[0])
         args['freq_ref'] = freq
-            
-    return component_class(name=component, **args)
+
+    return component_class(**args)
 
 
 def _get_comp_args(component_class):
     """Returns a list of arguments needed to initialize a component"""
-    ignored_args = ['self', 'name']
+    ignored_args = ['self']
     arguments = inspect.getargspec(component_class.__init__).args
     return [arg for arg in arguments if arg not in ignored_args]
 
@@ -211,7 +227,11 @@ def _get_samples(file):
     with h5py.File(file, 'r') as f:
         samples = list(f.keys())
 
-    samples.remove(param_group)
+    try:
+        samples.remove(param_group)
+    except:
+        print("Warning: Using an old h5 commander format without param_group")
+
     return samples
 
 
@@ -234,8 +254,7 @@ def _int_to_sample(samples, start=0):
 def _get_components(file, ignore_comps=True):
     """Returns a list of all components present in a chain file"""
     with h5py.File(file, 'r') as f:
-        components = list(f[param_group].keys())
-
+        components = list(f[f'{1:06d}'].keys())
     if ignore_comps:    
         return [comp for comp in components if comp not in _ignored_comps]
 
@@ -359,6 +378,20 @@ def _item_map_exists(file, component, item):
         params = list(f[sample][component].keys())
 
     if f'{item}_map' in params:
+        return True
+
+    return False
+
+def _item_exists(file, component, item):
+    """Returns True if component contains the item (array or scalar), else 
+    returns False.
+    """
+    sample = _get_samples(file)[-1]
+
+    with h5py.File(file, 'r') as f:
+        params = list(f[sample][component].keys())
+
+    if f'{item}' in params:
         return True
 
     return False
