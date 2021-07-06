@@ -1,4 +1,5 @@
 # This file contains useful functions used across different plotting scripts.
+from re import T
 from .. import data as data_dir
 
 import numpy as np
@@ -243,7 +244,7 @@ def symlog(m, linthresh=1.0):
     return np.log10(0.5 * (m + np.sqrt(4.0 + m * m)))
 
 
-def autoparams(auto, sig, title, ltitle, unit, ticks, min, max, logscale, cmap):
+def autoparams(auto, sig, title, ltitle, unit, ticks, min, max, norm, cmap):
     """
     This parses the autoparams json file for automatically setting parameters
     for an identified sky component.
@@ -282,18 +283,20 @@ def autoparams(auto, sig, title, ltitle, unit, ticks, min, max, logscale, cmap):
         if "mean" in auto:
             params["title"] = "\langle " + comp["title"] + "\rangle"
 
+        print(params["norm"], norm)
+
         # This is messy
-        if title is not None:
+        if title != None:
             params["title"] = title
-        if ltitle is not None:
+        if ltitle != None:
             params["left_title"] = ltitle
-        if unit is not None:
+        if unit != None:
             params["unit"] = unit
-        if ticks is not None:
+        if ticks != None:
             params["ticks"] = ticks
-        if logscale is not None:
-            params["logscale"] = logscale
-        if cmap is not None:
+        if norm != None:
+            params["norm"] = norm
+        if cmap != None:
             params["cmap"] = cmap
     else:
         params = {
@@ -301,7 +304,7 @@ def autoparams(auto, sig, title, ltitle, unit, ticks, min, max, logscale, cmap):
             "left_title": ["I", "Q", "U"][sig],
             "unit": unit,
             "ticks": ticks,
-            "logscale": logscale,
+            "norm": norm,
             "cmap": cmap,
         }
 

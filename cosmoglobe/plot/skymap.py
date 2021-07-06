@@ -13,23 +13,8 @@ from .plottools import *
 
 # Fix for macos openMP duplicate bug
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
-"""
-Hovedfunksjoner i wrapperen:
 
-fjerne mono-dipol
-smoothe
-udgrade
-maskere
-sette left og right title
-lognorm
-autoparams
-subplots
-
-skriv en plottingfunksjon i cgp som er en wrapper på projview
-hvis man passer inn return_plotparams får man data + projview kwargs
-"""
-
-def mollplot(
+def plot(
     input,
     sig=0,
     comp=None,
@@ -37,7 +22,7 @@ def mollplot(
     ticks=None,
     min=None,
     max=None,
-    colorbar=True,
+    cbar=True,
     unit=None,
     coord=None,
     graticule=False,
@@ -45,39 +30,41 @@ def mollplot(
     fwhm=0.0,
     nside=None,
     mask=None,
-    logscale=None,
+    cmap=None,
+    norm=None,
     remove_dip=False,
     remove_mono=False,
-    cmap=None,
     title=None,
     ltitle=None,
     width="m",
     darkmode=False,
-    verbose=False,
     ):
     """
-    Plots a fits file, a h5 data structure or a data array in Mollview with
-    pretty formatting. Option of autodecting component base on file-string with
-    json look-up table.
+    General plotting function for maps.
+    This function is a wrapper on healpys projview function with some added features.
+    Added features include lognorm, 
 
     Parameters
     ----------
-    input : cosmoglobe map object
-        cosmoglobe map object with I (optional Q and U)
+    input : ndarray, fits file path or cosmoglobe model object
+        Map data input given as numpy array either 1d or index given by "sig".
+        Also supports fits-file path string or cosmoglobe model.
+        If cosmoglobe object is passed such as "model", specify comp or freq.
     sig : list of int or string ["I", "Q", "U"]
         Signal indices to be plotted. 0, 1, 2 interprated as IQU.
-        Supports multiple, such that -sig 1 -sig 2.
         default = [0,]
-    comp : String
+    comp : string
         Component label for automatic identification of plotting
         parameters based on information from autoparams.json default = None
+    freq : float
+        frequency in GHz needed for scaling maps when using a model object input
     ticks : list or str
         Min and max value for data. If None, uses 97.5th percentile.
         default = None
-    colorbar : bool
-        Adds a colorbar, and "cb" to output filename.
-        default = False
-    graticule : bool
+    cbar : bool
+        Adds a cbar, and "cb" to output filename.
+        cbar = False
+    graticule : cbar
         Adds graticule to figure.
         default = False
     fwhm : float
@@ -86,24 +73,19 @@ def mollplot(
     mask : array of healpix mask
         Apply a mask file to data
         default = None
-    mdmask : str or array
-        Mask for mono-dipole removal. If "comp", uses 30 degree cutoff.
-        Removes both by default. Toggle off dipole or monopole removal with
-        remove_dipole or remove_monopole arguments.
-        default = None
     remove_dip : bool
         If mdmask is specified, fits and removes a dipole.
         default = True
     remove_mono : bool
         If mdmask is specified, fits and removes a monopole.
         default = True
-    logscale : str
-        Normalizes data using a semi-logscale linear between -1 and 1.
-        Autodetector uses this sometimes, you will be warned.
+    norm : str
+        if norm=="linear":
+            normal 
+        if norm=="log":
+            Normalizes data using a semi-logscale linear between -1 and 1.
+            Autodetector uses this sometimes, you will be warned.
         default = None
-    size : str
-        Size of output maps. 1/3, 1/2 and full page width (8.8/12/18cm) [ex. x,
-        s, m or l, or ex. slm for all]" default = "m"
     darkmode : bool
         Plots all outlines in white for dark backgrounds, and adds "dark" in
         filename.
@@ -119,9 +101,6 @@ def mollplot(
     ltitle : str
         Sets the upper left title. Has LaTeX functionaliity (ex. $A_{s}$.)
         default = None
-    fontsize : int
-        Fontsize
-        default = 11
     """
     # Pick sizes from size dictionary for page width plots
     if isinstance(width, str):
@@ -132,7 +111,7 @@ def mollplot(
             "l": 7,
         }[width]
     height = width/2
-    if colorbar:
+    if cbar:
         height *= 1.275  # Size correction with cbar
     figratio=height/width
     set_style(darkmode)
@@ -157,7 +136,7 @@ def mollplot(
         sig = stokes.index(sig)
 
     # Fetching autoset parameters
-    params = autoparams(comp, sig, title, ltitle, unit, ticks, min, max, logscale, cmap)
+    params = autoparams(comp, sig, title, ltitle, unit, ticks, min, max, norm, cmap)
     # Parsing component string
     if comp is not None: comp, *specparam = comp.split()
 
@@ -170,23 +149,22 @@ def mollplot(
         """
         if comp==None:
             if freq is not None:
-                m=input(freq, fwhm=fwhm,)
+                m=input(freq*u.GHz, fwhm=fwhm*u.arcmin,)
             else:
                 raise ModelError(
                     f'Model object passed with comp and freq set to None'
                     f'comp: {comp} freq: {freq}'
                 )
         else:
-            if isinstance(specparam[0], str):
+            if len(specparam)>0 and isinstance(specparam[0], str):
                 m=getattr(input, comp).spectral_parameters[specparam[0]]
 
                 if len(m[sig])==1:
-                    warnings.warn("Same value across the whole sky,\
-                                    mapping to array of length Npix")
+                    warnings.warn("Same value across the whole sky, mapping to array of length Npix")
                     m = np.full(hp.nside2npix(input.nside), m[sig])
             else:
                 if freq is not None:
-                    m=getattr(input, comp)(freq, fwhm=fwhm,)
+                    m=getattr(input, comp)(freq*u.GHz, fwhm=fwhm*u.arcmin,)
                 else:
                     m=getattr(input,comp).amp
         if isinstance(m, u.Quantity):
@@ -218,8 +196,7 @@ def mollplot(
     if fwhm > 0.0:
         m = hp.smoothing(m, fwhm)
 
-    if verbose:
-        print(f"Plotting {comp}, title {title}, nside {nside}")
+    print(f"Plotting {comp}, title {title}, nside {nside}")
     
     # Remove mono/dipole
     if remove_dip:
@@ -234,24 +211,18 @@ def mollplot(
 
     #### Logscale ####
     ticklabels = [fmt(i, 1) for i in ticks]
-    if params["logscale"]:
+    if params["norm"]=="log":
         m, ticks = apply_logscale(m, ticks, linthresh=1)
 
     #### Color map #####
-    cmap = load_cmap(params["cmap"], params["logscale"])
+    cmap = load_cmap(params["cmap"], params["norm"])
 
-    if verbose:
-        # Terminal ouput
-        print(f"FWHM: {fwhm}")
-        print(f"nside: {nside}")
-        print(f"Ticks: {ticklabels}")
-        print(f'Unit: {params["unit"]}')
-        print(f'Title: {params["title"]}')
-
+    # Math text in labels
     for i in ["title", "unit", "left_title"]:
         if params[i] and params[i] != "":
             params[i] = r"$" + params[i] + "$"
 
+    # Plot figure
     ret = hp.newvisufunc.projview(m, 
             min=ticks[0], 
             max=ticks[-1],
@@ -266,16 +237,17 @@ def mollplot(
     # Remove color bar because of healpy bug
     plt.gca().collections[-1].colorbar.remove()
     # Add pretty color bar
-    if colorbar:
+    if cbar:
         apply_colorbar(
-            plt.gcf(), plt.gca(), ret, ticks, ticklabels, params["unit"], linthresh=1, logscale=params["logscale"])
-    
+            plt.gcf(), plt.gca(), ret, ticks, ticklabels, params["unit"], linthresh=1, norm=params["norm"])
+
     #### Right Title ####
     plt.text(4.5, 1.1, params["title"], ha="center", va="center",)
     #### Left Title (stokes parameter label by default) ####
     plt.text(-4.5, 1.1, params["left_title"], ha="center", va="center",)
 
-def apply_colorbar(fig, ax, image, ticks, ticklabels, unit, linthresh, logscale=False):
+    
+def apply_colorbar(fig, ax, image, ticks, ticklabels, unit, linthresh, norm=None):
     """
     This function applies a colorbar to the figure and formats the ticks.
     """
@@ -292,8 +264,7 @@ def apply_colorbar(fig, ax, image, ticks, ticklabels, unit, linthresh, logscale=
     )
     cb.ax.set_xticklabels(ticklabels)
     cb.ax.xaxis.set_label_text(unit)
-    #cb.ax.xaxis.label.set_size(fontsize)
-    if logscale:
+    if norm=="log":
         linticks = np.linspace(-1, 1, 3) * linthresh
         logmin = np.round(ticks[0])
         logmax = np.round(ticks[-1])
@@ -324,7 +295,6 @@ def apply_colorbar(fig, ax, image, ticks, ticklabels, unit, linthresh, logscale=
         which="both",
         axis="x",
         direction="in",
-        #labelsize=fontsize - 2,
     )
     cb.ax.xaxis.labelpad = 0
     # workaround for issue with viewers, see colorbar docstring
