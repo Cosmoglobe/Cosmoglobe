@@ -1,0 +1,2 @@
+include cosmoglobe/data/radio_catalog.dat
+include cosmoglobe/data/spdust2_cnm.dat
