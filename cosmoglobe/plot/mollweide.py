@@ -3,9 +3,11 @@ from logging import error
 from cosmoglobe.sky.components import Component
 from cosmoglobe.sky.model import Model
 
+import warnings
 import os
 import healpy as hp
 import numpy as np
+import astropy.units as u
 import matplotlib.pyplot as plt
 from .plottools import *
 
@@ -175,13 +177,20 @@ def mollplot(
                     f'comp: {comp} freq: {freq}'
                 )
         else:
-            if isinstance(specparam, str):
-                m=getattr(input, comp)[specparam]
+            if isinstance(specparam[0], str):
+                m=getattr(input, comp).spectral_parameters[specparam[0]]
+
+                if len(m[sig])==1:
+                    warnings.warn("Same value across the whole sky,\
+                                    mapping to array of length Npix")
+                    m = np.full(hp.nside2npix(input.nside), m[sig])
             else:
                 if freq is not None:
                     m=getattr(input, comp)(freq, fwhm=fwhm,)
                 else:
                     m=getattr(input,comp).amp
+        if isinstance(m, u.Quantity):
+            m = m.value
     else:
         if isinstance(input, np.ndarray):
             m = input
