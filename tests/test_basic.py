@@ -25,7 +25,7 @@ chain = chain_dir / "chain_test.h5"
 bandpass = chain_dir / "wmap_bandpass.txt"
 wmap = hp.read_map(chain_dir / 'wmap_band_iqusmap_r9_9yr_K_v5.fits')
 
-model = model_from_chain(chain, nside=128)
+model = model_from_chain(chain, nside=512)
 # model = model_from_chain(chain, nside=256, burn_in=20)
 # model.remove('radio')
 bp_freqs, bp, _ = np.loadtxt(bandpass, unpack=True)
@@ -40,15 +40,20 @@ dipole = model.cmb.remove_dipole(return_dipole=True)
 
 # model.disable('radio')
 
+# model.dust.spectral_parameters['T'] = np.random.randint(low=10 , high= 50,size=np.shape(model.synch.spectral_parameters['beta']))*u.K
+# model.dust.spectral_parameters['beta'] = np.random.randint(low=-3 , high= -1,size=np.shape(model.synch.spectral_parameters['beta']))*u.dimensionless_unscaled
+# print(model.dust.spectral_parameters['T'])
+# print(model.dust.spectral_parameters['beta'])
+# exit()
 # freqs = np.flip(np.logspace(0.1, 2.7, 12)*u.GHz)
 # print(model.dust.spectral_parameters)
 # emissions = model(bp_freqs, bp, output_unit='MJy/sr')
-# emissions = model(freqs, fwhm=20*u.arcmin, output_unit='MJy/sr')
+# emissions = model(freqs, fwhm=30*u.arcmin, output_unit='MJy/sr')
 # print(np.shape(emissions))
 # print(emissions)
 # hp.mollview(emissions[0], norm='hist')
 # for freq, emission in zip(freqs, emissions):
-#     hp.mollview(emission[0], norm='hist', title=f'{int(freq.value)}')
+    # hp.mollview(emission[2], norm='hist', title=f'{int(freq.value)}')
 # hp.mollview(model(10*u.GHz, fwhm=20*u.arcmin)[0], norm='hist')
 # hp.mollview(model.ame.amp[0], norm='hist')
 # hp.mollview(model(353*u.GHz, fwhm=30*u.arcmin)[0], norm='hist', cmap='CMRmap')
@@ -58,7 +63,8 @@ dipole = model.cmb.remove_dipole(return_dipole=True)
 # hp.mollview(model(100*u.GHz, fwhm=30*u.arcmin)[0], norm='hist')
 
 
-hp.mollview(model(bp_freqs, bp, fwhm=0.88*u.deg, output_unit='mK')[0], norm='hist')
+hp.mollview(model(50*u.GHz, fwhm=0.88*u.deg, output_unit='mK')[0], norm='hist')
+# hp.mollview(model(bp_freqs, bp, fwhm=0.88*u.deg, output_unit='mK')[0], norm='hist')
 
 # model(50*u.GHz, )
 # nside = 64

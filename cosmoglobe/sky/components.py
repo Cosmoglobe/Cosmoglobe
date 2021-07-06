@@ -115,7 +115,7 @@ class Component:
 
         #Assuming delta frequencies
         if bandpass is None:
-            if freq.ndim == 0:
+            if freq.size == 1:
                 scaling = self.get_freq_scaling(
                     freq, freq_ref, **spectral_parameters
                 )
@@ -161,8 +161,8 @@ class Component:
                     emission = hp.smoothing(
                         emission, fwhm.to(u.rad).value
                     )*emission.unit
-            else:
 
+            else:
                 emission = self.get_map(
                     amp=amp*bandpass_scaling, fwhm=fwhm
                 )*bandpass_coefficient

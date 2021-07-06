@@ -134,7 +134,6 @@ def interp1d(comp, freqs, bandpass, interp_parameter, spectral_parameters):
         Frequency scaling factor obtained by integrating over the bandpass.
         
     """
-
     integrals = []
     for key, interp_param in interp_parameter.items():
         for grid_point in interp_param:
@@ -198,7 +197,7 @@ def interp2d(comp, freqs, bandpass, interp_parameters, spectral_parameters):
         )
     }
 
-    integrals = np.zeros((n, n, 3)) if comp._is_polarized else np.zeros((n, n, 1))
+    integrals = np.zeros((n, n, 3)) if comp.is_polarized else np.zeros((n, n, 1))
     for i in range(n):
         for j in range(n):
             grid_spectrals = {key: value[i,j] for key, value in grid.items()}

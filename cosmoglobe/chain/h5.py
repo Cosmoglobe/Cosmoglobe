@@ -217,7 +217,7 @@ def comp_from_chain(file, component, component_class, model_nside, samples):
 
 def _get_comp_args(component_class):
     """Returns a list of arguments needed to initialize a component"""
-    ignored_args = ['self', 'name']
+    ignored_args = ['self']
     arguments = inspect.getargspec(component_class.__init__).args
     return [arg for arg in arguments if arg not in ignored_args]
 
@@ -435,40 +435,3 @@ def unpack_alms_from_chain(data, lmax):
                 i += 1
 
     return alms
-
-
-# class Chain:
-#     def __init__(self, file):
-#         self.file = file
-#         self.samples = _get_samples(file)
-#         self.start = _sample_to_int(self.samples[0])
-#         self.end = _sample_to_int(self.samples[-1])
-#         self.current = _sample_to_int(self.start)
-
-#     def __iter__(self):
-#         return self
-
-#     def __next__(self):
-#         return self.next()
-
-#     def next(self):
-#         if self.current > self.end:
-#             raise StopIteration
-
-#         chain_content = {}
-#         with h5py.File(self.file, 'r') as f:
-#             sample = f[_int_to_sample(self.current)]
-
-#             for group in list(sample.keys()):
-#                 chain_content[group] = {}
-#                 for value in sample[group]:
-#                     try:
-#                         chain_content[group][value] = sample[group][value][()]
-#                     except AttributeError:
-#                         chain_content[group][value] = {}
-#                         for sub_value in sample[group][value]:
-#                             chain_content[group][value][sub_value] = sample[group][value][sub_value][()]
-            
-#         self.current += 1
-#         return chain_content
-            

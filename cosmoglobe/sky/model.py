@@ -4,7 +4,7 @@ from cosmoglobe.utils.utils import NsideError, _get_astropy_unit
 import astropy.units as u
 import healpy as hp
 import numpy as np
-import tqdm as tqdm
+
 
 class Model:
     """A sky model.
