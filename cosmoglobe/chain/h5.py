@@ -198,7 +198,7 @@ def comp_from_chain(file, component, component_class, model_nside, samples):
                           lmax=alms_lmax[key], 
                           fwhm=fwhm_ref.value,
                           pol=pol,
-                          verbose=False).astype('float32')
+                          ).astype('float32')
 
     args.update(alms)
     args['amp'] *= amp_unit
