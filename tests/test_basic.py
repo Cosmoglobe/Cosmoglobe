@@ -65,20 +65,3 @@ dipole = model.cmb.remove_dipole(return_dipole=True)
 
 hp.mollview(model(50*u.GHz, fwhm=0.88*u.deg, output_unit='mK')[0], norm='hist')
 # hp.mollview(model(bp_freqs, bp, fwhm=0.88*u.deg, output_unit='mK')[0], norm='hist')
-
-# model(50*u.GHz, )
-# nside = 64
-# lon, lat = np.loadtxt(point_src, usecols=(0,1), unpack=True)
-
-# map_ = np.zeros(hp.nside2npix(nside))
-# pixels = hp.ang2pix(nside, lon, lat, lonlat=True)
-# print(np.shape(pixels))
-# map_[pixels] += 1
-# map_ = hp.smoothing(map_, (30*u.arcmin.to(u.rad)))
-
-# hp.mollview(map_)
-# # hp.projscatter(lon, lat, lonlat=True)
-
-plt.show()
-
-# cg.mollview(model.dust)

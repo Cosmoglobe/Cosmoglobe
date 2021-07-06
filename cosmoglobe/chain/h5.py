@@ -227,7 +227,11 @@ def _get_samples(file):
     with h5py.File(file, 'r') as f:
         samples = list(f.keys())
 
-    samples.remove(param_group)
+    try:
+        samples.remove(param_group)
+    except:
+        print("Warning: Using an old h5 commander format without param_group")
+
     return samples
 
 

@@ -48,7 +48,11 @@ distribute-*.tar.gz
 .DS_Store
 
 *.log
-*.out
 
 #testfiles
-test_basic.py
+*.out
+
+# Ignore test files
+tests/
+
+
