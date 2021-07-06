@@ -243,7 +243,7 @@ def symlog(m, linthresh=1.0):
     return np.log10(0.5 * (m + np.sqrt(4.0 + m * m)))
 
 
-def autoparams(auto, sig, title, ltitle, unit, ticks, logscale, cmap):
+def autoparams(auto, sig, title, ltitle, unit, ticks, min, max, logscale, cmap):
     """
     This parses the autoparams json file for automatically setting parameters
     for an identified sky component.
@@ -255,7 +255,7 @@ def autoparams(auto, sig, title, ltitle, unit, ticks, logscale, cmap):
             params = autoparams[auto]
         except:
             print(f"Component label {auto} not found. Using unidentified profile.")
-            print(autoparams.keys())
+            print(f"available keys are: {autoparams.keys()}")
             params = autoparams["unidentified"]
 
         # If none will be set to IQU
@@ -304,6 +304,11 @@ def autoparams(auto, sig, title, ltitle, unit, ticks, logscale, cmap):
             "logscale": logscale,
             "cmap": cmap,
         }
+
+    if min is not None:
+        params["ticks"][0] = min
+    if max is not None:
+        params["ticks"][-1] = max
     return params
 
 

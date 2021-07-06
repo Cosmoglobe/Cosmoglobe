@@ -1,16 +1,18 @@
+from cosmoglobe.utils.utils import ModelError
+from logging import error
+from cosmoglobe.sky.components import Component
+from cosmoglobe.sky.model import Model
+
 import os
 import healpy as hp
 import numpy as np
 import matplotlib.pyplot as plt
-from pathlib import Path
-from .. import data as data_dir
 from .plottools import *
 
-hp.disable_warnings()
 # Fix for macos openMP duplicate bug
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 """
-HVA VIL JEG AT DENNE SKAL GJØRE NÅ SOM HOVEDFFUNKSJONALITETEN FFINNES I HP:
+Hovedfunksjoner i wrapperen:
 
 fjerne mono-dipol
 smoothe
@@ -21,17 +23,18 @@ lognorm
 autoparams
 subplots
 
-Skal jeg heller lage en funksjon som returnerer riktige parametre til projview?
-
 skriv en plottingfunksjon i cgp som er en wrapper på projview
 hvis man passer inn return_plotparams får man data + projview kwargs
 """
 
 def mollplot(
-    map_,
+    input,
     sig=0,
     comp=None,
+    freq=None,
     ticks=None,
+    min=None,
+    max=None,
     colorbar=True,
     unit=None,
     coord=None,
@@ -46,15 +49,10 @@ def mollplot(
     cmap=None,
     title=None,
     ltitle=None,
-    figsize=(6, 3),
+    width="m",
     darkmode=False,
-    fignum=None,
-    subplot=None,
-    hold=False,
-    reuse_axes=False,
     verbose=False,
-    **kwargs,
-):
+    ):
     """
     Plots a fits file, a h5 data structure or a data array in Mollview with
     pretty formatting. Option of autodecting component base on file-string with
@@ -62,7 +60,7 @@ def mollplot(
 
     Parameters
     ----------
-    map_ : cosmoglobe map object
+    input : cosmoglobe map object
         cosmoglobe map object with I (optional Q and U)
     sig : list of int or string ["I", "Q", "U"]
         Signal indices to be plotted. 0, 1, 2 interprated as IQU.
@@ -122,37 +120,23 @@ def mollplot(
     fontsize : int
         Fontsize
         default = 11
-    fignum : int or None, optional
-      The figure number to use. Default: create a new figure
-    hold : bool, optional
-      If True, replace the current Axes by a MollweideAxes.
-      use this if you want to have multiple maps on the same
-      figure. Default: False
-    sub : int, scalar or sequence, optional
-      Use only a zone of the current figure (same syntax as subplot).
-      Default: None
-    reuse_axes : bool, optional
-      If True, reuse the current Axes (should be a MollweideAxes). This is
-      useful if you want to overplot with a partially transparent colormap,
-      such as for plotting a line integral convolution. Default: False
-    kwargs : keywords
-      Additional arguments for projview
     """
     # Pick sizes from size dictionary for page width plots
-    if isinstance(figsize, str):
+    if isinstance(width, str):
         width = {
             "x": 2.75,
             "s": 3.5,
             "m": 4.7,
             "l": 7,
-        }[figsize]
-    else:
-        width, height = figsize
+        }[width]
+    height = width/2
     if colorbar:
         height *= 1.275  # Size correction with cbar
-    #override_plot_properties["figure_width"] = width
-
+    figratio=height/width
     set_style(darkmode)
+
+ 
+    # Currently not working with projview
     """
     # Make figure
     fig, ax = make_fig(
@@ -170,24 +154,45 @@ def mollplot(
     if isinstance(sig, str):
         sig = stokes.index(sig)
 
-    if comp is not None:
-        parse = comp.split()
-        comp = parse[0]
-        specparam = parse[-1]
+    # Fetching autoset parameters
+    params = autoparams(comp, sig, title, ltitle, unit, ticks, min, max, logscale, cmap)
+    # Parsing component string
+    if comp is not None: comp, *specparam = comp.split()
 
-    params = autoparams(comp, sig, title, ltitle, unit, ticks, logscale, cmap)
-
-    if isinstance(map_, str):
-        map_ = hp.read_map(map_, field=sig)
-
-    if isinstance(map_, Model):
-        # If it is a model, get a bunch of stuff from model
-        if freq is not None:
-            map_=map_.freq_ref
+    # If map is string, interprate as file path
+    if isinstance(input, str): 
+        m = hp.read_map(input, field=sig)
+    elif isinstance(input, Model):
+        """
+        Get data from model object with frequency scaling        
+        """
+        if comp==None:
+            if freq is not None:
+                m=input(freq, fwhm=fwhm,)
+            else:
+                raise ModelError(
+                    f'Model object passed with comp and freq set to None'
+                    f'comp: {comp} freq: {freq}'
+                )
         else:
-            map_=map_.comp.amp.
+            if isinstance(specparam, str):
+                m=getattr(input, comp)[specparam]
+            else:
+                if freq is not None:
+                    m=getattr(input, comp)(freq, fwhm=fwhm,)
+                else:
+                    m=getattr(input,comp).amp
+    else:
+        if isinstance(input, np.ndarray):
+            m = input
+        else:
+            raise TypeError(
+                f'Type {type(input)} of input not supported'
+                f'Supports numpy array, cosmoglobe model object or fits file string'
+            )
 
-    m = map_[sig] if map_.ndim > 1 else map_
+    # Make sure we have 1d array at this point
+    m = m[sig] if m.ndim > 1 else m
 
     # Mask map
     if mask is not None:
@@ -245,22 +250,23 @@ def mollplot(
             cmap=cmap,
             projection_type=projection_type,
             graticule=graticule,
-            coord=coord, 
-            #override_plot_properties=override_plot_properties
-            **kwargs
+            override_plot_properties={"figure_width": width,"figure_size_ratio": figratio,},
+            coord=coord,
             )
     
-    # Remove colorbar because of healpy bug
+    # Remove color bar because of healpy bug
     plt.gca().collections[-1].colorbar.remove()
+    # Add pretty color bar
     if colorbar:
         apply_colorbar(
             plt.gcf(), plt.gca(), ret, ticks, ticklabels, params["unit"], linthresh=1, logscale=params["logscale"])
+    
     #### Right Title ####
     plt.text(4.5, 1.1, params["title"], ha="center", va="center",)
     #### Left Title (stokes parameter label by default) ####
     plt.text(-4.5, 1.1, params["left_title"], ha="center", va="center",)
 
-def apply_colorbar(fig, ax, image, ticks, ticklabels, unit, linthresh, logscale=False)s:
+def apply_colorbar(fig, ax, image, ticks, ticklabels, unit, linthresh, logscale=False):
     """
     This function applies a colorbar to the figure and formats the ticks.
     """

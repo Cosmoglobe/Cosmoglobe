@@ -2,9 +2,7 @@ import os
 import healpy as hp
 import numpy as np
 import matplotlib.pyplot as plt
-from pathlib import Path
 
-from .. import data as data_dir
 from functools import partial
 from .plottools import load_cmap, fmt, autoparams, apply_logscale, set_style, make_fig
 
