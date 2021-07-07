@@ -197,9 +197,8 @@ def plot(
 
     # Smooth map
     if fwhm > 0.0:
-        m = hp.smoothing(m, fwhm)
+        m = hp.smoothing(m, (fwhm*u.arcmin).to(u.rad).value)
 
-    
     # Remove mono/dipole
     if remove_dip:
         m = hp.remove_dipole(m, gal_cut=30, copy=True, verbose=True)
