@@ -10,9 +10,9 @@ data_url = 'http://cosmoglobe.uio.no/BeyondPlanck/precomputed/'
 
 COSMOGLOBE_COMPS = dict(
     dust=components.ModifiedBlackBody,
-    synch=components.PowerLaw,
+    synch=components.Synchrotron,
     ff=components.FreeFree,
-    ame=components.SpDust2,
+    ame=components.AME,
     cmb=components.CMB,
     radio=components.Radio
 )
