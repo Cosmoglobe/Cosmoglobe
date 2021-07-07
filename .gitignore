@@ -56,4 +56,6 @@ distribute-*.tar.gz
 # Ignore test files
 tests/
 
+# VS code
+.vscode
 
