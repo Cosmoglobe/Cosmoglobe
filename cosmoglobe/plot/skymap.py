@@ -37,6 +37,7 @@ def plot(
     ltitle=None,
     width="m",
     darkmode=False,
+    interactive=False,
     **kwargs,
     ):
     """
@@ -197,9 +198,8 @@ def plot(
 
     # Smooth map
     if fwhm > 0.0:
-        m = hp.smoothing(m, fwhm)
+        m = hp.smoothing(m, (fwhm*u.arcmin).to(u.rad).value)
 
-    
     # Remove mono/dipole
     if remove_dip:
         m = hp.remove_dipole(m, gal_cut=30, copy=True, verbose=True)
@@ -218,19 +218,33 @@ def plot(
             ticks[0] = pmin
         if ticks[-1] == None:
             ticks[-1] = pmax
-
-    #### Logscale ####
     ticklabels = [fmt(i, 1) for i in ticks]
-    if params["norm"]=="log":
-        m, ticks = apply_logscale(m, ticks, linthresh=1)
-
-    #### Color map #####
-    cmap = load_cmap(params["cmap"], params["norm"])
 
     # Math text in labels
     for i in ["title", "unit", "left_title"]:
         if params[i] and params[i] != "":
             params[i] = r"$" + params[i] + "$"
+
+    #### Color map #####
+    cmap = load_cmap(params["cmap"], params["norm"])
+
+    # Plot using mollview if interactive mode
+    if interactive:
+        ret = hp.mollview(m, 
+            min=ticks[0], 
+            max=ticks[-1],
+            cbar=cbar,
+            cmap=cmap,
+            coord=coord,
+            title=params["title"],
+            norm=params["norm"],
+            **kwargs,
+            )
+        return
+
+    #### Logscale ####
+    if params["norm"]=="log":
+        m, ticks = apply_logscale(m, ticks, linthresh=1)
 
     # Plot figure
     ret = hp.newvisufunc.projview(m, 
@@ -253,9 +267,9 @@ def plot(
                 },
             **kwargs,
             )
-    
-    # Remove color bar because of healpy bug
     plt.gca().collections[-1].colorbar.remove()
+
+    # Remove color bar because of healpy bug
     # Add pretty color bar
     if cbar:
         apply_colorbar(

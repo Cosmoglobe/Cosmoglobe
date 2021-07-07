@@ -265,8 +265,6 @@ def autoparams(comp, sig, title, ltitle, unit, ticks, min, max, norm, cmap, freq
         if "mean" in comp:
             params["title"] = "\langle " + comp["title"] + "\rangle"
 
-        print(params["norm"], norm)
-
         # Assign values if specified in function call
         if title != None:
             params["title"] = title
