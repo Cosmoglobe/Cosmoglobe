@@ -29,14 +29,17 @@ Tutorial
 
 .. toctree::
    :maxdepth: 2
-   tutorial
 
-Indices and tables
-==================
+   tutorial.ipynb
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+
+Reference
+---------
+
+.. toctree::
+
+   cosmoglobe_model
+   cosmoglobe_components
 
 License
 -------
