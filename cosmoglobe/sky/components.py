@@ -280,37 +280,55 @@ class Component:
 
 
 
-class PowerLaw(Component):
-    """PowerLaw component class. Represents Synchrotron emission in the 
-    Cosmoglobe Sky Model.
+class Synchrotron(Component):
+    r"""Synchrotron component class. Defined using the convention in 
+    BeyondPlanck (2020), Section 3.3.1 (https://arxiv.org/pdf/2011.05609.pdf);
 
-    Defined using the convention in BP1, Section bla;
+    .. math::
 
-    `test`
+        \mathbf{s}_\mathrm{RJ}^{\mathrm{synch}}(\nu) \propto\left( \frac{\nu}{\nu_\mathrm{0,s}} \right)^{\beta + C \ln \nu / \nu_{0,s}} 
 
-    :math:`\\int^4_0 x^2 dx`
+    This is a generic power law given at a reference frequency :math:`\nu_{s,0}`
+    with a power law :math:`\beta` that is valid for Rayleigh-Jeans temperature. 
+    :math:`C` is set to 0 for all current implementations as of BP9.
 
-    s_\mathrm{RJ}^{\mathrm{pl}} \propto \left( \frac{f}{f_\mathrm{ref}} \right)^\beta 
-
-    This is just the standard 
-
-    Args:
-    -----
-    amp (`astropy.units.Quantity`):
+    Parameters
+    ----------
+    amp : `astropy.units.Quantity`
         Emission templates of the component at the reference frequencies given
         by freq_ref.
-    freq_ref (`astropy.units.Quantity`):
-        Reference frequencies for the amplitude template in units of Hertz.
-        The input must be an astropy quantity containing the the reference 
-        frequency for the stokes I amplitude template, and optionally the
-        reference frequency for the stokes Q and U templates if the component 
-        is polarized. Example: freq_ref=freq_ref_I*u.GHz, or 
-        freq_ref=[freq_ref_I, freq_ref_P]*u.GHz
-    beta (`numpy.ndarray`, `astropy.units.Quantity`):
+    freq_ref : `astropy.units.Quantity`
+        Reference frequencies :math:`\nu_\mathrm{0,s}` for the amplitude 
+        template in units of :math:`\mathrm{GHz}`. Shape is either (1,) or (3, 1)
+    beta : `numpy.ndarray`, `astropy.units.Quantity`
         The power law spectral index. The spectral index can vary over the sky, 
         and is therefore commonly given as a shape (3, nside) array, but it can 
         take the value of a scalar.
+
+    Attributes
+    ----------
+    label : str
+        Component label.
+    diffuse : bool
+        Whether or not the component is diffuse in nature.
+    amp : `astropy.units.Quantity`
+        Emission templates of Synchrotron at the reference frequencies given
+        by `freq_ref`.
+    freq_ref : `astropy.units.Quantity`
+        Reference frequencies :math:`\nu_\mathrm{0,s}` for the amplitude 
+        template in units of Giga Hertz.
+    spectral_parameters : dict
+        Dictionary containing the spectral parameter :math:`\beta` for 
+        synchrotron.
+
+    Methods
+    -------
+    get_freq_scaling
+        Computes the frequency scaling from the reference frequency 
+        :math:`\nu_\mathrm{0,s}` to an arbitrary frequency, which depends on 
+        the spectral parameter :math:`\beta`.
     """
+
     label = 'synch'
     diffuse = True
 
@@ -320,22 +338,26 @@ class PowerLaw(Component):
 
 
     def get_freq_scaling(self, freq, freq_ref, beta):
-        """Computes the frequency scaling from the reference frequency freq_ref 
+        r"""Computes the frequency scaling from the reference frequency freq_ref 
         to an arbitrary frequency, which depends on the spectral parameter
         beta.
 
-        Args:
-        -----
-        freq (`astropy.units.Quantity`):
+        .. math::
+
+            \mathrm{scaling} = \left( \frac{\nu}{\nu_\mathrm{0,s}} \right)^{\beta}
+
+        Parameters
+        ----------
+        freq : `astropy.units.Quantity`)
             Frequency at which to evaluate the model.
-        freq_ref (`astropy.units.Quantity`):
+        freq_ref : `astropy.units.Quantity`
             Reference frequencies for the amplitude map.
-        beta (`numpy.ndarray`, `astropy.units.Quantity`):
+        beta : `numpy.ndarray`, `astropy.units.Quantity`
             The power law spectral index.
             
-        Returns:
-        --------
-        scaling (`astropy.units.Quantity`):
+        Returns
+        -------
+        scaling : `astropy.units.Quantity`
             Frequency scaling factor with dimensionless units.
 
         """
@@ -457,7 +479,7 @@ class FreeFree(Component):
 
 
 
-class SpDust2(Component):
+class AME(Component):
     """Spinning dust component class using a precomputed template from the
     SpDust2 code to interpolate.
     For more info, please see the following papers: 
@@ -465,8 +487,6 @@ class SpDust2(Component):
         - Ali-Haimoud (2010)
         - Silsbee et al. (2011)
 
-    TODO: find a better solution to reading in data without importing the 
-          entire data module.
 
     Args:
     -----
@@ -575,6 +595,7 @@ class CMB(Component):
 
     def get_freq_scaling(self, freq, freq_ref):
         """Computes the frequency scaling from K_CMB to K_RJ as a frequency.
+
         Args:
         -----
         freq (`astropy.units.Quantity`):

@@ -11,13 +11,6 @@ import pathlib
 
 from cosmoglobe.plot import plot
 
-# from cosmoglobe.sky import SkyModel
-
-# model = SkyModel(nside=64)
-# model = SkyModel(nside=2048, comps=['dust', 'ff', 'synch'], release='8')
-
-
-hp.disable_warnings()
 
 data_dir = pathlib.Path("/Users/metinsan/Documents/doktor/Cosmoglobe/cosmoglobe/data/")
 chain_dir = pathlib.Path("/Users/metinsan/Documents/doktor/Cosmoglobe_test_data/")
@@ -36,7 +29,7 @@ bp *= u.K
 
 # model.dust(freq, fwhm)
 # model.disable('cmb')
-dipole = model.cmb.remove_dipole(return_dipole=True)
+# dipole = model.cmb.remove_dipole(return_dipole=True)
 # hp.mollview(dipole, min=-3400, max=3400)
 # hp.mollview(model.cmb.amp[0], min=-200, max=200)
 
@@ -64,11 +57,13 @@ dipole = model.cmb.remove_dipole(return_dipole=True)
 # hp.mollview(model(30*u.GHz, fwhm=0.88*u.deg)[0], min=-200, max=5000,)
 # hp.mollview(model(100*u.GHz, fwhm=30*u.arcmin)[0], norm='hist')
 
-
+print(model)
+# hp.projview(model.synch.amp[0].value)
+# print(model.synch.freq_ref)
 # hp.mollview(model(50*u.GHz, fwhm=0.88*u.deg, output_unit='mK')[0], norm='hist')
-# hp.mollview(model(bp_freqs, bp, fwhm=0.88*u.deg, output_unit='mK')[0], norm='hist')
+hp.mollview(model(bp_freqs, bp, fwhm=0.88*u.deg, output_unit='mK')[0], norm='hist')
 
 # mollplot(model, freq=50*u.GHz, fwhm=30*u.arcmin)
 
-plot(model, comp='synch')
+# plot(model, comp='synch', ticks='auto')
 plt.show()

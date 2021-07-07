@@ -8,8 +8,8 @@ Welcome to the cosmoglobe documentation
 =======================================
 
 *cosmoglobe* is a python package that interfaces the Cosmoglobe Sky
-Model with the *commander3* outputs for the purpose of producing astrophyiscal
-sky maps.
+Model with the *commander3* outputs for the purpose of producing astrophysical
+sky maps..
 
 .. note::
    This project is under active development.
@@ -32,11 +32,12 @@ Tutorial
 
    tutorial.ipynb
 
-
+ 
 Reference
 ---------
 
 .. toctree::
+   :maxdepth: 2
 
    cosmoglobe_model
    cosmoglobe_components
