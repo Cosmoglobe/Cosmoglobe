@@ -2,10 +2,11 @@
 Installation procedure for cosmoglobe
 =====================================
 
-Requirements
+Dependencies
 ------------
 
-*cosmoglobe* requires python version >= 3.8.
+*cosmoglobe* is written in python, and uses healpy, numpy, scipy, numba, h5py, and astropy packages.
+The python version needs to be >= 3.8, and h5py => 3.0
 
 Installing with pip
 -------------------

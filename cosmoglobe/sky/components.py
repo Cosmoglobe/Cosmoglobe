@@ -126,6 +126,11 @@ class Component:
                 )
             if self.diffuse:
                 emission = amp*scaling
+                if fwhm.value != 0.0:
+                    emission = hp.smoothing(
+                        emission, fwhm.to(u.rad).value
+                    )*emission.unit
+
             else:
                 # self.amp is not a healpix map for non diffuse comps
                 emission = self.get_map(amp=amp*scaling, fwhm=fwhm)
@@ -142,7 +147,7 @@ class Component:
                     elif output_unit.lower().endswith('k_cmb'):
                         output_unit = u.Unit(output_unit[:-4])   
                         emission *= brightness_to_thermodynamical(freq)
-
+                
             return emission
 
         # Perform bandpass integration
@@ -278,6 +283,16 @@ class Component:
 class PowerLaw(Component):
     """PowerLaw component class. Represents Synchrotron emission in the 
     Cosmoglobe Sky Model.
+
+    Defined using the convention in BP1, Section bla;
+
+    `test`
+
+    :math:`\\int^4_0 x^2 dx`
+
+    s_\mathrm{RJ}^{\mathrm{pl}} \propto \left( \frac{f}{f_\mathrm{ref}} \right)^\beta 
+
+    This is just the standard 
 
     Args:
     -----
@@ -522,7 +537,7 @@ class CMB(Component):
 
     Args:
     -----
-    amp (`numpy.ndarray`, `astropy.units.Quantity`, `cosmoglobe.StokesMap`):
+    amp (`numpy.ndarray`, `astropy.units.Quantity`):
         Amplitude templates at the reference frequencies for I or IQU stokes 
         parameters in K_CMB units.
     """

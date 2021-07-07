@@ -32,6 +32,7 @@ release = '1.0.0'
 # ones.
 extensions = [
     "sphinx_rtd_theme",
+    "sphinx.ext.autosummary",
     "sphinx.ext.autodoc",
     "nbsphinx",
 ]
@@ -44,6 +45,7 @@ templates_path = ['_templates']
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
+autosummary_generate = True
 
 # -- Options for HTML output -------------------------------------------------
 
