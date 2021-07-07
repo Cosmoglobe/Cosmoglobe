@@ -239,6 +239,7 @@ def autoparams(comp, sig, title, ltitle, unit, ticks, min, max, norm, cmap, freq
     This parses the autoparams json file for automatically setting parameters
     for an identified sky component.
     """
+    if freq != None and comp == None: comp = "freqmap"
     if comp is not None:
         with open(Path(data_dir.__path__[0]) / "autoparams.json", "r") as f:
             autoparams = json.load(f)
@@ -258,10 +259,11 @@ def autoparams(comp, sig, title, ltitle, unit, ticks, min, max, norm, cmap, freq
         params["ticks"] = params["ticks"][l]
         params["freq_ref"] = params["freq_ref"][l]
 
-        if any(j in comp for j in ["residual", "freqmap", "bpcorr", "smap"]):
+        specials = ["residual", "freqmap", "bpcorr", "smap"]
+        if any(j in comp for j in specials):
             # Add number, such as frequency, to title.
-            number = "".join(filter(lambda i: i.isdigit(), comp))
-            params["title"] = params["title"] + "{" + number + "}"
+            #number = "".join(filter(lambda i: i.isdigit(), comp))
+            params["title"] = params["title"] + "{" + str(freq) + "}"
 
         if "rms" in comp:
             params["title"] += "^{\mathrm{RMS}}"
@@ -290,7 +292,7 @@ def autoparams(comp, sig, title, ltitle, unit, ticks, min, max, norm, cmap, freq
         if freq != None and params["unit"] != None:
             params["unit"] = f'{params["unit"]}\,@\,{("%.5f" % freq).rstrip("0").rstrip(".")}'+'\,\mathrm{GHz}'
         if ticks==None:
-            if freq!=None and params["freq_ref"]!=freq:
+            if freq!=None and params["freq_ref"]!=freq and comp not in specials:
                 warnings.warn(f'Input frequency is different from reference, autosetting ticks')
                 print(f'input: {freq}, reference: {params["freq_ref"]}')
                 params["ticks"]="auto"
