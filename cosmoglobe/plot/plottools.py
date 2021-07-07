@@ -226,18 +226,18 @@ def symlog(m, linthresh=1.0):
     return np.log10(0.5 * (m + np.sqrt(4.0 + m * m)))
 
 
-def autoparams(auto, sig, title, ltitle, unit, ticks, min, max, norm, cmap, freq):
+def autoparams(comp, sig, title, ltitle, unit, ticks, min, max, norm, cmap, freq):
     """
     This parses the autoparams json file for automatically setting parameters
     for an identified sky component.
     """
-    if auto is not None:
+    if comp is not None:
         with open(Path(data_dir.__path__[0]) / "autoparams.json", "r") as f:
             autoparams = json.load(f)
         try:
-            params = autoparams[auto]
+            params = autoparams[comp]
         except:
-            print(f"Component label {auto} not found. Using unidentified profile.")
+            print(f"Component label {comp} not found. Using unidentified profile.")
             print(f"available keys are: {autoparams.keys()}")
             params = autoparams["unidentified"]
 
@@ -249,25 +249,25 @@ def autoparams(auto, sig, title, ltitle, unit, ticks, min, max, norm, cmap, freq
         params["cmap"] = params["cmap"][l]
         params["ticks"] = params["ticks"][l]
 
-        if any(j in auto for j in ["residual", "freqmap", "bpcorr", "smap"]):
+        if any(j in comp for j in ["residual", "freqmap", "bpcorr", "smap"]):
             # Add number, such as frequency, to title.
-            number = "".join(filter(lambda i: i.isdigit(), auto))
+            number = "".join(filter(lambda i: i.isdigit(), comp))
             params["title"] = params["title"] + "{" + number + "}"
 
-        if "rms" in auto:
+        if "rms" in comp:
             params["title"] += "^{\mathrm{RMS}}"
             params["cmap"] = "neutral"
-            params["ticks"] = "auto"
-        if "stddev" in auto:
-            params["title"] = "\sigma_{\mathrm{" + param["title"] + "}}"
+            params["ticks"] = "comp"
+        if "stddev" in comp:
+            params["title"] = "\sigma_{\mathrm{" + params["title"] + "}}"
             params["cmap"] = "neutral"
-            params["ticks"] = "auto"
-        if "mean" in auto:
+            params["ticks"] = "comp"
+        if "mean" in comp:
             params["title"] = "\langle " + comp["title"] + "\rangle"
 
         print(params["norm"], norm)
 
-        # This is messy
+        # Assign values if specified in function call
         if title != None:
             params["title"] = title
         if ltitle != None:
@@ -280,6 +280,7 @@ def autoparams(auto, sig, title, ltitle, unit, ticks, min, max, norm, cmap, freq
             params["norm"] = norm
         if cmap != None:
             params["cmap"] = cmap
+
     else:
         params = {
             "title": title,
@@ -290,9 +291,11 @@ def autoparams(auto, sig, title, ltitle, unit, ticks, min, max, norm, cmap, freq
             "cmap": cmap,
         }
 
-    if min is not None:
+    if params["ticks"] == None:
+        params["ticks"] = [min, max]
+    if min != None:
         params["ticks"][0] = min
-    if max is not None:
+    if max != None:
         params["ticks"][-1] = max
     return params
 

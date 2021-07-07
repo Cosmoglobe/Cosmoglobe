@@ -37,6 +37,7 @@ def plot(
     ltitle=None,
     width="m",
     darkmode=False,
+    **kwargs,
     ):
     """
     General plotting function for maps.
@@ -137,9 +138,9 @@ def plot(
     if isinstance(sig, str):
         sig = stokes.index(sig)
 
-    # Fetching autoset parameters
-    params = autoparams(comp, sig, title, ltitle, unit, ticks, min, max, norm, cmap, freq)
+
     # Parsing component string
+    comp_full = comp
     if comp is not None: comp, *specparam = comp.split()
 
     # If map is string, interprate as file path
@@ -198,7 +199,6 @@ def plot(
     if fwhm > 0.0:
         m = hp.smoothing(m, fwhm)
 
-    print(f"Plotting {comp}, title {title}, nside {nside}")
     
     # Remove mono/dipole
     if remove_dip:
@@ -206,10 +206,18 @@ def plot(
     if remove_mono:
         m = hp.remove_monopole(m, gal_cut=30, copy=True, verbose=True)
 
+    # Fetching autoset parameters
+    params = autoparams(comp_full, sig, title, ltitle, unit, ticks, min, max, norm, cmap, freq)
     # Ticks and ticklabels
     ticks = params["ticks"]
-    if ticks == None:
+    if ticks=="auto":
         ticks = get_percentile(m, 97.5)
+    elif None in ticks:
+        pmin, pmax = get_percentile(m, 97.5)
+        if ticks[0] == None:
+            ticks[0] = pmin
+        if ticks[-1] == None:
+            ticks[-1] = pmax
 
     #### Logscale ####
     ticklabels = [fmt(i, 1) for i in ticks]
@@ -234,6 +242,16 @@ def plot(
             graticule=graticule,
             override_plot_properties={"figure_width": width,"figure_size_ratio": figratio,},
             coord=coord,
+            fontsize={
+                "xlabel": 8,
+                "ylabel": 8,
+                "xtick_label": 8,
+                "ytick_label": 8,
+                "title": 8,
+                "cbar_label": 8,
+                "cbar_tick_label": 8,
+                },
+            **kwargs,
             )
     
     # Remove color bar because of healpy bug
