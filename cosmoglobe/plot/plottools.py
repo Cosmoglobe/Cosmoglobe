@@ -5,12 +5,11 @@ from .. import data as data_dir
 import cmasher
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.colors import mcolors, LinearSegmentedColormap, ListedColormap
+from matplotlib.colors import colorConverter, LinearSegmentedColormap, ListedColormap
 from matplotlib.patches import Polygon
 from matplotlib import _pylab_helpers
 from pathlib import Path
 import json
-from matplotlib.colors import 
 
 
 def apply_logscale(m, ticks, linthresh=1):
@@ -380,7 +379,7 @@ def gradient_fill(x, y, fill_color=None, ax=None, alpha=1.0, invert=False, **kwa
     alpha = 1.0 if alpha is None else alpha
 
     z = np.empty((100, 1, 4), dtype=float)
-    rgb = mcolors.colorConverter.to_rgb(fill_color)
+    rgb = colorConverter.to_rgb(fill_color)
     z[:, :, :3] = rgb
     z[:, :, -1] = np.linspace(0, alpha, 100)[:, None]
 

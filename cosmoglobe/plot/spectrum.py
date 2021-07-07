@@ -9,8 +9,6 @@ import numpy as np
 import healpy as hp
 import sys
 import math
-import plotly.colors as pcol
-from brokenaxes import brokenaxes
 
 import src.tools as tls
 

@@ -1,6 +1,5 @@
 from cosmoglobe.utils.utils import ModelError
 from logging import error
-from cosmoglobe.sky.components import Component
 from cosmoglobe.sky.model import Model
 
 import warnings
