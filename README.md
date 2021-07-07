@@ -1,7 +1,9 @@
-[![Documentation Status](https://readthedocs.org/projects/cosmoglobe/badge/?version=latest)](https://cosmoglobe.readthedocs.io/en/latest/?badge=latest)
 
 
 # Cosmoglobe Sky Model
+[![Documentation Status](https://readthedocs.org/projects/cosmoglobe/badge/?version=latest)](https://cosmoglobe.readthedocs.io/en/latest/?badge=latest)
+
+## Description
 `cosmoglobe` is a python package that interfaces the Cosmoglobe Sky Model with the commander3 outputs for the purpose of producing astrophyiscal sky maps.
 ## Funding
 
