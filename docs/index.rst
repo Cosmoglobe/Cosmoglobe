@@ -42,6 +42,7 @@ Reference
    cosmoglobe_model
    cosmoglobe_components
 
+   
 License
 -------
 
