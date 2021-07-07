@@ -21,7 +21,6 @@ MANIFEST
 docs/api/
 docs/_build/
 docs/_static/
-docs/_templates
 
 # Packages/installer info
 *.egg
