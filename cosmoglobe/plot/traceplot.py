@@ -1,10 +1,9 @@
 import matplotlib.pyplot as plt
-import plotly.colors as pcol
 import numpy as np
 import matplotlib as mpl
 from .plottools import set_style, legend_positions, make_fig
 
-def traceplot(input, header=None, labelval=False, xlabel=None, ylabel=None, nbins=None, burnin=0,  cmap="Plotly", figsize=(7,2), darkmode=False, fignum=None, subplot=None, hold=False, reuse_axes=False,):
+def traceplot(input, header=None, labelval=False, xlabel=None, ylabel=None, nbins=None, burnin=0,  cmap=None, figsize=(7,2), darkmode=False, fignum=None, subplot=None, hold=False, reuse_axes=False,):
 
     # Make figure
     fig, ax = make_fig(

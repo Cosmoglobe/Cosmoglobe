@@ -2,12 +2,15 @@
 from re import T
 from .. import data as data_dir
 
+import cmasher
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.colors as col
+from matplotlib.colors import mcolors, LinearSegmentedColormap, ListedColormap
+from matplotlib.patches import Polygon
 from matplotlib import _pylab_helpers
 from pathlib import Path
 import json
+from matplotlib.colors import 
 
 
 def apply_logscale(m, ticks, linthresh=1):
@@ -126,7 +129,6 @@ def load_cmap(cmap, logscale):
     if "planck" in cmap:
         if "planck_log" in cmap:  # logscale:
             # setup nonlinear colormap
-            from matplotlib.colors import LinearSegmentedColormap
 
             class GlogColormap(LinearSegmentedColormap):
                 name = cmap
@@ -152,49 +154,30 @@ def load_cmap(cmap, logscale):
 
             cmap_path = Path(data_dir.__path__[0]) / "planck_cmap_logscale.dat"
             planck_cmap = np.loadtxt(cmap_path) / 255.0
-            cmap = col.ListedColormap(planck_cmap, "planck")
+            cmap = ListedColormap(planck_cmap, "planck")
             cmap = GlogColormap(cmap)
         else:
             cmap_path = Path(data_dir.__path__[0]) / "planck_cmap.dat"
             planck_cmap = np.loadtxt(cmap_path) / 255.0
             if cmap.endswith("_r"):
                 planck_cmap = planck_cmap[::-1]
-            cmap = col.ListedColormap(planck_cmap, "planck")
+            cmap = ListedColormap(planck_cmap, "planck")
     elif "wmap" in cmap:
         cmap_path = Path(data_dir.__path__[0]) / "wmap_cmap.dat"
         wmap_cmap = np.loadtxt(cmap_path) / 255.0
         if cmap.endswith("_r"):
             planck_cmap = planck_cmap[::-1]
-        cmap = col.ListedColormap(wmap_cmap, "wmap")
-    elif cmap.startswith("q-"):
-        import plotly.colors as pcol
-
-        _, clab, *numvals = cmap.split("-")
-        colors = getattr(pcol.qualitative, clab)
-        if clab == "Plotly":
-            # colors.insert(3,colors.pop(-1))
-            colors.insert(0, colors.pop(-1))
-            colors.insert(3, colors.pop(2))
-        try:
-            cmap = col.ListedColormap(colors[: int(numvals[0])], f"{clab}-{numvals[0]}")
-            print("Using qualitative colormap:" + f" {clab} up to {numvals[0]}")
-        except:
-            cmap = col.ListedColormap(colors, clab)
-            print("Using qualitative colormap:" f" {clab}")
+        cmap = ListedColormap(wmap_cmap, "wmap")
     elif cmap.startswith("black2"):
-        cmap = col.LinearSegmentedColormap.from_list(cmap, cmap.split("2"))
+        cmap = LinearSegmentedColormap.from_list(cmap, cmap.split("2"))
     else:
         try:
-            import cmasher
-
             cmap = eval(f"cmasher.{cmap}")
         except:
             try:
-                from cmcrameri import cm
 
                 cmap = eval(f"cm.{cmap}")
             except:
-                import matplotlib.pyplot as plt
 
                 cmap = plt.get_cmap(cmap)
 
@@ -244,7 +227,7 @@ def symlog(m, linthresh=1.0):
     return np.log10(0.5 * (m + np.sqrt(4.0 + m * m)))
 
 
-def autoparams(auto, sig, title, ltitle, unit, ticks, min, max, norm, cmap):
+def autoparams(auto, sig, title, ltitle, unit, ticks, min, max, norm, cmap, freq):
     """
     This parses the autoparams json file for automatically setting parameters
     for an identified sky component.
@@ -383,8 +366,7 @@ def gradient_fill(x, y, fill_color=None, ax=None, alpha=1.0, invert=False, **kwa
     im : an AxesImage instance
         The transparent gradient clipped to just the area beneath the curve.
     """
-    import matplotlib.colors as mcolors
-    from matplotlib.patches import Polygon
+
 
     if ax is None:
         ax = plt.gca()

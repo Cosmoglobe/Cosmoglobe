@@ -44,6 +44,9 @@ def plot(
     This function is a wrapper on healpys projview function with some added features.
     Added features include lognorm, 
 
+    TODO:
+    Subplots and norm cleanup
+
     Parameters
     ----------
     input : ndarray, fits file path or cosmoglobe model object
@@ -136,7 +139,7 @@ def plot(
         sig = stokes.index(sig)
 
     # Fetching autoset parameters
-    params = autoparams(comp, sig, title, ltitle, unit, ticks, min, max, norm, cmap)
+    params = autoparams(comp, sig, title, ltitle, unit, ticks, min, max, norm, cmap, freq)
     # Parsing component string
     if comp is not None: comp, *specparam = comp.split()
 
@@ -246,7 +249,7 @@ def plot(
     #### Left Title (stokes parameter label by default) ####
     plt.text(-4.5, 1.1, params["left_title"], ha="center", va="center",)
 
-    
+
 def apply_colorbar(fig, ax, image, ticks, ticklabels, unit, linthresh, norm=None):
     """
     This function applies a colorbar to the figure and formats the ticks.

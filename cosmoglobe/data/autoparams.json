@@ -55,7 +55,7 @@
         "ticks": [[30, 300, 3000],[-100, 0, 100]],
         "norm": "log"
     },
-    "freefree Te": {
+    "ff Te": {
         "tags": ["ff_Te","ff_Te","ff_TE_","ff_T_E","freefree_Te","freefree_Te","freefree_TE_","freefree_T_E"],
         "title": "T_{e}",
         "unit": "\\mathrm{K}",
@@ -63,7 +63,7 @@
         "ticks": [[5000, 8000]],
         "norm": null
     },
-    "freefree": {
+    "ff": {
         "tags": ["ff_", "freefree"],
         "unit": "\\mu\\mathrm{K}_{\\mathrm{RJ}}",
         "title": "A_ff",
