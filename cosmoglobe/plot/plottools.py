@@ -1,5 +1,6 @@
 # This file contains useful functions used across different plotting scripts.
 from re import T
+import warnings
 from .. import data as data_dir
 
 import cmasher
@@ -26,13 +27,18 @@ def apply_logscale(m, ticks, linthresh=1):
     m = np.maximum(np.minimum(m, new_ticks[-1]), new_ticks[0])
     return m, new_ticks
 
+
 def set_style(darkmode=False,):
     """
     This function sets the color parameter and text style
     """
-    plt.rc('font', family='serif',)
+    plt.rc(
+        "font", family="serif",
+    )
     plt.rcParams["mathtext.fontset"] = "stix"
-    plt.rc("text.latex", preamble=r"\usepackage{sfmath}",)
+    plt.rc(
+        "text.latex", preamble=r"\usepackage{sfmath}",
+    )
 
     tex_fonts = {
         # Use 10pt font in plots, to match 10pt font in document
@@ -41,7 +47,7 @@ def set_style(darkmode=False,):
         # Make the legend/label fonts a little smaller
         "legend.fontsize": 8,
         "xtick.labelsize": 8,
-        "ytick.labelsize": 8
+        "ytick.labelsize": 8,
     }
     plt.rcParams.update(tex_fonts,)
 
@@ -62,30 +68,32 @@ def set_style(darkmode=False,):
             plt.rcParams[p] = "white"
 
 
-def make_fig(figsize, fignum, hold, subplot, reuse_axes, darkmode=False,  projection=None, ):
+def make_fig(
+    figsize, fignum, hold, subplot, reuse_axes, darkmode=False, projection=None,
+):
     """
     Create matplotlib figure, add subplot, use current axes etc.
     """
 
     if figsize is None:
         fig_width_pt = 246.0  # Get this from LaTeX using \showthe\columnwidth
-        inches_per_pt = 1.0/72.27               # Convert pt to inch
-        golden_mean = (np.sqrt(5)-1.0)/2.0         # Aesthetic ratio
-        fig_width = fig_width_pt*inches_per_pt  # width in inches
-        fig_height = fig_width*golden_mean      # height in inches
-        figsize =  [fig_width,fig_height]
-    
+        inches_per_pt = 1.0 / 72.27  # Convert pt to inch
+        golden_mean = (np.sqrt(5) - 1.0) / 2.0  # Aesthetic ratio
+        fig_width = fig_width_pt * inches_per_pt  # width in inches
+        fig_height = fig_width * golden_mean  # height in inches
+        figsize = [fig_width, fig_height]
+
     #  From healpy
     nrows, ncols, idx = (1, 1, 1)
     width, height = figsize
     if not (hold or subplot or reuse_axes):
         # Set general style parameters
         set_style(darkmode)
-    
+
         fig = plt.figure(fignum, figsize=(width, height))
     elif hold:
         fig = plt.gcf()
-        #left, bottom, right, top = np.array(fig.gca().get_position()).ravel()
+        # left, bottom, right, top = np.array(fig.gca().get_position()).ravel()
         fig.delaxes(fig.gca())
     elif reuse_axes:
         fig = plt.gcf()
@@ -248,6 +256,7 @@ def autoparams(comp, sig, title, ltitle, unit, ticks, min, max, norm, cmap, freq
         l = 0 if sig < 1 else -1
         params["cmap"] = params["cmap"][l]
         params["ticks"] = params["ticks"][l]
+        params["freq_ref"] = params["freq_ref"][l]
 
         if any(j in comp for j in ["residual", "freqmap", "bpcorr", "smap"]):
             # Add number, such as frequency, to title.
@@ -278,7 +287,13 @@ def autoparams(comp, sig, title, ltitle, unit, ticks, min, max, norm, cmap, freq
             params["norm"] = norm
         if cmap != None:
             params["cmap"] = cmap
-
+        if freq != None and params["unit"] != None:
+            params["unit"] = f'{params["unit"]}\,@\,{("%.5f" % freq).rstrip("0").rstrip(".")}'+'\,\mathrm{GHz}'
+        if ticks==None:
+            if freq!=None and params["freq_ref"]!=freq:
+                warnings.warn(f'Input frequency is different from reference, autosetting ticks')
+                print(f'input: {freq}, reference: {params["freq_ref"]}')
+                params["ticks"]="auto"
     else:
         params = {
             "title": title,
@@ -287,20 +302,20 @@ def autoparams(comp, sig, title, ltitle, unit, ticks, min, max, norm, cmap, freq
             "ticks": ticks,
             "norm": norm,
             "cmap": cmap,
+            "freq_ref": freq,
         }
 
     if params["ticks"] == None:
         params["ticks"] = [min, max]
-    if min != None:
-        params["ticks"][0] = min
-    if max != None:
-        params["ticks"][-1] = max
+    elif params["ticks"] != "auto":
+        if min != None:
+            params["ticks"][0] = min
+        if max != None:
+            params["ticks"][-1] = max
     return params
 
 
-def legend_positions(
-    input,
-):
+def legend_positions(input,):
     """
     Calculate position of labels to the right in plot...
     """
@@ -366,7 +381,6 @@ def gradient_fill(x, y, fill_color=None, ax=None, alpha=1.0, invert=False, **kwa
     im : an AxesImage instance
         The transparent gradient clipped to just the area beneath the curve.
     """
-
 
     if ax is None:
         ax = plt.gca()

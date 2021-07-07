@@ -39,7 +39,7 @@ def plot(
     darkmode=False,
     interactive=False,
     **kwargs,
-    ):
+):
     """
     General plotting function for maps.
     This function is a wrapper on healpys projview function with some added features.
@@ -108,19 +108,13 @@ def plot(
     """
     # Pick sizes from size dictionary for page width plots
     if isinstance(width, str):
-        width = {
-            "x": 2.75,
-            "s": 3.5,
-            "m": 4.7,
-            "l": 7,
-        }[width]
-    height = width/2
+        width = {"x": 2.75, "s": 3.5, "m": 4.7, "l": 7,}[width]
+    height = width / 2
     if cbar:
         height *= 1.275  # Size correction with cbar
-    figratio=height/width
+    figratio = height / width
     set_style(darkmode)
 
- 
     # Currently not working with projview
     """
     # Make figure
@@ -135,42 +129,49 @@ def plot(
     """
 
     # Translate sig to correct format
-    stokes = ["I", "Q", "U",]
+    stokes = [
+        "I",
+        "Q",
+        "U",
+    ]
     if isinstance(sig, str):
         sig = stokes.index(sig)
 
-
     # Parsing component string
     comp_full = comp
-    if comp is not None: comp, *specparam = comp.split()
+    if comp is not None:
+        comp, *specparam = comp.split()
 
     # If map is string, interprate as file path
-    if isinstance(input, str): 
+    if isinstance(input, str):
         m = hp.read_map(input, field=sig)
     elif isinstance(input, Model):
         """
         Get data from model object with frequency scaling        
         """
-        if comp==None:
+        if comp == None:
             if freq is not None:
-                m=input(freq*u.GHz, fwhm=fwhm*u.arcmin,)
+                m = input(freq * u.GHz, fwhm=fwhm * u.arcmin,)
             else:
                 raise ModelError(
-                    f'Model object passed with comp and freq set to None'
-                    f'comp: {comp} freq: {freq}'
+                    f"Model object passed with comp and freq set to None"
+                    f"comp: {comp} freq: {freq}"
                 )
         else:
-            if len(specparam)>0 and isinstance(specparam[0], str):
-                m=getattr(input, comp).spectral_parameters[specparam[0]]
+            if len(specparam) > 0 and isinstance(specparam[0], str):
+                m = getattr(input, comp).spectral_parameters[specparam[0]]
 
-                if len(m[sig])==1:
-                    warnings.warn("Same value across the whole sky, mapping to array of length Npix")
+                if len(m[sig]) == 1:
+                    warnings.warn(
+                        "Same value across the whole sky, mapping to array of length Npix"
+                    )
                     m = np.full(hp.nside2npix(input.nside), m[sig])
             else:
                 if freq is not None:
-                    m=getattr(input, comp)(freq*u.GHz, fwhm=fwhm*u.arcmin,)
+                    m = getattr(input, comp)(freq * u.GHz, fwhm=fwhm * u.arcmin,)
                 else:
-                    m=getattr(input,comp).amp
+                    m = getattr(input, comp).amp
+                    freq = round(getattr(input, comp).freq_ref[sig][0].value, 5)
         if isinstance(m, u.Quantity):
             m = m.value
     else:
@@ -178,8 +179,8 @@ def plot(
             m = input
         else:
             raise TypeError(
-                f'Type {type(input)} of input not supported'
-                f'Supports numpy array, cosmoglobe model object or fits file string'
+                f"Type {type(input)} of input not supported"
+                f"Supports numpy array, cosmoglobe model object or fits file string"
             )
 
     # Make sure we have 1d array at this point
@@ -198,7 +199,7 @@ def plot(
 
     # Smooth map
     if fwhm > 0.0:
-        m = hp.smoothing(m, (fwhm*u.arcmin).to(u.rad).value)
+        m = hp.smoothing(m, (fwhm * u.arcmin).to(u.rad).value)
 
     # Remove mono/dipole
     if remove_dip:
@@ -207,10 +208,12 @@ def plot(
         m = hp.remove_monopole(m, gal_cut=30, copy=True, verbose=True)
 
     # Fetching autoset parameters
-    params = autoparams(comp_full, sig, title, ltitle, unit, ticks, min, max, norm, cmap, freq)
+    params = autoparams(
+        comp_full, sig, title, ltitle, unit, ticks, min, max, norm, cmap, freq
+    )
     # Ticks and ticklabels
     ticks = params["ticks"]
-    if ticks=="auto":
+    if ticks == "auto":
         ticks = get_percentile(m, 97.5)
     elif None in ticks:
         pmin, pmax = get_percentile(m, 97.5)
@@ -227,58 +230,80 @@ def plot(
 
     #### Color map #####
     cmap = load_cmap(params["cmap"], params["norm"])
+    #### Logscale ####
+    if params["norm"] == "log":
+        m, ticks = apply_logscale(m, ticks, linthresh=1)
 
     # Plot using mollview if interactive mode
     if interactive:
-        ret = hp.mollview(m, 
-            min=ticks[0], 
+        if params["norm"]=="log":
+            params["norm"] = None
+            # Ticklabels not available for this
+            params["unit"] = r'$\log($' +params["unit"]+r"$)$"
+        ret = hp.mollview(
+            m,
+            min=ticks[0],
             max=ticks[-1],
             cbar=cbar,
             cmap=cmap,
             coord=coord,
+            unit=params["unit"],
             title=params["title"],
             norm=params["norm"],
             **kwargs,
-            )
+        )
         return
 
-    #### Logscale ####
-    if params["norm"]=="log":
-        m, ticks = apply_logscale(m, ticks, linthresh=1)
 
     # Plot figure
-    ret = hp.newvisufunc.projview(m, 
-            min=ticks[0], 
-            max=ticks[-1],
-            cbar=False,
-            cmap=cmap,
-            projection_type=projection_type,
-            graticule=graticule,
-            override_plot_properties={"figure_width": width,"figure_size_ratio": figratio,},
-            coord=coord,
-            fontsize={
-                "xlabel": 8,
-                "ylabel": 8,
-                "xtick_label": 8,
-                "ytick_label": 8,
-                "title": 8,
-                "cbar_label": 8,
-                "cbar_tick_label": 8,
-                },
-            **kwargs,
-            )
+    ret = hp.newvisufunc.projview(
+        m,
+        min=ticks[0],
+        max=ticks[-1],
+        cbar=False,
+        cmap=cmap,
+        projection_type=projection_type,
+        graticule=graticule,
+        override_plot_properties={
+            "figure_width": width,
+            "figure_size_ratio": figratio,
+        },
+        coord=coord,
+        fontsize={
+            "xlabel": 8,
+            "ylabel": 8,
+            "xtick_label": 8,
+            "ytick_label": 8,
+            "title": 8,
+            "cbar_label": 8,
+            "cbar_tick_label": 8,
+        },
+        **kwargs,
+    )
     plt.gca().collections[-1].colorbar.remove()
 
     # Remove color bar because of healpy bug
     # Add pretty color bar
     if cbar:
         apply_colorbar(
-            plt.gcf(), plt.gca(), ret, ticks, ticklabels, params["unit"], linthresh=1, norm=params["norm"])
+            plt.gcf(),
+            plt.gca(),
+            ret,
+            ticks,
+            ticklabels,
+            params["unit"],
+            linthresh=1,
+            norm=params["norm"],
+        )
 
     #### Right Title ####
-    plt.text(4.5, 1.1, params["title"], ha="center", va="center",)
+    plt.text(
+        4.5, 1.1, params["title"], ha="center", va="center",
+    )
     #### Left Title (stokes parameter label by default) ####
-    plt.text(-4.5, 1.1, params["left_title"], ha="center", va="center",)
+    plt.text(
+        -4.5, 1.1, params["left_title"], ha="center", va="center",
+    )
 
 
 def apply_colorbar(fig, ax, image, ticks, ticklabels, unit, linthresh, norm=None):
@@ -298,7 +323,7 @@ def apply_colorbar(fig, ax, image, ticks, ticklabels, unit, linthresh, norm=None
     )
     cb.ax.set_xticklabels(ticklabels)
     cb.ax.xaxis.set_label_text(unit)
-    if norm=="log":
+    if norm == "log":
         linticks = np.linspace(-1, 1, 3) * linthresh
         logmin = np.round(ticks[0])
         logmax = np.round(ticks[-1])
@@ -326,9 +351,7 @@ def apply_colorbar(fig, ax, image, ticks, ticklabels, unit, linthresh, norm=None
         cb.ax.xaxis.set_ticks(minorticks, minor=True)
 
     cb.ax.tick_params(
-        which="both",
-        axis="x",
-        direction="in",
+        which="both", axis="x", direction="in",
     )
     cb.ax.xaxis.labelpad = 0
     # workaround for issue with viewers, see colorbar docstring
