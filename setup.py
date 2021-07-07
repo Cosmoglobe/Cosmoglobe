@@ -28,5 +28,6 @@ setuptools.setup(
         "h5py>=3.0",
         "scipy",
         "numba",
+        "cmasher",
     ]
 )
