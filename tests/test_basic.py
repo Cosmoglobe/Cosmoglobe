@@ -61,7 +61,7 @@ print(model)
 # hp.projview(model.synch.amp[0].value)
 # print(model.synch.freq_ref)
 # hp.mollview(model(50*u.GHz, fwhm=0.88*u.deg, output_unit='mK')[0], norm='hist')
-hp.mollview(model(bp_freqs, bp, fwhm=0.88*u.deg, output_unit='mK')[0], norm='hist')
+hp.mollview(model.dust.amp[1])
 
 # mollplot(model, freq=50*u.GHz, fwhm=30*u.arcmin)
 

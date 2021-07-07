@@ -6,11 +6,12 @@ dependencies:
   - pip
   - astropy
   - numpy
-  - ipykernel
-  - cython
   - matplotlib
-  - pytest
   - scipy
   - numpydoc
   - nbsphinx
+  - numpydoc
   - healpy
+  - h5py>=3.0
+  - cmasher
+  - tqdm
