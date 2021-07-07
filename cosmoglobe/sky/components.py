@@ -282,14 +282,14 @@ class Component:
 
 class Synchrotron(Component):
     r"""Synchrotron component class. Defined using the convention in 
-    BeyondPlanck (2020), Section 3.3.1 (https://arxiv.org/pdf/2011.05609.pdf);
+    `BeyondPlanck (2020), Section 3.3.1 <https://arxiv.org/pdf/2011.05609.pdf>`_;
 
     .. math::
 
-        \mathbf{s}_\mathrm{RJ}^{\mathrm{synch}}(\nu) \propto\left( \frac{\nu}{\nu_\mathrm{0,s}} \right)^{\beta + C \ln \nu / \nu_{0,s}} 
+        \boldsymbol{s}_\mathrm{RJ}^{\mathrm{synch}}(\nu) \propto\left( \frac{\nu}{\nu_\mathrm{0,s}} \right)^{\beta + C \ln \nu / \nu_{0,s}} 
 
     This is a generic power law given at a reference frequency :math:`\nu_{s,0}`
-    with a power law :math:`\beta` that is valid for Rayleigh-Jeans temperature. 
+    with a power law :math:`\beta` in Rayleigh-Jeans temperature.
     :math:`C` is set to 0 for all current implementations as of BP9.
 
     Parameters
@@ -299,9 +299,9 @@ class Synchrotron(Component):
         by freq_ref.
     freq_ref : `astropy.units.Quantity`
         Reference frequencies :math:`\nu_\mathrm{0,s}` for the amplitude 
-        template in units of :math:`\mathrm{GHz}`. Shape is either (1,) or (3, 1)
+        template in units of GHz. Shape is either (1,) or (3, 1)
     beta : `numpy.ndarray`, `astropy.units.Quantity`
-        The power law spectral index. The spectral index can vary over the sky, 
+        The power law spectral index :math:`\beta`. The spectral index can vary over the sky, 
         and is therefore commonly given as a shape (3, nside) array, but it can 
         take the value of a scalar.
 
@@ -312,11 +312,11 @@ class Synchrotron(Component):
     diffuse : bool
         Whether or not the component is diffuse in nature.
     amp : `astropy.units.Quantity`
-        Emission templates of Synchrotron at the reference frequencies given
+        Emission templates of synchrotron at the reference frequencies given
         by `freq_ref`.
     freq_ref : `astropy.units.Quantity`
         Reference frequencies :math:`\nu_\mathrm{0,s}` for the amplitude 
-        template in units of Giga Hertz.
+        template in units of GHz.
     spectral_parameters : dict
         Dictionary containing the spectral parameter :math:`\beta` for 
         synchrotron.
