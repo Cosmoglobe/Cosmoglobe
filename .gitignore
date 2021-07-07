@@ -18,8 +18,10 @@ MANIFEST
 .ipynb_checkpoints
 
 # Sphinx
-docs/api
-docs/_build
+docs/api/
+docs/_build/
+docs/_static/
+docs/_templates
 
 # Packages/installer info
 *.egg
