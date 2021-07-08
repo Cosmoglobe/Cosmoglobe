@@ -83,12 +83,12 @@ class Component:
 
         .. math::
 
-            \mathbf{s}_\mathrm{comp} = \mathbf{a}_\mathrm{comp} \; 
-            \mathrm{scaling}_\mathrm{comp}
+            \boldsymbol{s}_\mathrm{comp} = \boldsymbol{a}_\mathrm{comp} \; 
+            f_{\mathrm{comp}}(\nu)
 
-        where :math:`\mathbf{a}_\mathrm{comp}` is the amplitude template of 
+        where :math:`\boldsymbol{a}_\mathrm{comp}` is the amplitude template of 
         the component at some reference frequency, and 
-        :math:`\mathrm{scaling}_\mathrm{comp}` is the scaling factor for 
+        :math:`f_\mathrm{comp}(\nu)` is the scaling factor for 
         component.
 
 
@@ -577,8 +577,8 @@ class AME(Component):
     .. math::
 
 
-        \mathbf{s}_{\mathrm{RJ}}^{\mathrm{sd}}(\nu) \propto 
-        \nu^{-2} s_{0}^{\mathrm{sd}}\left(\nu \cdot 
+        \boldsymbol{s}_{\mathrm{RJ}}^{\mathrm{sd}}(\nu) \propto 
+        \nu^{-2} \boldsymbol{s}_{0}^{\mathrm{sd}}\left(\nu \cdot 
         \frac{30.0 \mathrm{GHz}}{\nu_{p}}\right)
 
 
@@ -683,7 +683,7 @@ class CMB(Component):
 
     .. math::
 
-        \mathbf{s}_{\mathrm{RJ}}^{\mathrm{CMB}}(\nu) \propto \frac{x^{2} 
+        \boldsymbol{s}_{\mathrm{RJ}}^{\mathrm{CMB}}(\nu) \propto \frac{x^{2} 
         \mathrm{e}^{x}}{\left(\mathrm{e}^{x}-1\right)^{2}} 
         \boldsymbol{s}^{\mathrm{CMB}}
 
@@ -731,7 +731,8 @@ class CMB(Component):
         return_dipole : bool
             If ``True``, a map of the dipole is returned. Defaut: ``False``.
         gal_cut : float
-            Galactic latitude coordinate. Default: 10 degrees.
+            Masks pixles :math:`\pm` `gal_cut` in latitude before estimating 
+            dipole. Default: 10 degrees.
 
         Returns
         -------
@@ -788,7 +789,7 @@ class Radio(Component):
 
     .. math::
 
-        \mathbf{s}_{\mathrm{RJ}}^{\mathrm{src}}(\nu) \propto
+        \boldsymbol{s}_{\mathrm{RJ}}^{\mathrm{src}}(\nu) \propto
         \left(\frac{\nu}{\nu_{\mathrm{0, src}}}\right)^{\alpha-2}
 
 
@@ -877,7 +878,7 @@ class Radio(Component):
                 sigma=None, n_fwhm=2):
         """Maps the cataloged radio source points onto a healpix map with a 
         truncated gaussian beam. For more information, see 
-        `Mitra et al. <https://arxiv.org/pdf/1005.1929.pdf>`_.
+        `Mitra et al. (2010) <https://arxiv.org/pdf/1005.1929.pdf>`_.
 
         Parameters
         ----------

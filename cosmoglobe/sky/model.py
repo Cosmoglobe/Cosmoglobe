@@ -96,7 +96,7 @@ class Model:
     @u.quantity_input(freq=u.Hz, bandpass=(u.Jy/u.sr, u.K, None), 
                       fwhm=(u.rad, u.deg, u.arcmin))
     def __call__(self, freq, bandpass=None, fwhm=0.0*u.rad, output_unit=u.uK):
-        r"""Simulates the model emission given a single, or, a set of
+        r"""Simulates the model emission given a single or a set of
         frequencies.
 
         Optionally, a bandpass profile can be given along with the 
@@ -105,7 +105,7 @@ class Model:
         .. math::
             
             \begin{aligned}
-            \mathbf{s}_{\mathrm{RJ}}(\nu) &=a_{\mathrm{CMB}} \frac{x^{2} 
+            \boldsymbol{s}_{\mathrm{RJ}}(\nu) &=\boldsymbol{a}_{\mathrm{CMB}} \frac{x^{2} 
             \mathrm{e}^{x}}{\left(\mathrm{e}^{x}-1\right)^{2}} 
             \frac{\left(\mathrm{e}^{x_{0}}-1\right)^{2}}{x_{0}^{2} 
             \mathrm{e}^{x_{0}}}+\\
@@ -200,7 +200,7 @@ class Model:
         component : str, `cosmoglobe.sky.Component`
             The name of a component or the the component class in the model.
         """
-        
+
         if isinstance(component, str):
             comp = component
         elif isinstance(component.__class__, Component):
