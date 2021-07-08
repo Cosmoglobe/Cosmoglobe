@@ -89,7 +89,7 @@
     },    
     "radio": {
         "unit": "\\mu\\mathrm{K}_{\\mathrm{RJ}}",
-        "title": "A_{ptsrc}",
+        "title": "A_{\\mathrm{ptsrc}}",
         "cmap": ["CMRmap"],
         "ticks": ["auto"],
         "freq_ref": [30.0],
