@@ -26,7 +26,7 @@ def plot(
     coord=None,
     graticule=False,
     projection_type="mollweide",
-    fwhm=0.0,
+    fwhm=0.0*u.arcmin,
     nside=None,
     mask=None,
     cmap=None,
@@ -35,7 +35,7 @@ def plot(
     remove_mono=False,
     title=None,
     ltitle=None,
-    width="m",
+    width=10,
     darkmode=False,
     interactive=False,
     **kwargs,
@@ -45,8 +45,6 @@ def plot(
     This function is a wrapper on healpys projview function with some added features.
     Added features include lognorm, 
 
-    TODO:
-    Subplots and norm cleanup
 
     Parameters
     ----------
@@ -152,7 +150,7 @@ def plot(
         """
         if comp == None:
             if freq is not None:
-                m = input(freq * u.GHz, fwhm=fwhm * u.arcmin,)
+                m = input(freq, fwhm=fwhm,)
             else:
                 raise ModelError(
                     f"Model object passed with comp and freq set to None"
@@ -172,14 +170,14 @@ def plot(
                     freq = getattr(input, comp).freq_ref.value
                     m = getattr(input, comp).amp
                     if comp == "radio":
-                        m = getattr(input, comp).get_map(m, fwhm=fwhm*u.arcmin)
+                        m = getattr(input, comp).get_map(m, fwhm=fwhm)
                         diffuse = False
                     try:
-                       freq = round(freq.squeeze()[sig], 5)
+                       freq = round(freq.value.squeeze()[sig], 5)*freq.unit
                     except IndexError:
-                       freq = round(freq, 5)
+                       freq = round(freq.value, 5)*freq.unit
                 else:
-                    m = getattr(input, comp)(freq * u.GHz, fwhm=fwhm * u.arcmin,)
+                    m = getattr(input, comp)(freq, fwhm=fwhm)
         if isinstance(m, u.Quantity):
             m = m.value
     else:
@@ -206,7 +204,7 @@ def plot(
 
     # Smooth map
     if fwhm > 0.0 and diffuse:
-        m = hp.smoothing(m, (fwhm * u.arcmin).to(u.rad).value)
+        m = hp.smoothing(m, fwhm.to(u.rad).value)
 
     # Remove mono/dipole
     if remove_dip:
@@ -218,7 +216,7 @@ def plot(
     params = autoparams(
         comp_full, sig, title, ltitle, unit, ticks, min, max, norm, cmap, freq
     )
-    
+
     # Ticks and ticklabels
     ticks = params["ticks"]
     if ticks == "auto":

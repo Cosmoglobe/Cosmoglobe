@@ -6,6 +6,7 @@ from .. import data as data_dir
 import cmasher
 import numpy as np
 import matplotlib.pyplot as plt
+import astropy.units as u
 from matplotlib.colors import colorConverter, LinearSegmentedColormap, ListedColormap
 from matplotlib.patches import Polygon
 from matplotlib import _pylab_helpers
@@ -258,10 +259,11 @@ def autoparams(comp, sig, title, ltitle, unit, ticks, min, max, norm, cmap, freq
         params["cmap"] = params["cmap"][l]
         params["ticks"] = params["ticks"][l]
         params["freq_ref"] = params["freq_ref"][l]
+        if params["freq_ref"] != None: params["freq_ref"]*u.GHz
 
         specials = ["residual", "freqmap", "bpcorr", "smap"]
         if any(j in comp for j in specials):
-            params["title"] = params["title"] + "{" + str(freq) + "}"
+            params["title"] = params["title"] + "{" + f'{("%.5f" % freq.value).rstrip("0").rstrip(".")}' + "}"
                     
         if "rms" in comp:
             params["title"] += "^{\mathrm{RMS}}"
@@ -288,7 +290,7 @@ def autoparams(comp, sig, title, ltitle, unit, ticks, min, max, norm, cmap, freq
         if cmap != None:
             params["cmap"] = cmap
         if freq != None and params["unit"] != None:
-            params["unit"] = f'{params["unit"]}\,@\,{("%.5f" % freq).rstrip("0").rstrip(".")}'+'\,\mathrm{GHz}'
+            params["unit"] = f'{params["unit"]}\,@\,{("%.5f" % freq.value).rstrip("0").rstrip(".")}'+'\,\mathrm{GHz}'
         if ticks==None:
             if freq!=None and params["freq_ref"]!=freq and comp not in specials:
                 warnings.warn(f'Input frequency is different from reference, autosetting ticks')
