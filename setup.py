@@ -28,5 +28,6 @@ setuptools.setup(
         "scipy",
         "numba",
         "cmasher",
+        "tqdm",
     ]
 )
