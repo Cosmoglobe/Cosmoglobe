@@ -261,10 +261,8 @@ def autoparams(comp, sig, title, ltitle, unit, ticks, min, max, norm, cmap, freq
 
         specials = ["residual", "freqmap", "bpcorr", "smap"]
         if any(j in comp for j in specials):
-            # Add number, such as frequency, to title.
-            #number = "".join(filter(lambda i: i.isdigit(), comp))
             params["title"] = params["title"] + "{" + str(freq) + "}"
-
+                    
         if "rms" in comp:
             params["title"] += "^{\mathrm{RMS}}"
             params["cmap"] = "neutral"
