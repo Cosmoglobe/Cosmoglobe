@@ -29,7 +29,7 @@ bp *= u.K
 
 # model.dust(freq, fwhm)
 # model.disable('cmb')
-# dipole = model.cmb.remove_dipole(return_dipole=True)
+dipole = model.cmb.remove_dipole(return_dipole=True)
 # hp.mollview(dipole, min=-3400, max=3400)
 # hp.mollview(model.cmb.amp[0], min=-200, max=200)
 
@@ -57,13 +57,13 @@ bp *= u.K
 # hp.mollview(model(30*u.GHz, fwhm=0.88*u.deg)[0], min=-200, max=5000,)
 # hp.mollview(model(100*u.GHz, fwhm=30*u.arcmin)[0], norm='hist')
 
-print(model)
+print(type(model.cmb))
 # hp.projview(model.synch.amp[0].value)
 # print(model.synch.freq_ref)
-# hp.mollview(model(50*u.GHz, fwhm=0.88*u.deg, output_unit='mK')[0], norm='hist')
-hp.mollview(model.dust.amp[1])
+# hp.mollview(model.ame(3*1e4*u.Hz, fwhm=0.88*u.deg)[0], norm='hist')
+# hp.mollview(model.dust.amp[1])
 
 # mollplot(model, freq=50*u.GHz, fwhm=30*u.arcmin)
 
-# plot(model, comp='synch', ticks='auto')
+plot(model, freq=100, fwhm=30, ticks='auto')
 plt.show()

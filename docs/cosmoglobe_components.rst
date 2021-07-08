@@ -7,10 +7,10 @@
 
 .. autosummary:: 
     :toctree: generated/
-
-    CMB
-    FreeFree
-    Synchrotron
-    ModifiedBlackBody
-    Radio
+    
     AME
+    CMB
+    Dust
+    FreeFree
+    Radio
+    Synchrotron
