@@ -309,10 +309,12 @@ def autoparams(comp, sig, title, ltitle, unit, ticks, min, max, norm, cmap, freq
 
     if params["ticks"] == None:
         params["ticks"] = [min, max]
-    elif params["ticks"] != "auto":
+    if ticks != "auto":
         if min != None:
+            if params["ticks"] == "auto": params["ticks"] = [None, None]
             params["ticks"][0] = min
         if max != None:
+            if params["ticks"] == "auto": params["ticks"] = [None, None]
             params["ticks"][-1] = max
     return params
 

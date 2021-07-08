@@ -86,6 +86,14 @@
         "ticks": [[30, 300, 3000]],
         "freq_ref": [22.0],
         "norm": "log"
+    },    
+    "radio": {
+        "unit": "\\mu\\mathrm{K}_{\\mathrm{RJ}}",
+        "title": "A_{ptsrc}",
+        "cmap": ["CMRmap"],
+        "ticks": ["auto"],
+        "freq_ref": [30.0],
+        "norm": "log"
     },
     "co10": {
         "unit": "\\mathrm{K}_{\\mathrm{RJ}}\\, \\mathrm{km}/\\mathrm{s}",

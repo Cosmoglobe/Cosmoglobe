@@ -141,6 +141,7 @@ def plot(
     comp_full = comp
     if comp is not None:
         comp, *specparam = comp.split()
+    diffuse = True # For future functionality
 
     # If map is string, interprate as file path
     if isinstance(input, str):
@@ -167,11 +168,18 @@ def plot(
                     )
                     m = np.full(hp.nside2npix(input.nside), m[sig])
             else:
-                if freq is not None:
-                    m = getattr(input, comp)(freq * u.GHz, fwhm=fwhm * u.arcmin,)
-                else:
+                if freq == None:
+                    freq = getattr(input, comp).freq_ref.value
                     m = getattr(input, comp).amp
-                    freq = round(getattr(input, comp).freq_ref[sig][0].value, 5)
+                    if comp == "radio":
+                        m = getattr(input, comp).get_map(m, fwhm=fwhm*u.arcmin)
+                        diffuse = False
+                    try:
+                       freq = round(freq.squeeze()[sig], 5)
+                    except IndexError:
+                       freq = round(freq, 5)
+                else:
+                    m = getattr(input, comp)(freq * u.GHz, fwhm=fwhm * u.arcmin,)
         if isinstance(m, u.Quantity):
             m = m.value
     else:
@@ -198,7 +206,7 @@ def plot(
         nside = hp.get_nside(m)
 
     # Smooth map
-    if fwhm > 0.0:
+    if fwhm > 0.0 and diffuse:
         m = hp.smoothing(m, (fwhm * u.arcmin).to(u.rad).value)
 
     # Remove mono/dipole
