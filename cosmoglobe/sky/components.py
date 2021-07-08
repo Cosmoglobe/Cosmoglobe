@@ -665,8 +665,8 @@ class AME(Component):
         peak_scale = 30*u.GHz / nu_p
 
         # AME is undefined at outside of this frequency range
-        if not np.min(spdust2[0]) < (freq*peak_scale).value < np.max(spdust2[0]):
-            return 0
+        if not (np.min(spdust2[0]) < ((freq*peak_scale).si.value).any() < np.max(spdust2[0])):
+            return u.Quantity(0, unit=u.dimensionless_unscaled)
 
         interp = np.interp((freq*peak_scale).si.value, spdust2[0], spdust2[1])
         interp_ref = (
