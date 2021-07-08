@@ -86,7 +86,7 @@
         "ticks": [[30, 300, 3000]],
         "freq_ref": [22.0],
         "norm": "log"
-    },    
+    },
     "radio": {
         "unit": "\\mu\\mathrm{K}_{\\mathrm{RJ}}",
         "title": "A_{\\mathrm{ptsrc}}",
@@ -147,7 +147,7 @@
         "title": "A_",
         "unit": "\\mu\\mathrm{K}",
         "cmap": ["planck", "planck"], 
-        "ticks": [[-3400,0, 3400], [-30,0,30]],
+        "ticks": [[-300,0, 300], [-30,0,30]],
         "freq_ref": [null, null],
         "norm": null
     },

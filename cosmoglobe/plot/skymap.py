@@ -193,7 +193,6 @@ def plot(
 
     # Make sure we have 1d array at this point
     m = m[sig] if m.ndim > 1 else m
-
     # Mask map
     if mask is not None:
         m = hp.ma(m)
@@ -229,6 +228,12 @@ def plot(
             ticks[0] = pmin
         if ticks[-1] == None:
             ticks[-1] = pmax
+
+    # Special case if dipole is detected in freqmap
+    if freq != None and comp == None:
+        # if colorbar is super-saturated
+        if len(m[abs(m)>ticks[-1]])/hp.nside2npix(nside) > 0.7:
+            ticks = [tick*10 for tick in ticks]
     ticklabels = [fmt(i, 1) for i in ticks]
 
     # Math text in labels
