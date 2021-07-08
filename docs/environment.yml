@@ -16,4 +16,3 @@ dependencies:
   - cmasher
   - tqdm
   - ipython
-  - cosmoglobe
