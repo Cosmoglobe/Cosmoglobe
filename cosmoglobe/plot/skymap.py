@@ -218,6 +218,7 @@ def plot(
     params = autoparams(
         comp_full, sig, title, ltitle, unit, ticks, min, max, norm, cmap, freq
     )
+    
     # Ticks and ticklabels
     ticks = params["ticks"]
     if ticks == "auto":
