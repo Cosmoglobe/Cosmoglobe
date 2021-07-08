@@ -9,7 +9,7 @@ import numpy as np
 data_url = 'http://cosmoglobe.uio.no/BeyondPlanck/precomputed/'
 
 COSMOGLOBE_COMPS = dict(
-    dust=components.ModifiedBlackBody,
+    dust=components.Dust,
     synch=components.Synchrotron,
     ff=components.FreeFree,
     ame=components.AME,
