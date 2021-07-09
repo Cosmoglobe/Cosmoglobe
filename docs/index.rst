@@ -9,7 +9,7 @@ Welcome to the cosmoglobe documentation
 
 *cosmoglobe* is a python package that interfaces the Cosmoglobe Sky
 Model with the *commander3* outputs for the purpose of producing astrophysical
-sky maps..
+sky maps.
 
 .. note::
    This project is under active development.
