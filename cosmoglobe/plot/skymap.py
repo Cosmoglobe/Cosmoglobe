@@ -34,8 +34,8 @@ def plot(
     norm=None,
     remove_dip=False,
     remove_mono=False,
-    title=None,
-    ltitle=None,
+    right_label=None,
+    left_label=None,
     width=10,
     darkmode=False,
     interactive=False,
@@ -99,9 +99,12 @@ def plot(
         q-Plotly-4 (q for qualitative 4 for max color)] Sets planck as default.
         default = None
     title : str
+        Sets the full figure title. Has LaTeX functionaliity (ex. $A_{s}$.)
+        default = None
+    right_label : str
         Sets the upper right title. Has LaTeX functionaliity (ex. $A_{s}$.)
         default = None
-    ltitle : str
+    left_label : str
         Sets the upper left title. Has LaTeX functionaliity (ex. $A_{s}$.)
         default = None
     """
@@ -111,7 +114,8 @@ def plot(
     height = width / 2
     if cbar:
         height *= 1.275  # Size correction with cbar
-    figratio = height / width
+    #figratio = height / width
+    pwidth = int((345/4.7)*width)
     set_style(darkmode)
 
     # Currently not working with projview
@@ -216,7 +220,7 @@ def plot(
 
     # Fetching autoset parameters
     params = autoparams(
-        comp_full, sig, title, ltitle, unit, ticks, min, max, norm, cmap, freq
+        comp_full, sig, right_label, left_label, unit, ticks, min, max, norm, cmap, freq
     )
 
     # Ticks and ticklabels
@@ -238,7 +242,7 @@ def plot(
     ticklabels = [fmt(i, 1) for i in ticks]
 
     # Math text in labels
-    for i in ["title", "unit", "left_title"]:
+    for i in ["right_label", "left_label", "unit",]:
         if params[i] and params[i] != "":
             params[i] = r"$" + params[i] + "$"
 
@@ -254,6 +258,7 @@ def plot(
             params["norm"] = None
             # Ticklabels not available for this
             params["unit"] = r'$\log($' +params["unit"]+r"$)$"
+        if title == None: ttl = params["right_title"]
         ret = hp.mollview(
             m,
             min=ticks[0],
@@ -262,12 +267,11 @@ def plot(
             cmap=cmap,
             coord=coord,
             unit=params["unit"],
-            title=params["title"],
+            title=ttl,
             norm=params["norm"],
             **kwargs,
         )
         return
-
 
     # Plot figure
     ret = hp.newvisufunc.projview(
@@ -278,20 +282,21 @@ def plot(
         cmap=cmap,
         projection_type=projection_type,
         graticule=graticule,
-        override_plot_properties={
-            "figure_width": width,
-            "figure_size_ratio": figratio,
-        },
         coord=coord,
-        fontsize={
-            "xlabel": 8,
-            "ylabel": 8,
-            "xtick_label": 8,
-            "ytick_label": 8,
-            "title": 8,
-            "cbar_label": 8,
-            "cbar_tick_label": 8,
-        },
+        xsize=pwidth,
+        #override_plot_properties={
+        #    "figure_width": width,
+        #    "figure_size_ratio": figratio,
+        #},
+        #fontsize={
+        #    "xlabel": 10,
+        #    "ylabel": 10,
+        #    "xtick_label": 10,
+        #    "ytick_label": 10,
+        #    "title": 10,
+        #    "cbar_label": 10,
+        #    "cbar_tick_label": 10,
+        #},
         **kwargs,
     )
     plt.gca().collections[-1].colorbar.remove()
@@ -312,11 +317,11 @@ def plot(
 
     #### Right Title ####
     plt.text(
-        4.5, 1.1, params["title"], ha="center", va="center",
+        4.5, 1.1, params["right_label"], ha="center", va="center",
     )
     #### Left Title (stokes parameter label by default) ####
     plt.text(
-        -4.5, 1.1, params["left_title"], ha="center", va="center",
+        -4.5, 1.1, params["left_label"], ha="center", va="center",
     )
 
 
@@ -335,7 +340,7 @@ def apply_colorbar(fig, ax, image, ticks, ticklabels, unit, linthresh, norm=None
         ticks=ticks,
         format=FuncFormatter(fmt),
     )
-    cb.ax.set_xticklabels(ticklabels)
+    cb.ax.set_xticklabels(ticklabels,)
     cb.ax.xaxis.set_label_text(unit)
     if norm == "log":
         linticks = np.linspace(-1, 1, 3) * linthresh
