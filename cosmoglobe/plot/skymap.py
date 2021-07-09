@@ -36,7 +36,7 @@ def plot(
     remove_mono=False,
     right_label=None,
     left_label=None,
-    width=10,
+    xsize=10,
     darkmode=False,
     interactive=False,
     **kwargs,
@@ -109,13 +109,13 @@ def plot(
         default = None
     """
     # Pick sizes from size dictionary for page width plots
-    if isinstance(width, str):
-        width = {"x": 2.75, "s": 3.5, "m": 4.7, "l": 7,}[width]
-    height = width / 2
+    if isinstance(xsize, str):
+        xsize = {"x": 2.75, "s": 3.5, "m": 4.7, "l": 7,}[xsize]
+    height = xsize / 2
     if cbar:
         height *= 1.275  # Size correction with cbar
-    #figratio = height / width
-    pwidth = int((345/4.7)*width)
+    #figratio = height / xsize
+    xsize = int((345/4.7)*xsize)
     set_style(darkmode)
 
     # Currently not working with projview
@@ -283,7 +283,7 @@ def plot(
         projection_type=projection_type,
         graticule=graticule,
         coord=coord,
-        xsize=pwidth,
+        xsize=xsize,
         #override_plot_properties={
         #    "figure_width": width,
         #    "figure_size_ratio": figratio,
