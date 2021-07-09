@@ -188,11 +188,11 @@ def comp_from_chain(file, component, component_class, model_nside, samples):
 
     for key, value in alms.items():
         unpacked_alm = unpack_alms_from_chain(value, alms_lmax[key])
-        if 'key' == 'amp':
+        if key == 'amp' and value.shape[0] == 3:
             pol = True
         else:
             pol = False
-
+                
         alms[key] = hp.alm2map(unpacked_alm, 
                           nside=model_nside, 
                           lmax=alms_lmax[key], 
