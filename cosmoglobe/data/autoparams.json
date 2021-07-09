@@ -1,6 +1,6 @@
 {
     "cmb": {
-        "title": "A_{\\mathrm{CMB}}^{ }",
+        "right_label": "A_{\\mathrm{CMB}}^{ }",
         "unit": "\\mu\\mathrm{K}_{\\mathrm{CMB}}",
         "cmap": ["planck"],
         "ticks": [[-300,0,300], [-10,0,10]],
@@ -8,7 +8,7 @@
         "norm": null
     },
     "chisq": {
-        "title": "\\chi^2",
+        "right_label": "\\chi^2",
         "unit": "",
         "cmap": ["RdBu_r"],
         "ticks": [[-3, 0, 3]],
@@ -16,7 +16,7 @@
         "norm": null
     },
     "synch beta": {
-        "title": "\\beta_s",
+        "right_label": "\\beta_s",
         "unit": "",
         "cmap": ["fusion"],
         "ticks": [[-3.2, -3.15, -3.1]],
@@ -24,7 +24,7 @@
         "norm": null
     },
     "synch": {
-        "title": "A_s",
+        "right_label": "A_s",
         "unit": "\\mu\\mathrm{K}_{\\mathrm{RJ}}",
         "cmap": ["swamp", "wildfire"],
         "ticks": [[1e7,1e8],[-100, 0, 100]],
@@ -32,7 +32,7 @@
         "norm": "log"
     },
     "dust beta": {
-        "title": "\\beta_d",
+        "right_label": "\\beta_d",
         "unit": "",
         "cmap": ["fusion"],
         "ticks": [[1.3,1.55,1.8]],
@@ -40,7 +40,7 @@
         "norm": null
     },
     "dust T": {
-        "title": "T_d",
+        "right_label": "T_d",
         "unit": "\\mathrm{K}",
         "cmap": ["fusion"],
         "ticks": [[14,22,30]],
@@ -48,7 +48,7 @@
         "norm": null
     },
     "dust": {
-        "title": "A_d",
+        "right_label": "A_d",
         "unit": "\\mu\\mathrm{K}_{\\mathrm{RJ}}",
         "cmap": ["sunburst", "iceburn"],
         "ticks": [[30,300,3000],[-100,0,100]],
@@ -56,7 +56,7 @@
         "norm": "log"
     },
     "ff Te": {
-        "title": "T_{e}",
+        "right_label": "T_{e}",
         "unit": "\\mathrm{K}",
         "cmap": ["fusion"],
         "ticks": [[5000, 8000]],
@@ -65,7 +65,7 @@
     },
     "ff": {
         "unit": "\\mu\\mathrm{K}_{\\mathrm{RJ}}",
-        "title": "A_ff",
+        "right_label": "A_ff",
         "cmap": ["freeze"],
         "ticks": [[40, 400, 2000]],
         "freq_ref": [40.0],
@@ -73,7 +73,7 @@
     },
     "ame nup": {
         "unit": "\\mathrm{GHz}",
-        "title": "\\nu_{p}",
+        "right_label": "\\nu_{p}",
         "cmap": ["fusion"],
         "ticks": [[17, 23]],
         "freq_ref": [null],
@@ -81,7 +81,7 @@
     },
     "ame": {
         "unit": "\\mu\\mathrm{K}_{\\mathrm{RJ}}",
-        "title": "A_{ame}",
+        "right_label": "A_{ame}",
         "cmap": ["amber"],
         "ticks": [[30, 300, 3000]],
         "freq_ref": [22.0],
@@ -89,7 +89,7 @@
     },
     "radio": {
         "unit": "\\mu\\mathrm{K}_{\\mathrm{RJ}}",
-        "title": "A_{\\mathrm{ptsrc}}",
+        "right_label": "A_{\\mathrm{ptsrc}}",
         "cmap": ["CMRmap"],
         "ticks": ["auto"],
         "freq_ref": [30.0],
@@ -97,14 +97,14 @@
     },
     "co10": {
         "unit": "\\mathrm{K}_{\\mathrm{RJ}}\\, \\mathrm{km}/\\mathrm{s}",
-        "title": "A_{CO10}",
+        "right_label": "A_{CO10}",
         "cmap": ["arctic"],
         "ticks": [[0, 10, 100]],
         "freq_ref": [115],
         "norm": "log"
     },
     "co21": {
-        "title": "A_{CO21}",
+        "right_label": "A_{CO21}",
         "unit": "\\mathrm{K}_{\\mathrm{RJ}}\\, \\mathrm{km}/\\mathrm{s}",
         "cmap": ["arctic"],
         "ticks": [[0, 10, 100]],
@@ -112,7 +112,7 @@
         "norm": "log"
     },
     "co32": {
-        "title": "A_{CO21}",
+        "right_label": "A_{CO21}",
         "unit": "\\mathrm{K}_{\\mathrm{RJ}}\\, \\mathrm{km}/\\mathrm{s}",
         "cmap": ["arctic"],
         "ticks": [[0, 10, 100]],
@@ -120,7 +120,7 @@
         "norm": "log"
     },
     "hcn": {
-        "title": "A_HCN",
+        "right_label": "A_HCN",
         "unit": "\\mathrm{K}_{\\mathrm{RJ}}\\, \\mathrm{km}/\\mathrm{s}",
         "cmap": ["arctic"],
         "ticks": [[0.01, 100]],
@@ -128,7 +128,7 @@
         "norm": "log"
     },
     "residual": {
-        "title": "r_",
+        "right_label": "r_",
         "unit": "\\mu\\mathrm{K}",
         "cmap": ["planck"],
         "ticks": [[-3, 0, 3]],
@@ -137,14 +137,14 @@
     },
     "smap": {
         "unit": "\\mu\\mathrm{K}",
-        "title": "s_",
+        "right_label": "s_",
         "cmap": ["planck"], 
         "ticks": [[-0.2, 0, 0.2]],
         "freq_ref": [null],
         "norm": null
     },
     "freqmap": {
-        "title": "A_",
+        "right_label": "A_",
         "unit": "\\mu\\mathrm{K}",
         "cmap": ["planck", "planck"], 
         "ticks": [[-300,0, 300], [-30,0,30]],
@@ -152,7 +152,7 @@
         "norm": null
     },
     "bpcorr": {
-        "title": "s_",
+        "right_label": "s_",
         "unit": "\\mu\\mathrm{K}",
         "cmap": ["planck"], 
         "ticks": [[-30,0,30]],
@@ -160,7 +160,7 @@
         "norm": null
     },
     "mask": {
-        "title": "\\mathrm{Mask}", 
+        "right_label": "\\mathrm{Mask}", 
         "unit": "",
         "cmap": ["neutral"], 
         "ticks": [[0, 1]],
@@ -168,7 +168,7 @@
         "norm": null
     },
     "unidentified": {
-        "title": null,
+        "right_label": null,
         "unit": "",
         "cmap": ["planck"], 
         "ticks": [null],

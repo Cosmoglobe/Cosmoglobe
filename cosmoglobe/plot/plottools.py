@@ -235,7 +235,7 @@ def symlog(m, linthresh=1.0):
     return np.log10(0.5 * (m + np.sqrt(4.0 + m * m)))
 
 
-def autoparams(comp, sig, title, ltitle, unit, ticks, min, max, norm, cmap, freq):
+def autoparams(comp, sig, right_label, left_label, unit, ticks, min, max, norm, cmap, freq):
     """
     This parses the autoparams json file for automatically setting parameters
     for an identified sky component.
@@ -252,7 +252,7 @@ def autoparams(comp, sig, title, ltitle, unit, ticks, min, max, norm, cmap, freq
             params = autoparams["unidentified"]
 
         # If none will be set to IQU
-        params["left_title"] = ["I", "Q", "U"][sig]
+        params["left_label"] = ["I", "Q", "U"][sig]
 
         # If l=0 use intensity cmap and ticks, else use QU
         l = 0 if sig < 1 else -1
@@ -263,24 +263,24 @@ def autoparams(comp, sig, title, ltitle, unit, ticks, min, max, norm, cmap, freq
 
         specials = ["residual", "freqmap", "bpcorr", "smap"]
         if any(j in comp for j in specials):
-            params["title"] = params["title"] + "{" + f'{("%.5f" % freq.value).rstrip("0").rstrip(".")}' + "}"
+            params["right_label"] = params["right_label"] + "{" + f'{("%.5f" % freq.value).rstrip("0").rstrip(".")}' + "}"
                     
         if "rms" in comp:
-            params["title"] += "^{\mathrm{RMS}}"
+            params["right_label"] += "^{\mathrm{RMS}}"
             params["cmap"] = "neutral"
             params["ticks"] = "comp"
         if "stddev" in comp:
-            params["title"] = "\sigma_{\mathrm{" + params["title"] + "}}"
+            params["right_label"] = "\sigma_{\mathrm{" + params["right_label"] + "}}"
             params["cmap"] = "neutral"
             params["ticks"] = "comp"
         if "mean" in comp:
-            params["title"] = "\langle " + comp["title"] + "\rangle"
+            params["right_label"] = "\langle " + comp["right_label"] + "\rangle"
 
         # Assign values if specified in function call
-        if title != None:
-            params["title"] = title
-        if ltitle != None:
-            params["left_title"] = ltitle
+        if right_label != None:
+            params["right_label"] = right_label
+        if left_label != None:
+            params["left_label"] = left_label
         if unit != None:
             params["unit"] = unit
         if ticks != None:
@@ -292,14 +292,14 @@ def autoparams(comp, sig, title, ltitle, unit, ticks, min, max, norm, cmap, freq
         if freq != None and params["unit"] != None:
             params["unit"] = f'{params["unit"]}\,@\,{("%.5f" % freq.value).rstrip("0").rstrip(".")}'+'\,\mathrm{GHz}'
         if ticks==None:
-            if freq!=None and params["freq_ref"]!=freq and comp not in specials:
+            if freq!=None and params["freq_ref"]!=freq.value and comp not in specials:
                 warnings.warn(f'Input frequency is different from reference, autosetting ticks')
                 print(f'input: {freq}, reference: {params["freq_ref"]}')
                 params["ticks"]="auto"
     else:
         params = {
-            "title": title,
-            "left_title": ["I", "Q", "U"][sig],
+            "right_label": right_label,
+            "left_label": ["I", "Q", "U"][sig],
             "unit": unit,
             "ticks": ticks,
             "norm": norm,
