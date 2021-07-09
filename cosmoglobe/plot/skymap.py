@@ -13,6 +13,7 @@ from .plottools import *
 # Fix for macos openMP duplicate bug
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
+@u.quantity_input(freq=u.Hz, fwhm=(u.arcmin, u.rad, u.deg))
 def plot(
     input,
     sig=0,
@@ -167,15 +168,16 @@ def plot(
                     m = np.full(hp.nside2npix(input.nside), m[sig])
             else:
                 if freq == None:
-                    freq = getattr(input, comp).freq_ref.value
+                    freq_ref = getattr(input, comp).freq_ref
+                    freq = freq_ref.value
                     m = getattr(input, comp).amp
                     if comp == "radio":
                         m = getattr(input, comp).get_map(m, fwhm=fwhm)
                         diffuse = False
                     try:
-                       freq = round(freq.value.squeeze()[sig], 5)*freq.unit
+                       freq = round(freq.squeeze()[sig], 5)*freq_ref.unit
                     except IndexError:
-                       freq = round(freq.value, 5)*freq.unit
+                       freq = round(freq, 5)*freq_ref.unit
                 else:
                     m = getattr(input, comp)(freq, fwhm=fwhm)
         if isinstance(m, u.Quantity):
