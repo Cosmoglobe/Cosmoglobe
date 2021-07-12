@@ -1,3 +1,4 @@
+from math import e
 from cosmoglobe.hub import COSMOGLOBE_COMPS
 from cosmoglobe.sky import Model
 from cosmoglobe.utils import utils
@@ -163,11 +164,13 @@ def comp_from_chain(file, component, component_class, model_nside, samples):
                 raise KeyError(f'item {arg} is not present in the chain')
 
 
-    other_items_ = get_items(file, samples, component, 
-                      [item for item in other_items_names])
+    other_items_ = get_items(
+        file, samples, component, [item for item in other_items_names]
+    )
     other_items = dict(zip(other_items_names, other_items_))
-    maps_ = get_items(file, samples, component, 
-                      [f'{map_}_map' for map_ in map_names])
+    maps_ = get_items(
+        file, samples, component, [f'{map_}_map' for map_ in map_names]
+    )
     maps = dict(zip(map_names, maps_))
     if maps:
         if model_nside is not None and nside != model_nside:
@@ -179,11 +182,13 @@ def comp_from_chain(file, component, component_class, model_nside, samples):
     if model_nside is None:
         model_nside = nside
 
-    alms_ = get_items(file, samples, component, 
-                      [f'{alm}_alm' for alm in alm_names])
+    alms_ = get_items(
+        file, samples, component, [f'{alm}_alm' for alm in alm_names]
+    )
     alms = dict(zip(alm_names, alms_))
-    alms_lmax_ = get_items(file, samples, component, 
-                           [f'{alm}_lmax' for alm in alm_names])
+    alms_lmax_ = _get_items(
+        file, samples[-1], component, [f'{alm}_lmax' for alm in alm_names]
+    )
     alms_lmax = dict(zip(alm_names, [int(lmax) for lmax in alms_lmax_]))
 
     for key, value in alms.items():
@@ -299,11 +304,11 @@ def _get_items(file, sample, component, items):
         items_to_return = []
         try:
             for item in items:
-                items_to_return.append(f[sample][component].get(item)[()])
+                items_to_return.append(f[sample][component][item][()])
 
             return items_to_return
         except TypeError:
-            return f[sample][component].get(items)[()]
+            return f[sample][component][items][()]
 
 
 def _get_averaged_items(file, samples, component, items):
@@ -328,27 +333,31 @@ def _get_averaged_items(file, samples, component, items):
         List of items averaged over samples from the chain file.
     
     """
+    if not items:
+        return []
+
     with h5py.File(file, 'r') as f:
         if isinstance(items, (tuple, list)):
             items_to_return = []
             for sample in samples:
+                
                 for idx, item in enumerate(items):
                     try:
                         items_to_return[idx] += (
-                            f[sample][component].get(item)[()]
+                            f[sample][component][item][()]
                         )
                     except IndexError:
                         items_to_return.append(
-                            f[sample][component].get(item)[()]
+                            f[sample][component][item][()]
                         )
 
             return [item/len(samples) for item in items_to_return]
 
         for sample in samples:
             try:
-                item_to_return += f[sample][component].get(items)[()]
+                item_to_return += f[sample][component][items][()]
             except UnboundLocalError:
-                item_to_return = f[sample][component].get(items)[()]
+                item_to_return = f[sample][component][items][()]
 
         return item_to_return/len(samples)
 
