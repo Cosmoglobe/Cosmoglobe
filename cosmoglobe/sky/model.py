@@ -174,12 +174,12 @@ class Model:
         for comp in self:
             if comp.diffuse:
                 comp_emission = comp(freq, bandpass, output_unit=output_unit)
-                for idx, col in enumerate(comp_emission):
-                    diffuse_emission[idx] += col
+                for idx, row in enumerate(comp_emission):
+                    diffuse_emission[idx] += row
             else:
                 comp_emission = comp(freq, bandpass, fwhm=fwhm, output_unit=output_unit)
-                for idx, col in enumerate(comp_emission):
-                    ptsrc_emission[idx] += col
+                for idx, row in enumerate(comp_emission):
+                    ptsrc_emission[idx] += row
 
         if fwhm is not None:
             # If diffuse emission is non-zero
