@@ -241,6 +241,7 @@ def autoparams(comp, sig, right_label, left_label, unit, ticks, min, max, norm, 
     for an identified sky component.
     """
     if freq != None and comp == None: comp = "freqmap"
+    if unit != None and isinstance(unit, u.UnitBase): unit = unit.to_string()
     if comp is not None:
         with open(Path(data_dir.__path__[0]) / "autoparams.json", "r") as f:
             autoparams = json.load(f)
@@ -252,13 +253,17 @@ def autoparams(comp, sig, right_label, left_label, unit, ticks, min, max, norm, 
             params = autoparams["unidentified"]
 
         # If none will be set to IQU
-        params["left_label"] = ["I", "Q", "U"][sig]
+        if sig == None:
+            params["left_label"] = left_label
+        else:
+            params["left_label"] = ["I", "Q", "U"][sig]
 
-        # If l=0 use intensity cmap and ticks, else use QU
-        l = 0 if sig < 1 else -1
-        params["cmap"] = params["cmap"][l]
-        params["ticks"] = params["ticks"][l]
-        params["freq_ref"] = params["freq_ref"][l]
+            # If l=0 use intensity cmap and ticks, else use QU
+            l = 0 if sig < 1 else -1
+            params["cmap"] = params["cmap"][l]
+            params["ticks"] = params["ticks"][l]
+            params["freq_ref"] = params["freq_ref"][l]
+
         if params["freq_ref"] != None: params["freq_ref"]*u.GHz
 
         specials = ["residual", "freqmap", "bpcorr", "smap"]
@@ -299,13 +304,17 @@ def autoparams(comp, sig, right_label, left_label, unit, ticks, min, max, norm, 
     else:
         params = {
             "right_label": right_label,
-            "left_label": ["I", "Q", "U"][sig],
             "unit": unit,
             "ticks": ticks,
             "norm": norm,
             "cmap": cmap,
             "freq_ref": freq,
         }
+            # If none will be set to IQU
+        if sig == None:
+            params["left_label"] = left_label
+        else:
+            params["left_label"] = ["I", "Q", "U"][sig]
 
     if params["ticks"] == None:
         params["ticks"] = [min, max]

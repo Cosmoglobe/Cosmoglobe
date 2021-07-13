@@ -16,7 +16,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 @u.quantity_input(freq=u.Hz, fwhm=(u.arcmin, u.rad, u.deg))
 def plot(
     input,
-    sig=0,
+    sig=None,
     comp=None,
     freq=None,
     ticks=None,
@@ -55,7 +55,7 @@ def plot(
         If cosmoglobe object is passed such as "model", specify comp or freq.
     sig : list of int or string ["I", "Q", "U"]
         Signal indices to be plotted. 0, 1, 2 interprated as IQU.
-        default = [0,]
+        default = None
     comp : string
         Component label for automatic identification of plotting
         parameters based on information from autoparams.json default = None
@@ -148,11 +148,14 @@ def plot(
 
     # If map is string, interprate as file path
     if isinstance(input, str):
-        m = hp.read_map(input, field=sig)
+        field = 0 if sig == None else sig
+        m = hp.read_map(input, field=field)
+
     elif isinstance(input, Model):
         """
         Get data from model object with frequency scaling        
         """
+        if sig == None: sig = 0
         if comp == None:
             if freq is not None:
                 m = input(freq, fwhm=fwhm,)
@@ -179,24 +182,46 @@ def plot(
                         m = getattr(input, comp).get_map(m, fwhm=fwhm)
                         diffuse = False
                     try:
-                       freq = round(freq.squeeze()[sig], 5)*freq_ref.unit
+                        freq = round(freq.squeeze()[sig], 5)*freq_ref.unit
                     except IndexError:
-                       freq = round(freq, 5)*freq_ref.unit
+                        freq = round(freq, 5)*freq_ref.unit
                 else:
                     m = getattr(input, comp)(freq, fwhm=fwhm)
-        if isinstance(m, u.Quantity):
-            m = m.value
-    else:
-        if isinstance(input, np.ndarray):
-            m = input
-        else:
-            raise TypeError(
-                f"Type {type(input)} of input not supported"
-                f"Supports numpy array, cosmoglobe model object or fits file string"
-            )
 
-    # Make sure we have 1d array at this point
-    m = m[sig] if m.ndim > 1 else m
+        # Make sure it is a 1d array
+        if m.ndim>1: m=m[sig]
+
+    elif isinstance(input, np.ndarray):
+        if input.ndim > 1:
+            if sig == None:
+                if comp != None: sig = 0 # For autolabeling when component is set
+                m = input[0]
+            else:
+                m = input[sig]
+        elif input.ndim == 1: 
+            if sig != None:
+                warnings.warn(
+                    f'Input is 1d array, but signal is specified,'
+                    f'this will therefore only be used for labelling and'
+                    f'component identification if specified'
+                )
+            m = input
+    else:
+        raise TypeError(
+            f"Type {type(input)} of input not supported"
+            f"Supports numpy array, cosmoglobe model object or fits file string"
+        )
+    
+    if isinstance(m, u.Quantity):
+        # Currently supports working with numpy arrays
+        m = m.value
+
+    if m.ndim > 1:
+            raise TypeError(
+                f"m dimension too large"
+            )
+            
+
     # Mask map
     if mask is not None:
         m = hp.ma(m)
@@ -225,6 +250,13 @@ def plot(
 
     # Ticks and ticklabels
     ticks = params["ticks"]
+    if params["norm"] == "hist":
+        ticks = "auto"
+        warnings.warn(
+            f'hist binning is not implemented,'
+            f'using 97.5th percentile ticks for similar behaviour'
+        )
+
     if ticks == "auto":
         ticks = get_percentile(m, 97.5)
     elif None in ticks:
@@ -251,6 +283,7 @@ def plot(
     #### Logscale ####
     if params["norm"] == "log":
         m, ticks = apply_logscale(m, ticks, linthresh=1)
+
 
     # Plot using mollview if interactive mode
     if interactive:

@@ -65,7 +65,7 @@
     },
     "ff": {
         "unit": "\\mu\\mathrm{K}_{\\mathrm{RJ}}",
-        "right_label": "A_ff",
+        "right_label": "A_{ff}",
         "cmap": ["freeze"],
         "ticks": [[40, 400, 2000]],
         "freq_ref": [40.0],
