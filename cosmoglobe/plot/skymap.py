@@ -194,6 +194,7 @@ def plot(
     elif isinstance(input, np.ndarray):
         if input.ndim > 1:
             if sig == None:
+                if comp != None: sig = 0 # For autolabeling when component is set
                 m = input[0]
             else:
                 m = input[sig]
