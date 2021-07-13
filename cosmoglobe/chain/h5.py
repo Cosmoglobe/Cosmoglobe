@@ -454,20 +454,54 @@ def unpack_alms_from_chain(data, lmax):
     return alms
 
 
+def chain_to_h5(chainfile, output_dir, nside=None, burn_in=None):
+    """Outputs the contents of a chainfile to model hdf5 files for a set of 
+    resulutions. 
+
+    Parameters
+    ----------
+    chainfile : str, `pathlib.PosixPath`
+        Path to commander3 hdf5 chainfile.
+    output_dir : str, `pathlib.PosixPath`
+        Path to where model hdf5 files will be output.
+    nside : int
+        Custom nside value. Overrides the DEFAULT_NSIDES. Default: None.
+    burn_in : Sample at which the chain has "burned in".
+    """
+
+    DEFAULT_NSIDES = [
+        1, 
+        2, 
+        4, 
+        8, 
+        16, 
+        32, 
+        64, 
+        128, 
+        256, 
+        512, 
+        1024, 
+        2048
+    ]
+
+    NSIDES = DEFAULT_NSIDES if nside is None else nside
+    for nside in NSIDES:
+        model = model_from_chain(chainfile, nside, burn_in=burn_in)
+        model_to_h5(model, output_dir)
 
 
-def model_to_h5(model, dirname):
-    """Writes a `cosmoglobe.sky.Model` to a hdf5 file.
+def model_to_h5(model, output_dir):
+    """Outputs a `cosmoglobe.sky.Model` to a hdf5 model file.
 
     Parameters
     ----------
     model : `cosmoglobe.sky.Model`
         A cosmoglobe sky model.
-    dirname : str, `pathlib.PosixPath`
-        dirname.
+    output_dir : str, `pathlib.PosixPath`
+        Path to where model hdf5 files will be output.
     """
 
-    dirname = pathlib.Path(dirname)
+    dirname = pathlib.Path(output_dir)
     dirname.mkdir(parents=True, exist_ok=True)
     filename = dirname / f'model_{model.nside}.h5'
 
@@ -497,7 +531,7 @@ def model_from_h5(filename):
     Parameters
     ----------
     filename : str, `pathlib.PosixPath`
-        Filename of the hdf5 file.
+        Filename of the hdf5 file from which to read in model.
     """
 
     filename = pathlib.Path(filename)
@@ -532,4 +566,3 @@ def model_from_h5(filename):
             )
 
     return model
-
