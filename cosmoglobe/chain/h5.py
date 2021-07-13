@@ -1,4 +1,7 @@
 from math import e
+from astropy.io.fits import file
+
+from astropy.units.equivalencies import spectral
 from cosmoglobe.hub import COSMOGLOBE_COMPS
 from cosmoglobe.sky import Model
 from cosmoglobe.utils import utils
@@ -9,6 +12,7 @@ import healpy as hp
 import numpy as np
 import sys
 import inspect
+import pathlib
 from tqdm import tqdm
 from numba import njit
 
@@ -448,3 +452,84 @@ def unpack_alms_from_chain(data, lmax):
                 i += 1
 
     return alms
+
+
+
+
+def model_to_h5(model, dirname):
+    """Writes a `cosmoglobe.sky.Model` to a hdf5 file.
+
+    Parameters
+    ----------
+    model : `cosmoglobe.sky.Model`
+        A cosmoglobe sky model.
+    dirname : str, `pathlib.PosixPath`
+        dirname.
+    """
+
+    dirname = pathlib.Path(dirname)
+    dirname.mkdir(parents=True, exist_ok=True)
+    filename = dirname / f'model_{model.nside}.h5'
+
+    with h5py.File(filename, 'w') as f:
+        for comp in model:
+            grp = f.create_group(comp.label)
+            amp = grp.create_dataset('amp', data=comp.amp.value)
+            amp.attrs['unit'] = comp.amp.unit.to_string()
+            if comp.freq_ref is not None:
+                freq = grp.create_dataset('freq_ref', data=comp.freq_ref.value)
+                freq.attrs['unit'] = comp.freq_ref.unit.to_string()
+
+            sp_grp = grp.create_group('spectral_parameters')
+            for key, value in comp.spectral_parameters.items():
+                if isinstance(value, u.Quantity):
+                    dset = sp_grp.create_dataset(key, data=value.value)
+                    dset.attrs['unit'] = value.unit.to_string()
+                else:
+                    sp_grp.create_dataset(key, data=value)
+
+
+
+def model_from_h5(filename):
+    """Initializes a `cosmoglobe.sky.Model` from a hdf5 file with a specific
+    format.
+
+    Parameters
+    ----------
+    filename : str, `pathlib.PosixPath`
+        Filename of the hdf5 file.
+    """
+
+    filename = pathlib.Path(filename)
+    model = Model()
+    with h5py.File(filename, 'r') as f:
+        for comp in f:
+            amp_dset = f.get(f'{comp}/amp')
+            amp = u.Quantity(
+                value=amp_dset[()], 
+                unit=amp_dset.attrs.get('unit', None)
+            )
+            freq_dset = f.get(f'{comp}/freq_ref')
+            if freq_dset:
+                freq_ref = u.Quantity(
+                    value=freq_dset[()], 
+                    unit=freq_dset.attrs.get('unit', None)
+                ) 
+            else:
+                freq_ref = None
+            
+            spectral_parameters = {}
+            for spec in f[comp]['spectral_parameters']:
+                dset = f.get(f'{comp}/spectral_parameters/{spec}')
+                spectral_parameters[spec] = u.Quantity(
+                    value=dset[()],
+                    unit=dset.attrs.get('unit', None)
+                )
+
+            component = COSMOGLOBE_COMPS[comp]
+            model._insert_component(
+                component(amp=amp, freq_ref=freq_ref, **spectral_parameters)
+            )
+
+    return model
+

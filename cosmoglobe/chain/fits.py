@@ -8,7 +8,7 @@ import pathlib
 import numpy as np
 
 
-def chain_to_fits(chainfile, dirname, burn_in=None):
+def chain_to_fits(chainfile, dirname, nside=None, burn_in=None):
     """Writes a commander3 chain to a sky model fits file.
     Parameters
     ----------
@@ -37,9 +37,12 @@ def chain_to_fits(chainfile, dirname, burn_in=None):
         # 2048,
     ]
 
-    for nside in DEFAULT_NSIDES:
+    nsides = nside if not nside is None else DEFAULT_NSIDES
+
+    for nside in nsides:
         model = model_from_chain(chainfile, nside=nside, burn_in=burn_in)
         model_to_fits(model, dirname)
+
 
 
 def model_to_fits(model, dirname):
@@ -69,8 +72,8 @@ def model_to_fits(model, dirname):
 
         if component.freq_ref is not None:
             freq_ref = component.freq_ref.value
-            if not isinstance(freq_ref, np.ndarray):
-                freq_ref = np.asarray(freq_ref)
+            if not isinstance(freq_ref, u.Quantity):
+                freq_ref = np.array([freq_ref])
             
             freq_hdu = fits.ImageHDU(
                 data=freq_ref, 
@@ -81,7 +84,7 @@ def model_to_fits(model, dirname):
         for key, value in component.spectral_parameters.items():
             spectral_hdu = fits.ImageHDU(
                 data=value.value,
-                name=f'{component.label}_{key}',
+                name=f'{component.label}_sp_{key}',
             )
             hdu_list.append(spectral_hdu)
         
@@ -97,28 +100,38 @@ def model_from_fits(dirname, nside):
     filename = dirname / f'model_{nside}.fits'
 
     with fits.open(filename) as hdu_list:
-        model_dict = dict.fromkeys(COSMOGLOBE_COMPS.keys(), {})
+        model_dict = dict.fromkeys(
+            COSMOGLOBE_COMPS.keys(), 
+            {'spectral_parameters':{}}
+        )
         for hdu in hdu_list[1:]:
-            comp, item = hdu.name.split("_")
-            if item.lower() == 'amp':
-                # value = 
-                pass
+            comp, item = hdu.name.lower().split("_", 1)
+            print(item)
+            if item == 'amp':
+                unit = u.uK if comp != 'radio' else u.mK
 
+            elif item in ['freq', 'nu_p']:
+                unit = u.GHz
 
-            # model_dict[hdu.name]['amp'] = 
+            elif item in ['T', 'Te']:
+                unit = u.K
 
-            # amp_unit = u.mK if comp == 'radio' else u.uK
-            # model_dict[comp] = {}
-            # model_dict[comp]['amp'] = u.Quantity(
-            #     hdu_list[f'{comp}_amp'].data, unit=amp_unit
-            # )
+            else:
+                unit = u.dimensionless_unscaled
 
-            # model_dict[comp]['spectral_parameters'] = {}
+            value = hdu.data * unit
 
+            # if '
 
-            
+            if item == 'amp':
+                model_dict[comp]['amp'] = value
+            elif item == 'freq':
+                model_dict[comp]['freq_ref'] = value
+            else:
+                model_dict[comp]['spectral_parameters'][item] = value            
 
-        model = Model(nside=nside)
+        model = model_from_dict(model_dict)
+        print(model)
 
 
 
@@ -133,7 +146,7 @@ def model_from_dict(model_dict):
         try:
             comp = COSMOGLOBE_COMPS[key]
         except KeyError:
-            raise ModelError(
+            raise KeyError(
                 'Model components does not match the Cosmoglobe Sky Model'
             )
 
@@ -144,9 +157,10 @@ def model_from_dict(model_dict):
         except KeyError as e:
             raise e
 
-        if freq_ref is not None: #CMB is initialized without a reference freq
-            model.insert(comp(key, amp, freq_ref, **spectral_parameters))    
-        else:
-            model.insert(comp(key, amp, **spectral_parameters))    
+        # if freq_ref is not None: #CMB is initialized without a reference freq
+        print(comp, amp.shape, freq_ref.shape, spectral_parameters.keys())
+        model._insert_component(comp(amp, freq_ref, **spectral_parameters))    
+        # else:
+            # model._insert_component(comp(amp, **spectral_parameters))    
         
     return model

@@ -65,14 +65,16 @@ class Component:
         """Reshapes the freq_ref into a broadcastable shape"""
         if freq_ref is None:
             return
-        elif freq_ref.ndim == 0:
+        elif freq_ref.size == 1:
             return freq_ref
-        elif freq_ref.ndim == 1:
+        elif freq_ref.size == 2:
             return np.expand_dims(
                 u.Quantity([freq_ref[0], freq_ref[1], freq_ref[1]]), axis=1
             )
+        elif freq_ref.size == 3:
+            return freq_ref.reshape((3,1))
         else:
-            raise ValueError('freq_ref must have a maximum len of 2')
+            raise ValueError('Unrecognized shape.')
 
 
     @u.quantity_input(freq=u.Hz, bandpass=(u.Jy/u.sr, u.K, None), 
@@ -719,8 +721,8 @@ class CMB(Component):
     label = 'cmb'
     diffuse = True
 
-    def __init__(self, amp):
-        super().__init__(amp, freq_ref=None)
+    def __init__(self, amp, freq_ref=None):
+        super().__init__(amp, freq_ref=freq_ref)
 
 
     def remove_dipole(self, return_dipole=False, gal_cut=10):
