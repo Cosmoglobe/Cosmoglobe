@@ -1,8 +1,4 @@
-from math import e
-from astropy.io.fits import file
-
-from astropy.units.equivalencies import spectral
-from cosmoglobe.hub import COSMOGLOBE_COMPS
+from cosmoglobe.sky import components
 from cosmoglobe.sky import Model
 from cosmoglobe.utils import utils
 
@@ -22,6 +18,15 @@ param_group = 'parameters'
 _ignored_comps = ['md', 'relquad']
 # _ignored_comps = ['md', 'relquad', 'radio']
 
+#Current Cosmoglobe Sky Model as of BP9
+COSMOGLOBE_COMPS = dict(
+    ame=components.AME,
+    cmb=components.CMB,
+    dust=components.Dust,
+    ff=components.FreeFree,
+    radio=components.Radio,
+    synch=components.Synchrotron,
+)
 
 def model_from_chain(file, nside=None, samples='all', burn_in=None, comps=None):
     """Returns a sky model from a commander3 chainfile.
@@ -470,18 +475,7 @@ def chain_to_h5(chainfile, output_dir, nside=None, burn_in=None):
     """
 
     DEFAULT_NSIDES = [
-        1, 
-        2, 
-        4, 
-        8, 
-        16, 
-        32, 
-        64, 
-        128, 
-        256, 
-        512, 
-        1024, 
-        2048
+        2**res for res in range(12)     # [1, 2, ... , 2048]
     ]
 
     NSIDES = DEFAULT_NSIDES if nside is None else nside

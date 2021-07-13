@@ -1,46 +1,44 @@
-from cosmoglobe.sky.model import Model
-from cosmoglobe.sky import components
+from cosmoglobe.chain.h5 import model_from_h5
 
 from astropy.utils.data import download_file
 
 data_url = 'http://cosmoglobe.uio.no/BeyondPlanck/precomputed/'
+   
 
-COSMOGLOBE_COMPS = dict(
-    ame=components.AME,
-    cmb=components.CMB,
-    dust=components.Dust,
-    ff=components.FreeFree,
-    radio=components.Radio,
-    synch=components.Synchrotron,
-)
-    
+def skymodel(nside, release=-1, cache=True):
+    """Initialize the Cosmoglobe Sky Model from a official release.
 
-def _download_BP_model(release: int, nside: int, cache: bool = True) -> Model:
-    model_name = f'BP_test_model_r{release}_n{nside}.pkl'
-    path_to_model = download_file(data_url + model_name, cache=cache)
+    By default, the model is initialized from the latest stable commander3 
+    release. The data required to initialize the model is downloaded and cached
+    by default every time a unique nside is selected.
 
-    with open(path_to_model, 'rb') as f:
-        return pickle.load(f)
-
-
-def BP(release: int , nside: int, cache: bool = True) -> Model:
-    """Loads the BeyondPlanck sky model for a given BP release. 
-
-    The model is downloaded and cached using astropy.utils.
-
-    Args:
-    -----
-    release (int):
-        BeyondPlanck release number.
-    nside (int):
-        Healpix resolution parameter. Model is downloaded at the given nside.
-    cache (bool):
-        If True, the downloaded model is cached away for later used.
-
-    Returns:
-    (cosmoglobe.sky.Model):
-        The BeyondPlanck sky model at a given nside for a release.
-        
+    Parameters
+    ----------
+    nside : int
+        Healpix resolution parameter to initialize the model at.
+    release : int, str
+        Data release version. By default, the latest stable release is selected,
+        which corresponds to -1.
+        Default: -1
+    cache : bool
+        Wether to cache the data after the download. Default: True.
     """
-    model = _download_BP_model(release, nside, cache=cache)
+
+    filename = f'model_{nside}.h5'
+    #download h5 file from the cosmoglobe web and cache
+
+    path = '/Users/metinsan/Documents/doktor/models/test1/'
+    model = model_from_h5(path+filename)
     return model
+
+
+def get_releases():
+    """Returns a list of stable Cosmoglobe data release versions. These can be
+    used as input to `cosmoglobe.hub.skymodel`.
+    """
+
+    stable_releases = [
+        'BP8',
+        'BP9',
+    ]
+    return stable_releases
