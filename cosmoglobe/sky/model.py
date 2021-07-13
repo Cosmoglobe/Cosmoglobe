@@ -71,7 +71,7 @@ class Model:
         if name in self.components:
             raise KeyError(f'component {name} already exists in model')
 
-        if component.diffuse:
+        if component.comp_type != 'ptsrc':
             nside = hp.get_nside(component.amp)
             if nside != self.nside:
                 if self.nside is None:
@@ -172,7 +172,7 @@ class Model:
         ptsrc_emission = u.Quantity(ptsrc_emission, unit=unit)
 
         for comp in self:
-            if comp.diffuse:
+            if comp.comp_type == 'diffuse':
                 comp_emission = comp(freq, bandpass, output_unit=output_unit)
                 for idx, row in enumerate(comp_emission):
                     diffuse_emission[idx] += row

@@ -1,8 +1,11 @@
+import pathlib
+from healpy.pixelfunc import get_nside
+from matplotlib.pyplot import show
 from cosmoglobe.chain.h5 import model_from_h5
 
 from astropy.utils.data import download_file
 
-data_url = 'http://cosmoglobe.uio.no/BeyondPlanck/precomputed/'
+data_url = pathlib.Path('http://cosmoglobe.uio.no/')
    
 
 def skymodel(nside, release=-1, cache=True):
@@ -25,9 +28,22 @@ def skymodel(nside, release=-1, cache=True):
     """
 
     filename = f'model_{nside}.h5'
-    #download h5 file from the cosmoglobe web and cache
-
     path = '/Users/metinsan/Documents/doktor/models/test1/'
+
+    # select latest
+    releases = get_releases()
+    if release == -1:
+        release = releases[-1]
+    else:
+        if release not in releases:
+            raise ValueError('Invalid release')
+
+    path_to_h5 = data_url / release / filename
+
+    # h5_file = download_file(path_to_h5, cache=cache, show_progress=True)
+    #download h5 file from the cosmoglobe web and cache
+    #     
+    # model = model_from_h5(h5_file)
     model = model_from_h5(path+filename)
     return model
 

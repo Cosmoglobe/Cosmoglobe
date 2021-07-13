@@ -16,7 +16,6 @@ from numba import njit
 param_group = 'parameters'
 # These will be dropped from component lists
 _ignored_comps = ['md', 'relquad']
-# _ignored_comps = ['md', 'relquad', 'radio']
 
 #Current Cosmoglobe Sky Model as of BP9
 COSMOGLOBE_COMPS = dict(
@@ -27,6 +26,7 @@ COSMOGLOBE_COMPS = dict(
     radio=components.Radio,
     synch=components.Synchrotron,
 )
+
 
 def model_from_chain(file, nside=None, samples='all', burn_in=None, comps=None):
     """Returns a sky model from a commander3 chainfile.

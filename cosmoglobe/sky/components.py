@@ -53,6 +53,10 @@ class Component:
         Default: None
 
     """
+
+    label = None
+    comp_type = None
+
     def __init__(self, amp, freq_ref, **spectral_parameters):
         self.amp = amp
         self.freq_ref = self._set_freq_ref(freq_ref)
@@ -137,7 +141,7 @@ class Component:
                     self.get_freq_scaling(freq, freq_ref, **spectral_parameters)
                     for freq in freq
                 )
-            if self.diffuse:
+            if self.comp_type == 'diffuse':
                 emission = amp*scaling
                 if fwhm.value != 0.0:
                     if self.is_polarized:
@@ -149,10 +153,13 @@ class Component:
                             emission[0], fwhm=fwhm.to(u.rad).value
                         )*emission.unit    
 
-            else:
-                # self.amp is not a healpix map for non diffuse comps
+            elif self.comp_type == 'ptsrc':
+                # self.amp is not a healpix map for point sources
                 emission = self.get_map(amp=amp*scaling, fwhm=fwhm)
             
+            elif self.comp_type == 'line':
+                pass
+
             if output_unit is not None:
                 try:
                     output_unit = u.Unit(output_unit)
@@ -178,7 +185,7 @@ class Component:
                 freq, bandpass, spectral_parameters
             )
 
-            if self.diffuse:
+            if self.comp_type == 'diffuse':
                 emission = amp*bandpass_scaling*bandpass_coefficient
                 if fwhm.value != 0.0:
                     if self.is_polarized:
@@ -190,10 +197,13 @@ class Component:
                             emission[0], fwhm=fwhm.to(u.rad).value
                         )*emission.unit   
 
-            else:
+            elif self.comp_type == 'ptsrc':
                 emission = self.get_map(
                     amp=amp*bandpass_scaling, fwhm=fwhm
                 )*bandpass_coefficient
+
+            elif self.comp_type == 'line':
+                pass
 
             return emission.to(_get_astropy_unit(output_unit))
 
@@ -260,7 +270,7 @@ class Component:
             Healpix map resolution parameter.
 
         """
-        if not self.diffuse:
+        if self.comp_type == 'ptsrc':
             return
 
         nside = hp.get_nside(self.amp)
@@ -334,8 +344,8 @@ class Synchrotron(Component):
     ----------
     label : str
         Component label.
-    diffuse : bool
-        Whether or not the component is diffuse in nature.
+    comp_type : str
+        Component type. Must be either 'diffuse', 'line', or 'ptsrc'. 
     amp : `astropy.units.Quantity`
         Emission templates of synchrotron at the reference frequencies given
         by `freq_ref`.
@@ -352,7 +362,7 @@ class Synchrotron(Component):
     """
 
     label = 'synch'
-    diffuse = True
+    comp_type = 'diffuse'
 
 
     def __init__(self, amp, freq_ref, beta):
@@ -423,8 +433,8 @@ class Dust(Component):
     ----------
     label : str
         Component label.
-    diffuse : bool
-        Whether or not the component is diffuse in nature.
+    comp_type : str
+        Component type. Must be either 'diffuse', 'line', or 'ptsrc'. 
     amp : `astropy.units.Quantity`
         Emission templates of synchrotron at the reference frequencies given
         by `freq_ref`.
@@ -441,7 +451,7 @@ class Dust(Component):
     """
 
     label = 'dust'
-    diffuse = True
+    comp_type = 'diffuse'
 
 
     def __init__(self, amp, freq_ref, beta, T):
@@ -515,8 +525,8 @@ class FreeFree(Component):
     ----------
     label : str
         Component label.
-    diffuse : bool
-        Whether or not the component is diffuse in nature.
+    comp_type : str
+        Component type. Must be either 'diffuse', 'line', or 'ptsrc'. 
     amp : `astropy.units.Quantity`
         Emission templates of synchrotron at the reference frequencies given
         by `freq_ref`.
@@ -533,7 +543,7 @@ class FreeFree(Component):
     """
 
     label = 'ff'
-    diffuse = True
+    comp_type = 'diffuse'
 
 
     def __init__(self, amp, freq_ref, Te):
@@ -601,8 +611,8 @@ class AME(Component):
     ----------
     label : str
         Component label.
-    diffuse : bool
-        Whether or not the component is diffuse in nature.
+    comp_type : str
+        Component type. Must be either 'diffuse', 'line', or 'ptsrc'. 
     amp : `astropy.units.Quantity`
         Emission templates of synchrotron at the reference frequencies given
         by `freq_ref`.
@@ -619,7 +629,7 @@ class AME(Component):
     """
 
     label = 'ame'
-    diffuse = True
+    comp_type = 'diffuse'
 
     def __init__(self, amp, freq_ref, nu_p):
         super().__init__(amp, freq_ref, nu_p=nu_p)
@@ -702,8 +712,8 @@ class CMB(Component):
     ----------
     label : str
         Component label.
-    diffuse : bool
-        Whether or not the component is diffuse in nature.
+    comp_type : str
+        Component type. Must be either 'diffuse', 'line', or 'ptsrc'. 
     amp : `astropy.units.Quantity`
         Emission templates of CMB in units of :math:`\mathrm{K}_{\mathrm{CMB}}´
     freq_ref : `astropy.units.Quantity`
@@ -719,7 +729,7 @@ class CMB(Component):
     """
 
     label = 'cmb'
-    diffuse = True
+    comp_type = 'diffuse'
 
     def __init__(self, amp, freq_ref=None):
         super().__init__(amp, freq_ref=freq_ref)
@@ -809,8 +819,8 @@ class Radio(Component):
     ----------
     label : str
         Component label.
-    diffuse : bool
-        Whether or not the component is diffuse in nature.
+    comp_type : str
+        Component type. Must be either 'diffuse', 'line', or 'ptsrc'. 
     amp : `astropy.units.Quantity`
         Point source amplitudes at the reference frequencies given
         by `freq_ref`. Note that this is not a healpix map.
@@ -828,7 +838,7 @@ class Radio(Component):
     """
 
     label = 'radio'
-    diffuse = False
+    comp_type = 'ptsrc'
 
 
     def __init__(self, amp, freq_ref, specind):
