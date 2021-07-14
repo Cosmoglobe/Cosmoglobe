@@ -328,7 +328,7 @@ class DiffuseComponent(Component):
 
         if bandpass is None:
             warnings.warn('No bandpass was passed. Default to top-hat bandpass')
-            bandpass = np.ones(len(freqs))/len(freqs) * u.K
+            bandpass = np.ones(len(freqs)) / len(freqs) * u.K
 
         bandpass = get_normalized_bandpass(bandpass, freqs)
         bandpass_coefficient = get_bandpass_coefficient(
@@ -338,8 +338,7 @@ class DiffuseComponent(Component):
         bandpass_scaling = self._get_bandpass_scaling(freqs, bandpass)
         emission = self.amp * bandpass_scaling * bandpass_coefficient
 
-        return emission.to(utils._get_astropy_unit(output_unit))
-
+        return emission
 
 
 
@@ -393,7 +392,7 @@ class PointSourceComponent(Component):
             freq, self.freq_ref, **self.spectral_parameters
         )
 
-        scaled_amps = self.amp*scaling
+        scaled_amps = self.amp * scaling
         emission = self.points_to_map(scaled_amps, fwhm=fwhm)
 
         if output_unit is not None:
@@ -426,7 +425,7 @@ class PointSourceComponent(Component):
 
         if bandpass is None:
             warnings.warn('No bandpass was passed. Default to top-hat bandpass')
-            bandpass = np.ones(len(freqs))/len(freqs) * u.K
+            bandpass = np.ones(len(freqs)) / len(freqs) * u.K
 
         bandpass = get_normalized_bandpass(bandpass, freqs)
         bandpass_coefficient = get_bandpass_coefficient(
@@ -434,12 +433,12 @@ class PointSourceComponent(Component):
         )
 
         bandpass_scaling = self._get_bandpass_scaling(freqs, bandpass)
-        scaled_amps = self.amp*bandpass_scaling
+        scaled_amps = self.amp * bandpass_scaling
         emission = (
             self.points_to_map(scaled_amps, fwhm=fwhm) * bandpass_coefficient
         )
 
-        return emission.to(utils._get_astropy_unit(output_unit))
+        return emission
 
 
     def points_to_map(self, amp, nside=None, fwhm=0.0*u.rad, sigma=None, 

@@ -1,9 +1,10 @@
+from cosmoglobe.utils import utils,
 from cosmoglobe.sky.templates import (
     Component, 
     DiffuseComponent, 
-    PointSourceComponent
+    PointSourceComponent,
+    LineComponent
 )
-from cosmoglobe.utils.utils import NsideError, _get_astropy_unit
 
 import astropy.units as u
 import healpy as hp
@@ -81,7 +82,7 @@ class Model:
                 if self.nside is None:
                     self.nside = nside
                 else:
-                    raise NsideError(
+                    raise ValueError(
                         f'component {name!r} has a reference map at NSIDE='
                         f'{nside}, but model NSIDE is set to {self.nside}'
                     )
@@ -160,7 +161,7 @@ class Model:
         diffuse_emission = np.zeros(shape)
         ptsrc_emission = np.zeros(shape)
 
-        unit = _get_astropy_unit(output_unit)
+        unit = utils._str_to_astropy_unit(output_unit)
         diffuse_emission = u.Quantity(diffuse_emission, unit=unit)
         ptsrc_emission = u.Quantity(ptsrc_emission, unit=unit)
 

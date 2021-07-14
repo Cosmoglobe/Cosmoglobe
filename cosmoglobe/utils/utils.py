@@ -44,7 +44,7 @@ def _set_spectral_units(maps):
     return maps
 
 
-def _get_astropy_unit(unit):
+def _str_to_astropy_unit(unit):
     try:
         output_unit = u.Unit(unit)
     except ValueError:
