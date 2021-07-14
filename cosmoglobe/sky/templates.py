@@ -192,16 +192,19 @@ class Component:
             Healpix map resolution parameter.
         """
 
+        if not hp.isnsideok(new_nside, nest=True):
+            raise ValueError(f'nside: {new_nside} is not valid.')
+
         # No healpix maps exist for point source components.
         if isinstance(self, PointSourceComponent):
+            self.nside = new_nside
             return
 
         nside = hp.get_nside(self.amp)
         if new_nside == nside:
             print(f'Model is already at nside {nside}')
             return
-        if not hp.isnsideok(new_nside, nest=True):
-            raise ValueError(f'nside: {new_nside} is not valid.')
+
 
         self.amp = u.Quantity(
             hp.ud_grade(self.amp.value, new_nside),
