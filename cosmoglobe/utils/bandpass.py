@@ -275,4 +275,4 @@ def b_iras(freq, freq_ref):
         Bandpass coefficient
 
     """
-    return (freq_ref/freq)
+    return (freq_ref / freq)

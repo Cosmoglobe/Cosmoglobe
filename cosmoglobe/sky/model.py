@@ -1,4 +1,8 @@
-from cosmoglobe.sky.components import Component
+from cosmoglobe.sky.templates import (
+    Component, 
+    DiffuseComponent, 
+    PointSourceComponent
+)
 from cosmoglobe.utils.utils import NsideError, _get_astropy_unit
 
 import astropy.units as u
@@ -71,7 +75,7 @@ class Model:
         if name in self.components:
             raise KeyError(f'component {name} already exists in model')
 
-        if component.comp_type != 'ptsrc':
+        if not isinstance(component, PointSourceComponent):
             nside = hp.get_nside(component.amp)
             if nside != self.nside:
                 if self.nside is None:
@@ -85,9 +89,10 @@ class Model:
         # are not stored in maps           
         else:
             try:
-                component._set_nside(self.nside)
+                component.nside
             except AttributeError:
-                pass
+                component.nside = self.nside
+
             
         setattr(self, name, component)
         self.components[name] = component
@@ -95,7 +100,7 @@ class Model:
 
     @u.quantity_input(freq=u.Hz, bandpass=(u.Jy/u.sr, u.K, None), 
                       fwhm=(u.rad, u.deg, u.arcmin))
-    def __call__(self, freq, bandpass=None, fwhm=0.0*u.rad, output_unit=u.uK):
+    def __call__(self, freqs, bandpass=None, fwhm=0.0*u.rad, output_unit=u.uK):
         r"""Simulates the model emission given a single or a set of
         frequencies.
 
@@ -148,16 +153,6 @@ class Model:
             Model emission.
         """
 
-        if bandpass is None and freq.ndim > 0:
-            return [
-                self._get_model_emission(freq, bandpass, fwhm, output_unit)
-                for freq in freq
-            ]
-
-        return self._get_model_emission(freq, bandpass, fwhm, output_unit)
-
-
-    def _get_model_emission(self, freq, bandpass, fwhm, output_unit):
         if self.is_polarized:
             shape = (3, hp.nside2npix(self.nside))
         else:
@@ -170,16 +165,19 @@ class Model:
         ptsrc_emission = u.Quantity(ptsrc_emission, unit=unit)
 
         for comp in self:
-            if comp.comp_type == 'diffuse':
-                comp_emission = comp(freq, bandpass, output_unit=output_unit)
-                for idx, row in enumerate(comp_emission):
-                    diffuse_emission[idx] += row
-            else:
-                comp_emission = comp(freq, bandpass, fwhm=fwhm, output_unit=output_unit)
+            if isinstance(comp, PointSourceComponent):
+                comp_emission = comp(
+                    freqs, bandpass, fwhm=fwhm, output_unit=output_unit
+                )
                 for idx, row in enumerate(comp_emission):
                     ptsrc_emission[idx] += row
 
-        if fwhm is not None:
+            elif isinstance(comp, DiffuseComponent):
+                comp_emission = comp(freqs, bandpass, output_unit=output_unit)
+                for idx, row in enumerate(comp_emission):
+                    diffuse_emission[idx] += row
+
+        if fwhm != 0.0:
             # If diffuse emission is non-zero
             print('Smoothing diffuse emission')
             if diffuse_emission.value.any():
