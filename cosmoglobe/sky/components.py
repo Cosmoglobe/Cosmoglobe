@@ -11,12 +11,15 @@ from cosmoglobe.utils.functions import (
     gaunt_factor, 
     thermodynamical_to_brightness
 )
-from cosmoglobe.utils.utils import _get_astropy_unit, gaussian_beam_2D
+from cosmoglobe.utils.utils import (
+    _get_astropy_unit, 
+    gaussian_beam_2D
+)
 
 from pathlib import Path
+from tqdm import tqdm
 from sys import exit
 import warnings
-from tqdm import tqdm
 import astropy.units as u
 import numpy as np
 import healpy as hp
@@ -364,7 +367,6 @@ class Synchrotron(Component):
     label = 'synch'
     comp_type = 'diffuse'
 
-
     def __init__(self, amp, freq_ref, beta):
         super().__init__(amp, freq_ref, beta=beta)
 
@@ -394,7 +396,7 @@ class Synchrotron(Component):
             Frequency scaling factor with dimensionless units.
 
         """
-        scaling = (freq/freq_ref)**beta
+        scaling = (freq / freq_ref) ** beta
         return scaling
 
 
@@ -453,7 +455,6 @@ class Dust(Component):
     label = 'dust'
     comp_type = 'diffuse'
 
-
     def __init__(self, amp, freq_ref, beta, T):
         super().__init__(amp, freq_ref, beta=beta, T=T)
 
@@ -492,7 +493,7 @@ class Dust(Component):
         blackbody_ratio = (
             blackbody_emission(freq, T) / blackbody_emission(freq_ref, T)
         )
-        scaling = (freq/freq_ref)**(beta-2) * blackbody_ratio
+        scaling = (freq / freq_ref) ** (beta - 2) * blackbody_ratio
         return scaling
 
 
@@ -545,7 +546,6 @@ class FreeFree(Component):
     label = 'ff'
     comp_type = 'diffuse'
 
-
     def __init__(self, amp, freq_ref, Te):
         super().__init__(amp, freq_ref, Te=Te)
 
@@ -577,7 +577,7 @@ class FreeFree(Component):
         """
 
         gaunt_factor_ratio = gaunt_factor(freq, Te) / gaunt_factor(freq_ref, Te)
-        scaling = (freq_ref/freq)**2 * gaunt_factor_ratio
+        scaling = (freq_ref / freq) ** 2 * gaunt_factor_ratio
         return scaling
 
 
@@ -657,7 +657,6 @@ class AME(Component):
             {s_{0}^{\mathrm{sd}}\left(\nu_{0, \mathrm{sd}} \cdot \frac{\nu_{p}}
             {30.0 \mathrm{GHz}}\right)}  
 
-
         Parameters
         ----------
         freq : `astropy.units.Quantity`
@@ -680,11 +679,11 @@ class AME(Component):
         if not (np.min(spdust2[0]) < ((freq*peak_scale).si.value).any() < np.max(spdust2[0])):
             return u.Quantity(0, unit=u.dimensionless_unscaled)
 
-        interp = np.interp((freq*peak_scale).si.value, spdust2[0], spdust2[1])
+        interp = np.interp((freq * peak_scale).si.value, spdust2[0], spdust2[1])
         interp_ref = (
-            np.interp((freq_ref*peak_scale).si.value, spdust2[0], spdust2[1])
+            np.interp((freq_ref * peak_scale).si.value, spdust2[0], spdust2[1])
         )
-        scaling = interp/interp_ref
+        scaling = interp / interp_ref
         return scaling
 
 
@@ -804,7 +803,6 @@ class Radio(Component):
         \boldsymbol{s}_{\mathrm{RJ}}^{\mathrm{src}}(\nu) \propto
         \left(\frac{\nu}{\nu_{\mathrm{0, src}}}\right)^{\alpha-2}
 
-
     Parameters
     ----------
     amp : `astropy.units.Quantity`
@@ -839,7 +837,6 @@ class Radio(Component):
 
     label = 'radio'
     comp_type = 'ptsrc'
-
 
     def __init__(self, amp, freq_ref, specind):
         super().__init__(amp, freq_ref, specind=specind)
@@ -932,13 +929,13 @@ class Radio(Component):
 
         fwhm = fwhm.to(u.rad)
         if sigma is None:
-            sigma = fwhm / (2*np.sqrt(2 * np.log(2)))
+            sigma = fwhm / (2 * np.sqrt(2 * np.log(2)))
 
         # No smoothing nesecarry. Directly map sources to pixels
         if sigma == 0.0:
             warnings.warn('mapping point sources to pixels without beam smoothing.')
             pixels = hp.ang2pix(nside, *angular_coords.T, lonlat=True)
-            beam_area = hp.nside2pixarea(nside)*u.sr
+            beam_area = hp.nside2pixarea(nside) * u.sr
             radio_template[pixels] = amp
 
         # Apply gaussian (or other beam) to point source and neighboring pixels
@@ -949,7 +946,7 @@ class Radio(Component):
                     'fwhm must be >= pixel resolution to resolve the '
                     'point sources.'
                 )
-            beam_area = 2 * np.pi * sigma**2
+            beam_area = 2 * np.pi * sigma ** 2
             r_max = n_fwhm * fwhm.value
 
             with tqdm(total=len(angular_coords), file=sys.stdout) as pbar:
@@ -964,7 +961,7 @@ class Radio(Component):
                             [pix_lon[inds], pix_lat[inds]]), np.array([lon, lat]
                         ), lonlat=True
                     )
-                    radio_template[inds] += amp[idx]*gaussian_beam_2D(r, sigma)
+                    radio_template[inds] += amp[idx] * gaussian_beam_2D(r, sigma)
                     pbar.update()
 
         radio_template = radio_template.to(
@@ -1003,5 +1000,5 @@ class Radio(Component):
 
         """
 
-        scaling = (freq/freq_ref)**(specind-2)
+        scaling = (freq / freq_ref) ** (specind - 2)
         return scaling

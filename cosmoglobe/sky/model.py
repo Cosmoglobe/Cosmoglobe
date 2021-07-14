@@ -129,8 +129,6 @@ class Model:
             \mathrm{src}}}\right)^{\alpha_{j, \mathrm{src}}-2}
             \end{aligned}
 
-
-
         Parameters
         ----------
         freq : `astropy.units.Quantity`
@@ -286,8 +284,6 @@ class Model:
         self.nside = new_nside
         for comp in self:
             comp.to_nside(new_nside)
-
-
 
 
     @property
