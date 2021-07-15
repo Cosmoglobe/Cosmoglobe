@@ -246,7 +246,7 @@ def plot(
                     freq = freq_ref.value
                     m = getattr(input, comp).amp
                     if comp == "radio":
-                        m = getattr(input, comp).get_map(m, fwhm=fwhm)
+                        m = getattr(input, comp)(freq_ref, fwhm=fwhm)
                         diffuse = False
                     try:
                         freq = round(freq.squeeze()[sig], 5) * freq_ref.unit
