@@ -16,3 +16,4 @@ dependencies:
   - cmasher
   - tqdm
   - ipython
+  - pydata-sphinx-theme
