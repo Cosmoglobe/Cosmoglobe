@@ -132,7 +132,7 @@ def load_cmap(cmap, logscale):
     This function takes the colormap label and loads the colormap object
     """
 
-    if cmap == None:
+    if cmap is None:
         cmap = "planck"
     if "planck" in cmap:
         if "planck_log" in cmap:  # logscale:
@@ -174,7 +174,7 @@ def load_cmap(cmap, logscale):
         cmap_path = Path(data_dir.__path__[0]) / "wmap_cmap.dat"
         wmap_cmap = np.loadtxt(cmap_path) / 255.0
         if cmap.endswith("_r"):
-            planck_cmap = planck_cmap[::-1]
+            wmap_cmap = wmap_cmap[::-1]
         cmap = ListedColormap(wmap_cmap, "wmap")
     elif cmap.startswith("black2"):
         cmap = LinearSegmentedColormap.from_list(cmap, cmap.split("2"))
@@ -240,8 +240,8 @@ def autoparams(comp, sig, right_label, left_label, unit, ticks, min, max, norm, 
     This parses the autoparams json file for automatically setting parameters
     for an identified sky component.
     """
-    if freq != None and comp == None: comp = "freqmap"
-    if unit != None and isinstance(unit, u.UnitBase): unit = unit.to_string()
+    if freq is not None and comp is None: comp = "freqmap"
+    if unit is not None and isinstance(unit, u.UnitBase): unit = unit.to_string()
     if comp is not None:
         with open(Path(data_dir.__path__[0]) / "autoparams.json", "r") as f:
             autoparams = json.load(f)
@@ -253,18 +253,19 @@ def autoparams(comp, sig, right_label, left_label, unit, ticks, min, max, norm, 
             params = autoparams["unidentified"]
 
         # If none will be set to IQU
-        if sig == None:
+        if sig is None:
             params["left_label"] = left_label
+            sig = 0
         else:
             params["left_label"] = ["I", "Q", "U"][sig]
 
-            # If l=0 use intensity cmap and ticks, else use QU
-            l = 0 if sig < 1 else -1
-            params["cmap"] = params["cmap"][l]
-            params["ticks"] = params["ticks"][l]
-            params["freq_ref"] = params["freq_ref"][l]
+        # If l=0 use intensity cmap and ticks, else use QU
+        l = 0 if sig < 1 else -1
+        params["cmap"] = params["cmap"][l]
+        params["ticks"] = params["ticks"][l]
+        params["freq_ref"] = params["freq_ref"][l]
 
-        if params["freq_ref"] != None: params["freq_ref"]*u.GHz
+        if params["freq_ref"] is not None: params["freq_ref"]*u.GHz
 
         specials = ["residual", "freqmap", "bpcorr", "smap"]
         if any(j in comp for j in specials):
@@ -282,19 +283,19 @@ def autoparams(comp, sig, right_label, left_label, unit, ticks, min, max, norm, 
             params["right_label"] = "\langle " + comp["right_label"] + "\rangle"
 
         # Assign values if specified in function call
-        if right_label != None:
+        if right_label is not None:
             params["right_label"] = right_label
-        if left_label != None:
+        if left_label is not None:
             params["left_label"] = left_label
-        if unit != None:
+        if unit is not None:
             params["unit"] = unit
-        if ticks != None:
+        if ticks is not None:
             params["ticks"] = ticks
-        if norm != None:
+        if norm is not None:
             params["norm"] = norm
-        if cmap != None:
+        if cmap is not None:
             params["cmap"] = cmap
-        if freq != None and params["unit"] != None:
+        if freq is not None and params["unit"] is not None:
             params["unit"] = f'{params["unit"]}\,@\,{("%.5f" % freq.value).rstrip("0").rstrip(".")}'+'\,\mathrm{GHz}'
         if ticks==None:
             if freq!=None and params["freq_ref"]!=freq.value and comp not in specials:
@@ -310,21 +311,28 @@ def autoparams(comp, sig, right_label, left_label, unit, ticks, min, max, norm, 
             "cmap": cmap,
             "freq_ref": freq,
         }
-            # If none will be set to IQU
-        if sig == None:
+        
+        # If none will be set to IQU
+        if sig is None:
             params["left_label"] = left_label
         else:
             params["left_label"] = ["I", "Q", "U"][sig]
 
-    if params["ticks"] == None:
+    if params["ticks"] is None:
         params["ticks"] = [min, max]
     if ticks != "auto":
-        if min != None:
+        if min is not None:
             if params["ticks"] == "auto": params["ticks"] = [None, None]
             params["ticks"][0] = min
-        if max != None:
+        if max is not None:
             if params["ticks"] == "auto": params["ticks"] = [None, None]
             params["ticks"][-1] = max
+
+    # Math text in labels
+    for i in ["right_label", "left_label", "unit",]:
+        if params[i] and params[i] != "":
+            params[i] = r"$" + params[i] + "$"
+
     return params
 
 

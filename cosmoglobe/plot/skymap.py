@@ -25,8 +25,6 @@ def plot(
     cbar=True,
     unit=None,
     coord=None,
-    graticule=False,
-    projection_type="mollweide",
     fwhm=0.0*u.arcmin,
     nside=None,
     mask=None,
@@ -53,60 +51,67 @@ def plot(
         Map data input given as numpy array either 1d or index given by "sig".
         Also supports fits-file path string or cosmoglobe model.
         If cosmoglobe object is passed such as "model", specify comp or freq.
-    sig : list of int or string ["I", "Q", "U"]
-        Signal indices to be plotted. 0, 1, 2 interprated as IQU.
+    sig : list of int or string ["I", "Q", "U"], optional
+        Signal indices to be plotted. 0, 1, 2 interprated as IQU. 
         default = None
-    comp : string
+    comp : string, optional
         Component label for automatic identification of plotting
-        parameters based on information from autoparams.json default = None
-    freq : float
+        parameters based on information from autoparams.json 
+        default = None
+    freq : astropy GHz, optional
         frequency in GHz needed for scaling maps when using a model object input
-    ticks : list or str
+        default = None
+    min : float, optional
+      The minimum range value. If specified, overwrites autodetector.
+      default = None
+    max : float, optional
+      The maximum range value. If specified, overwrites autodetector.
+      default = None
+    ticks : list or str, optional
         Min and max value for data. If None, uses 97.5th percentile.
         default = None
-    cbar : bool
-        Adds a cbar, and "cb" to output filename.
-        cbar = False
-    graticule : cbar
-        Adds graticule to figure.
-        default = False
-    fwhm : float
+    cbar : bool, optional
+        Toggles the colorbar
+        cbar = True
+    fwhm : astropy arcmin/rad/deg, optional
         Optional map smoothing. FWHM of gaussian smoothing in arcmin.
         default = 0.0
-    mask : array of healpix mask
+    mask : str path or np.ndarray, optional
         Apply a mask file to data
         default = None
-    remove_dip : bool
+    remove_dip : bool, optional
         If mdmask is specified, fits and removes a dipole.
         default = True
-    remove_mono : bool
+    remove_mono : bool, optional
         If mdmask is specified, fits and removes a monopole.
         default = True
-    norm : str
+    norm : str, optional
         if norm=="linear":
             normal 
         if norm=="log":
             Normalizes data using a semi-logscale linear between -1 and 1.
             Autodetector uses this sometimes, you will be warned.
         default = None
-    darkmode : bool
+    darkmode : bool, optional
         Plots all outlines in white for dark backgrounds, and adds "dark" in
         filename.
         default = False
-    cmap : str
+    cmap : str, optional
         Colormap (ex. sunburst, planck, jet). Both matplotliib and cmasher
         available as of now. Also supports qualitative plotly map, [ex.
         q-Plotly-4 (q for qualitative 4 for max color)] Sets planck as default.
         default = None
-    title : str
+    title : str, optional
         Sets the full figure title. Has LaTeX functionaliity (ex. $A_{s}$.)
         default = None
-    right_label : str
+    right_label : str, optional
         Sets the upper right title. Has LaTeX functionaliity (ex. $A_{s}$.)
         default = None
-    left_label : str
+    left_label : str, optional
         Sets the upper left title. Has LaTeX functionaliity (ex. $A_{s}$.)
         default = None
+    kwargs : keywords
+      any additional keyword is passed healpy projview
     """
     # Pick sizes from size dictionary for page width plots
     if isinstance(xsize, str):
@@ -117,19 +122,6 @@ def plot(
     #figratio = height / xsize
     xsize = int((345/4.7)*xsize)
     set_style(darkmode)
-
-    # Currently not working with projview
-    """
-    # Make figure
-    fig, ax = make_fig(
-        (width, height),
-        fignum,
-        hold,
-        subplot,
-        reuse_axes, 
-        projection="mollweide",
-    )
-    """
 
     # Translate sig to correct format
     stokes = [
@@ -148,15 +140,15 @@ def plot(
 
     # If map is string, interprate as file path
     if isinstance(input, str):
-        field = 0 if sig == None else sig
+        field = 0 if sig is None else sig
         m = hp.read_map(input, field=field)
 
     elif isinstance(input, Model):
         """
         Get data from model object with frequency scaling        
         """
-        if sig == None: sig = 0
-        if comp == None:
+        if sig is None: sig = 0
+        if comp is None:
             if freq is not None:
                 m = input(freq, fwhm=fwhm,)
             else:
@@ -174,7 +166,7 @@ def plot(
                     )
                     m = np.full(hp.nside2npix(input.nside), m[sig])
             else:
-                if freq == None:
+                if freq is None:
                     freq_ref = getattr(input, comp).freq_ref
                     freq = freq_ref.value
                     m = getattr(input, comp).amp
@@ -193,13 +185,13 @@ def plot(
 
     elif isinstance(input, np.ndarray):
         if input.ndim > 1:
-            if sig == None:
-                if comp != None: sig = 0 # For autolabeling when component is set
+            if sig is None:
+                if comp is not None: sig = 0 # For autolabeling when component is set
                 m = input[0]
             else:
                 m = input[sig]
         elif input.ndim == 1: 
-            if sig != None:
+            if sig is not None:
                 warnings.warn(
                     f'Input is 1d array, but signal is specified,'
                     f'this will therefore only be used for labelling and'
@@ -212,23 +204,20 @@ def plot(
             f"Supports numpy array, cosmoglobe model object or fits file string"
         )
     
+    # Convert astropy map to numpy array
     if isinstance(m, u.Quantity):
-        # Currently supports working with numpy arrays
         m = m.value
-
-    if m.ndim > 1:
-            raise TypeError(
-                f"m dimension too large"
-            )
-            
 
     # Mask map
     if mask is not None:
+        if isinstance(mask, str):
+            mask = hp.read_map(mask)
+
         m = hp.ma(m)
         m.mask = np.logical_not(mask)
 
-    # udgrade map
-    if nside != None and nside != hp.get_nside(m):
+    # ud_grade map
+    if nside is not None and nside != hp.get_nside(m):
         m = hp.ud_grade(m, nside)
     else:
         nside = hp.get_nside(m)
@@ -250,40 +239,31 @@ def plot(
 
     # Ticks and ticklabels
     ticks = params["ticks"]
-    if params["norm"] == "hist":
-        ticks = "auto"
-        warnings.warn(
-            f'hist binning is not implemented,'
-            f'using 97.5th percentile ticks for similar behaviour'
-        )
-
-    if ticks == "auto":
+    if ticks == "auto" or params["norm"]=="hist":
         ticks = get_percentile(m, 97.5)
     elif None in ticks:
         pmin, pmax = get_percentile(m, 97.5)
-        if ticks[0] == None:
+        if ticks[0] is None:
             ticks[0] = pmin
-        if ticks[-1] == None:
+        if ticks[-1] is None:
             ticks[-1] = pmax
 
     # Special case if dipole is detected in freqmap
-    if freq != None and comp == None:
+    if freq is not None and comp is None:
         # if colorbar is super-saturated
-        if len(m[abs(m)>ticks[-1]])/hp.nside2npix(nside) > 0.7:
+        while len(m[abs(m)>ticks[-1]])/hp.nside2npix(nside) > 0.7:
             ticks = [tick*10 for tick in ticks]
+            print("Colormap saturated. Expanding color-range.")
+
+    # Create ticklabels from final ticks
     ticklabels = [fmt(i, 1) for i in ticks]
 
-    # Math text in labels
-    for i in ["right_label", "left_label", "unit",]:
-        if params[i] and params[i] != "":
-            params[i] = r"$" + params[i] + "$"
-
-    #### Color map #####
-    cmap = load_cmap(params["cmap"], params["norm"])
-    #### Logscale ####
+    # Semi-log normalization
     if params["norm"] == "log":
         m, ticks = apply_logscale(m, ticks, linthresh=1)
 
+    # Colormap
+    cmap = load_cmap(params["cmap"], params["norm"])
 
     # Plot using mollview if interactive mode
     if interactive:
@@ -291,7 +271,7 @@ def plot(
             params["norm"] = None
             # Ticklabels not available for this
             params["unit"] = r'$\log($' +params["unit"]+r"$)$"
-        if title == None: ttl = params["right_title"]
+        if right_label is None: ttl = params["right_title"]
         ret = hp.mollview(
             m,
             min=ticks[0],
@@ -313,9 +293,6 @@ def plot(
         max=ticks[-1],
         cbar=False,
         cmap=cmap,
-        projection_type=projection_type,
-        graticule=graticule,
-        coord=coord,
         xsize=xsize,
         #override_plot_properties={
         #    "figure_width": width,
@@ -332,9 +309,9 @@ def plot(
         #},
         **kwargs,
     )
-    plt.gca().collections[-1].colorbar.remove()
-
+    
     # Remove color bar because of healpy bug
+    plt.gca().collections[-1].colorbar.remove()
     # Add pretty color bar
     if cbar:
         apply_colorbar(
@@ -356,6 +333,7 @@ def plot(
     plt.text(
         -4.5, 1.1, params["left_label"], ha="center", va="center",
     )
+
 
 
 def apply_colorbar(fig, ax, image, ticks, ticklabels, unit, linthresh, norm=None):
