@@ -1,5 +1,5 @@
 from cosmoglobe.utils import utils
-from cosmoglobe.sky.templates import (
+from cosmoglobe.sky.base import (
     Component, 
     DiffuseComponent, 
     PointSourceComponent,
@@ -12,14 +12,15 @@ import numpy as np
 
 
 class Model:
-    r"""The Cosmoglobe Sky Model.
+    r"""Class that interfaces the Cosmoglobe Sky Model with commander3 
+    outputs for the purpose of producing astrophysical sky maps.
 
-    This class acts as a container for the various components making up the
-    sky model and provides methods to simulate the sky emission at a given
-    frequency or over a bandpass. The primary use case of this class is to 
-    call its ``__call__`` function which simulates the sky at a single 
-    frequency :math:`\nu` or integrated over a bandpass :math:`\tau` given 
-    the present components in the model.
+    This class acts as a container for the various components making up 
+    the Cosmoglobe Sky Model, and provides methods to simulate the sky. 
+    The primary use case of this class is to call its ``__call__`` 
+    function, which simulates the sky at a single frequency :math:`\nu`, 
+    or integrated over a bandpass :math:`\tau` given the present 
+    components in the model.
     
     Attributes
     ----------
@@ -43,8 +44,8 @@ class Model:
 
     Methods
     -------
-    __init__
     __call__
+    __init__
     disable
     enable
     to_nside
@@ -57,13 +58,15 @@ class Model:
     """
 
     def __init__(self, components=None, nside=None):
-        """Initialization of a sky model.
+        """Initializing a sky model. 
 
         Parameters
         ----------
         components : list, optional
-            A list of `cosmoglobe.sky.component.Component` objects that are added 
-            to the model.
+            A list of `cosmoglobe.sky.component.Component` objects that 
+            constitutes the sky model (by default this is None and the 
+            components are iteratively added as they are read from a 
+            commander3 chain).
         nside : int, optional
             Healpix resolution of the maps in sky model (the default is 
             None, in which the model automatically detects the nside from
@@ -115,25 +118,23 @@ class Model:
         freq=u.Hz, bandpass=(u.Jy/u.sr, u.K, None), fwhm=(u.rad, u.deg, u.arcmin)
     )
     def __call__(self, freqs, bandpass=None, fwhm=0.0*u.rad, output_unit=u.uK):
-        r"""Computes the model emission at a single frequency 
-        :math:`\nu` or integrated over a bandpass :math:`\tau` given 
-        the present components in the model.
-
-        Optionally, a bandpass profile can be given along with the 
-        corresponding frequencies.
+        r"""Computes the model emission (sum of all component emissions) 
+        at a single frequency :math:`\nu` or integrated over a bandpass :math:`\tau`.
 
         Parameters
         ----------
-        freq : `astropy.units.Quantity`
-            A frequency, or list of frequencies for which to evaluate the
+        freqs : `astropy.units.Quantity`
+            A frequency, or a list of frequencies for which to evaluate the
             sky emission.
         bandpass : `astropy.units.Quantity`, optional
-            Bandpass profile corresponding to the frequencies. If None, a
-            delta peak in frequency is assumed at the given frequencies.
-            Default: None
+            Bandpass profile corresponding to the frequencies. Default is 
+            None. If `bandpass` is None and `freqs` is a single frequency,
+            a delta peak is assumed (unless `freqs` is a list of 
+            frequencies, for which a top-hat bandpass is used to perform  
+            bandpass integration instead).
         fwhm : `astropy.units.Quantity`, optional
             The full width half max parameter of the Gaussian (Default is 
-            0.0 which indicates no smoothing)
+            0.0, which indicates no smoothing of output maps).
         output_unit : `astropy.units.Unit`, optional
             The desired output units of the emission (By default the 
             output unit of the model is always in 
@@ -174,7 +175,7 @@ class Model:
             / k T_{\mathrm{d}}}-1}+\\&+\sum_{j=1}^{N_{\mathrm{src}}} 
             \boldsymbol{a}_{\mathrm{src}}^{j}\left(\frac{\nu}{\nu_{0, 
             \mathrm{src}}}\right)^{\alpha_{j, \mathrm{src}}-2}
-            \end{aligned}
+            \end{aligned}.
 
         For more information on the current implementation of the 
         Cosmoglobe Sky Model, see `BeyondPlanck (2020), Section 3.6 

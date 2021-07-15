@@ -1,6 +1,6 @@
-=====================================
-Installation procedure for cosmoglobe
-=====================================
+============
+Installation
+============
 
 Dependencies
 ------------

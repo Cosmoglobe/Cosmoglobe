@@ -33,7 +33,7 @@ release = '1.0.0'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    "sphinx_rtd_theme",
+    "sphinx.ext.autosectionlabel",
     "sphinx.ext.autosummary",
     "sphinx.ext.autodoc",
     'sphinx.ext.viewcode',
@@ -56,13 +56,30 @@ autosummary_generate = True
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'sphinx_rtd_theme'
 numpydoc_show_class_members = False
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+
+# Using pydata theme with custom numpy css
+html_theme = 'pydata_sphinx_theme'
+
+html_logo = '_static/cosmoglobe.svg'
+
+html_favicon = '_static/favicon/favicon-96x96.png'
+
+html_theme_options = {
+    'logo_link': 'index',
+    'collapse_navigation': True,
+    'github_url': 'https://github.com/Cosmoglobe/Cosmoglobe',
+}
+
+html_static_path = ['_static/']
+
+html_css_files = [
+    'css/cosmoglobe.css'
+]
 
 source_suffix = ['.rst', '.ipynb']
 

@@ -1,12 +1,15 @@
+from matplotlib import interactive
 from context import cosmoglobe
+from cosmoglobe import sky
 from cosmoglobe.sky import model_from_chain
-from cosmoglobe.hub import save_model, load_model
+from cosmoglobe.hub import skymodel
+from cosmoglobe.sky.components import DiffuseComponent
+
 import healpy as hp
 import matplotlib.pyplot as plt
 import numpy as np
 import astropy.units as u
 from sys import exit
-import sys
 import pathlib
 
 from cosmoglobe.plot import plot
@@ -18,57 +21,45 @@ chain = chain_dir / "chain_test.h5"
 # chain = chain_dir / "bla.h5"
 bandpass = chain_dir / "wmap_bandpass.txt"
 wmap = hp.read_map(chain_dir / 'wmap_band_iqusmap_r9_9yr_K_v5.fits')
-
-model = model_from_chain(chain, nside=256)
-# model = model_from_chain(chain, nside=256, burn_in=20)
-# model.remove('radio')
 bp_freqs, bp, _ = np.loadtxt(bandpass, unpack=True)
 bp_freqs*= u.GHz
 bp *= u.K
-# model(fwhm)
 
-# model.dust(freq, fwhm)
-# model.disable('cmb')
-dipole = model.cmb.remove_dipole(return_dipole=True)
-# hp.mollview(dipole, min=-3400, max=3400)
-# hp.mollview(model.cmb.amp[0], min=-200, max=200)
+# model = model_from_chain(chain, nside=256)
 
+# plt.plot
+
+model = skymodel(nside=256)
+# print(help(model))
+emission = model.dust(50*u.GHz, fwhm=50*u.arcmin, output_unit='MJy/sr')
+# print(emission[0])
+# np.linspace
+model.cmb.remove_dipole()
 # model.disable('radio')
+hp.mollview(model(bp_freqs, bp, fwhm=0.88*u.deg, output_unit='uK_RJ')[0], unit='uK_RJ', norm='hist')
+# hp.mollview(model(bp_freqs, bp, fwhm=0.88*u.deg, output_unit='mK_CMB')[0], unit='mK_CMB', norm='hist')
+# hp.mollview(model(bp_freqs, bp, fwhm=60*u.arcmin, output_unit='MJy/sr')[0], unit='MJy/sr', norm='hist')
+# hp.mollview(model(bp_freqs, bp, fwhm=60*u.arcmin, output_unit='uK_CMB')[0], unit='uK_CMB', norm='hist')
+# hp.mollview(model(bp_freqs, bp, fwhm=60*u.arcmin)[0],unit='uK_RJ', norm='hist')
+# hp.mollview(emission[0], norm='hist')
 
-# model.dust.spectral_parameters['T'] = np.random.randint(low=10 , high= 50,size=np.shape(model.synch.spectral_parameters['beta']))*u.K
-# model.dust.spectral_parameters['beta'] = np.random.randint(low=-3 , high= -1,size=np.shape(model.synch.spectral_parameters['beta']))*u.dimensionless_unscaled
-# print(model.dust.spectral_parameters['T'])
-# print(model.dust.spectral_parameters['beta'])
-# exit()
-# freqs = np.flip(np.logspace(0.1, 2.7, 12)*u.GHz)
-# print(model.dust.spectral_parameters)
-# emissions = model(bp_freqs, bp, fwhm=20*u.arcmin, output_unit='MJy/sr')
-# emissions = model(freqs, fwhm=30*u.arcmin, output_unit='MJy/sr')
-# print(np.shape(emissions))
-# print(emissions)
-# hp.mollview(emissions[0], norm='hist')
-# for freq, emission in zip(freqs, emissions):
-    # hp.mollview(emission[2], norm='hist', title=f'{int(freq.value)}')
-# hp.mollview(model(10*u.GHz, fwhm=20*u.arcmin)[0], norm='hist')
-# hp.mollview(model.ame.amp[0], norm='hist')
-# hp.mollview(model(353*u.GHz, fwhm=30*u.arcmin)[0], norm='hist', cmap='CMRmap')
-# hp.mollview(model(353*u.GHz, fwhm=30*u.arcmin)[0], norm='hist')
-# hp.mollview(model.radio.get_map(model.radio.amp, nside=64, fwhm=50*u.arcmin)[0], norm='hist', cmap='CMRmap')
-# hp.mollview(model(30*u.GHz, fwhm=0.88*u.deg)[0], min=-200, max=5000,)
-# hp.mollview(model(100*u.GHz, fwhm=30*u.arcmin)[0], norm='hist')
+# plot(model.dust(100.5*u.GHz,))
+# plt.show()
+# freqs = u.Quantity(np.arange(1, 3), unit=u.GHz)
+# print(model.synch.get_emission(freqs, fwhm=10*u.arcmin, output_unit='uK_CMB'))
+# chain_to_h5(chainfile=chain, output_dir='/Users/metinsan/Documents/doktor/models/test1')
+# model = model_from_h5('/Users/metinsan/Documents/doktor/models/test1/model_512.h5')
+# print(model)
+# model_to_h5(model, dirname)
+# model_from_h5(filename)
+# chain_to_h5(chain, dirname)
 
-# hp.projview(model.synch.amp[0].value)
-# print(model.synch.freq_ref)
-# hp.mollview(model.ame(3*1e4*u.Hz, fwhm=0.88*u.deg)[0], norm='hist')
-# hp.mollview(model.dust.amp[1])
-
-# mollplot(model, freq=50*u.GHz, fwhm=30*u.arcmin)
-plot(model, comp="dust")
-plot(model, comp="ff", fwhm=40*u.arcmin)
-plot(model, comp="ame", fwhm=40*u.arcmin)
-plot(model, comp="synch", freq=40*u.GHz, fwhm=40*u.arcmin, ticks='auto')
-plot(model, comp="radio", freq=100*u.GHz, fwhm=30*u.arcmin, ticks='auto')
-plot(model, freq=50*u.GHz, fwhm=30*u.arcmin, ticks='auto')
-
-# plot(model, freq=100*u.GHz, fwhm=30*u.arcmin, ticks='auto')
+# plot(model, comp="dust")
+# plot(model, comp="ff")
+# plot(model, comp="synch")
+# plot(model, comp="ame")
+# plot(model, comp="cmb")
+# plot(model, freq=100*u.GHz, fwhm=20*u.arcmin)
+# emission = model(bp_freqs, bp, fwhm=30*u.arcmin, output_unit='MJy/sr')[0]
+# plot(emission)
 plt.show()

@@ -1,6 +1,6 @@
-========
-Licenses
-========
+=======
+License
+=======
 
 
 cosmoglobe License
