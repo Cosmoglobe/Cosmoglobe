@@ -25,8 +25,16 @@ SPDUST2_FILE = DATA_DIR / 'spdust2_cnm.dat'
 
 
 class Synchrotron(DiffuseComponent):
-    r"""Synchrotron component class. Defined using the convention in 
-    `BeyondPlanck (2020), Section 3.3.1 <https://arxiv.org/pdf/2011.05609.pdf>`_;
+    r"""Class representing the synchrotron component in the Cosmoglobe 
+    Sky Model.
+
+    Notes
+    -----
+    This is a generic power law given at a reference frequency 
+    :math:`\nu_{s,0}` with a power law :math:`\beta` in Rayleigh-Jeans 
+    temperature. It is defined using the convention in 
+    `BeyondPlanck (2020), Section 3.3.1 
+    <https://arxiv.org/pdf/2011.05609.pdf>`_;
 
     .. math::
 
@@ -34,29 +42,11 @@ class Synchrotron(DiffuseComponent):
         \left( \frac{\nu}{\nu_\mathrm{0,s}} \right)^
         {\beta + C \ln \nu / \nu_{0,s}}.
 
-    This is a generic power law given at a reference frequency :math:`\nu_{s,0}`
-    with a power law :math:`\beta` in Rayleigh-Jeans temperature.
-    :math:`C` is set to 0 for all current implementations as of BP9.
 
-    Parameters
-    ----------
-    amp : `astropy.units.Quantity`
-        Emission templates of the component at the reference frequencies given
-        by freq_ref.
-    freq_ref : `astropy.units.Quantity`
-        Reference frequencies :math:`\nu_\mathrm{0,s}` for the amplitude 
-        template in units of GHz. Shape is either (1,) or (3, 1)
-    beta : `numpy.ndarray`, `astropy.units.Quantity`
-        The power law spectral index :math:`\beta`. The spectral index can 
-        vary over the sky, and is therefore commonly given as a 
-        shape (3, `npix`) array, but it can take the value of a scalar.
+    :math:`C` is set to 0 for all current implementations as of BP9.
 
     Attributes
     ----------
-    label : str
-        Component label.
-    comp_type : str
-        Component type. Must be either 'diffuse', 'line', or 'ptsrc'. 
     amp : `astropy.units.Quantity`
         Emission templates of synchrotron at the reference frequencies given
         by `freq_ref`.
@@ -64,7 +54,10 @@ class Synchrotron(DiffuseComponent):
         Reference frequencies :math:`\nu_\mathrm{0,s}` for the amplitude 
         template in units of GHz.
     spectral_parameters : dict
-        Dictionary containing the spectral parameters.
+        Dictionary containing the spectral parameters :math:`\beta` and 
+        :math:`T`.
+    label : str
+        Component label.
 
     Methods
     -------
@@ -75,6 +68,21 @@ class Synchrotron(DiffuseComponent):
     label = 'synch'
 
     def __init__(self, amp, freq_ref, beta):
+        """
+        Parameters
+        ----------
+        amp : `astropy.units.Quantity`
+            Emission templates of the component at the reference frequencies given
+            by freq_ref.
+        freq_ref : `astropy.units.Quantity`
+            Reference frequencies :math:`\nu_\mathrm{0,s}` for the amplitude 
+            template in units of GHz. Shape is either (1,) or (3, 1)
+        beta : `numpy.ndarray`, `astropy.units.Quantity`
+            The power law spectral index :math:`\beta`. The spectral index can 
+            vary over the sky, and is therefore commonly given as a 
+            shape (3, `npix`) array, but it can take the value of a scalar.
+        """
+
         super().__init__(amp, freq_ref, beta=beta)
 
 
@@ -103,8 +111,8 @@ class Synchrotron(DiffuseComponent):
             Frequency scaling factor with dimensionless units.
 
         """
-        scaling = (freq / freq_ref) ** beta
-        
+        scaling = (freq/freq_ref)**beta
+
         return scaling
 
 
@@ -200,7 +208,7 @@ class Dust(DiffuseComponent):
         blackbody_ratio = (
             blackbody_emission(freq, T) / blackbody_emission(freq_ref, T)
         )
-        scaling = (freq / freq_ref) ** (beta - 2) * blackbody_ratio
+        scaling = (freq/freq_ref)**(beta-2) * blackbody_ratio
 
         return scaling
 
@@ -284,7 +292,7 @@ class FreeFree(DiffuseComponent):
         """
 
         gaunt_factor_ratio = gaunt_factor(freq, Te) / gaunt_factor(freq_ref, Te)
-        scaling = (freq_ref / freq) ** 2 * gaunt_factor_ratio
+        scaling = (freq_ref/freq)**2 * gaunt_factor_ratio
 
         return scaling
 
@@ -344,7 +352,10 @@ class AME(DiffuseComponent):
         # Read in spdust2 template
         spdust2_freq, spdust2_amp = np.loadtxt(SPDUST2_FILE, unpack=True)
         spdust2_freq = u.Quantity(spdust2_freq, unit=u.GHz)
-        spdust2_amp = u.Quantity(spdust2_amp, unit=(u.Jy/u.sr)).to(
+        spdust2_amp = u.Quantity(
+            spdust2_amp, unit=(u.Jy/u.sr)
+        )
+        spdust2_amp = spdust2_amp.to(
             u.K, equivalencies=u.brightness_temperature(spdust2_freq)
         )        
         self.spdust2 = np.array([spdust2_freq.si.value, spdust2_amp.si.value])
@@ -382,7 +393,9 @@ class AME(DiffuseComponent):
         peak_scale = 30*u.GHz / nu_p
 
         # AME is undefined at outside of this frequency range
-        if not (np.min(spdust2[0]) < ((freq*peak_scale).si.value).any() < np.max(spdust2[0])):
+        if not (
+            np.min(spdust2[0]) < (freq*peak_scale).si.value.any() < np.max(spdust2[0])
+        ):
             return u.Quantity(0, unit=u.dimensionless_unscaled)
 
         interp = np.interp((freq * peak_scale).si.value, spdust2[0], spdust2[1])
@@ -611,6 +624,6 @@ class Radio(PointSourceComponent):
             Frequency scaling factor with dimensionless units.
         """
 
-        scaling = (freq / freq_ref) ** (specind - 2)
+        scaling = (freq/freq_ref)**(specind-2)
 
         return scaling

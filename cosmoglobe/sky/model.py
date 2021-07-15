@@ -1,4 +1,4 @@
-from cosmoglobe.utils import utils,
+from cosmoglobe.utils import utils
 from cosmoglobe.sky.templates import (
     Component, 
     DiffuseComponent, 
@@ -12,22 +12,15 @@ import numpy as np
 
 
 class Model:
-    """The Cosmoglobe Sky Model.
+    r"""The Cosmoglobe Sky Model.
 
     This class acts as a container for the various components making up the
     sky model and provides methods to simulate the sky emission at a given
-    frequency or over a bandpass.
-
-    Parameters
-    ----------
-    components : list
-        A list of `cosmoglobe.sky.Component` objects that are added to the
-        model.
-    nside : int
-        Healpix map resolution. Represents the resolution of the sky model. If
-        nside is `None`, nside is set to the nside of the first inserted 
-        component. Default: ``None``.
-
+    frequency or over a bandpass. The primary use case of this class is to 
+    call its ``__call__`` function which simulates the sky at a single 
+    frequency :math:`\nu` or integrated over a bandpass :math:`\tau` given 
+    the present components in the model.
+    
     Attributes
     ----------
     AME : `cosmoglobe.sky.components.AME`
@@ -43,21 +36,40 @@ class Model:
     synch : `cosmoglobe.sky.components.Synchrotron`
         The synchrotron sky component.
     nside : int
-        Healpix map resolution.
+        Healpix resolution of the maps in sky model.
     components : dict
         Dictionary of all sky components included in the model.
-
+    is_polarized : bool
 
     Methods
     -------
+    __init__
     __call__
     disable
     enable
     to_nside
 
+    See Also
+    --------
+    __call__ : 
+        Simulates the sky at a given frequency :math:`\nu` or over a 
+        bandpass :math:`\tau` given the Cosmoglobe Sky Model.
     """
 
     def __init__(self, components=None, nside=None):
+        """Initialization of a sky model.
+
+        Parameters
+        ----------
+        components : list, optional
+            A list of `cosmoglobe.sky.component.Component` objects that are added 
+            to the model.
+        nside : int, optional
+            Healpix resolution of the maps in sky model (the default is 
+            None, in which the model automatically detects the nside from
+            the components).
+        """
+
         self.nside = nside
         self.components = {}
         self.disabled_components = {}
@@ -86,9 +98,9 @@ class Model:
                         f'component {name!r} has a reference map at NSIDE='
                         f'{nside}, but model NSIDE is set to {self.nside}'
                     )
+        else:
         # Explicitly set nside for non diffuse components since most attributes
         # are not stored in maps           
-        else:
             try:
                 component.nside
             except AttributeError:
@@ -99,20 +111,49 @@ class Model:
         self.components[name] = component
 
 
-    @u.quantity_input(freq=u.Hz, bandpass=(u.Jy/u.sr, u.K, None), 
-                      fwhm=(u.rad, u.deg, u.arcmin))
+    @u.quantity_input(
+        freq=u.Hz, bandpass=(u.Jy/u.sr, u.K, None), fwhm=(u.rad, u.deg, u.arcmin)
+    )
     def __call__(self, freqs, bandpass=None, fwhm=0.0*u.rad, output_unit=u.uK):
-        r"""Simulates the model emission given a single or a set of
-        frequencies.
+        r"""Computes the model emission at a single frequency 
+        :math:`\nu` or integrated over a bandpass :math:`\tau` given 
+        the present components in the model.
 
         Optionally, a bandpass profile can be given along with the 
         corresponding frequencies.
 
+        Parameters
+        ----------
+        freq : `astropy.units.Quantity`
+            A frequency, or list of frequencies for which to evaluate the
+            sky emission.
+        bandpass : `astropy.units.Quantity`, optional
+            Bandpass profile corresponding to the frequencies. If None, a
+            delta peak in frequency is assumed at the given frequencies.
+            Default: None
+        fwhm : `astropy.units.Quantity`, optional
+            The full width half max parameter of the Gaussian (Default is 
+            0.0 which indicates no smoothing)
+        output_unit : `astropy.units.Unit`, optional
+            The desired output units of the emission (By default the 
+            output unit of the model is always in 
+            :math:`\mathrm{\mu K_{RJ}}`.
+
+        Returns
+        -------
+        `astropy.units.Quantity`
+            The full model emission.
+
+        Notes
+        -----
+        This function computes the following expression (assuming that 
+        all default Cosmoglobe Sky components are present in the model):
+
         .. math::
-            
+
             \begin{aligned}
-            \boldsymbol{s}_{\mathrm{RJ}}(\nu) &=\boldsymbol{a}_{\mathrm{CMB}} \frac{x^{2} 
-            \mathrm{e}^{x}}{\left(\mathrm{e}^{x}-1\right)^{2}} 
+            \boldsymbol{s}_{\mathrm{RJ}}(\nu) &=\boldsymbol{a}_{\mathrm{CMB}}
+             \frac{x^{2} \mathrm{e}^{x}}{\left(\mathrm{e}^{x}-1\right)^{2}} 
             \frac{\left(\mathrm{e}^{x_{0}}-1\right)^{2}}{x_{0}^{2} 
             \mathrm{e}^{x_{0}}}+\\
             &+\boldsymbol{a}_{\mathrm{s}}\left(\frac{\nu}{\nu_{0, 
@@ -123,35 +164,40 @@ class Model:
             \mathrm{ff}}}{\nu}\right)^{2}+\\
             &+\boldsymbol{a}_{\mathrm{sd}}\left(\frac{\nu_{0, 
             \mathrm{sd}}}{\nu}\right)^{2} \frac{s_{0}^{\mathrm{sd}}
-            \left(\nu \cdot \frac{\nu_{p}}{30.0 \mathrm{GHz}}\right)}
+            \left(\nu \cdot \frac{\nu_{p}}{30.0\; \mathrm{GHz}}\right)}
             {s_{0}^{\mathrm{sd}}\left(\nu_{0, \mathrm{sd}} \cdot 
-            \frac{\nu_{p}}{30.0 \mathrm{GHz}}\right)}+\\
+            \frac{\nu_{p}}{30.0\; \mathrm{GHz}}\right)}+\\
             &+\boldsymbol{a}_{\mathrm{d}}\left(\frac{\nu}{\nu_{0, 
             \mathrm{~d}}}\right)^{\beta_{\mathrm{d}}+1} 
             \frac{\mathrm{e}^{h \nu_{0, \mathrm{~d}} 
             / k T_{\mathrm{d}}}-1}{\mathrm{e}^{\mathrm{h} \nu 
-            / k T_{\mathrm{d}}}-1}+\\&+\sum_{j=1}^{N_{\mathrm{scc}}} 
+            / k T_{\mathrm{d}}}-1}+\\&+\sum_{j=1}^{N_{\mathrm{src}}} 
             \boldsymbol{a}_{\mathrm{src}}^{j}\left(\frac{\nu}{\nu_{0, 
             \mathrm{src}}}\right)^{\alpha_{j, \mathrm{src}}-2}
             \end{aligned}
 
-        Parameters
-        ----------
-        freq : `astropy.units.Quantity`
-            A frequency, or list of frequencies for which to evaluate the
-            sky emission.
-        bandpass : `astropy.units.Quantity`
-            Bandpass profile corresponding to the frequencies. If None, a
-            delta peak in frequency is assumed at the given frequencies.
-            Default: None
-        output_unit : `astropy.units.Unit`
-            The desired output units of the emission. Must be signal units. 
-            Default : uK
+        For more information on the current implementation of the 
+        Cosmoglobe Sky Model, see `BeyondPlanck (2020), Section 3.6 
+        <https://arxiv.org/pdf/2011.05609.pdf>`_.
 
-        Returns
-        -------
-        astropy.units.Quantity
-            Model emission.
+        Examples
+        --------
+        Full Sky Model emission at :math:`50\; \mathrm{GHz}`:
+
+        >>> from cosmoglobe.sky import skymodel
+        >>> import astropy.units as u
+        >>> model = skymodel(nside=256)
+        >>> model(50*u.GHz)[0]  # Stokes I parameter
+        [ 2234.74893115  2291.99921295  2323.98779311 ... -2320.74732945
+         -2271.54465982 -2292.22248419] uK
+
+        Dust emission at :math:`500\; \mathrm{GHz}` smoothed with a 
+        :math:`50\; '`  Gaussian beam in units of 
+        :math:`\mathrm{MJy} / \mathrm{sr}`:
+
+        >>> model.dust(500*u.GHz, fwhm=50*u.arcmin, output_unit='MJy/sr')[0]
+        [3.08898797e-05 3.25889729e-05 3.76313847e-05 ... 3.76599942e-05
+         3.99570235e-05 4.46317102e-05] MJy / sr
         """
 
         if self.is_polarized:

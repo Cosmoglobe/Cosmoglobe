@@ -55,8 +55,9 @@ class Component:
             raise ValueError('Unrecognized shape.')
 
 
-    @u.quantity_input(freq=u.Hz, bandpass=(u.Jy/u.sr, u.K, None), 
-                      fwhm=(u.rad, u.deg, u.arcmin))
+    @u.quantity_input(
+        freq=u.Hz, bandpass=(u.Jy/u.sr, u.K, None), fwhm=(u.rad, u.deg, u.arcmin)
+    )
     def __call__(self, freqs, bandpass=None, fwhm=0.0*u.rad, output_unit=u.uK):
         r"""Computes the simulated component emission at an arbitrary frequency 
         or integrated over a bandpass.
@@ -126,8 +127,9 @@ class Component:
 
     def _get_bandpass_scaling(self, freqs, bandpass):
         """Returns the frequency scaling factor given a bandpass profile and a
-        corresponding frequency array. This function is used for diffuse and 
-        line emission components.
+        corresponding frequency array. 
+        
+        This function is used for diffuse and line emission components.
 
         Parameters
         ----------
@@ -306,8 +308,9 @@ class DiffuseComponent(Component):
         return emission
 
     
-    def get_bandpass_emission(self, freqs, bandpass=None, fwhm=None, 
-                              output_unit=u.uK):
+    def get_bandpass_emission(
+        self, freqs, bandpass=None, fwhm=None, output_unit=u.uK
+    ):
         """Computes the simulated component emission over a bandpass.
         If no bandpass is passed, a top-hat bandpass is assumed.
 
@@ -328,7 +331,7 @@ class DiffuseComponent(Component):
 
         if bandpass is None:
             warnings.warn('No bandpass was passed. Default to top-hat bandpass')
-            bandpass = np.ones(len(freqs)) / len(freqs) * u.K
+            bandpass = np.ones(len(freqs))/len(freqs) * u.K
 
         bandpass = get_normalized_bandpass(bandpass, freqs)
         bandpass_coefficient = get_bandpass_coefficient(
@@ -401,8 +404,9 @@ class PointSourceComponent(Component):
         return emission
 
 
-    def get_bandpass_emission(self, freqs, bandpass=None, fwhm=0.0*u.rad,
-                              output_unit=u.uK):
+    def get_bandpass_emission(
+        self, freqs, bandpass=None, fwhm=0.0*u.rad, output_unit=u.uK
+    ):
         """Computes the simulated component emission over a bandpass.
         If no bandpass is passed, a top-hat bandpass is assumed.
 
@@ -425,7 +429,7 @@ class PointSourceComponent(Component):
 
         if bandpass is None:
             warnings.warn('No bandpass was passed. Default to top-hat bandpass')
-            bandpass = np.ones(len(freqs)) / len(freqs) * u.K
+            bandpass = np.ones(len(freqs))/len(freqs) * u.K
 
         bandpass = get_normalized_bandpass(bandpass, freqs)
         bandpass_coefficient = get_bandpass_coefficient(
@@ -441,8 +445,9 @@ class PointSourceComponent(Component):
         return emission
 
 
-    def points_to_map(self, amp, nside=None, fwhm=0.0*u.rad, sigma=None, 
-                      n_fwhm=2):
+    def points_to_map(
+        self, amp, nside=None, fwhm=0.0*u.rad, sigma=None, n_fwhm=2
+    ):
         """Maps the cataloged point sources onto a healpix map with a truncated 
         gaussian beam. For more information, see 
          `Mitra et al. (2010) <https://arxiv.org/pdf/1005.1929.pdf>`_.
@@ -488,7 +493,7 @@ class PointSourceComponent(Component):
 
         fwhm = fwhm.to(u.rad)
         if sigma is None:
-            sigma = fwhm / (2 * np.sqrt(2 * np.log(2)))
+            sigma = fwhm / (2*np.sqrt(2*np.log(2)))
 
         # No smoothing nesecarry. We directly map the sources to pixels
         if sigma == 0.0:
@@ -505,7 +510,7 @@ class PointSourceComponent(Component):
                     'fwhm must be >= pixel resolution to resolve the '
                     'point sources.'
                 )
-            beam_area = 2 * np.pi * sigma ** 2
+            beam_area = 2 * np.pi * sigma**2
             r_max = n_fwhm * fwhm.value
 
             with tqdm(total=len(angular_coords), file=sys.stdout) as pbar:
