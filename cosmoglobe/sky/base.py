@@ -19,25 +19,10 @@ import sys
 class Component:
     """Base class for a sky component used in the `cosmoglobe.sky.model.Model`.
 
-    Provides methods and attributes that are common through out all sky 
-    components.
-    
+    Provides methods and attributes that are common for all sky components.
     """
 
     def __init__(self, amp, freq_ref, **spectral_parameters):
-        """Initializes a Component
-        
-        Parameters
-        ----------
-        amp : `astropy.units.Quantity`
-            Emission maps or a list of point source amplitudes of the component at
-            the reference a frequencies given by `freq_ref`.
-        freq_ref : `astropy.units.Quantity`
-            Reference frequencies for the amplitude maps.
-        spectral_parameters : dict
-            Spectral parameters for a given component. 
-        """
-
         self.amp = amp
         self.freq_ref = self._reshape_freq_ref(freq_ref)
         self.spectral_parameters = spectral_parameters
@@ -155,32 +140,29 @@ class Component:
         
         interp_parameters = get_interp_parameters(self.spectral_parameters)
 
+        if not interp_parameters:
         # Component does not have any spatially varying spectral parameters.
         # In this scenaraio we simply integrate the emission at each frequency 
         # weighted by the bandpass.
-        if not interp_parameters:
             freq_scaling = self.get_freq_scaling(
                 freqs, self.freq_ref, **self.spectral_parameters
             )
-            # Reshape to support broadcasting for comps where freq_ref = None 
-            # e.g cmb
-            if freq_scaling.ndim > 1:
-                return np.expand_dims(
-                    np.trapz(freq_scaling*bandpass, freqs), axis=1
-                )
-            return np.trapz(freq_scaling*bandpass, freqs)
 
+            return np.expand_dims(
+                np.trapz(freq_scaling*bandpass, freqs), axis=1
+            )
+
+        elif len(interp_parameters) == 1:
         # Component has one sptatially varying spectral parameter. In this 
         # scenario we perform a 1D-interpolation in spectral parameter space.
-        elif len(interp_parameters) == 1:
             return interp1d(
                 self, freqs, bandpass, interp_parameters, 
                 self.spectral_parameters.copy()
             )
 
+        elif len(interp_parameters) == 2:    
         # Component has two sptatially varying spectral parameter. In this 
         # scenario we perform a 2D-interpolation in spectral parameter space.
-        elif len(interp_parameters) == 2:    
             return interp2d(
                 self, freqs, bandpass, interp_parameters, 
                 self.spectral_parameters.copy()
