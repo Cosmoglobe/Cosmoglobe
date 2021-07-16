@@ -69,7 +69,6 @@ def emission_to_unit(emission, freqs, unit):
             unit = u.Unit(unit[:-3])
         elif unit.lower().endswith('k_cmb'):
             unit = u.Unit(unit[:-4])  
-            print("here")
             emission *= brightness_to_thermodynamical(freqs)
         emission.to(unit)
 

@@ -1,3 +1,4 @@
+from cosmoglobe.sky import components
 from cosmoglobe.utils import utils
 from cosmoglobe.sky.base import (
     Component, 
@@ -76,7 +77,8 @@ class Model:
         self.nside = nside
         self.components = {}
         self.disabled_components = {}
-        if components:
+
+        if components is not None:
             for component in components:
                 self._add_component(component)
 
@@ -91,7 +93,10 @@ class Model:
         if name in self.components:
             raise KeyError(f'component {name} already exists in model')
 
-        if not isinstance(component, PointSourceComponent):
+        if isinstance(component, PointSourceComponent):
+            if not hasattr(components, 'nside'):
+                component.nside = self.nside
+        else:
             nside = hp.get_nside(component.amp)
             if nside != self.nside:
                 if self.nside is None:
@@ -101,15 +106,7 @@ class Model:
                         f'component {name!r} has a reference map at NSIDE='
                         f'{nside}, but model NSIDE is set to {self.nside}'
                     )
-        else:
-        # Explicitly set nside for non diffuse components since most attributes
-        # are not stored in maps           
-            try:
-                component.nside
-            except AttributeError:
-                component.nside = self.nside
 
-            
         setattr(self, name, component)
         self.components[name] = component
 
@@ -213,17 +210,18 @@ class Model:
         ptsrc_emission = u.Quantity(ptsrc_emission, unit=unit)
 
         for comp in self:
-            if isinstance(comp, PointSourceComponent):
+            if isinstance(comp, DiffuseComponent):
+                comp_emission = comp(freqs, bandpass, output_unit=output_unit)
+                for idx, row in enumerate(comp_emission):
+                    diffuse_emission[idx] += row
+
+            elif isinstance(comp, PointSourceComponent):
                 comp_emission = comp(
                     freqs, bandpass, fwhm=fwhm, output_unit=output_unit
                 )
                 for idx, row in enumerate(comp_emission):
                     ptsrc_emission[idx] += row
 
-            elif isinstance(comp, DiffuseComponent):
-                comp_emission = comp(freqs, bandpass, output_unit=output_unit)
-                for idx, row in enumerate(comp_emission):
-                    diffuse_emission[idx] += row
 
         if fwhm != 0.0:
             # If diffuse emission is non-zero

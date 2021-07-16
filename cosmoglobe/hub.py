@@ -8,7 +8,7 @@ from astropy.utils.data import download_file
 data_url = pathlib.Path('http://cosmoglobe.uio.no/')
    
 
-def skymodel(nside, release=-1, cache=True):
+def sky_model(nside, release=-1, cache=True):
     """Initialize the Cosmoglobe Sky Model from a official release.
 
     By default, the model is initialized from the latest stable commander3 

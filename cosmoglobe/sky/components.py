@@ -576,7 +576,10 @@ class CMB(DiffuseComponent):
         as of BP9.
         """
 
-        return thermodynamical_to_brightness(freq)
+        # We explicitly expand the dims to support broadcasting
+        return np.expand_dims(
+            thermodynamical_to_brightness(freq), axis=0
+        )
 
 
 
