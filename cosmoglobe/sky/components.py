@@ -424,25 +424,26 @@ class AME(DiffuseComponent):
 
         .. math::
 
-            f_{\mathrm{sd}}(\nu) = \left(\frac{\nu_{0, \mathrm{sd}}}{\nu}\right)^{2} 
-            \frac{s_{0}^{\mathrm{sd}}\left(\nu \cdot 
+            f_{\mathrm{sd}}(\nu) = \left(\frac{\nu_{0, \mathrm{sd}}}{\nu}
+            \right)^{2} \frac{s_{0}^{\mathrm{sd}}\left(\nu \cdot 
             \frac{\nu_{p}}{30.0\; \mathrm{GHz}}\right)}
-            {s_{0}^{\mathrm{sd}}\left(\nu_{0, \mathrm{sd}} \cdot \frac{\nu_{p}}
-            {30.0\; \mathrm{GHz}}\right)}  
+            {s_{0}^{\mathrm{sd}}\left(\nu_{0, \mathrm{sd}} \cdot 
+            \frac{\nu_{p}}{30.0\; \mathrm{GHz}}\right)}  
 
         where :math:`\nu` is the frequency for which we are simulating the 
-        sky emission, :math:`\nu_{0, \mathrm{sd}}` is the reference frequency 
-        of the spinning dust emission amplitude map, and :math:`\nu_p` is 
-        peak frequency.
+        sky emission, :math:`\nu_{0, \mathrm{sd}}` is the reference 
+        frequency of the spinning dust emission amplitude map, and 
+        :math:`\nu_p` is peak frequency.
         """
 
         spdust2 = self.spdust2
         peak_scale = 30*u.GHz / nu_p
 
         # AME is undefined at outside of this frequency range
-        if not (
-            np.min(spdust2[0]) < (freq*peak_scale).si.value.any() < np.max(spdust2[0])
-        ):
+        if not np.logical_and(
+            (freq*peak_scale).si.value > np.min(spdust2[0]),
+            (freq*peak_scale).si.value < np.max(spdust2[0])
+        ).all():
             return u.Quantity(0, unit=u.dimensionless_unscaled)
 
         interp = np.interp((freq * peak_scale).si.value, spdust2[0], spdust2[1])
