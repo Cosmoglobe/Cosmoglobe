@@ -8,9 +8,9 @@ from cosmoglobe.utils.bandpass import (
     interp2d,
 )
 
-from typing import Tuple
 from abc import ABC, abstractmethod
 from tqdm import tqdm
+from typing import Tuple
 from sys import exit
 import warnings
 import astropy.units as u
@@ -119,7 +119,7 @@ class _Component(ABC):
         freq: u.Quantity, 
         fwhm: u.Quantity, 
         output_unit: Tuple[u.UnitBase, str] = u.uK
-    ) -> u.Quantity:
+    ):
         """Simulates the component emission at a delta frequency."""
 
     @abstractmethod
