@@ -1,4 +1,3 @@
-from astropy.units.quantity import Quantity
 from cosmoglobe.utils import utils
 from cosmoglobe.utils.bandpass import (
     get_bandpass_coefficient,
@@ -10,31 +9,37 @@ from cosmoglobe.utils.bandpass import (
 
 from abc import ABC, abstractmethod
 from tqdm import tqdm
-from typing import Tuple
+from typing import Union, Dict
 from sys import exit
-import warnings
 import astropy.units as u
-import numpy as np
 import healpy as hp
+import numpy as np
 import sys
+import warnings
 
 class _Component(ABC):
+    """Abstract base class for a sky component"""
+
+    amp: u.Quantity
+    freq_ref: u.Quantity
+    spectral_parameters: Dict[str, u.Quantity]
+
     def __init__(self, amp, freq_ref, **spectral_parameters):
         self.amp = amp
         self.freq_ref = self._reshape_freq_ref(freq_ref)
         self.spectral_parameters = spectral_parameters
-        
+    
     @u.quantity_input(
-        freq=u.Hz, 
+        freqs=u.Hz, 
         bandpass=(u.Jy/u.sr, u.K, None), 
         fwhm=(u.rad, u.deg, u.arcmin),
     )
     def __call__(
         self, 
-        freqs, 
-        bandpass=None, 
-        fwhm=0.0 * u.rad, 
-        output_unit: Tuple[u.UnitBase, str] = u.uK
+        freqs: u.Hz, 
+        bandpass: u.Quantity = None, 
+        fwhm: u.Quantity = 0.0 * u.rad, 
+        output_unit: Union[u.UnitBase, str] = u.uK
     ):
         r"""Computes the component emission at a single frequency 
         :math:`\nu` or integrated over a bandpass :math:`\tau`.
@@ -133,22 +138,18 @@ class _Component(ABC):
         return emission
 
     @abstractmethod
-    def _get_delta_emission(
-        self, 
-        freq: u.Quantity, 
-        fwhm: u.Quantity, 
-        output_unit: Tuple[u.UnitBase, str] = u.uK
-    ):
+    def _get_delta_emission(self, freq, fwhm, output_unit):
         """Simulates the component emission at a delta frequency."""
 
     @abstractmethod
-    def _get_bandpass_emission(
-        self, freqs: u.Quantity, 
-        bandpass: u.Quantity, 
-        fwhm: u.Quantity, 
-        output_unit: Tuple[u.UnitBase, str] = u.uK
-    ) -> u.Quantity:
+    def _get_bandpass_emission(self, freqs, bandpass, fwhm, output_unit):
         """Computes the simulated component emission over a bandpass."""
+
+    @abstractmethod
+    def to_nside(self, new_nside: int) -> None:
+        """Down or upscale the healpix map resolutions with hp.ud_grades for 
+        all maps in the component to a new nside.
+        """
 
     def _get_bandpass_scaling(self, freqs, bandpass):
         """Returns the frequency scaling factor given a bandpass profile and a
@@ -203,49 +204,6 @@ class _Component(ABC):
                 'parameters is not currently supported'
             )
 
-    def to_nside(self, new_nside: int) -> None:
-        """Down or upscale the healpix map resolutions with hp.ud_grades for 
-        all maps in the component to a new nside.
-
-        Parameters
-        ----------
-        new_nside : int
-            Healpix map resolution parameter.
-        """
-
-        if not hp.isnsideok(new_nside, nest=True):
-            raise ValueError(f'nside: {new_nside} is not valid.')
-
-        # No healpix maps exist for point source components.
-        if isinstance(self, _PointSourceComponent):
-            self.nside = new_nside
-            return
-
-        nside = hp.get_nside(self.amp)
-        if new_nside == nside:
-            print(f'Model is already at nside {nside}')
-            return
-
-
-        self.amp = u.Quantity(
-            hp.ud_grade(self.amp.value, new_nside),
-            unit=self.amp.unit
-        )
-        for key, val in self.spectral_parameters.items():
-            if hp.nside2npix(nside) in np.shape(val):
-                try:
-                    self.spectral_parameters[key] = u.Quantity(
-                        hp.ud_grade(val.value, new_nside),
-                        unit=val.unit
-                    )
-                # If the case where a spectral parameter is not an 
-                # `astropy.Quantity`
-                except AttributeError:
-                    self.spectral_parameters[key] = u.Quantity(
-                        hp.ud_grade(val, new_nside),
-                        unit=u.dimensionless_unscaled
-                    )
-
     @staticmethod
     def _reshape_freq_ref(freq_ref):
         if freq_ref is None:
@@ -284,6 +242,8 @@ class _Component(ABC):
 
 
 class _DiffuseComponent(_Component):
+    """Abstract base class for a diffuse sky component"""
+
     def __init__(self, amp, freq_ref, **spectral_parameters):
         super().__init__(amp, freq_ref, **spectral_parameters)
 
@@ -296,9 +256,9 @@ class _DiffuseComponent(_Component):
         }
 
     @abstractmethod
-    def _get_freq_scaling(freq: u.Quantity, **kwargs) -> u.Quantity:
+    def _get_freq_scaling(freq, **kwargs):
         """Returns the frequency scaling factor for a given diffuse 
-        component. Each subclass must implement this method.
+        component.
         """
 
     def _get_delta_emission(self, freq, fwhm=None, output_unit=u.uK):
@@ -328,7 +288,6 @@ class _DiffuseComponent(_Component):
 
         return emission
 
-    
     def _get_bandpass_emission(
         self, freqs, bandpass=None, fwhm=None, output_unit=u.uK
     ):
@@ -364,10 +323,49 @@ class _DiffuseComponent(_Component):
 
         return emission
 
+    def to_nside(self, new_nside: int) -> None:
+        """Down or upscale the healpix map resolutions with hp.ud_grades for 
+        all maps in the component to a new nside.
+
+        Parameters
+        ----------
+        new_nside : int
+            Healpix map resolution parameter.
+        """
+
+        if not hp.isnsideok(new_nside, nest=True):
+            raise ValueError(f'nside: {new_nside} is not valid.')
+
+        nside = hp.get_nside(self.amp)
+        npix = hp.nside2npix(nside)
+        if new_nside == nside:
+            print(f'Model is already at nside {nside}')
+            return
+
+        self.amp = u.Quantity(
+            hp.ud_grade(self.amp.value, new_nside),
+            unit=self.amp.unit
+        )
+        for key, val in self.spectral_parameters.items():
+            if npix in np.shape(val):
+                try: 
+                    unit = val.unit
+                    val = val.value
+                except AttributeError:
+                    unit = u.dimensionless_unscaled
+
+                self.spectral_parameters[key] = u.Quantity(
+                    hp.ud_grade(val, new_nside),
+                    unit=unit
+                )
 
 
 class _PointSourceComponent(_Component):
-    def __init__(self, amp, freq_ref, **spectral_parameters):
+    """Abstract base class for a point source sky component"""
+
+    def __init__(self, amp, freq_ref, nside, **spectral_parameters):
+        self.nside = nside
+
         super().__init__(amp, freq_ref, **spectral_parameters)
 
         # Expand dimension on rank-1 arrays from from (`npix`,) to (`npix`, 1)
@@ -378,9 +376,9 @@ class _PointSourceComponent(_Component):
         }
 
     @abstractmethod
-    def _get_freq_scaling(freq: u.Quantity, **kwargs) -> u.Quantity:
+    def _get_freq_scaling(freq, **kwargs):
         """Returns the frequency scaling factor for a given point source 
-        component. Each subclass must implement this method.
+        component.
         """
 
     def _get_delta_emission(self, freq, fwhm=0.0*u.rad, output_unit=u.uK):
@@ -413,7 +411,6 @@ class _PointSourceComponent(_Component):
             emission = utils.emission_to_unit(emission, freq, output_unit)
 
         return emission
-
 
     def _get_bandpass_emission(
         self, freqs, bandpass=None, fwhm=0.0*u.rad, output_unit=u.uK
@@ -455,7 +452,6 @@ class _PointSourceComponent(_Component):
 
         return emission
 
-
     def _points_to_map(
         self, amp, nside=None, fwhm=0.0*u.rad, sigma=None, n_fwhm=2
     ):
@@ -482,15 +478,8 @@ class _PointSourceComponent(_Component):
             Default: 2.
         """
 
-        if nside is None:
-            try:
-                nside = self.nside
-            # Can occur when the radio component is used outside of a sky model
-            except AttributeError:
-                raise AttributeError(
-                    'Component is not part of a sky model. Please provide an '
-                    'explicit nside as input'
-                )
+        nside = self.nside
+
         if amp.ndim > 1:
             amp = np.squeeze(amp)
         healpix_map = u.Quantity(
@@ -573,14 +562,19 @@ class _PointSourceComponent(_Component):
         else:
             raise ValueError('Cataloge does not match chain catalog')
 
-class _LineComponent(_Component):
+    def to_nside(self, new_nside: int) -> None:
+        """For point sources we do not store any healpix maps so this 
+        function simply updates the nside attribute of the component.
+
+        Parameters
+        ----------
+        new_nside : int
+            Healpix map resolution parameter.
+        """
+
+        self.nside = new_nside
+
+
+class _LineComponent(_DiffuseComponent):
     def __init__(self, amp, freq_ref, **spectral_parameters):
         super().__init__(amp, freq_ref, **spectral_parameters)
-
-
-
-
-
-
-
-

@@ -7,7 +7,7 @@ from cosmoglobe.sky.base import (
     _LineComponent
 )
 
-from typing import List, Tuple
+from typing import List, Union
 import astropy.units as u
 import healpy as hp
 import numpy as np
@@ -42,7 +42,6 @@ class Model:
         Healpix resolution of the maps in sky model.
     components : dict
         Dictionary of all sky components included in the model.
-    is_polarized : bool
 
     Methods
     -------
@@ -58,17 +57,16 @@ class Model:
         bandpass :math:`\tau` given the Cosmoglobe Sky Model.
     """
 
-    def __init__(
-        self, 
-        components: List[_Component] = None, 
-        nside: int = None
-    ) -> None:
+    components: List[_Component] = None, 
+    nside: int = None 
+
+    def __init__(self, components=None, nside=None):
         """Initializing a sky model. 
 
         Parameters
         ----------
         components : list, optional
-            A list of `cosmoglobe.sky.component.Component` objects that 
+            A list of `cosmoglobe.sky.base._Component` objects that 
             constitutes the sky model (by default this is None and the 
             components are iteratively added as they are read from a 
             commander3 chain).
@@ -84,36 +82,18 @@ class Model:
 
         if components is not None:
             for component in components:
-                self._add_component(component)
+                self._add_component_to_model(component)
 
-
-    def _add_component(self, component):
-        if not issubclass(component.__class__, _Component):
-            raise TypeError(
-                f'{component} is not a subclass of cosmoglobe.sky._Component'
-            )
-
+    def _add_component_to_model(self, component):
         name = component.label
         if name in self.components:
             raise KeyError(f'component {name} already exists in model')
 
-        if isinstance(component, _PointSourceComponent):
-            if not hasattr(components, 'nside'):
-                component.nside = self.nside
-        else:
-            nside = hp.get_nside(component.amp)
-            if nside != self.nside:
-                if self.nside is None:
-                    self.nside = nside
-                else:
-                    raise ValueError(
-                        f'component {name!r} has a reference map at NSIDE='
-                        f'{nside}, but model NSIDE is set to {self.nside}'
-                    )
-
         setattr(self, name, component)
         self.components[name] = component
 
+        if self.nside is None:
+            self.nside = hp.get_nside(component.amp)
 
     @u.quantity_input(
         freq=u.Hz, 
@@ -122,10 +102,10 @@ class Model:
     )
     def __call__(
         self, 
-        freqs, 
-        bandpass=None, 
-        fwhm=0.0 * u.rad, 
-        output_unit: Tuple[u.UnitBase, str] = u.uK
+        freqs: u.Hz, 
+        bandpass: u.Quantity = None, 
+        fwhm: u.Quantity = 0.0 * u.rad, 
+        output_unit: Union[u.UnitBase, str] = u.uK
     ):
         r"""Computes the model emission (sum of all component emissions) 
         at a single frequency :math:`\nu` or integrated over a bandpass :math:`\tau`.
@@ -208,10 +188,7 @@ class Model:
          -0.14408377] MJy / sr
         """
 
-        if self.is_polarized:
-            shape = (3, hp.nside2npix(self.nside))
-        else:
-            shape = (1, hp.nside2npix(self.nside))
+        shape = (3, hp.nside2npix(self.nside))
         diffuse_emission = np.zeros(shape)
         ptsrc_emission = np.zeros(shape)
 
@@ -242,8 +219,7 @@ class Model:
 
         return diffuse_emission + ptsrc_emission
 
-
-    def disable(self, component: Tuple[str, _Component]) -> None:
+    def disable(self, component: Union[str, _Component]) -> None:
         """Disable a component in the model.
 
         Parameters
@@ -260,24 +236,19 @@ class Model:
         KeyError
             If the component is not currently present in the model.
         """
-
-        if isinstance(component, str):
-            comp = component
-        elif isinstance(component.__class__, _Component):
+        try:
             comp = component.label
-        else:
-            raise ValueError(
-                'component must be the component label in the model or the '
-                'component object'
-            )
+        except AttributeError:
+            comp = component
+
         try:
             self.disabled_components[comp] = self.components[comp]
         except KeyError:
             raise KeyError(f'{comp} is not enabled')
+
         del self.components[comp]
 
-
-    def enable(self, component: Tuple[str, _Component]) -> None:
+    def enable(self, component: Union[str, _Component]) -> None:
         """enable a disabled component.
 
         Parameters
@@ -294,47 +265,17 @@ class Model:
             If the component is not currently disabled in the model.
         """
 
-        if isinstance(component, str):
-            comp = component
-        elif isinstance(component.__class__, _Component):
+        try:
             comp = component.label
-        else:
-            raise ValueError(
-                'component must be the component label in the model or the '
-                'component object'
-            )
+        except AttributeError:
+            comp = component
 
         try:
             self.components[comp] = self.disabled_components[comp]
         except KeyError:
             raise KeyError(f'{comp} is not disabled')
+            
         del self.disabled_components[comp]
-
-
-    def _insert_component(self, component):
-        """Insert a new component to the model.
-
-        Parameters
-        ----------
-        component : `cosmoglobe.sky.Component`:
-            Sky component to be added to the model. Must be a subclass of 
-            `cosmoglobe.sky.Component`.
-
-        """
-        self._add_component(component)
-
-
-    def _remove_component(self, name):
-        """Removes a component from the model.
-
-        Parameters
-        ----------
-        name : str
-            Component attribute name.
-        """
-
-        del self[name]
-
 
     def to_nside(self, new_nside: int) -> None:
         """ud_grades all maps in the component to a new nside.
@@ -360,32 +301,17 @@ class Model:
         for comp in self:
             comp.to_nside(new_nside)
 
-
-    @property
-    def is_polarized(self):
-        """Returns True if model includes a polarized component and False 
-        otherwise.
-        """
-        for comp in self:
-            if comp.is_polarized:
-                return True
-        return False
-
-
     def __iter__(self):
         return iter(self.components.values())
 
-
     def __len__(self):
         return len(self.components)
-
 
     def __delitem__(self, name):
         if name not in self.components:
             raise KeyError(f'component {name} does not exist')
         delattr(self, name)
         del self.components[name]
-
 
     def __repr__(self):
         reprs = []

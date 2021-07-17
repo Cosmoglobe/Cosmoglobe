@@ -151,6 +151,7 @@ def comp_from_chain(file, component, component_class, model_nside, samples):
 
     # Getting arguments required to initialize component
     args_list = _get_comp_args(component_class) 
+    print(args_list)
     args = {}
     if isinstance(samples, list) and len(samples) > 1:
         get_items = _get_averaged_items
@@ -169,6 +170,8 @@ def comp_from_chain(file, component, component_class, model_nside, samples):
                 map_names.append(arg)
             elif _item_exists(file, component, arg):
                 other_items_names.append(arg)
+            elif arg == 'nside':
+                args['nside'] = nside
             else:
                 raise KeyError(f'item {arg} is not present in the chain')
 
@@ -530,6 +533,7 @@ def model_from_h5(filename):
 
     filename = pathlib.Path(filename)
     model = Model()
+    nside = None
     with h5py.File(filename, 'r') as f:
         for comp in f:
             amp_dset = f.get(f'{comp}/amp')
@@ -554,9 +558,22 @@ def model_from_h5(filename):
                     unit=dset.attrs.get('unit', None)
                 )
 
+            if nside is None:
+                nside = hp.get_nside(amp)
+
             component = COSMOGLOBE_COMPS[comp]
-            model._insert_component(
-                component(amp=amp, freq_ref=freq_ref, **spectral_parameters)
-            )
+            if comp == 'radio':
+                model._add_component_to_model(
+                    component(
+                        amp=amp, 
+                        freq_ref=freq_ref, 
+                        nside=nside,
+                        **spectral_parameters
+                    )
+                )            
+            else:
+                model._add_component_to_model(
+                    component(amp=amp, freq_ref=freq_ref, **spectral_parameters)
+                )
 
     return model

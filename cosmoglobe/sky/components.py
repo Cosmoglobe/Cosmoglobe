@@ -83,8 +83,8 @@ class Synchrotron(_DiffuseComponent):
         -------
         scaling : `astropy.units.Quantity`
             Frequency scaling factor with dimensionless units.
-
         """
+
         scaling = (freq/freq_ref)**beta
 
         return scaling
@@ -447,6 +447,8 @@ class Radio(_PointSourceComponent):
         `amp`.
     spectral_parameters : dict
         Dictionary containing the spectral parameter :math:`\alpha`.
+    nside : int
+        Point source components need to be explicitly passed an NSIDE.
     label : str
         Component label.
 
@@ -473,8 +475,8 @@ class Radio(_PointSourceComponent):
 
     label = 'radio'
 
-    def __init__(self, amp, freq_ref, specind):
-        super().__init__(amp, freq_ref, specind=specind)
+    def __init__(self, amp, freq_ref, nside, specind):
+        super().__init__(amp, freq_ref, nside, specind=specind)
 
         self.amp = u.Quantity(self.amp.value, unit='mJy')
         self.spectral_parameters['specind'] = np.squeeze(
