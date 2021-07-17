@@ -7,6 +7,7 @@ from cosmoglobe.sky.base import (
     _LineComponent
 )
 
+from typing import List, Tuple
 import astropy.units as u
 import healpy as hp
 import numpy as np
@@ -57,7 +58,11 @@ class Model:
         bandpass :math:`\tau` given the Cosmoglobe Sky Model.
     """
 
-    def __init__(self, components=None, nside=None):
+    def __init__(
+        self, 
+        components: List[_Component] = None, 
+        nside: int = None
+    ) -> None:
         """Initializing a sky model. 
 
         Parameters
@@ -111,9 +116,17 @@ class Model:
 
 
     @u.quantity_input(
-        freq=u.Hz, bandpass=(u.Jy/u.sr, u.K, None), fwhm=(u.rad, u.deg, u.arcmin)
+        freq=u.Hz, 
+        bandpass=(u.Jy/u.sr, u.K, None), 
+        fwhm=(u.rad, u.deg, u.arcmin)
     )
-    def __call__(self, freqs, bandpass=None, fwhm=0.0*u.rad, output_unit=u.uK):
+    def __call__(
+        self, 
+        freqs, 
+        bandpass=None, 
+        fwhm=0.0 * u.rad, 
+        output_unit: Tuple[u.UnitBase, str] = u.uK
+    ):
         r"""Computes the model emission (sum of all component emissions) 
         at a single frequency :math:`\nu` or integrated over a bandpass :math:`\tau`.
 
@@ -219,7 +232,6 @@ class Model:
                 for idx, row in enumerate(comp_emission):
                     ptsrc_emission[idx] += row
 
-
         if fwhm != 0.0:
             # If diffuse emission is non-zero
             print('Smoothing diffuse emission')
@@ -231,7 +243,7 @@ class Model:
         return diffuse_emission + ptsrc_emission
 
 
-    def disable(self, component):
+    def disable(self, component: Tuple[str, _Component]) -> None:
         """Disable a component in the model.
 
         Parameters
@@ -265,7 +277,7 @@ class Model:
         del self.components[comp]
 
 
-    def enable(self, component):
+    def enable(self, component: Tuple[str, _Component]) -> None:
         """enable a disabled component.
 
         Parameters
@@ -324,7 +336,7 @@ class Model:
         del self[name]
 
 
-    def to_nside(self, new_nside):
+    def to_nside(self, new_nside: int) -> None:
         """ud_grades all maps in the component to a new nside.
 
         Parameters

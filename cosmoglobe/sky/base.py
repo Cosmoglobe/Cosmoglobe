@@ -1,3 +1,4 @@
+from astropy.units.quantity import Quantity
 from cosmoglobe.utils import utils
 from cosmoglobe.utils.bandpass import (
     get_bandpass_coefficient,
@@ -6,6 +7,9 @@ from cosmoglobe.utils.bandpass import (
     interp1d,
     interp2d,
 )
+
+from typing import Tuple
+from abc import ABC, abstractmethod
 from tqdm import tqdm
 from sys import exit
 import warnings
@@ -14,40 +18,32 @@ import numpy as np
 import healpy as hp
 import sys
 
-
-class _Component:
+class _Component(ABC):
     def __init__(self, amp, freq_ref, **spectral_parameters):
         self.amp = amp
         self.freq_ref = self._reshape_freq_ref(freq_ref)
         self.spectral_parameters = spectral_parameters
         
-    @staticmethod
-    def _reshape_freq_ref(freq_ref):
-        if freq_ref is None:
-            return
-        elif freq_ref.size == 1:
-            return freq_ref
-        elif freq_ref.size == 2:
-            return np.expand_dims(
-                u.Quantity([freq_ref[0], freq_ref[1], freq_ref[1]]), axis=1
-            )
-        elif freq_ref.size == 3:
-            return freq_ref.reshape((3,1))
-        else:
-            raise ValueError('Unrecognized shape.')
-
     @u.quantity_input(
-        freq=u.Hz, bandpass=(u.Jy/u.sr, u.K, None), fwhm=(u.rad, u.deg, u.arcmin)
+        freq=u.Hz, 
+        bandpass=(u.Jy/u.sr, u.K, None), 
+        fwhm=(u.rad, u.deg, u.arcmin),
     )
-    def __call__(self, freqs, bandpass=None, fwhm=0.0*u.rad, output_unit=u.uK):
+    def __call__(
+        self, 
+        freqs, 
+        bandpass=None, 
+        fwhm=0.0 * u.rad, 
+        output_unit: Tuple[u.UnitBase, str] = u.uK
+    ):
         r"""Computes the component emission at a single frequency 
         :math:`\nu` or integrated over a bandpass :math:`\tau`.
 
         Parameters
         ----------
         freqs : `astropy.units.Quantity`
-            A frequency, or a list of frequencies for which to evaluate the
-            sky emission.
+            A frequency, or a list of frequencies for which to evaluate 
+            the sky emission.
         bandpass : `astropy.units.Quantity`, optional
             Bandpass profile corresponding to the frequencies. Default is 
             None. If `bandpass` is None and `freqs` is a single frequency,
@@ -117,6 +113,24 @@ class _Component:
 
         return emission
 
+    @abstractmethod
+    def _get_delta_emission(
+        self, 
+        freq: u.Quantity, 
+        fwhm: u.Quantity, 
+        output_unit: Tuple[u.UnitBase, str] = u.uK
+    ) -> u.Quantity:
+        """Simulates the component emission at a delta frequency."""
+
+    @abstractmethod
+    def _get_bandpass_emission(
+        self, freqs: u.Quantity, 
+        bandpass: u.Quantity, 
+        fwhm: u.Quantity, 
+        output_unit: Tuple[u.UnitBase, str] = u.uK
+    ) -> u.Quantity:
+        """Computes the simulated component emission over a bandpass."""
+
     def _get_bandpass_scaling(self, freqs, bandpass):
         """Returns the frequency scaling factor given a bandpass profile and a
         corresponding frequency array. 
@@ -170,7 +184,7 @@ class _Component:
                 'parameters is not currently supported'
             )
 
-    def to_nside(self, new_nside):
+    def to_nside(self, new_nside: int) -> None:
         """Down or upscale the healpix map resolutions with hp.ud_grades for 
         all maps in the component to a new nside.
 
@@ -213,6 +227,21 @@ class _Component:
                         unit=u.dimensionless_unscaled
                     )
 
+    @staticmethod
+    def _reshape_freq_ref(freq_ref):
+        if freq_ref is None:
+            return
+        elif freq_ref.size == 1:
+            return freq_ref
+        elif freq_ref.size == 2:
+            return np.expand_dims(
+                u.Quantity([freq_ref[0], freq_ref[1], freq_ref[1]]), axis=1
+            )
+        elif freq_ref.size == 3:
+            return freq_ref.reshape((3,1))
+        else:
+            raise ValueError('Unrecognized shape.')
+
     @property
     def is_polarized(self):
         """Returns True if component is polarized and False if not"""
@@ -247,7 +276,12 @@ class _DiffuseComponent(_Component):
             for key, value in spectral_parameters.items()
         }
 
-    
+    @abstractmethod
+    def _get_freq_scaling(freq: u.Quantity, **kwargs) -> u.Quantity:
+        """Returns the frequency scaling factor for a given diffuse 
+        component. Each subclass must implement this method.
+        """
+
     def _get_delta_emission(self, freq, fwhm=None, output_unit=u.uK):
         """Simulates the component emission at a delta frequency.
 
@@ -324,6 +358,11 @@ class _PointSourceComponent(_Component):
             for key, value in spectral_parameters.items()
         }
 
+    @abstractmethod
+    def _get_freq_scaling(freq: u.Quantity, **kwargs) -> u.Quantity:
+        """Returns the frequency scaling factor for a given point source 
+        component. Each subclass must implement this method.
+        """
 
     def _get_delta_emission(self, freq, fwhm=0.0*u.rad, output_unit=u.uK):
         """Simulates the component emission at a delta frequency.
