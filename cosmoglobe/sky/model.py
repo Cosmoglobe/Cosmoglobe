@@ -1,10 +1,10 @@
 from cosmoglobe.sky import components
 from cosmoglobe.utils import utils
 from cosmoglobe.sky.base import (
-    Component, 
-    DiffuseComponent, 
-    PointSourceComponent,
-    LineComponent
+    _Component, 
+    _DiffuseComponent, 
+    _PointSourceComponent,
+    _LineComponent
 )
 
 import astropy.units as u
@@ -46,7 +46,6 @@ class Model:
     Methods
     -------
     __call__
-    __init__
     disable
     enable
     to_nside
@@ -84,16 +83,16 @@ class Model:
 
 
     def _add_component(self, component):
-        if not issubclass(component.__class__, Component):
+        if not issubclass(component.__class__, _Component):
             raise TypeError(
-                f'{component} is not a subclass of cosmoglobe.sky.Component'
+                f'{component} is not a subclass of cosmoglobe.sky._Component'
             )
 
         name = component.label
         if name in self.components:
             raise KeyError(f'component {name} already exists in model')
 
-        if isinstance(component, PointSourceComponent):
+        if isinstance(component, _PointSourceComponent):
             if not hasattr(components, 'nside'):
                 component.nside = self.nside
         else:
@@ -149,30 +148,28 @@ class Model:
 
         .. math::
 
-            \begin{aligned}
             \boldsymbol{s}_{\mathrm{RJ}}(\nu) &=\boldsymbol{a}_{\mathrm{CMB}}
              \frac{x^{2} \mathrm{e}^{x}}{\left(\mathrm{e}^{x}-1\right)^{2}} 
             \frac{\left(\mathrm{e}^{x_{0}}-1\right)^{2}}{x_{0}^{2} 
-            \mathrm{e}^{x_{0}}}+\\
+            \mathrm{e}^{x_{0}}}\\
             &+\boldsymbol{a}_{\mathrm{s}}\left(\frac{\nu}{\nu_{0, 
-            \mathrm{~s}}}\right)^{\beta_{\mathrm{s}}}+\\
+            \mathrm{~s}}}\right)^{\beta_{\mathrm{s}}}\\
             &+\boldsymbol{a}_{\mathrm{ff}} \frac{g_{\mathrm{ff}}
             \left(\nu ; T_{e}\right)}{g_{\mathrm{ff}}\left(\nu_{0, 
             \mathrm{ff}} ; T_{e}\right)}\left(\frac{\nu_{0, 
-            \mathrm{ff}}}{\nu}\right)^{2}+\\
+            \mathrm{ff}}}{\nu}\right)^{2}\\
             &+\boldsymbol{a}_{\mathrm{sd}}\left(\frac{\nu_{0, 
             \mathrm{sd}}}{\nu}\right)^{2} \frac{s_{0}^{\mathrm{sd}}
             \left(\nu \cdot \frac{\nu_{p}}{30.0\; \mathrm{GHz}}\right)}
             {s_{0}^{\mathrm{sd}}\left(\nu_{0, \mathrm{sd}} \cdot 
-            \frac{\nu_{p}}{30.0\; \mathrm{GHz}}\right)}+\\
+            \frac{\nu_{p}}{30.0\; \mathrm{GHz}}\right)} \\
             &+\boldsymbol{a}_{\mathrm{d}}\left(\frac{\nu}{\nu_{0, 
             \mathrm{~d}}}\right)^{\beta_{\mathrm{d}}+1} 
             \frac{\mathrm{e}^{h \nu_{0, \mathrm{~d}} 
             / k T_{\mathrm{d}}}-1}{\mathrm{e}^{\mathrm{h} \nu 
             / k T_{\mathrm{d}}}-1}+\\&+\sum_{j=1}^{N_{\mathrm{src}}} 
             \boldsymbol{a}_{\mathrm{src}}^{j}\left(\frac{\nu}{\nu_{0, 
-            \mathrm{src}}}\right)^{\alpha_{j, \mathrm{src}}-2}
-            \end{aligned}.
+            \mathrm{src}}}\right)^{\alpha_{j, \mathrm{src}}-2}.
 
         For more information on the current implementation of the 
         Cosmoglobe Sky Model, see `BeyondPlanck (2020), Section 3.6 
@@ -210,12 +207,12 @@ class Model:
         ptsrc_emission = u.Quantity(ptsrc_emission, unit=unit)
 
         for comp in self:
-            if isinstance(comp, DiffuseComponent):
+            if isinstance(comp, _DiffuseComponent):
                 comp_emission = comp(freqs, bandpass, output_unit=output_unit)
                 for idx, row in enumerate(comp_emission):
                     diffuse_emission[idx] += row
 
-            elif isinstance(comp, PointSourceComponent):
+            elif isinstance(comp, _PointSourceComponent):
                 comp_emission = comp(
                     freqs, bandpass, fwhm=fwhm, output_unit=output_unit
                 )
@@ -239,13 +236,22 @@ class Model:
 
         Parameters
         ----------
-        component : str, `cosmoglobe.sky.Component`
-            The name of a component or the the component class in the model.
+        component : str, `cosmoglobe.sky._Component`
+            The name of a component or the the component class in the 
+            model.
+
+        Raises
+        ------
+        ValueError
+            If `component` is not a a `cosmoglobe.sky._Component` or 
+            its label.
+        KeyError
+            If the component is not currently present in the model.
         """
 
         if isinstance(component, str):
             comp = component
-        elif isinstance(component.__class__, Component):
+        elif isinstance(component.__class__, _Component):
             comp = component.label
         else:
             raise ValueError(
@@ -266,11 +272,19 @@ class Model:
         ----------
         component : str, `cosmoglobe.sky.Component`
             The name of a component or the the component class in the model.
+        
+        Raises
+        ------
+        ValueError
+            If `component` is not a a `cosmoglobe.sky._Component` or 
+            its label.
+        KeyError
+            If the component is not currently disabled in the model.
         """
 
         if isinstance(component, str):
             comp = component
-        elif isinstance(component.__class__, Component):
+        elif isinstance(component.__class__, _Component):
             comp = component.label
         else:
             raise ValueError(
@@ -317,6 +331,11 @@ class Model:
         ----------
         new_nside : int
             Healpix map resolution parameter.
+
+        Raises
+        ------
+        ValueError
+            If NSIDE is not a power of 2.
         """
 
         if new_nside == self.nside:

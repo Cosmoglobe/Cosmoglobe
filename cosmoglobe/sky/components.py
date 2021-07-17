@@ -1,7 +1,7 @@
 from cosmoglobe.sky.base import (
-    DiffuseComponent,
-    PointSourceComponent,
-    LineComponent,
+    _DiffuseComponent,
+    _PointSourceComponent,
+    _LineComponent,
 )
 from cosmoglobe.utils.functions import (
     blackbody_emission,
@@ -23,8 +23,7 @@ RADIO_CATALOG = DATA_DIR / 'radio_catalog.dat'
 SPDUST2_FILE = DATA_DIR / 'spdust2_cnm.dat'
 
 
-
-class Synchrotron(DiffuseComponent):
+class Synchrotron(_DiffuseComponent):
     r"""Class representing the synchrotron component in the Cosmoglobe 
     Sky Model.
 
@@ -42,9 +41,7 @@ class Synchrotron(DiffuseComponent):
 
     Methods
     -------
-    get_freq_scaling    
     __call__
-    __init__
 
     Notes
     -----
@@ -84,7 +81,7 @@ class Synchrotron(DiffuseComponent):
         super().__init__(amp, freq_ref, beta=beta)
 
 
-    def get_freq_scaling(self, freq, freq_ref, beta):
+    def _get_freq_scaling(self, freq, freq_ref, beta):
         r"""Computes the frequency scaling :math:`f_{\mathrm{s}}(\nu)` for 
         synchrotron emission.
 
@@ -102,20 +99,6 @@ class Synchrotron(DiffuseComponent):
         scaling : `astropy.units.Quantity`
             Frequency scaling factor with dimensionless units.
 
-        Notes
-        -----
-        The frequency scaling factor is computed as following:
-
-        .. math::
-
-            f_{\mathrm{s}}(\nu) = \left( \frac{\nu}{\nu_\mathrm{0,s}} 
-            \right)^{\beta},
-
-        where :math:`\nu` is the frequency for which we are simulating the 
-        sky emission, :math:`\nu_{0, \mathrm{s}}` is the referency frequency 
-        of the synchrotron amplitude map, and :math:`\beta` is the power law 
-        spectral index.
-
         """
         scaling = (freq/freq_ref)**beta
 
@@ -123,7 +106,7 @@ class Synchrotron(DiffuseComponent):
 
 
 
-class Dust(DiffuseComponent):
+class Dust(_DiffuseComponent):
     r"""Class representing the thermal dust component in the Cosmoglobe 
     Sky Model.
     
@@ -142,9 +125,7 @@ class Dust(DiffuseComponent):
 
     Methods
     -------
-    get_freq_scaling    
     __call__
-    __init__
 
     Notes
     -----
@@ -186,7 +167,7 @@ class Dust(DiffuseComponent):
         super().__init__(amp, freq_ref, beta=beta, T=T)
 
 
-    def get_freq_scaling(self, freq, freq_ref, beta, T):
+    def _get_freq_scaling(self, freq, freq_ref, beta, T):
         r"""Computes the frequency scaling :math:`f_{\mathrm{d}}(\nu)` for
         thermal dust emission.
 
@@ -205,22 +186,6 @@ class Dust(DiffuseComponent):
         -------
         scaling : `astropy.units.Quantity`
             Frequency scaling factor with dimensionless units.
-
-        Notes
-        -----
-        The frequency scaling factor is computed as following:
-
-        .. math::
-
-            f_{\mathrm{d}}(\nu) = \left( \frac{\nu}{\nu_\mathrm{0,d}} \right)
-            ^{\beta-2}\frac{B_\nu(T_{\mathrm{d}})}
-            {B_{\nu_\mathrm{0,d}}(T_{\mathrm{d}})},
-
-        where :math:`\nu` is the frequency for which we are simulating the sky 
-        emission, :math:`\nu_\mathrm{0,d}` is the reference frequency of the 
-        thermal dust amplitude map, :math:`\beta` is the power law spectral 
-        index, :math:`T_\mathrm{d}` is the blackbody temperature, and 
-        :math:`B_\nu(T_\mathrm{d})` is the blackbody emission.
         """
 
         blackbody_ratio = (
@@ -232,7 +197,7 @@ class Dust(DiffuseComponent):
 
 
 
-class FreeFree(DiffuseComponent):
+class FreeFree(_DiffuseComponent):
     r"""Class representing the free-free component in the Cosmoglobe Sky 
     Model.
 
@@ -250,9 +215,7 @@ class FreeFree(DiffuseComponent):
 
     Methods
     -------
-    get_freq_scaling    
     __call__
-    __init__
 
     Notes
     -----
@@ -288,25 +251,10 @@ class FreeFree(DiffuseComponent):
         super().__init__(amp, freq_ref, Te=Te)
 
 
-    def get_freq_scaling(self, freq, freq_ref, Te):
+    def _get_freq_scaling(self, freq, freq_ref, Te):
         r"""Computes the frequency scaling :math:`f_{\mathrm{ff}}(\nu)` for 
         free-free emission.
         
-        Notes
-        -----
-        The frequency scaling factor is computed as following:
-
-        .. math::
-
-            f_{\mathrm{ff}}(\nu) = \frac{g_{\mathrm{ff}}\left(\nu ; T_{e}
-            \right)}{g_{\mathrm{ff}}\left(\nu_{0, \mathrm{ff}} ; T_{e}
-            \right)}\left(\frac{\nu_{0, \mathrm{ff}}}{\nu}\right)^{2},
-
-        where :math:`\nu` is the frequency for which we are simulating the 
-        sky emission, :math:`\nu_{0, \mathrm{ff}}` is the reference frequency 
-        of the free-free emission amplitude map, and :math:`T_\mathrm{e}` is 
-        the electron temperature.
-
         Parameters
         ----------
         freq : `astropy.units.Quantity`
@@ -329,7 +277,7 @@ class FreeFree(DiffuseComponent):
 
 
 
-class AME(DiffuseComponent):
+class AME(_DiffuseComponent):
     r"""Class representing the spinning dust component in the Cosmoglobe Sky 
     Model.
 
@@ -349,9 +297,7 @@ class AME(DiffuseComponent):
 
     Methods
     -------
-    get_freq_scaling    
     __call__
-    __init__
 
     Notes
     -----
@@ -400,7 +346,7 @@ class AME(DiffuseComponent):
         self.spdust2 = np.array([spdust2_freq.si.value, spdust2_amp.si.value])
 
 
-    def get_freq_scaling(self, freq, freq_ref, nu_p):
+    def _get_freq_scaling(self, freq, freq_ref, nu_p):
         r"""Computes the frequency scaling :math:`f_{\mathrm{sd}}(\nu)` for 
         spinning dust emission.
         
@@ -417,23 +363,6 @@ class AME(DiffuseComponent):
         -------
         scaling : `astropy.units.Quantity`
             Frequency scaling factor with dimensionless units.
-
-        Notes
-        -----
-        The frequency scaling factor is computed as following:
-
-        .. math::
-
-            f_{\mathrm{sd}}(\nu) = \left(\frac{\nu_{0, \mathrm{sd}}}{\nu}
-            \right)^{2} \frac{s_{0}^{\mathrm{sd}}\left(\nu \cdot 
-            \frac{\nu_{p}}{30.0\; \mathrm{GHz}}\right)}
-            {s_{0}^{\mathrm{sd}}\left(\nu_{0, \mathrm{sd}} \cdot 
-            \frac{\nu_{p}}{30.0\; \mathrm{GHz}}\right)}  
-
-        where :math:`\nu` is the frequency for which we are simulating the 
-        sky emission, :math:`\nu_{0, \mathrm{sd}}` is the reference 
-        frequency of the spinning dust emission amplitude map, and 
-        :math:`\nu_p` is peak frequency.
         """
 
         spdust2 = self.spdust2
@@ -456,7 +385,7 @@ class AME(DiffuseComponent):
 
 
 
-class CMB(DiffuseComponent):
+class CMB(_DiffuseComponent):
     r"""Class representing the CMB component in the Cosmoglobe Sky 
     Model.
 
@@ -474,10 +403,9 @@ class CMB(DiffuseComponent):
 
     Methods
     -------
-    get_freq_scaling    
-    remove_dipole
     __call__
-    __init__
+    remove_dipole
+    get_dipole
 
     Notes
     -----
@@ -514,38 +442,44 @@ class CMB(DiffuseComponent):
         super().__init__(amp, freq_ref=freq_ref)
 
 
-    def remove_dipole(self, return_dipole=False, gal_cut=10):
-        """Removes the solar dipole from the reference amplitude map.
+    def get_dipole(self, gal_cut=10):
+        """Returns the solar dipole from the reference amplitude map.
 
         Parameters
         ----------
-        return_dipole : bool, optional
-            If True, a map of the dipole is returned (False by default).
         gal_cut : float, optional
             Masks pixles :math:`\pm` `gal_cut` in latitude before estimating 
             dipole (:math:`10^\circ` by default).
 
         Returns
         -------
-        dipole : `astropy.units.Quantity`, optional
-            Map of the dipole.
+        `astropy.units.Quantity`
+            Map of the solar dipole.
         """
 
-        if not return_dipole:
-            hp.remove_dipole(self.amp[0], gal_cut=gal_cut, copy=False)
-        else: 
-            amp_without_dipole = u.Quantity(
-                hp.remove_dipole(
-                    self.amp[0], gal_cut=gal_cut
-                ), unit=self.amp.unit
-            )
-            dipole = self.amp[0] - amp_without_dipole
-            self.amp[0] = amp_without_dipole
-
-            return dipole
+        amp_without_dipole = u.Quantity(
+                hp.remove_dipole(self.amp[0], gal_cut=gal_cut),
+                unit=self.amp.unit
+        )
+        
+        return self.amp[0] - amp_without_dipole
 
 
-    def get_freq_scaling(self, freq, freq_ref=None):
+    def remove_dipole(self, gal_cut=10):
+        """Removes the solar dipole from the reference amplitude map.
+
+        Parameters
+        ----------
+        gal_cut : float, optional
+            Masks pixles :math:`\pm` `gal_cut` in latitude before estimating 
+            dipole (:math:`10^\circ` by default).
+        """
+
+        hp.remove_dipole(self.amp[0], gal_cut=gal_cut, copy=False)
+
+
+
+    def _get_freq_scaling(self, freq, freq_ref=None):
         r"""Computes the frequency scaling :math:`f_{\mathrm{CMB}}(\nu)` for 
         CMB emission.
 
@@ -561,19 +495,6 @@ class CMB(DiffuseComponent):
         -------
         scaling : `astropy.units.Quantity`
             Frequency scaling factor with dimensionless units.
-
-        Notes
-        ----- 
-        For the CMB component, the frequency scaling factor is given by the 
-        unit conversion factor from :math:`\mathrm{K_\mathrm{CMB}}` to 
-        :math:`\mathrm{K}_\mathrm{RJ}`:
-
-        .. math::
-
-            f_{\mathrm{CMB}}(\nu) = \frac{x^{2} e^{x}}{\left(e^{x}-1\right)^{2}}
-
-        where :math:`x=h \nu / k T_{0}` and :math:`T_0 = 2.7255 \mathrm{K}` 
-        as of BP9.
         """
 
         # We explicitly expand the dims to support broadcasting
@@ -583,7 +504,7 @@ class CMB(DiffuseComponent):
 
 
 
-class Radio(PointSourceComponent):
+class Radio(_PointSourceComponent):
     r"""Class representing the radio component in the Cosmoglobe Sky 
     Model.
 
@@ -602,9 +523,7 @@ class Radio(PointSourceComponent):
 
     Methods
     -------
-    get_freq_scaling
     __call__
-    __init__
 
     Notes
     -----
@@ -649,26 +568,10 @@ class Radio(PointSourceComponent):
         self.angular_coords = self._read_coords(RADIO_CATALOG)
 
 
-    def get_freq_scaling(self, freq, freq_ref, specind):
+    def _get_freq_scaling(self, freq, freq_ref, specind):
         r"""Computes the frequency scaling :math:`f_{\mathrm{src}}(\nu)` for 
         radio emission.
         
-        Notes
-        -----
-        The frequency scaling factor is computed as following, where
-        we essentially treat each point source as an individual foreground:
-
-        .. math::
-
-            f_{\mathrm{src}}(\nu) = \sum_{j=1}^{N_{\mathrm{src}}} 
-            \left(\frac{\nu}{\nu_{0, \mathrm{src}}}\right)
-            ^{\alpha_{j, \mathrm{src}}-2}
-
-        where :math:`\nu` is the frequency for which we are simulating the 
-        sky emission, :math:`\nu_{0, \mathrm{src}}` is the reference 
-        frequency of the radio emission map, :math:`\alpha` is the power 
-        law spectral index, and we sum over each point source :math:`j`.
-
         Parameters
         ----------
         freq : `astropy.units.Quantity`
@@ -687,31 +590,3 @@ class Radio(PointSourceComponent):
         scaling = (freq/freq_ref)**(specind-2)
 
         return scaling
-
-
-    def _read_coords(self, catalog):
-        """Reads in the angular coordinates of the point sources from a 
-        given catalog.
-
-        Parameters
-        ----------
-        catalog : str
-            Path to the point source catalog. Default is the COM_GB6 
-            catalog.
-        
-        Returns
-        -------
-        coords : `numpy.ndarray`
-            Longitude and latitude values of each point source
-
-        """
-        try:
-            coords = np.loadtxt(catalog, usecols=(0,1))
-        except OSError:
-            raise OSError('Could not find point source catalog')
-
-        if len(coords) == len(self.amp[0]):
-            return coords
-        else:
-            raise ValueError('Cataloge does not match chain catalog')
- 

@@ -6,7 +6,6 @@ from cosmoglobe.utils.bandpass import (
     interp1d,
     interp2d,
 )
-
 from tqdm import tqdm
 from sys import exit
 import warnings
@@ -16,18 +15,12 @@ import healpy as hp
 import sys
 
 
-class Component:
-    """Base class for a sky component used in the `cosmoglobe.sky.model.Model`.
-
-    Provides methods and attributes that are common for all sky components.
-    """
-
+class _Component:
     def __init__(self, amp, freq_ref, **spectral_parameters):
         self.amp = amp
         self.freq_ref = self._reshape_freq_ref(freq_ref)
         self.spectral_parameters = spectral_parameters
         
-
     @staticmethod
     def _reshape_freq_ref(freq_ref):
         if freq_ref is None:
@@ -42,7 +35,6 @@ class Component:
             return freq_ref.reshape((3,1))
         else:
             raise ValueError('Unrecognized shape.')
-
 
     @u.quantity_input(
         freq=u.Hz, bandpass=(u.Jy/u.sr, u.K, None), fwhm=(u.rad, u.deg, u.arcmin)
@@ -82,29 +74,36 @@ class Component:
         
         .. math::
 
-            \boldsymbol{s}_\mathrm{comp} = \boldsymbol{a}_\mathrm{comp} \; 
-            f_{\mathrm{comp}}(\nu),
+            \boldsymbol{s}_i(\nu) = \boldsymbol{a}
+            _i(\nu_{0,i}) \; f_{i}
+            (\nu),
 
-        where :math:`\boldsymbol{a}_\mathrm{comp}` is the amplitude map of 
-        the component at some reference frequency, and 
-        :math:`f_\mathrm{comp}(\nu)` is the scaling factor.
+        where :math:`\boldsymbol{a}_i` is the amplitude map of 
+        component :math:`i` at some reference frequency 
+        :math:`\nu_{0,i}`, and :math:`f_i(\nu)` is the 
+        scaling factor given by the SED of the component.
+
+        See Also
+        --------
+        Model.__call__
+            See for explicit expressions for :math:`\boldsymbol{s}_i(\nu)`.
         """
 
         # A single frequency was provided. We assume emission from a delta peak
         if freqs.size == 1:
-            emission = self.get_delta_emission(
+            emission = self._get_delta_emission(
                 freqs, fwhm=fwhm, output_unit=output_unit
             )
         # A list of frequencies was provided. We perform bandpass integration
         else:
-            emission = self.get_bandpass_emission(
+            emission = self._get_bandpass_emission(
                 freqs, bandpass, fwhm=fwhm, output_unit=output_unit
             )
 
         # If a beam fwhm is provided we smooth the resulting emission
         # (unless the component is of type 
         # `cosmoglobe.sky.templates.PointSourceComponent`)
-        if fwhm != 0.0 and not isinstance(self, PointSourceComponent):
+        if fwhm != 0.0 and not isinstance(self, _PointSourceComponent):
             if self.is_polarized:
                 emission = u.Quantity(
                     hp.smoothing(emission, fwhm=fwhm.to(u.rad).value),
@@ -118,13 +117,10 @@ class Component:
 
         return emission
 
-
     def _get_bandpass_scaling(self, freqs, bandpass):
         """Returns the frequency scaling factor given a bandpass profile and a
         corresponding frequency array. 
         
-        This function is used for diffuse and line emission components.
-
         Parameters
         ----------
         freqs : `astropy.units.Quantity`
@@ -144,7 +140,7 @@ class Component:
         # Component does not have any spatially varying spectral parameters.
         # In this scenaraio we simply integrate the emission at each frequency 
         # weighted by the bandpass.
-            freq_scaling = self.get_freq_scaling(
+            freq_scaling = self._get_freq_scaling(
                 freqs, self.freq_ref, **self.spectral_parameters
             )
 
@@ -174,7 +170,6 @@ class Component:
                 'parameters is not currently supported'
             )
 
-
     def to_nside(self, new_nside):
         """Down or upscale the healpix map resolutions with hp.ud_grades for 
         all maps in the component to a new nside.
@@ -189,7 +184,7 @@ class Component:
             raise ValueError(f'nside: {new_nside} is not valid.')
 
         # No healpix maps exist for point source components.
-        if isinstance(self, PointSourceComponent):
+        if isinstance(self, _PointSourceComponent):
             self.nside = new_nside
             return
 
@@ -218,14 +213,12 @@ class Component:
                         unit=u.dimensionless_unscaled
                     )
 
-
     @property
     def is_polarized(self):
         """Returns True if component is polarized and False if not"""
         if self.amp.shape[0] == 3:
             return True
         return False
-
 
     def __repr__(self):
         """Representation of the component"""
@@ -242,23 +235,7 @@ class Component:
         return main_repr
 
 
-
-class DiffuseComponent(Component):
-    """Class for a diffuse sky component. 
-
-    Provides methods and attributes that are common through out all diffuse sky 
-    components.
-
-    Parameters
-    ----------
-    amp : `astropy.units.Quantity`
-        Emission templates at the reference frequencies given by freq_ref.
-    freq_ref : `astropy.units.Quantity`
-        Reference frequencies for the amplitude template.
-    spectral_parameters : dict
-        Spectral parameters of the diffuse component. 
-    """
-
+class _DiffuseComponent(_Component):
     def __init__(self, amp, freq_ref, **spectral_parameters):
         super().__init__(amp, freq_ref, **spectral_parameters)
 
@@ -271,7 +248,7 @@ class DiffuseComponent(Component):
         }
 
     
-    def get_delta_emission(self, freq, fwhm=None, output_unit=u.uK):
+    def _get_delta_emission(self, freq, fwhm=None, output_unit=u.uK):
         """Simulates the component emission at a delta frequency.
 
         Parameters
@@ -288,7 +265,7 @@ class DiffuseComponent(Component):
             Simulated emission.
         """
 
-        scaling = self.get_freq_scaling(
+        scaling = self._get_freq_scaling(
             freq, self.freq_ref, **self.spectral_parameters
         )
         emission = self.amp * scaling
@@ -299,7 +276,7 @@ class DiffuseComponent(Component):
         return emission
 
     
-    def get_bandpass_emission(
+    def _get_bandpass_emission(
         self, freqs, bandpass=None, fwhm=None, output_unit=u.uK
     ):
         """Computes the simulated component emission over a bandpass.
@@ -336,22 +313,7 @@ class DiffuseComponent(Component):
 
 
 
-class PointSourceComponent(Component):
-    """Class for a point source sky component.
-
-    Provides methods and attributes that are common through out all point 
-    source sky components.
-
-    Parameters
-    ----------
-    amp : `astropy.units.Quantity`
-        Point source amplitudes at a reference frequencies given by freq_ref.
-    freq_ref : `astropy.units.Quantity`
-        Reference frequencies for the amplitudes.
-    spectral_parameters : dict
-        Spectral parameters of the poiint source component. 
-    """
-
+class _PointSourceComponent(_Component):
     def __init__(self, amp, freq_ref, **spectral_parameters):
         super().__init__(amp, freq_ref, **spectral_parameters)
 
@@ -363,7 +325,7 @@ class PointSourceComponent(Component):
         }
 
 
-    def get_delta_emission(self, freq, fwhm=0.0*u.rad, output_unit=u.uK):
+    def _get_delta_emission(self, freq, fwhm=0.0*u.rad, output_unit=u.uK):
         """Simulates the component emission at a delta frequency.
 
         Parameters
@@ -382,12 +344,12 @@ class PointSourceComponent(Component):
             Simulated emission.
         """
 
-        scaling = self.get_freq_scaling(
+        scaling = self._get_freq_scaling(
             freq, self.freq_ref, **self.spectral_parameters
         )
 
         scaled_amps = self.amp * scaling
-        emission = self.points_to_map(scaled_amps, fwhm=fwhm)
+        emission = self._points_to_map(scaled_amps, fwhm=fwhm)
 
         if output_unit is not None:
             emission = utils.emission_to_unit(emission, freq, output_unit)
@@ -395,7 +357,7 @@ class PointSourceComponent(Component):
         return emission
 
 
-    def get_bandpass_emission(
+    def _get_bandpass_emission(
         self, freqs, bandpass=None, fwhm=0.0*u.rad, output_unit=u.uK
     ):
         """Computes the simulated component emission over a bandpass.
@@ -430,13 +392,13 @@ class PointSourceComponent(Component):
         bandpass_scaling = self._get_bandpass_scaling(freqs, bandpass)
         scaled_amps = self.amp * bandpass_scaling
         emission = (
-            self.points_to_map(scaled_amps, fwhm=fwhm) * bandpass_coefficient
+            self._points_to_map(scaled_amps, fwhm=fwhm) * bandpass_coefficient
         )
 
         return emission
 
 
-    def points_to_map(
+    def _points_to_map(
         self, amp, nside=None, fwhm=0.0*u.rad, sigma=None, n_fwhm=2
     ):
         """Maps the cataloged point sources onto a healpix map with a truncated 
@@ -527,11 +489,33 @@ class PointSourceComponent(Component):
 
         return np.expand_dims(healpix_map, axis=0)
 
+    def _read_coords(self, catalog):
+        """Reads in the angular coordinates of the point sources from a 
+        given catalog.
 
+        Parameters
+        ----------
+        catalog : str
+            Path to the point source catalog. Default is the COM_GB6 
+            catalog.
+        
+        Returns
+        -------
+        coords : `numpy.ndarray`
+            Longitude and latitude values of each point source
+        """
+        
+        try:
+            coords = np.loadtxt(catalog, usecols=(0,1))
+        except OSError:
+            raise OSError('Could not find point source catalog')
 
-class LineComponent(Component):
-    """TODO: Implement this class and the CO component
-    """
+        if len(coords) == len(self.amp[0]):
+            return coords
+        else:
+            raise ValueError('Cataloge does not match chain catalog')
+
+class _LineComponent(_Component):
     def __init__(self, amp, freq_ref, **spectral_parameters):
         super().__init__(amp, freq_ref, **spectral_parameters)
 
