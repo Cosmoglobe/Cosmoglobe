@@ -190,22 +190,22 @@ class Model:
 
         Examples
         --------
-        Full Sky Model emission at :math:`50\; \mathrm{GHz}`:
+        Simulated full sky emission at :math:`50\; \mathrm{GHz}`:
 
-        >>> from cosmoglobe.sky import skymodel
+        >>> from cosmoglobe import skymodel
         >>> import astropy.units as u
-        >>> model = skymodel(nside=256)
-        >>> model(50*u.GHz)[0]  # Stokes I parameter
+        >>> model = skymodel(nside=256) 
+        >>> model(50*u.GHz)[0]
         [ 2234.74893115  2291.99921295  2323.98779311 ... -2320.74732945
          -2271.54465982 -2292.22248419] uK
 
-        Dust emission at :math:`500\; \mathrm{GHz}` smoothed with a 
-        :math:`50\; '`  Gaussian beam in units of 
+        Simulated full sky emission at :math:`500\; \mathrm{GHz}` 
+        smoothed with a :math:`50\; '` Gaussian beam, outputed in units of 
         :math:`\mathrm{MJy} / \mathrm{sr}`:
 
-        >>> model.dust(500*u.GHz, fwhm=50*u.arcmin, output_unit='MJy/sr')[0]
-        [3.08898797e-05 3.25889729e-05 3.76313847e-05 ... 3.76599942e-05
-         3.99570235e-05 4.46317102e-05] MJy / sr
+        >>> model(500*u.GHz, fwhm=50*u.arcmin, output_unit='MJy/sr')[0]
+        [ 0.267749    0.26991688  0.28053964 ... -0.15846278 -0.15269807
+         -0.14408377] MJy / sr
         """
 
         if self.is_polarized:

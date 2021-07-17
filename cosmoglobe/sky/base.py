@@ -83,6 +83,25 @@ class _Component(ABC):
         --------
         Model.__call__
             See for explicit expressions for :math:`\boldsymbol{s}_i(\nu)`.
+
+        Examples
+        --------
+        Simulated dust emission at :math:`350\; \mathrm{GHz}`:
+
+        >>> from cosmoglobe import skymodel
+        >>> import astropy.units as u
+        >>> model = skymodel(nside=256) 
+        >>> model.dust(350*u.GHz)[0]
+        [21.12408523 -0.30044442  5.8907252  ...  4.6465226   6.94981578
+          8.23490773] uK
+
+        Simulated synchrotron emission at :math:`500\; \mathrm{GHz}` 
+        smoothed with a :math:`50\; '` Gaussian beam, outputed in units of 
+        :math:`\mathrm{MJy} / \mathrm{sr}`:
+
+        >>> model.synch(40*u.GHz, fwhm=50*u.arcmin, output_unit='MJy/sr')[0]
+        [0.00054551 0.00053428 0.00051471 ... 0.00046559 0.00047185 0.00047065]
+         MJy / sr
         """
 
         # A single frequency was provided. We assume emission from a delta peak
