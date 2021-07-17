@@ -138,7 +138,7 @@ def interp1d(comp, freqs, bandpass, interp_parameter, spectral_parameters):
     for key, interp_param in interp_parameter.items():
         for grid_point in interp_param:
             spectral_parameters[key] = grid_point
-            freq_scaling = comp.get_freq_scaling(freqs, comp.freq_ref, 
+            freq_scaling = comp._get_freq_scaling(freqs, comp.freq_ref, 
                                                  **spectral_parameters)
 
             integrals.append(np.trapz(freq_scaling*bandpass, freqs))
@@ -201,7 +201,7 @@ def interp2d(comp, freqs, bandpass, interp_parameters, spectral_parameters):
     for i in range(n):
         for j in range(n):
             grid_spectrals = {key: value[i,j] for key, value in grid.items()}
-            freq_scaling = comp.get_freq_scaling(
+            freq_scaling = comp._get_freq_scaling(
                 freqs, comp.freq_ref, **grid_spectrals
             )
             integrals[i,j] = np.trapz(freq_scaling*bandpass, freqs)
@@ -275,4 +275,4 @@ def b_iras(freq, freq_ref):
         Bandpass coefficient
 
     """
-    return (freq_ref/freq)
+    return (freq_ref / freq)

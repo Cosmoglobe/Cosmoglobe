@@ -9,8 +9,6 @@ import numpy as np
 import healpy as hp
 import sys
 import math
-import plotly.colors as pcol
-from brokenaxes import brokenaxes
 
 import src.tools as tls
 
@@ -162,8 +160,7 @@ import src.tools as tls
     Spectrum(pol, long, darkmode, png, foregrounds, [mask1,mask2], nside)
 
 
-def Spectrum(pol, small=False, darkmode, png, foregrounds, masks, nside, cmap="Plotly"):
-
+def Spectrum(pol, small=False, darkmode, png, foregrounds, masks, nside, cmap=None):
     rcParams['mathtext.fontset'] = 'dejavusans'
     rcParams['axes.prop_cycle'] = cycler(color=getattr(pcol.qualitative, cmap))
     blue, red, green, purple, orange, teal, lightred, lightgreen, pink, yellow = ("C0","C1","C2","C3","C4","C5","C6","C7","C8","C9",)

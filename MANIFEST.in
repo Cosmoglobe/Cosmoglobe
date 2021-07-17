@@ -1,0 +1,6 @@
+include cosmoglobe/data/radio_catalog.dat
+include cosmoglobe/data/spdust2_cnm.dat
+include cosmoglobe/data/autoparams.json
+include cosmoglobe/data/wmap_cmap.dat
+include cosmoglobe/data/planck_cmap.dat
+include cosmoglobe/data/planck_cmap_logscale.dat

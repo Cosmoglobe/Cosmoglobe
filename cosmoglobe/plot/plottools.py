@@ -1,9 +1,14 @@
 # This file contains useful functions used across different plotting scripts.
+from re import T
+import warnings
 from .. import data as data_dir
 
+import cmasher
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.colors as col
+import astropy.units as u
+from matplotlib.colors import colorConverter, LinearSegmentedColormap, ListedColormap
+from matplotlib.patches import Polygon
 from matplotlib import _pylab_helpers
 from pathlib import Path
 import json
@@ -23,13 +28,18 @@ def apply_logscale(m, ticks, linthresh=1):
     m = np.maximum(np.minimum(m, new_ticks[-1]), new_ticks[0])
     return m, new_ticks
 
+
 def set_style(darkmode=False,):
     """
     This function sets the color parameter and text style
     """
-    plt.rc('font', family='serif',)
+    plt.rc(
+        "font", family="serif",
+    )
     plt.rcParams["mathtext.fontset"] = "stix"
-    plt.rc("text.latex", preamble=r"\usepackage{sfmath}",)
+    plt.rc(
+        "text.latex", preamble=r"\usepackage{sfmath}",
+    )
 
     tex_fonts = {
         # Use 10pt font in plots, to match 10pt font in document
@@ -38,7 +48,7 @@ def set_style(darkmode=False,):
         # Make the legend/label fonts a little smaller
         "legend.fontsize": 8,
         "xtick.labelsize": 8,
-        "ytick.labelsize": 8
+        "ytick.labelsize": 8,
     }
     plt.rcParams.update(tex_fonts,)
 
@@ -59,30 +69,32 @@ def set_style(darkmode=False,):
             plt.rcParams[p] = "white"
 
 
-def make_fig(figsize, fignum, hold, subplot, reuse_axes, darkmode=False,  projection=None, ):
+def make_fig(
+    figsize, fignum, hold, subplot, reuse_axes, darkmode=False, projection=None,
+):
     """
     Create matplotlib figure, add subplot, use current axes etc.
     """
 
     if figsize is None:
         fig_width_pt = 246.0  # Get this from LaTeX using \showthe\columnwidth
-        inches_per_pt = 1.0/72.27               # Convert pt to inch
-        golden_mean = (np.sqrt(5)-1.0)/2.0         # Aesthetic ratio
-        fig_width = fig_width_pt*inches_per_pt  # width in inches
-        fig_height = fig_width*golden_mean      # height in inches
-        figsize =  [fig_width,fig_height]
-    
+        inches_per_pt = 1.0 / 72.27  # Convert pt to inch
+        golden_mean = (np.sqrt(5) - 1.0) / 2.0  # Aesthetic ratio
+        fig_width = fig_width_pt * inches_per_pt  # width in inches
+        fig_height = fig_width * golden_mean  # height in inches
+        figsize = [fig_width, fig_height]
+
     #  From healpy
     nrows, ncols, idx = (1, 1, 1)
     width, height = figsize
     if not (hold or subplot or reuse_axes):
         # Set general style parameters
         set_style(darkmode)
-    
+
         fig = plt.figure(fignum, figsize=(width, height))
     elif hold:
         fig = plt.gcf()
-        #left, bottom, right, top = np.array(fig.gca().get_position()).ravel()
+        # left, bottom, right, top = np.array(fig.gca().get_position()).ravel()
         fig.delaxes(fig.gca())
     elif reuse_axes:
         fig = plt.gcf()
@@ -115,17 +127,16 @@ def make_fig(figsize, fignum, hold, subplot, reuse_axes, darkmode=False,  projec
     return fig, ax
 
 
-def load_cmap(cmap, logscale):
+def load_cmap(cmap,):
     """
     This function takes the colormap label and loads the colormap object
     """
 
-    if cmap == None:
+    if cmap is None:
         cmap = "planck"
     if "planck" in cmap:
         if "planck_log" in cmap:  # logscale:
             # setup nonlinear colormap
-            from matplotlib.colors import LinearSegmentedColormap
 
             class GlogColormap(LinearSegmentedColormap):
                 name = cmap
@@ -151,49 +162,30 @@ def load_cmap(cmap, logscale):
 
             cmap_path = Path(data_dir.__path__[0]) / "planck_cmap_logscale.dat"
             planck_cmap = np.loadtxt(cmap_path) / 255.0
-            cmap = col.ListedColormap(planck_cmap, "planck")
+            cmap = ListedColormap(planck_cmap, "planck")
             cmap = GlogColormap(cmap)
         else:
             cmap_path = Path(data_dir.__path__[0]) / "planck_cmap.dat"
             planck_cmap = np.loadtxt(cmap_path) / 255.0
             if cmap.endswith("_r"):
                 planck_cmap = planck_cmap[::-1]
-            cmap = col.ListedColormap(planck_cmap, "planck")
+            cmap = ListedColormap(planck_cmap, "planck")
     elif "wmap" in cmap:
         cmap_path = Path(data_dir.__path__[0]) / "wmap_cmap.dat"
         wmap_cmap = np.loadtxt(cmap_path) / 255.0
         if cmap.endswith("_r"):
-            planck_cmap = planck_cmap[::-1]
-        cmap = col.ListedColormap(wmap_cmap, "wmap")
-    elif cmap.startswith("q-"):
-        import plotly.colors as pcol
-
-        _, clab, *numvals = cmap.split("-")
-        colors = getattr(pcol.qualitative, clab)
-        if clab == "Plotly":
-            # colors.insert(3,colors.pop(-1))
-            colors.insert(0, colors.pop(-1))
-            colors.insert(3, colors.pop(2))
-        try:
-            cmap = col.ListedColormap(colors[: int(numvals[0])], f"{clab}-{numvals[0]}")
-            print("Using qualitative colormap:" + f" {clab} up to {numvals[0]}")
-        except:
-            cmap = col.ListedColormap(colors, clab)
-            print("Using qualitative colormap:" f" {clab}")
+            wmap_cmap = wmap_cmap[::-1]
+        cmap = ListedColormap(wmap_cmap, "wmap")
     elif cmap.startswith("black2"):
-        cmap = col.LinearSegmentedColormap.from_list(cmap, cmap.split("2"))
+        cmap = LinearSegmentedColormap.from_list(cmap, cmap.split("2"))
     else:
         try:
-            import cmasher
-
             cmap = eval(f"cmasher.{cmap}")
         except:
             try:
-                from cmcrameri import cm
 
                 cmap = eval(f"cm.{cmap}")
             except:
-                import matplotlib.pyplot as plt
 
                 cmap = plt.get_cmap(cmap)
 
@@ -243,78 +235,120 @@ def symlog(m, linthresh=1.0):
     return np.log10(0.5 * (m + np.sqrt(4.0 + m * m)))
 
 
-def autoparams(auto, sig, title, ltitle, unit, ticks, min, max, logscale, cmap):
+def autoparams(
+    comp, sig, right_label, left_label, unit, ticks, min, max, norm, cmap, freq
+):
     """
     This parses the autoparams json file for automatically setting parameters
     for an identified sky component.
     """
-    if auto is not None:
+    if isinstance(unit, u.UnitBase):
+        unit = unit.to_string()
+    if comp is None:
+        params = {
+            "right_label": right_label,
+            "left_label": left_label,
+            "unit": unit,
+            "ticks": ticks,
+            "norm": norm,
+            "cmap": cmap,
+            "freq_ref": freq,
+        }
+    else:
         with open(Path(data_dir.__path__[0]) / "autoparams.json", "r") as f:
             autoparams = json.load(f)
         try:
-            params = autoparams[auto]
+            params = autoparams[comp]
         except:
-            print(f"Component label {auto} not found. Using unidentified profile.")
+            print(f"Component label {comp} not found. Using unidentified profile.")
             print(f"available keys are: {autoparams.keys()}")
             params = autoparams["unidentified"]
-
-        # If none will be set to IQU
-        params["left_title"] = ["I", "Q", "U"][sig]
 
         # If l=0 use intensity cmap and ticks, else use QU
         l = 0 if sig < 1 else -1
         params["cmap"] = params["cmap"][l]
         params["ticks"] = params["ticks"][l]
+        params["freq_ref"] = params["freq_ref"][l]
+        params["left_label"] = ["I", "Q", "U"][sig]
 
-        if any(j in auto for j in ["residual", "freqmap", "bpcorr", "smap"]):
-            # Add number, such as frequency, to title.
-            number = "".join(filter(lambda i: i.isdigit(), auto))
-            params["title"] = params["title"] + "{" + number + "}"
+        if params["freq_ref"] is not None:
+            params["freq_ref"] * u.GHz
 
-        if "rms" in auto:
-            params["title"] += "^{\mathrm{RMS}}"
+        specials = ["residual", "freqmap", "bpcorr", "smap"]
+        if any(j in comp for j in specials):
+            params["right_label"] = (
+                params["right_label"]
+                + "{"
+                + f'{("%.5f" % freq.value).rstrip("0").rstrip(".")}'
+                + "}"
+            )
+
+        if "rms" in comp:
+            params["right_label"] += "^{\mathrm{RMS}}"
             params["cmap"] = "neutral"
-            params["ticks"] = "auto"
-        if "stddev" in auto:
-            params["title"] = "\sigma_{\mathrm{" + param["title"] + "}}"
+            params["ticks"] = "comp"
+        if "stddev" in comp:
+            params["right_label"] = "\sigma_{\mathrm{" + params["right_label"] + "}}"
             params["cmap"] = "neutral"
-            params["ticks"] = "auto"
-        if "mean" in auto:
-            params["title"] = "\langle " + comp["title"] + "\rangle"
+            params["ticks"] = "comp"
+        if "mean" in comp:
+            params["right_label"] = "\langle " + comp["right_label"] + "\rangle"
 
-        # This is messy
-        if title is not None:
-            params["title"] = title
-        if ltitle is not None:
-            params["left_title"] = ltitle
+        # Assign values if specified in function call
+        if right_label is not None:
+            params["right_label"] = right_label
+        if left_label is not None:
+            params["left_label"] = left_label
         if unit is not None:
             params["unit"] = unit
         if ticks is not None:
             params["ticks"] = ticks
-        if logscale is not None:
-            params["logscale"] = logscale
+        if norm is not None:
+            params["norm"] = norm
         if cmap is not None:
             params["cmap"] = cmap
-    else:
-        params = {
-            "title": title,
-            "left_title": ["I", "Q", "U"][sig],
-            "unit": unit,
-            "ticks": ticks,
-            "logscale": logscale,
-            "cmap": cmap,
-        }
+        if freq is not None and params["unit"] is not None:
+            params["unit"] = (
+                f'{params["unit"]}\,@\,{("%.5f" % freq.value).rstrip("0").rstrip(".")}'
+                + "\,\mathrm{GHz}"
+            )
+        if ticks == None:
+            if (
+                freq != None
+                and params["freq_ref"] != freq.value
+                and comp not in specials
+            ):
+                warnings.warn(
+                    f"Input frequency is different from reference, autosetting ticks"
+                )
+                print(f'input: {freq}, reference: {params["freq_ref"]}')
+                params["ticks"] = "auto"
 
-    if min is not None:
-        params["ticks"][0] = min
-    if max is not None:
-        params["ticks"][-1] = max
+    if params["ticks"] is None:
+        params["ticks"] = [min, max]
+    if ticks != "auto":
+        if min is not None:
+            if params["ticks"] == "auto":
+                params["ticks"] = [None, None]
+            params["ticks"][0] = min
+        if max is not None:
+            if params["ticks"] == "auto":
+                params["ticks"] = [None, None]
+            params["ticks"][-1] = max
+
+    # Math text in labels
+    for i in [
+        "right_label",
+        "left_label",
+        "unit",
+    ]:
+        if params[i] and params[i] != "":
+            params[i] = r"$" + params[i] + "$"
+
     return params
 
 
-def legend_positions(
-    input,
-):
+def legend_positions(input,):
     """
     Calculate position of labels to the right in plot...
     """
@@ -380,8 +414,6 @@ def gradient_fill(x, y, fill_color=None, ax=None, alpha=1.0, invert=False, **kwa
     im : an AxesImage instance
         The transparent gradient clipped to just the area beneath the curve.
     """
-    import matplotlib.colors as mcolors
-    from matplotlib.patches import Polygon
 
     if ax is None:
         ax = plt.gca()
@@ -395,7 +427,7 @@ def gradient_fill(x, y, fill_color=None, ax=None, alpha=1.0, invert=False, **kwa
     alpha = 1.0 if alpha is None else alpha
 
     z = np.empty((100, 1, 4), dtype=float)
-    rgb = mcolors.colorConverter.to_rgb(fill_color)
+    rgb = colorConverter.to_rgb(fill_color)
     z[:, :, :3] = rgb
     z[:, :, -1] = np.linspace(0, alpha, 100)[:, None]
 

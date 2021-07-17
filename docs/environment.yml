@@ -1,0 +1,19 @@
+name: readthedocs
+channels:
+    - conda-forge
+dependencies:
+  - python=3.8
+  - pip
+  - astropy
+  - numpy
+  - matplotlib
+  - scipy
+  - numpydoc
+  - nbsphinx
+  - numpydoc
+  - healpy
+  - h5py>=3.0
+  - cmasher
+  - tqdm
+  - ipython
+  - pydata-sphinx-theme

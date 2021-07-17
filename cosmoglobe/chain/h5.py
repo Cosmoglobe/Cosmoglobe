@@ -1,4 +1,4 @@
-from cosmoglobe.hub import COSMOGLOBE_COMPS
+from cosmoglobe.sky import components
 from cosmoglobe.sky import Model
 from cosmoglobe.utils import utils
 
@@ -8,6 +8,7 @@ import healpy as hp
 import numpy as np
 import sys
 import inspect
+import pathlib
 from tqdm import tqdm
 from numba import njit
 
@@ -15,7 +16,16 @@ from numba import njit
 param_group = 'parameters'
 # These will be dropped from component lists
 _ignored_comps = ['md', 'relquad']
-# _ignored_comps = ['md', 'relquad', 'radio']
+
+#Current Cosmoglobe Sky Model as of BP9
+COSMOGLOBE_COMPS = dict(
+    ame=components.AME,
+    cmb=components.CMB,
+    dust=components.Dust,
+    ff=components.FreeFree,
+    radio=components.Radio,
+    synch=components.Synchrotron,
+)
 
 
 def model_from_chain(file, nside=None, samples='all', burn_in=None, comps=None):
@@ -163,11 +173,13 @@ def comp_from_chain(file, component, component_class, model_nside, samples):
                 raise KeyError(f'item {arg} is not present in the chain')
 
 
-    other_items_ = get_items(file, samples, component, 
-                      [item for item in other_items_names])
+    other_items_ = get_items(
+        file, samples, component, [item for item in other_items_names]
+    )
     other_items = dict(zip(other_items_names, other_items_))
-    maps_ = get_items(file, samples, component, 
-                      [f'{map_}_map' for map_ in map_names])
+    maps_ = get_items(
+        file, samples, component, [f'{map_}_map' for map_ in map_names]
+    )
     maps = dict(zip(map_names, maps_))
     if maps:
         if model_nside is not None and nside != model_nside:
@@ -179,26 +191,28 @@ def comp_from_chain(file, component, component_class, model_nside, samples):
     if model_nside is None:
         model_nside = nside
 
-    alms_ = get_items(file, samples, component, 
-                      [f'{alm}_alm' for alm in alm_names])
+    alms_ = get_items(
+        file, samples, component, [f'{alm}_alm' for alm in alm_names]
+    )
     alms = dict(zip(alm_names, alms_))
-    alms_lmax_ = get_items(file, samples, component, 
-                           [f'{alm}_lmax' for alm in alm_names])
+    alms_lmax_ = _get_items(
+        file, samples[-1], component, [f'{alm}_lmax' for alm in alm_names]
+    )
     alms_lmax = dict(zip(alm_names, [int(lmax) for lmax in alms_lmax_]))
 
     for key, value in alms.items():
         unpacked_alm = unpack_alms_from_chain(value, alms_lmax[key])
-        if 'key' == 'amp':
+        if key == 'amp' and value.shape[0] == 3:
             pol = True
         else:
             pol = False
-
+                
         alms[key] = hp.alm2map(unpacked_alm, 
                           nside=model_nside, 
                           lmax=alms_lmax[key], 
                           fwhm=fwhm_ref.value,
                           pol=pol,
-                          verbose=False).astype('float32')
+                          ).astype('float32')
 
     args.update(alms)
     args['amp'] *= amp_unit
@@ -299,11 +313,11 @@ def _get_items(file, sample, component, items):
         items_to_return = []
         try:
             for item in items:
-                items_to_return.append(f[sample][component].get(item)[()])
+                items_to_return.append(f[sample][component][item][()])
 
             return items_to_return
         except TypeError:
-            return f[sample][component].get(items)[()]
+            return f[sample][component][items][()]
 
 
 def _get_averaged_items(file, samples, component, items):
@@ -328,27 +342,31 @@ def _get_averaged_items(file, samples, component, items):
         List of items averaged over samples from the chain file.
     
     """
+    if not items:
+        return []
+
     with h5py.File(file, 'r') as f:
         if isinstance(items, (tuple, list)):
             items_to_return = []
             for sample in samples:
+                
                 for idx, item in enumerate(items):
                     try:
                         items_to_return[idx] += (
-                            f[sample][component].get(item)[()]
+                            f[sample][component][item][()]
                         )
                     except IndexError:
                         items_to_return.append(
-                            f[sample][component].get(item)[()]
+                            f[sample][component][item][()]
                         )
 
             return [item/len(samples) for item in items_to_return]
 
         for sample in samples:
             try:
-                item_to_return += f[sample][component].get(items)[()]
+                item_to_return += f[sample][component][items][()]
             except UnboundLocalError:
-                item_to_return = f[sample][component].get(items)[()]
+                item_to_return = f[sample][component][items][()]
 
         return item_to_return/len(samples)
 
@@ -439,3 +457,106 @@ def unpack_alms_from_chain(data, lmax):
                 i += 1
 
     return alms
+
+
+def chain_to_h5(chainfile, output_dir, nside=None, burn_in=None):
+    """Outputs the contents of a chainfile to model hdf5 files for a set of 
+    resulutions. 
+
+    Parameters
+    ----------
+    chainfile : str, `pathlib.PosixPath`
+        Path to commander3 hdf5 chainfile.
+    output_dir : str, `pathlib.PosixPath`
+        Path to where model hdf5 files will be output.
+    nside : int
+        Custom nside value. Overrides the DEFAULT_NSIDES. Default: None.
+    burn_in : Sample at which the chain has "burned in".
+    """
+
+    DEFAULT_NSIDES = [
+        2**res for res in range(12)     # [1, 2, ... , 2048]
+    ]
+
+    NSIDES = DEFAULT_NSIDES if nside is None else nside
+    for nside in NSIDES:
+        model = model_from_chain(chainfile, nside, burn_in=burn_in)
+        model_to_h5(model, output_dir)
+
+
+def model_to_h5(model, output_dir):
+    """Outputs a `cosmoglobe.sky.Model` to a hdf5 model file.
+
+    Parameters
+    ----------
+    model : `cosmoglobe.sky.Model`
+        A cosmoglobe sky model.
+    output_dir : str, `pathlib.PosixPath`
+        Path to where model hdf5 files will be output.
+    """
+
+    dirname = pathlib.Path(output_dir)
+    dirname.mkdir(parents=True, exist_ok=True)
+    filename = dirname / f'model_{model.nside}.h5'
+
+    with h5py.File(filename, 'w') as f:
+        for comp in model:
+            grp = f.create_group(comp.label)
+            amp = grp.create_dataset('amp', data=comp.amp.value)
+            amp.attrs['unit'] = comp.amp.unit.to_string()
+            if comp.freq_ref is not None:
+                freq = grp.create_dataset('freq_ref', data=comp.freq_ref.value)
+                freq.attrs['unit'] = comp.freq_ref.unit.to_string()
+
+            sp_grp = grp.create_group('spectral_parameters')
+            for key, value in comp.spectral_parameters.items():
+                if isinstance(value, u.Quantity):
+                    dset = sp_grp.create_dataset(key, data=value.value)
+                    dset.attrs['unit'] = value.unit.to_string()
+                else:
+                    sp_grp.create_dataset(key, data=value)
+
+
+
+def model_from_h5(filename):
+    """Initializes a `cosmoglobe.sky.Model` from a hdf5 file with a specific
+    format.
+
+    Parameters
+    ----------
+    filename : str, `pathlib.PosixPath`
+        Filename of the hdf5 file from which to read in model.
+    """
+
+    filename = pathlib.Path(filename)
+    model = Model()
+    with h5py.File(filename, 'r') as f:
+        for comp in f:
+            amp_dset = f.get(f'{comp}/amp')
+            amp = u.Quantity(
+                value=amp_dset[()], 
+                unit=amp_dset.attrs.get('unit', None)
+            )
+            freq_dset = f.get(f'{comp}/freq_ref')
+            if freq_dset:
+                freq_ref = u.Quantity(
+                    value=freq_dset[()], 
+                    unit=freq_dset.attrs.get('unit', None)
+                ) 
+            else:
+                freq_ref = None
+            
+            spectral_parameters = {}
+            for spec in f[comp]['spectral_parameters']:
+                dset = f.get(f'{comp}/spectral_parameters/{spec}')
+                spectral_parameters[spec] = u.Quantity(
+                    value=dset[()],
+                    unit=dset.attrs.get('unit', None)
+                )
+
+            component = COSMOGLOBE_COMPS[comp]
+            model._insert_component(
+                component(amp=amp, freq_ref=freq_ref, **spectral_parameters)
+            )
+
+    return model

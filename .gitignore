@@ -18,8 +18,9 @@ MANIFEST
 .ipynb_checkpoints
 
 # Sphinx
-docs/api
-docs/_build
+docs/api/
+docs/_build/
+docs/_static/
 
 # Packages/installer info
 *.egg
@@ -55,4 +56,6 @@ distribute-*.tar.gz
 # Ignore test files
 tests/
 
+# VS code
+.vscode
 
