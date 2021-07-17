@@ -9,13 +9,14 @@ from cosmoglobe.utils.bandpass import (
 
 from abc import ABC, abstractmethod
 from tqdm import tqdm
-from typing import Union, Dict
+from typing import Dict
 from sys import exit
 import astropy.units as u
 import healpy as hp
 import numpy as np
 import sys
 import warnings
+
 
 class _Component(ABC):
     """Abstract base class for a sky component"""
@@ -35,11 +36,7 @@ class _Component(ABC):
         fwhm=(u.rad, u.deg, u.arcmin),
     )
     def __call__(
-        self, 
-        freqs: u.Hz, 
-        bandpass: u.Quantity = None, 
-        fwhm: u.Quantity = 0.0 * u.rad, 
-        output_unit: Union[u.UnitBase, str] = u.uK
+        self, freqs,bandpass=None, fwhm=0.0 * u.rad, output_unit=u.uK
     ):
         r"""Computes the component emission at a single frequency 
         :math:`\nu` or integrated over a bandpass :math:`\tau`.
@@ -146,7 +143,7 @@ class _Component(ABC):
         """Computes the simulated component emission over a bandpass."""
 
     @abstractmethod
-    def to_nside(self, new_nside: int) -> None:
+    def to_nside(self, new_nside):
         """Down or upscale the healpix map resolutions with hp.ud_grades for 
         all maps in the component to a new nside.
         """
@@ -256,7 +253,7 @@ class _DiffuseComponent(_Component):
         }
 
     @abstractmethod
-    def _get_freq_scaling(freq, **kwargs):
+    def _get_freq_scaling(freq, freq_ref, **spectral_parameters):
         """Returns the frequency scaling factor for a given diffuse 
         component.
         """
@@ -323,7 +320,7 @@ class _DiffuseComponent(_Component):
 
         return emission
 
-    def to_nside(self, new_nside: int) -> None:
+    def to_nside(self, new_nside):
         """Down or upscale the healpix map resolutions with hp.ud_grades for 
         all maps in the component to a new nside.
 
@@ -376,12 +373,12 @@ class _PointSourceComponent(_Component):
         }
 
     @abstractmethod
-    def _get_freq_scaling(freq, **kwargs):
+    def _get_freq_scaling(freq, freq_ref, **spectral_parameters):
         """Returns the frequency scaling factor for a given point source 
         component.
         """
 
-    def _get_delta_emission(self, freq, fwhm=0.0*u.rad, output_unit=u.uK):
+    def _get_delta_emission(self, freq, fwhm=0.0 * u.rad, output_unit=u.uK):
         """Simulates the component emission at a delta frequency.
 
         Parameters
@@ -413,7 +410,7 @@ class _PointSourceComponent(_Component):
         return emission
 
     def _get_bandpass_emission(
-        self, freqs, bandpass=None, fwhm=0.0*u.rad, output_unit=u.uK
+        self, freqs, bandpass=None, fwhm=0.0 * u.rad, output_unit=u.uK
     ):
         """Computes the simulated component emission over a bandpass.
         If no bandpass is passed, a top-hat bandpass is assumed.
@@ -453,7 +450,7 @@ class _PointSourceComponent(_Component):
         return emission
 
     def _points_to_map(
-        self, amp, nside=None, fwhm=0.0*u.rad, sigma=None, n_fwhm=2
+        self, amp, nside=None, fwhm=0.0 * u.rad, sigma=None, n_fwhm=2
     ):
         """Maps the cataloged point sources onto a healpix map with a truncated 
         gaussian beam. For more information, see 
@@ -562,7 +559,7 @@ class _PointSourceComponent(_Component):
         else:
             raise ValueError('Cataloge does not match chain catalog')
 
-    def to_nside(self, new_nside: int) -> None:
+    def to_nside(self, new_nside):
         """For point sources we do not store any healpix maps so this 
         function simply updates the nside attribute of the component.
 

@@ -101,11 +101,7 @@ class Model:
         fwhm=(u.rad, u.deg, u.arcmin)
     )
     def __call__(
-        self, 
-        freqs: u.Hz, 
-        bandpass: u.Quantity = None, 
-        fwhm: u.Quantity = 0.0 * u.rad, 
-        output_unit: Union[u.UnitBase, str] = u.uK
+        self, freqs, bandpass=None, fwhm=0.0 * u.rad, output_unit=u.uK
     ):
         r"""Computes the model emission (sum of all component emissions) 
         at a single frequency :math:`\nu` or integrated over a bandpass :math:`\tau`.
@@ -219,7 +215,7 @@ class Model:
 
         return diffuse_emission + ptsrc_emission
 
-    def disable(self, component: Union[str, _Component]) -> None:
+    def disable(self, component):
         """Disable a component in the model.
 
         Parameters
@@ -248,7 +244,7 @@ class Model:
 
         del self.components[comp]
 
-    def enable(self, component: Union[str, _Component]) -> None:
+    def enable(self, component):
         """enable a disabled component.
 
         Parameters
@@ -274,10 +270,10 @@ class Model:
             self.components[comp] = self.disabled_components[comp]
         except KeyError:
             raise KeyError(f'{comp} is not disabled')
-            
+
         del self.disabled_components[comp]
 
-    def to_nside(self, new_nside: int) -> None:
+    def to_nside(self, new_nside):
         """ud_grades all maps in the component to a new nside.
 
         Parameters
