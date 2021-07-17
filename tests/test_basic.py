@@ -1,9 +1,6 @@
-from matplotlib import interactive
 from context import cosmoglobe
-from cosmoglobe import sky
 from cosmoglobe.sky import model_from_chain
-from cosmoglobe.hub import skymodel
-from cosmoglobe.sky.components import DiffuseComponent
+from cosmoglobe import sky_model
 
 import healpy as hp
 import matplotlib.pyplot as plt
@@ -12,7 +9,7 @@ import astropy.units as u
 from sys import exit
 import pathlib
 
-from cosmoglobe.plot import plot
+from cosmoglobe import plot
 
 
 data_dir = pathlib.Path("/Users/metinsan/Documents/doktor/Cosmoglobe/cosmoglobe/data/")
@@ -29,15 +26,17 @@ bp *= u.K
 
 # plt.plot
 
-model = skymodel(nside=256)
+model = sky_model(nside=256)
 # print(help(model))
-emission = model.dust(50*u.GHz, fwhm=50*u.arcmin, output_unit='MJy/sr')
+# emission = model.dust(50*u.GHz, fwhm=50*u.arcmin, output_unit='MJy/sr')
 # print(emission[0])
 # np.linspace
 model.cmb.remove_dipole()
 # model.disable('radio')
 hp.mollview(model(bp_freqs, bp, fwhm=0.88*u.deg, output_unit='uK_RJ')[0], unit='uK_RJ', norm='hist')
-# hp.mollview(model(bp_freqs, bp, fwhm=0.88*u.deg, output_unit='mK_CMB')[0], unit='mK_CMB', norm='hist')
+# hp.mollview(model.cmb(30*u.GHz, fwhm=0.88*u.deg, output_unit='uK_CMB')[0], norm='hist')
+# hp.mollview(model.cmb(100*u.GHz, fwhm=0.88*u.deg, output_unit='uK_CMB')[0], norm='hist')
+# hp.mollview(model.cmb(400*u.GHz, fwhm=0.88*u.deg, output_unit='uK_CMB')[0], norm='hist')
 # hp.mollview(model(bp_freqs, bp, fwhm=60*u.arcmin, output_unit='MJy/sr')[0], unit='MJy/sr', norm='hist')
 # hp.mollview(model(bp_freqs, bp, fwhm=60*u.arcmin, output_unit='uK_CMB')[0], unit='uK_CMB', norm='hist')
 # hp.mollview(model(bp_freqs, bp, fwhm=60*u.arcmin)[0],unit='uK_RJ', norm='hist')
@@ -62,4 +61,4 @@ hp.mollview(model(bp_freqs, bp, fwhm=0.88*u.deg, output_unit='uK_RJ')[0], unit='
 # plot(model, freq=100*u.GHz, fwhm=20*u.arcmin)
 # emission = model(bp_freqs, bp, fwhm=30*u.arcmin, output_unit='MJy/sr')[0]
 # plot(emission)
-plt.show()
+# plt.show()
