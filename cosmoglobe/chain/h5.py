@@ -219,8 +219,8 @@ def comp_from_chain(file, component, component_class, model_nside, samples):
 
     args.update(alms)
     args['amp'] *= amp_unit
-    args = utils._set_spectral_units(args)
-    scalars = utils._extract_scalars(args) # dont save scalar maps
+    args = utils.set_spectral_units(args)
+    scalars = utils.extract_scalars(args) # dont save scalar maps
     args.update(scalars)
     if 'freq_ref' in args_list:
         if comp_is_polarized:

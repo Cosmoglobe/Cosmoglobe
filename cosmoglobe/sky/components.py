@@ -18,14 +18,13 @@ import healpy as hp
 
 warnings.simplefilter('once', UserWarning)
 
-DATA_DIR = Path(__file__).resolve().parent.parent / 'data'
+DATA_DIR = Path(__file__).parent.parent.resolve() / 'data'
 RADIO_CATALOG = DATA_DIR / 'radio_catalog.dat'
 SPDUST2_FILE = DATA_DIR / 'spdust2_cnm.dat'
 
 
 class Synchrotron(_DiffuseComponent):
-    r"""Class representing the synchrotron component in the Cosmoglobe 
-    Sky Model.
+    r"""Class representing the synchrotron component.
 
     Attributes
     ----------
@@ -91,8 +90,7 @@ class Synchrotron(_DiffuseComponent):
 
 
 class Dust(_DiffuseComponent):
-    r"""Class representing the thermal dust component in the Cosmoglobe 
-    Sky Model.
+    r"""Class representing the thermal dust component.
     
     Attributes
     ----------
@@ -164,8 +162,7 @@ class Dust(_DiffuseComponent):
 
 
 class FreeFree(_DiffuseComponent):
-    r"""Class representing the free-free component in the Cosmoglobe Sky 
-    Model.
+    r"""Class representing the free-free component.
 
     Attributes
     ----------
@@ -228,8 +225,7 @@ class FreeFree(_DiffuseComponent):
 
 
 class AME(_DiffuseComponent):
-    r"""Class representing the spinning dust component in the Cosmoglobe Sky 
-    Model.
+    r"""Class representing the spinning dust component.
 
     Attributes
     ----------
@@ -318,8 +314,7 @@ class AME(_DiffuseComponent):
 
 
 class CMB(_DiffuseComponent):
-    r"""Class representing the CMB component in the Cosmoglobe Sky 
-    Model.
+    r"""Class representing the CMB component.
 
     Attributes
     ----------
@@ -434,8 +429,7 @@ class CMB(_DiffuseComponent):
 
 
 class Radio(_PointSourceComponent):
-    r"""Class representing the radio component in the Cosmoglobe Sky 
-    Model.
+    r"""Class representing the radio component.
 
     Attributes
     ----------
@@ -479,9 +473,6 @@ class Radio(_PointSourceComponent):
         super().__init__(amp, freq_ref, nside, specind=specind)
 
         self.amp = u.Quantity(self.amp.value, unit='mJy')
-        self.spectral_parameters['specind'] = np.squeeze(
-            self.spectral_parameters['specind'][0]
-        )
 
         # Read in coordinates of all point sources in lon lat.
         self.angular_coords = self._read_coords(RADIO_CATALOG)

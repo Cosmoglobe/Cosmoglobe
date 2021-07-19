@@ -1,7 +1,16 @@
 from cosmoglobe.utils.functions import brightness_to_thermodynamical
 
+from enum import Enum, auto
 import numpy as np
 import astropy.units as u
+
+class CompState(Enum):
+    """State of a model component."""
+
+    ENABLED = auto()
+    DISABLED = auto()
+
+
 class NsideError(Exception):
     """Raised if there is a NSIDE related problem"""
     pass
@@ -11,7 +20,7 @@ class ModelError(Exception):
     pass
 
 
-def _extract_scalars(spectral_parameters):
+def extract_scalars(spectral_parameters):
     """Extracts scalars from a spectral_parameter dict. If a map is constant
     in all dims, then it is converted to a (ndim,) array"""
     scalars = {}
@@ -27,7 +36,7 @@ def _extract_scalars(spectral_parameters):
     return scalars
 
 
-def _set_spectral_units(maps):
+def set_spectral_units(maps):
     #TODO: Figure out how to correctly detect unit of spectral map in chain.
     #      Until then, a hardcoded dict is used:
     units = dict(
@@ -44,7 +53,7 @@ def _set_spectral_units(maps):
     return maps
 
 
-def _str_to_astropy_unit(unit):
+def str_to_astropy_unit(unit):
     try:
         output_unit = u.Unit(unit)
     except ValueError:
