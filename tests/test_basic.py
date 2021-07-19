@@ -24,10 +24,11 @@ bp *= u.K
 
 # model = model_from_chain(chain, nside=256)
 
+from cosmoglobe.utils.utils import CompState
 # plt.plot
-
 model = sky_model(nside=256)
-model.to_nside(64)
+print(model)
+model.cmb.remove_dipole()
 # print(help(model))
 # emission = model.dust(50*u.GHz, fwhm=50*u.arcmin, output_unit='MJy/sr')
 # print(emission[0])
@@ -37,7 +38,8 @@ model.to_nside(64)
 # model.cmb.remove_dipole()
 # hp.mollview(model.cmb.get_dipole(20*u.deg), norm='hist')
 # model.disable('radio')
-hp.mollview(model(bp_freqs, bp, fwhm=2.88*u.deg, output_unit='mK')[0], norm='hist')
+hp.mollview(model.radio(40*u.GHz, fwhm=30*u.arcmin)[0], norm='hist', cmap='CMRmap')
+hp.mollview(model(bp_freqs, bp, fwhm=0.88*u.deg, output_unit='mK')[0], norm='hist')
 # hp.mollview(model.cmb(30*u.GHz, fwhm=0.88*u.deg, output_unit='uK_CMB')[0], norm='hist')
 # hp.mollview(model.cmb(100*u.GHz, fwhm=0.88*u.deg, output_unit='uK_CMB')[0], norm='hist')
 # hp.mollview(model.cmb(400*u.GHz, fwhm=0.88*u.deg, output_unit='uK_CMB')[0], norm='hist')
@@ -47,7 +49,7 @@ hp.mollview(model(bp_freqs, bp, fwhm=2.88*u.deg, output_unit='mK')[0], norm='his
 # hp.mollview(emission[0], norm='hist')
 
 # plot(model.dust(100.5*u.GHz,))
-plt.show()
+# plt.show()
 # freqs = u.Quantity(np.arange(1, 3), unit=u.GHz)
 # print(model.synch.get_emission(freqs, fwhm=10*u.arcmin, output_unit='uK_CMB'))
 # chain_to_h5(chainfile=chain, output_dir='/Users/metinsan/Documents/doktor/models/test1')
@@ -61,8 +63,7 @@ plt.show()
 # plot(model, comp="ff")
 # plot(model, comp="synch")
 # plot(model, comp="ame")
-# plot(model, comp="cmb")
 # plot(model, freq=100*u.GHz, fwhm=20*u.arcmin)
 # emission = model(bp_freqs, bp, fwhm=30*u.arcmin, output_unit='MJy/sr')[0]
 # plot(emission)
-# plt.show()
+plt.show()

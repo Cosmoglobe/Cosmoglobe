@@ -1,8 +1,8 @@
 from cosmoglobe.utils.functions import brightness_to_thermodynamical
 
 from enum import Enum, auto
-import numpy as np
 import astropy.units as u
+import numpy as np
 
 class CompState(Enum):
     """State of a model component."""

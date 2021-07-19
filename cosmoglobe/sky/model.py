@@ -286,12 +286,11 @@ class Model:
     def __iter__(self):
         """Returns iterable of all enabled components in the model."""
         
-        return iter(
-            [
-                comp[0] for comp in self._components.values()
-                if comp[1] is CompState.ENABLED
-            ]
-        )
+        components = [
+            comp[0] for comp in self._components.values()
+            if comp[1] is CompState.ENABLED
+        ]
+        return iter(components)
 
     def __repr__(self):        
         """Representation of the Model and all enabled components."""

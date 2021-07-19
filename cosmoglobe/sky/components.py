@@ -164,8 +164,9 @@ class FreeFree(_DiffuseComponent):
 
     Notes
     -----
-    The free-free emission is defined using the convention in `BeyondPlanck (2020), 
-    Section 3.3.2 <https://arxiv.org/pdf/2011.05609.pdf>`_;
+    The free-free emission is defined using the convention in 
+    `BeyondPlanck (2020), Section 3.3.2 
+    <https://arxiv.org/pdf/2011.05609.pdf>`_;
 
     .. math::
 
@@ -191,7 +192,9 @@ class FreeFree(_DiffuseComponent):
             Electron temperature.
         """
 
-        gaunt_factor_ratio = gaunt_factor(freq, Te) / gaunt_factor(freq_ref, Te)
+        gaunt_factor_ratio = (
+            gaunt_factor(freq, Te) / gaunt_factor(freq_ref, Te)
+        )
         scaling = (freq_ref/freq)**2 * gaunt_factor_ratio
 
         return scaling
@@ -240,7 +243,6 @@ class AME(_DiffuseComponent):
     def __init__(self, amp, freq_ref, nu_p):
         super().__init__(amp, freq_ref, nu_p=nu_p)
 
-        # Read in spdust2 template
         spdust2_freq, spdust2_amp = np.loadtxt(SPDUST2_FILE, unpack=True)
         spdust2_freq = u.Quantity(spdust2_freq, unit=u.GHz)
         spdust2_amp = u.Quantity(spdust2_amp, unit=(u.Jy/u.sr))
@@ -311,8 +313,8 @@ class CMB(_DiffuseComponent):
         ^{2}} \boldsymbol{s}^{\mathrm{CMB}},
 
     where :math:`\nu` is the frequency for which we are simulating the 
-    sky emission, :math:`x=h \nu / k T_{0}` and :math:`T_0 = 2.7255 \mathrm{K}` 
-    as of BP9.
+    sky emission, :math:`x=h \nu / k T_{0}` and 
+    :math:`T_0 = 2.7255 \mathrm{K}` as of BP9.
     """
 
     label = 'cmb'
@@ -423,8 +425,6 @@ class Radio(_PointSourceComponent):
         super().__init__(amp, freq_ref, nside, specind=specind)
 
         self.amp = u.Quantity(self.amp.value, unit='mJy')
-
-        # Read in coordinates of all point sources in lon lat.
         self.angular_coords = self._read_coords(RADIO_CATALOG)
 
     def _get_freq_scaling(self, freq, freq_ref, specind):

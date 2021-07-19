@@ -91,13 +91,13 @@ def get_interpolation_grid(spectral_parameters):
 
     """
     dim = 0
-    for value in spectral_parameters.values():
-        if value.size > 3:
+    for spectral_parameter in spectral_parameters.values():
+        if spectral_parameter.size > 3:
             dim += 1
         
-    interp_parameters = {}
+    grid = {}
     if dim == 0:
-        return interp_parameters
+        return grid
     elif dim == 1:
         n = 1000
     elif dim == 2:
@@ -105,11 +105,10 @@ def get_interpolation_grid(spectral_parameters):
 
     for key, value in spectral_parameters.items():
         if value.size > 3:
-            min_, max_ = np.amin(value), np.amax(value)
-            interp = np.linspace(min_, max_, n)
-            interp_parameters[key] = interp
+            grid_range = np.linspace(np.amin(value), np.amax(value), n)
+            grid[key] = grid_range
 
-    return interp_parameters
+    return grid
 
 
 def interp1d(freqs, bandpass, grid, comp):
@@ -255,10 +254,10 @@ def b_cmb(freq, T=T_0):
         Bandpass coefficient
 
     """
-    x = (h*freq)/(k_B*T)
+    x = (h*freq) / (k_B*T)
     return (
-        (2*h*freq**3)/(c**2 * np.expm1(x)) * 
-        (np.exp(x)/np.expm1(x))*((h*freq)/(k_B*T**2)) * u.sr**-1
+        (2*h*freq**3) / (c**2 * np.expm1(x)) * (np.exp(x) / np.expm1(x))
+        * ((h*freq) / (k_B*T**2)) * u.sr**-1
     )
 
 
