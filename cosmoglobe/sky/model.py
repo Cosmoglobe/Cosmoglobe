@@ -1,10 +1,10 @@
-from cosmoglobe.utils import utils
-from cosmoglobe.utils.utils import CompState
 from cosmoglobe.sky.base import (
     _Component, 
     _DiffuseComponent, 
     _PointSourceComponent,
 )
+from cosmoglobe.utils import utils
+from cosmoglobe.utils.utils import CompState
 
 from typing import List
 import astropy.units as u
@@ -224,13 +224,12 @@ class Model:
                 for idx, row in enumerate(comp_emission):
                     point_source_emission[idx] += row
 
-        if fwhm != 0.0:
-            # If diffuse emission is non-zero
-            print('Smoothing diffuse emission')
-            if diffuse_emission.value.any():
-                diffuse_emission = hp.smoothing(
-                    diffuse_emission, fwhm.to(u.rad).value
-                ) * diffuse_emission.unit
+        if fwhm != 0.0 and diffuse_emission.value.any():
+            print('Smoothing diffuse emission...')
+            diffuse_emission = u.Quantity(
+                hp.smoothing(diffuse_emission, fwhm.to(u.rad).value),
+                unit=diffuse_emission.unit
+            )
 
         return diffuse_emission + point_source_emission
 

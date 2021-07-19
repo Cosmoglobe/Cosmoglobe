@@ -11,10 +11,10 @@ from cosmoglobe.utils.functions import (
 
 from pathlib import Path
 from sys import exit
-import warnings
 import astropy.units as u
 import numpy as np
 import healpy as hp
+import warnings
 
 warnings.simplefilter('once', UserWarning)
 
@@ -425,7 +425,7 @@ class Radio(_PointSourceComponent):
         super().__init__(amp, freq_ref, nside, specind=specind)
 
         self.amp = u.Quantity(self.amp.value, unit='mJy')
-        self.angular_coords = self._read_coords(RADIO_CATALOG)
+        self.angular_coords = self._read_coords_from_catalog(RADIO_CATALOG)
 
     def _get_freq_scaling(self, freq, freq_ref, specind):
         r"""See base class.

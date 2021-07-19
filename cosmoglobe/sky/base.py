@@ -2,9 +2,9 @@ from cosmoglobe.utils import utils
 import cosmoglobe.utils.bandpass as bp
 
 from abc import ABC, abstractmethod
+from sys import exit
 from tqdm import tqdm
 from typing import Dict
-from sys import exit
 import astropy.units as u
 import healpy as hp
 import numpy as np
@@ -28,7 +28,20 @@ class _Component(ABC):
     
     @abstractmethod
     def _smooth_emission(self, emission, fwhm):
-        """Smooths the component emission given a beam FWHM."""
+        """Smooths simulated emission given a beam FWHM.
+
+        Parameters
+        ----------
+        emission : `astropy.units.Quantity`
+            Simulated emission.
+        fwhm : `astropy.units.Quantity`
+            The full width half max parameter of the Gaussian. Default: 0.0
+
+        Returns
+        -------
+        emission : `astropy.units.Quantity`
+            Smoothed emission.
+        """
 
     @u.quantity_input(
         freqs=u.Hz, 
@@ -109,53 +122,40 @@ class _Component(ABC):
          MJy / sr
         """
 
-        # If a single frequency is provided we assume emission from a delta peak
         if freqs.size == 1:
-            emission = self._get_delta_emission(
-                freqs, fwhm=fwhm, output_unit=output_unit
-            )
-        # If a list of frequencies is provided we perform bandpass integration
+            emission = self._get_delta_emission(freqs)
+            emission = self._smooth_emission(emission, fwhm)
+            if output_unit is not None:
+                emission = utils.emission_to_unit(emission, freqs, output_unit)
         else:
             emission = self._get_bandpass_emission(
-                freqs, bandpass, fwhm=fwhm, output_unit=output_unit
+                freqs, bandpass, output_unit=output_unit
             )
-
-        # If a beam FWHM is provided we smooth the diffuse emission
-        if fwhm != 0.0 and isinstance(self, _DiffuseComponent):
-            fwhm = fwhm.to(u.rad).value
-            if self._is_polarized:
-                emission = u.Quantity(
-                    hp.smoothing(emission, fwhm=fwhm), unit=emission.unit
-                )
-            else:
-                emission[0] = u.Quantity(
-                    hp.smoothing(emission[0], fwhm=fwhm), unit=emission.unit
-                )
+            emission = self._smooth_emission(emission, fwhm)
 
         return emission
 
-    @abstractmethod
-    def _get_delta_emission(self, freq, fwhm, output_unit):
+    def _get_delta_emission(self, freq):
         """Simulates the component emission at a delta frequency.
         
         Parameters
         ----------
         freq : `astropy.units.Quantity`
             A delta frequency.
-        fwhm : `astropy.units.Quantity`
-            The full width half max parameter of the Gaussian.
-        output_unit : `astropy.units.UnitBase`
-            The desired output unit of the emission. Must be signal units. 
-            Default: None
 
         Returns
         -------
-        emission : `astropy.units.Quantity`
+        `astropy.units.Quantity`
             Simulated emission.
         """
 
-    @abstractmethod
-    def _get_bandpass_emission(self, freqs, bandpass, fwhm, output_unit):
+        scaling = self._get_freq_scaling(
+            freq, self.freq_ref, **self.spectral_parameters
+        )
+
+        return self.amp * scaling
+
+    def _get_bandpass_emission(self, freqs, bandpass=None, output_unit=u.uK):
         """Computes the simulated component emission over a bandpass.
 
         If no bandpass is passed, a top-hat bandpass is assumed.
@@ -166,8 +166,6 @@ class _Component(ABC):
             Bandpass frequencies.
         bandpass : `astropy.units.Quantity`
             Bandpass profile. Default: None
-        fwhm : `astropy.units.Quantity`
-            The full width half max parameter of the Gaussian. Default: 0.0
         output_unit : `astropy.units.UnitBase`
             The desired output unit of the emission. Default: None
 
@@ -176,6 +174,20 @@ class _Component(ABC):
         emission : `astropy.units.Quantity`
             Simulated emission.
         """
+
+        if bandpass is None:
+            warnings.warn('Bandpass is None. Defaulting to top-hat bandpass')
+            bandpass = np.ones(freqs_len := len(freqs))/freqs_len * u.K
+
+        bandpass = bp.get_normalized_bandpass(bandpass, freqs)
+        bandpass_coefficient = bp.get_bandpass_coefficient(
+            bandpass, freqs, output_unit
+        )
+
+        bandpass_scaling = self._get_bandpass_scaling(freqs, bandpass)
+        emission = self.amp * bandpass_scaling * bandpass_coefficient
+
+        return emission
 
     def _get_bandpass_scaling(self, freqs, bandpass):
         """Returns the frequency scaling factor given a bandpass profile and a
@@ -271,8 +283,8 @@ class _DiffuseComponent(_Component):
     def __init__(self, amp, freq_ref, **spectral_parameters):
         super().__init__(amp, freq_ref, **spectral_parameters)
 
-        # Expand dimension on rank-1 arrays from from (`npix`,) to (`npix`, 1)
-        # to support broadcasting with (1, `npix`) or (3, `npix`) arrays
+        # Expand dimension on rank-1 arrays from from (npix,) to (npix, 1)
+        # to support broadcasting with (1, npix) or (3, npix) arrays
         self.amp = amp if amp.ndim != 1 else np.expand_dims(amp, axis=0)
         self.spectral_parameters = {
             key: (np.expand_dims(value, axis=0) if value.ndim == 1 else value)
@@ -298,45 +310,13 @@ class _DiffuseComponent(_Component):
             Frequency scaling factor with dimensionless units.
         """
 
-    def _get_delta_emission(self, freq, fwhm=None, output_unit=u.uK):
-        """See base class."""
-
-        scaling = self._get_freq_scaling(
-            freq, self.freq_ref, **self.spectral_parameters
-        )
-        emission = self.amp * scaling
-
-        if output_unit is not None:
-            emission = utils.emission_to_unit(emission, freq, output_unit)
-
-        return emission
-
-    def _get_bandpass_emission(
-        self, freqs, bandpass=None, fwhm=None, output_unit=u.uK
-    ):
-        """See base class."""
-
-        if bandpass is None:
-            warnings.warn('No bandpass was passed. Default to top-hat bandpass')
-            freqs_len = len(freqs)
-            bandpass = np.ones(freqs_len)/freqs_len * u.K
-
-        bandpass = bp.get_normalized_bandpass(bandpass, freqs)
-        bandpass_coefficient = bp.get_bandpass_coefficient(
-            bandpass, freqs, output_unit
-        )
-
-        bandpass_scaling = self._get_bandpass_scaling(freqs, bandpass)
-        emission = self.amp * bandpass_scaling * bandpass_coefficient
-
-        return emission
-
     def _smooth_emission(self, emission, fwhm):
-        """Smooths the diffuse emission using hp.smoothing."""
+        """See base class."""
+        
         if fwhm == 0.0:
             return emission
         
-        fwhm = fwhm.to(u.rad).value
+        fwhm = (fwhm.to(u.rad)).value
         if self._is_polarized:
             emission = u.Quantity(
                 hp.smoothing(emission, fwhm=fwhm), unit=emission.unit
@@ -353,9 +333,9 @@ class _PointSourceComponent(_Component):
     """Abstract base class for a point source sky component"""
 
     def __init__(self, amp, freq_ref, nside, **spectral_parameters):
-        self.nside = nside
-
         super().__init__(amp, freq_ref, **spectral_parameters)
+
+        self.nside = nside
 
         # Expand dimension on rank-1 arrays from from (`npix`,) to (`npix`, 1)
         # to support broadcasting with (1, `npix`) or (3, `npix`) arrays
@@ -383,46 +363,12 @@ class _PointSourceComponent(_Component):
             Frequency scaling factor with dimensionless units.
         """
 
-    def _get_delta_emission(self, freq, fwhm=0.0 * u.rad, output_unit=u.uK):
-        """See base class."""
-
-        scaling = self._get_freq_scaling(
-            freq, self.freq_ref, **self.spectral_parameters
-        )
-
-        scaled_amps = self.amp * scaling
-        emission = self._points_to_map(scaled_amps, fwhm=fwhm)
-
-        if output_unit is not None:
-            emission = utils.emission_to_unit(emission, freq, output_unit)
-
-        return emission
-
-    def _get_bandpass_emission(
-        self, freqs, bandpass=None, fwhm=0.0 * u.rad, output_unit=u.uK
-    ):
-        """See base class."""
-
-        if bandpass is None:
-            warnings.warn('No bandpass was passed. Default to top-hat bandpass')
-            freqs_len = len(freqs)
-            bandpass = np.ones(freqs_len)/freqs_len * u.K
-
-        bandpass = bp.get_normalized_bandpass(bandpass, freqs)
-        bandpass_coefficient = bp.get_bandpass_coefficient(
-            bandpass, freqs, output_unit
-        )
-
-        bandpass_scaling = self._get_bandpass_scaling(freqs, bandpass)
-        scaled_amps = self.amp * bandpass_scaling
-        emission = (
-            self._points_to_map(scaled_amps, fwhm=fwhm) * bandpass_coefficient
-        )
-
-        return emission
-
     def _smooth_emission(self, emission, fwhm):
-        """Smooths the diffuse emission using hp.smoothing."""
+        """See base class. 
+        
+        In addition to smoothing the point sources, this method also maps 
+        the cataloged points to a healpix map in the process.
+        """
 
         return self._points_to_map(emission, fwhm=fwhm)
 
@@ -453,6 +399,7 @@ class _PointSourceComponent(_Component):
         """
 
         nside = self.nside
+        angular_coords = self.angular_coords
 
         if amp.ndim > 1:
             amp = np.squeeze(amp)
@@ -462,21 +409,20 @@ class _PointSourceComponent(_Component):
         pix_lon, pix_lat = hp.pix2ang(
             nside, np.arange(hp.nside2npix(nside)), lonlat=True
         )
-        angular_coords = self.angular_coords
 
         fwhm = fwhm.to(u.rad)
         if sigma is None:
             sigma = fwhm / (2*np.sqrt(2*np.log(2)))
 
-        # No smoothing nesecarry. We directly map the sources to pixels
         if sigma == 0.0:
+            # No smoothing nesecarry. We directly map the sources to pixels
             warnings.warn('mapping point sources to pixels without beam smoothing.')
             pixels = hp.ang2pix(nside, *angular_coords.T, lonlat=True)
             beam_area = hp.nside2pixarea(nside) * u.sr
             healpix_map[pixels] = amp
 
-        # Apply a truncated gaussian beam to each point source
         else:
+            # Apply a truncated gaussian beam to each point source
             pix_res = hp.nside2resol(nside)
             if fwhm.value < pix_res:
                 raise ValueError(
@@ -509,7 +455,7 @@ class _PointSourceComponent(_Component):
 
         return np.expand_dims(healpix_map, axis=0)
 
-    def _read_coords(self, catalog):
+    def _read_coords_from_catalog(self, catalog):
         """Reads in the angular coordinates of the point sources from a 
         given catalog.
 

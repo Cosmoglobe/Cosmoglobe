@@ -175,7 +175,6 @@ def comp_from_chain(file, component, component_class, model_nside, samples):
             else:
                 raise KeyError(f'item {arg} is not present in the chain')
 
-
     other_items_ = get_items(
         file, samples, component, [item for item in other_items_names]
     )
