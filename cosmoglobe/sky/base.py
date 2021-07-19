@@ -132,11 +132,46 @@ class _Component(ABC):
 
     @abstractmethod
     def _get_delta_emission(self, freq, fwhm, output_unit):
-        """Simulates the component emission at a delta frequency."""
+        """Simulates the component emission at a delta frequency.
+        
+        Parameters
+        ----------
+        freq : `astropy.units.Quantity`
+            A delta frequency.
+        fwhm : `astropy.units.Quantity`
+            The full width half max parameter of the Gaussian.
+        output_unit : `astropy.units.UnitBase`
+            The desired output unit of the emission. Must be signal units. 
+            Default: None
+
+        Returns
+        -------
+        emission : `astropy.units.Quantity`
+            Simulated emission.
+        """
 
     @abstractmethod
     def _get_bandpass_emission(self, freqs, bandpass, fwhm, output_unit):
-        """Computes the simulated component emission over a bandpass."""
+        """Computes the simulated component emission over a bandpass.
+
+        If no bandpass is passed, a top-hat bandpass is assumed.
+
+        Parameters
+        ----------
+        freqs : `astropy.units.Quantity`
+            Bandpass frequencies.
+        bandpass : `astropy.units.Quantity`
+            Bandpass profile. Default: None
+        fwhm : `astropy.units.Quantity`
+            The full width half max parameter of the Gaussian. Default: 0.0
+        output_unit : `astropy.units.UnitBase`
+            The desired output unit of the emission. Default: None
+
+        Returns
+        -------
+        emission : `astropy.units.Quantity`
+            Simulated emission.
+        """
 
     def _get_bandpass_scaling(self, freqs, bandpass):
         """Returns the frequency scaling factor given a bandpass profile and a
@@ -243,26 +278,25 @@ class _DiffuseComponent(_Component):
 
     @abstractmethod
     def _get_freq_scaling(freq, freq_ref, **spectral_parameters):
-        """Returns the frequency scaling factor for a given diffuse 
-        component.
-        """
-
-    def _get_delta_emission(self, freq, fwhm=None, output_unit=u.uK):
-        """Simulates the component emission at a delta frequency.
-
+        r"""Computes the frequency scaling for a component.
+        
         Parameters
         ----------
         freq : `astropy.units.Quantity`
-            A delta frequency.
-        output_unit : `astropy.units.UnitBase`
-            The desired output unit of the emission. Must be signal units. 
-            Default: None
-
+            Frequency at which to evaluate the model.
+        freq_ref : `astropy.units.Quantity`
+            Reference frequencies for the components `amp` map.
+        spectral_parameters : `np.ndarray`, `astropy.units.Quantity`
+            The spectral parameters of the component. 
+            
         Returns
         -------
-        emission : `astropy.units.Quantity`
-            Simulated emission.
+        scaling : `astropy.units.Quantity`
+            Frequency scaling factor with dimensionless units.
         """
+        
+    def _get_delta_emission(self, freq, fwhm=None, output_unit=u.uK):
+        """See base class."""
 
         scaling = self._get_freq_scaling(
             freq, self.freq_ref, **self.spectral_parameters
@@ -277,23 +311,7 @@ class _DiffuseComponent(_Component):
     def _get_bandpass_emission(
         self, freqs, bandpass=None, fwhm=None, output_unit=u.uK
     ):
-        """Computes the simulated component emission over a bandpass.
-        If no bandpass is passed, a top-hat bandpass is assumed.
-
-        Parameters
-        ----------
-        freqs : `astropy.units.Quantity`
-            Bandpass frequencies.
-        bandpass : `astropy.units.Quantity`
-            Bandpass profile. Default: None
-        output_unit : `astropy.units.UnitBase`
-            The desired output unit of the emission. Default: None
-
-        Returns
-        -------
-        emission : `astropy.units.Quantity`
-            Simulated emission.
-        """
+        """See base class."""
 
         if bandpass is None:
             warnings.warn('No bandpass was passed. Default to top-hat bandpass')
@@ -328,28 +346,25 @@ class _PointSourceComponent(_Component):
 
     @abstractmethod
     def _get_freq_scaling(freq, freq_ref, **spectral_parameters):
-        """Returns the frequency scaling factor for a given point source 
-        component.
-        """
-
-    def _get_delta_emission(self, freq, fwhm=0.0 * u.rad, output_unit=u.uK):
-        """Simulates the component emission at a delta frequency.
-
+        r"""Computes the frequency scaling for a component.
+        
         Parameters
         ----------
         freq : `astropy.units.Quantity`
-            A delta frequency.
-        fwhm : `astropy.units.Quantity`
-            The full width half max parameter of the Gaussian. Default: 0.0
-        output_unit : `astropy.units.UnitBase`
-            The desired output unit of the emission. Must be signal units. 
-            Default: None
-
+            Frequency at which to evaluate the model.
+        freq_ref : `astropy.units.Quantity`
+            Reference frequencies for the components `amp` map.
+        spectral_parameters : `np.ndarray`, `astropy.units.Quantity`
+            The spectral parameters of the component. 
+            
         Returns
         -------
-        emission : `astropy.units.Quantity`
-            Simulated emission.
+        scaling : `astropy.units.Quantity`
+            Frequency scaling factor with dimensionless units.
         """
+
+    def _get_delta_emission(self, freq, fwhm=0.0 * u.rad, output_unit=u.uK):
+        """See base class."""
 
         scaling = self._get_freq_scaling(
             freq, self.freq_ref, **self.spectral_parameters
@@ -366,25 +381,7 @@ class _PointSourceComponent(_Component):
     def _get_bandpass_emission(
         self, freqs, bandpass=None, fwhm=0.0 * u.rad, output_unit=u.uK
     ):
-        """Computes the simulated component emission over a bandpass.
-        If no bandpass is passed, a top-hat bandpass is assumed.
-
-        Parameters
-        ----------
-        freqs : `astropy.units.Quantity`
-            Bandpass frequencies.
-        bandpass : `astropy.units.Quantity`
-            Bandpass profile. Default: None
-        fwhm : `astropy.units.Quantity`
-            The full width half max parameter of the Gaussian. Default: 0.0
-        output_unit : `astropy.units.UnitBase`
-            The desired output unit of the emission. Default: None
-
-        Returns
-        -------
-        emission : `astropy.units.Quantity`
-            Simulated emission.
-        """
+        """See base class."""
 
         if bandpass is None:
             warnings.warn('No bandpass was passed. Default to top-hat bandpass')
