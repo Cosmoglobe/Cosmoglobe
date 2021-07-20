@@ -1,3 +1,4 @@
+from os import stat
 from cosmoglobe.utils import utils
 import cosmoglobe.utils.bandpass as bp
 
@@ -22,26 +23,11 @@ class _Component(ABC):
     def __init__(self, amp, freq_ref, **spectral_parameters):
         """Initializes a sky component."""
         
-        self.amp = amp
+        self.amp = self._reshape_amp(amp)
         self.freq_ref = self._reshape_freq_ref(freq_ref)
-        self.spectral_parameters = spectral_parameters
-    
-    @abstractmethod
-    def _smooth_emission(self, emission, fwhm):
-        """Smooths simulated emission given a beam FWHM.
-
-        Parameters
-        ----------
-        emission : `astropy.units.Quantity`
-            Simulated emission.
-        fwhm : `astropy.units.Quantity`
-            The full width half max parameter of the Gaussian. Default: 0.0
-
-        Returns
-        -------
-        emission : `astropy.units.Quantity`
-            Smoothed emission.
-        """
+        self.spectral_parameters = self._reshape_spectral_parameters(
+            spectral_parameters
+        )
 
     @u.quantity_input(
         freqs=u.Hz, 
@@ -210,7 +196,7 @@ class _Component(ABC):
 
         if not grid:
         # Component does not have any spatially varying spectral parameters.
-        # In this scenaraio we simply integrate the emission at each frequency 
+        # In this case we simply integrate the emission at each frequency 
         # weighted by the bandpass.
             freq_scaling = self._get_freq_scaling(
                 freqs, self.freq_ref, **self.spectral_parameters
@@ -236,9 +222,25 @@ class _Component(ABC):
                 'parameters is not currently supported'
             )
 
+    @property
+    def _is_polarized(self):
+        """Returns True if component is polarized and False if not."""
+
+        if self.amp.shape[0] == 3:
+            return True
+
+        return False
+
+    @staticmethod
+    def _reshape_amp(amp):
+        """Reshapes the reference frequency to a broadcastable shape."""
+
+        return amp if amp.ndim != 1 else np.expand_dims(amp, axis=0)
+
     @staticmethod
     def _reshape_freq_ref(freq_ref):
         """Reshapes the reference frequency to a broadcastable shape."""
+
         if freq_ref is None:
             return
         elif freq_ref.size == 1:
@@ -252,14 +254,31 @@ class _Component(ABC):
         else:
             raise ValueError('Unrecognized shape.')
 
-    @property
-    def _is_polarized(self):
-        """Returns True if component is polarized and False if not."""
+    @staticmethod
+    def _reshape_spectral_parameters(spectral_parameters):
+        """Reshapes the spectral parameters to a broadcastable shape."""
 
-        if self.amp.shape[0] == 3:
-            return True
+        return {
+            key: (np.expand_dims(value, axis=0) if value.ndim == 1 else value)
+            for key, value in spectral_parameters.items()
+        }
 
-        return False
+    @abstractmethod
+    def _smooth_emission(self, emission, fwhm):
+        """Smooths simulated emission given a beam FWHM.
+
+        Parameters
+        ----------
+        emission : `astropy.units.Quantity`
+            Simulated emission.
+        fwhm : `astropy.units.Quantity`
+            The full width half max parameter of the Gaussian. Default: 0.0
+
+        Returns
+        -------
+        emission : `astropy.units.Quantity`
+            Smoothed emission.
+        """
 
     def __repr__(self):
         """Representation of the component."""
@@ -278,18 +297,10 @@ class _Component(ABC):
 
 
 class _DiffuseComponent(_Component):
-    """Abstract base class for a diffuse sky component"""
+    """Abstract base class for a diffuse sky component."""
 
     def __init__(self, amp, freq_ref, **spectral_parameters):
         super().__init__(amp, freq_ref, **spectral_parameters)
-
-        # Expand dimension on rank-1 arrays from from (npix,) to (npix, 1)
-        # to support broadcasting with (1, npix) or (3, npix) arrays
-        self.amp = amp if amp.ndim != 1 else np.expand_dims(amp, axis=0)
-        self.spectral_parameters = {
-            key: (np.expand_dims(value, axis=0) if value.ndim == 1 else value)
-            for key, value in spectral_parameters.items()
-        }
 
     @abstractmethod
     def _get_freq_scaling(freq, freq_ref, **spectral_parameters):
@@ -330,19 +341,14 @@ class _DiffuseComponent(_Component):
 
 
 class _PointSourceComponent(_Component):
-    """Abstract base class for a point source sky component"""
+    """Abstract base class for a point source sky component."""
 
     def __init__(self, amp, freq_ref, nside, **spectral_parameters):
         super().__init__(amp, freq_ref, **spectral_parameters)
 
+        # Point source components explicitly require a nside attribute 
+        # since the amplitudes are not stored in healpix maps.
         self.nside = nside
-
-        # Expand dimension on rank-1 arrays from from (`npix`,) to (`npix`, 1)
-        # to support broadcasting with (1, `npix`) or (3, `npix`) arrays
-        self.spectral_parameters = {
-            key: (np.expand_dims(value, axis=0) if value.ndim == 1 else value)
-            for key, value in spectral_parameters.items()
-        }
 
     @abstractmethod
     def _get_freq_scaling(freq, freq_ref, **spectral_parameters):
@@ -372,9 +378,7 @@ class _PointSourceComponent(_Component):
 
         return self._points_to_map(emission, fwhm=fwhm)
 
-    def _points_to_map(
-        self, amp, nside=None, fwhm=0.0 * u.rad, sigma=None, n_fwhm=2
-    ):
+    def _points_to_map(self, amp, fwhm, n_fwhm=2):
         """Maps the cataloged point sources onto a healpix map with a truncated 
         gaussian beam. For more information, see 
          `Mitra et al. (2010) <https://arxiv.org/pdf/1005.1929.pdf>`_.
@@ -383,19 +387,16 @@ class _PointSourceComponent(_Component):
         ----------
         amp : `astropy.units.Quantity`
             Amplitudes of the point sources.
-        nside : int
-            The healpix map resolution of the output map. If component is part 
-            of a sky model, we automatically select the model nside. 
-            Default: None.
         fwhm : `astropy.units.Quantity`
             The full width half max parameter of the Gaussian. Default: 0.0
-        sigma : float
-            The sigma of the Gaussian (beam radius). Overrides fwhm. 
-            Default: None
         n_fwhm : int, float
             The fwhm multiplier used in computing radial cut off r_max 
             calculated as r_max = n_fwhm * fwhm of the Gaussian.
             Default: 2.
+        nside : int
+            The healpix map resolution of the output map. If component is part 
+            of a sky model, we automatically select the model nside. 
+            Default: None.
         """
 
         nside = self.nside
@@ -411,8 +412,7 @@ class _PointSourceComponent(_Component):
         )
 
         fwhm = fwhm.to(u.rad)
-        if sigma is None:
-            sigma = fwhm / (2*np.sqrt(2*np.log(2)))
+        sigma = fwhm / (2*np.sqrt(2*np.log(2)))
 
         if sigma == 0.0:
             # No smoothing nesecarry. We directly map the sources to pixels
@@ -480,8 +480,3 @@ class _PointSourceComponent(_Component):
             return coords
         else:
             raise ValueError('Cataloge does not match chain catalog')
-
-
-class _LineComponent(_DiffuseComponent):
-    def __init__(self, amp, freq_ref, **spectral_parameters):
-        super().__init__(amp, freq_ref, **spectral_parameters)

@@ -1,7 +1,6 @@
 from cosmoglobe.sky.base import (
     _DiffuseComponent,
     _PointSourceComponent,
-    _LineComponent,
 )
 from cosmoglobe.utils.functions import (
     blackbody_emission,
