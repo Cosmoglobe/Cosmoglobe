@@ -15,6 +15,7 @@ class CompState(Enum):
 class NsideError(Exception):
     """Raised if there is a NSIDE related problem."""
 
+
 class ModelError(Exception):
     """Raised if there is a Model related problem."""
 

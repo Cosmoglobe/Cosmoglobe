@@ -24,49 +24,11 @@ bp *= u.K
 
 # model = model_from_chain(chain, nside=256)
 
-from cosmoglobe.utils.utils import CompState
-# plt.plot
 model = sky_model(nside=256)
+# model.disable('d')
+# model.disable('cmb')
+model.enable('cmb')
 print(model)
-# print(help(model))
+hp.mollview(model(bp_freqs, fwhm=0.88*u.deg, output_unit='mK')[0], norm='hist')
 
-# emission = model.dust(50*u.GHz, fwhm=50*u.arcmin, output_unit='MJy/sr')
-# print(emission[0])
-
-
-
-# print(model.dust(350*u.GHz)[0])
-# print(model.synch(40*u.GHz, fwhm=50*u.arcmin, output_unit='MJy/sr')[0])
-# model.cmb.remove_dipole()
-# hp.mollview(model.cmb.get_dipole(20*u.deg), norm='hist')
-# model.disable('radio')
-# hp.mollview(model.radio(40*u.GHz, fwhm=50*u.arcmin)[0], norm='hist', cmap='CMRmap')
-hp.mollview(model(bp_freqs, fwhm=0.88*u.deg, output_unit='uK_CMB')[0], norm='hist')
-# hp.mollview(model(bp_freqs, bp, fwhm=0.88*u.deg, output_unit='mK')[0], norm='hist')
-# hp.mollview(model.cmb(30*u.GHz, fwhm=0.88*u.deg, output_unit='uK_CMB')[0], norm='hist')
-# hp.mollview(model.cmb(100*u.GHz, fwhm=0.88*u.deg, output_unit='uK_CMB')[0], norm='hist')
-# hp.mollview(model.cmb(400*u.GHz, fwhm=0.88*u.deg, output_unit='uK_CMB')[0], norm='hist')
-# hp.mollview(model(bp_freqs, bp, fwhm=60*u.arcmin, output_unit='MJy/sr')[0], unit='MJy/sr', norm='hist')
-# hp.mollview(model(bp_freqs, bp, fwhm=60*u.arcmin, output_unit='uK_CMB')[0], unit='uK_CMB', norm='hist')
-# hp.mollview(model(bp_freqs, bp, fwhm=60*u.arcmin)[0],unit='uK_RJ', norm='hist')
-# hp.mollview(emission[0], norm='hist')
-
-# plot(model.dust(100.5*u.GHz,))
-# plt.show()
-# freqs = u.Quantity(np.arange(1, 3), unit=u.GHz)
-# print(model.synch.get_emission(freqs, fwhm=10*u.arcmin, output_unit='uK_CMB'))
-# chain_to_h5(chainfile=chain, output_dir='/Users/metinsan/Documents/doktor/models/test1')
-# model = model_from_h5('/Users/metinsan/Documents/doktor/models/test1/model_512.h5')
-# print(model)
-# model_to_h5(model, dirname)
-# model_from_h5(filename)
-# chain_to_h5(chain, dirname)
-
-# plot(model, comp="dust")
-# plot(model, comp="ff")
-# plot(model, comp="synch")
-# plot(model, comp="ame")
-# plot(model, freq=100*u.GHz, fwhm=20*u.arcmin)
-# emission = model(bp_freqs, bp, fwhm=30*u.arcmin, output_unit='MJy/sr')[0]
-# plot(emission)
 plt.show()

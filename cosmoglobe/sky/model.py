@@ -10,7 +10,7 @@ from cosmoglobe.sky.base import (
     _PointSourceComponent,
 )
 from cosmoglobe.utils import utils
-from cosmoglobe.utils.utils import CompState
+from cosmoglobe.utils.utils import CompState, ModelError
 
 
 class Model:
@@ -107,7 +107,7 @@ class Model:
             self.nside = hp.get_nside(component.amp)
 
     @u.quantity_input(
-        freq=u.Hz, 
+        freqs=u.Hz, 
         bandpass=(u.Jy/u.sr, u.K, None), 
         fwhm=(u.rad, u.deg, u.arcmin)
     )
@@ -226,6 +226,9 @@ class Model:
                     point_source_emission[idx] += row
 
         if fwhm != 0.0 and diffuse_emission.value.any():
+            # Instead of calling the diffuse components _smooth function
+            # it is more efficient to sum all the emission first and then
+            # only perform a singled smoothing operation.
             print('Smoothing diffuse emission...')
             diffuse_emission = u.Quantity(
                 hp.smoothing(diffuse_emission, fwhm.to(u.rad).value),
@@ -234,38 +237,34 @@ class Model:
 
         return diffuse_emission + point_source_emission
 
-    def disable(self, component):
+    def disable(self, comp_label):
         """Disable a component in the model.
 
         Parameters
         ----------
-        component : str, `cosmoglobe.sky.base._Component`
-            The name of a component or the the component class in the 
-            model.
+        comp_label : str
+            The component label.
 
         Raises
         ------
         KeyError
             If the component is not currently enabled in the model.
         """
-
         try:
-            comp = component.label
-        except AttributeError:
-            comp = component
+            if self._components[comp_label][1] is CompState.ENABLED:
+                self._components[comp_label][1] = CompState.DISABLED
+            else:
+                raise ModelError(f'{comp_label!r} is already disabled')
+        except KeyError:
+            raise KeyError(f'{comp_label!r} is not a component in the model')
 
-        if self._components[comp][1] is CompState.ENABLED:
-            self._components[comp][1] = CompState.DISABLED
-        else:
-            raise KeyError(f'{comp} is already disabled')
-
-    def enable(self, component):
+    def enable(self, comp_label):
         """Enable a disabled component.
 
         Parameters
         ----------
-        component : str, `cosmoglobe.sky.Component`
-            The name of a component or the the component class in the model.
+        comp_label : str
+            The component label.
         
         Raises
         ------
@@ -274,14 +273,12 @@ class Model:
         """
 
         try:
-            comp = component.label
-        except AttributeError:
-            comp = component
-
-        if self._components[comp][1] is CompState.DISABLED:
-            self._components[comp][1] = CompState.ENABLED
-        else:
-            raise KeyError(f'{comp} is already enabled')
+            if self._components[comp_label][1] is CompState.DISABLED:
+                self._components[comp_label][1] = CompState.ENABLED
+            else:
+                raise ModelError(f'{comp_label!r} is already enabled')
+        except KeyError:
+            raise KeyError(f'{comp_label!r} is not a component in the model')
 
     def __iter__(self):
         """Returns iterable of all enabled components in the model."""
