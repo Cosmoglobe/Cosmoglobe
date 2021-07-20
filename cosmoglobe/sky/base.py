@@ -1,16 +1,18 @@
-from os import stat
-from cosmoglobe.utils import utils
-import cosmoglobe.utils.bandpass as bp
-
 from abc import ABC, abstractmethod
-from sys import exit
-from tqdm import tqdm
 from typing import Dict
+from sys import exit
+import sys
+import warnings
+
 import astropy.units as u
 import healpy as hp
 import numpy as np
-import sys
-import warnings
+from tqdm import tqdm
+
+from cosmoglobe.utils import utils
+import cosmoglobe.utils.bandpass as bp
+
+warnings.simplefilter('once', UserWarning)
 
 
 class _Component(ABC):

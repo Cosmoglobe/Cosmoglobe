@@ -1,100 +1,109 @@
-from .constants import h, c, k_B, T_0
 import numpy as np
 import astropy.units as u
 
+import cosmoglobe.utils.constants as const
+
+u.quantity_input(freq=u.Hz, T=u.K)
 def blackbody_emission(freq, T):
-    """Returns the emission emitted by a blackbody with with temperature T at 
-    a frequency freq in SI units: W/(m^2 Hz sr).
+    """Returns the blackbody emission.
+    
+    Computes the emission emitted by a blackbody with with temperature 
+    T at a frequency freq in SI units [W / m^2 Hz sr].
 
-    Args:
-    -----
-    freq (astropy.units.quantity.Quantity):
-        Frequency in units of Hertz.
-    T (astropy.units.quantity.Quantity):
-        Temperature of the blackbody in units of K. 
+    Parameters
+    ----------
+    freq : `astropy.units.Quantity`
+        Frequency [Hz].
+    T : `astropy.units.Quantity`:
+        Temperature of the blackbody [K]. 
 
-    Returns:
-    --------
-    (astropy.units.quantity.Quantity):
-        Blackbody emission in units in SI units.
-
+    Returns
+    -------
+    `astropy.units.Quantity`:
+        Blackbody emission [W / m^2 Hz sr].
     """
-    try:
-        T = T.astype(np.float64)
-    except AttributeError:
-        pass
 
-    emission = ((2*h*freq**3)/c**2) / np.expm1((h*freq)/(k_B*T)) / u.sr
-    return emission.to(u.W/(u.m**2 * u.Hz * u.sr))
+    # Avoiding overflow and underflow.
+    T = T.astype(np.float64)
+
+    term1 = (2*const.h*freq**3) / const.c**2
+    term2 = np.expm1((const.h*freq) / (const.k_B*T))
+
+    emission = term1 / term2 / u.sr
+
+    return emission.to('W / m^2 Hz sr')
 
 
+u.quantity_input(freq=u.Hz, T_e=u.K)
 def gaunt_factor(freq, T_e):
-    """Returns the gaunt factor at a given frequency and electron temperature
-    in SI units.
+    """Returns the Gaunt factor.
+    
+    Computes the gaunt factor for a given frequency and electron 
+    temperaturein SI units.
 
-    Args:
-    -----
-    freq (astropy.units.quantity.Quantity):
-        Frequency in units of Hertz.   
-    T_e (astropy.units.quantity.Quantity):
-        Electron temperature in units of K.
+    Parameters
+    ----------
+    freq : `astropy.units.Quantity`
+        Frequency [Hz].   
+    T_e : astropy.units.Quantity`
+        Electron temperature [K].
 
-    Returns:
-    --------
-    (astropy.units.quantity.Quantity):
+    Returns
+    -------
+    gaunt_factor : `astropy.units.Quantity`
         Gaunt Factor.
-
     """
-    try:
-        T_e = T_e.astype(np.float64)
-    except AttributeError:
-        pass
+    
+    # Avoiding overflow and underflow.
+    T_e = T_e.astype(np.float64)
+    T_e = (T_e.to(u.kK)).value / 10
+    freq = (freq.to(u.GHz)).value   
+ 
+    gaunt_factor = np.log(
+        np.exp(5.96 - (np.sqrt(3)/np.pi) * np.log(freq*T_e**-1.5)) + np.e
+    )
 
-    try:
-        freq = (freq.to(u.GHz)).value   
-        T_e = (T_e.to(u.kK).value)/10
-    except AttributeError:
-        pass    
-        
-    gaunt_factor = np.log(np.exp(5.96 - (np.sqrt(3)/np.pi) * np.log(freq
-                  * (T_e)**-1.5)) + np.e)
-
-    return u.Quantity(gaunt_factor)
+    return u.Quantity(gaunt_factor, unit=u.dimensionless_unscaled)
 
 
+u.quantity_input(freq=u.Hz, T=u.K)
+def thermodynamical_to_brightness(freq, T=const.T_0):
+    """Conversion factor between K_CMB and K_RJ.
 
-def thermodynamical_to_brightness(freq, T=T_0):
-    """Returns the conversion factor between thermodynamical and brightness 
-    temperatures (K_CMB and K_RJ).
+    Returns the conversion factor between thermodynamical and brightness 
+    temperatures [K_CMB -> K_RJ].
 
-    Args:
-    -----
-    freq (astropy.units.quantity.Quantity):
-        Frequency in units of Hertz.   
+    Parmaeters
+    ----------
+    freq : `astropy.units.Quantity`
+        Frequency [K]. 
 
     Returns:
     --------
-    (astropy.units.quantity.Quantity):
-        K_CMB -> K_RJ factor.
-
+    `astropy.units.Quantity`
+        Conversion factor.
     """  
-    x = (h*freq) / (k_B*T)
+
+    x = (const.h*freq) / (const.k_B*T)
     return ((x**2 * np.exp(x)) / (np.expm1(x)**2)).si
 
 
-def brightness_to_thermodynamical(freq):
-    """Returns the conversion factor between brightness and thermodynamical 
-    temperatures (K_CMB and K_RJ).
+u.quantity_input(freq=u.Hz)
+def brightness_to_thermodynamical(freq, T=const.T_0):
+    """Conversion factor between K_RJ and K_CMB.
 
-    Args:
-    -----
-    freq (astropy.units.quantity.Quantity):
-        Frequency in units of Hertz.   
+    Returns the conversion factor between thermodynamical and brightness 
+    temperatures [K_RJ -> K_CMB].
+
+    Parmaeters
+    ----------
+    freq : `astropy.units.Quantity`
+        Frequency [K]. 
 
     Returns:
     --------
-    (astropy.units.quantity.Quantity):
-        K_RJ -> K_CMB factor.
-
+    `astropy.units.Quantity`
+        Conversion factor.
     """  
-    return 1/thermodynamical_to_brightness(freq)
+
+    return 1 / thermodynamical_to_brightness(freq, T)

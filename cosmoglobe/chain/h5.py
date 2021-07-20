@@ -1,16 +1,17 @@
-from cosmoglobe.sky import components
-from cosmoglobe.sky import Model
-from cosmoglobe.utils import utils
+import inspect
+import pathlib
+import sys
 
 import astropy.units as u
 import h5py
 import healpy as hp
 import numpy as np
-import sys
-import inspect
-import pathlib
-from tqdm import tqdm
 from numba import njit
+from tqdm import tqdm
+
+from cosmoglobe.sky import components
+from cosmoglobe.sky import Model
+from cosmoglobe.utils import utils
 
 # Model parameter group name as implemented in commander
 param_group = 'parameters'

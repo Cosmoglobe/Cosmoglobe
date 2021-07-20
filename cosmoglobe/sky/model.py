@@ -1,3 +1,9 @@
+from typing import List
+
+import astropy.units as u
+import healpy as hp
+import numpy as np
+
 from cosmoglobe.sky.base import (
     _Component, 
     _DiffuseComponent, 
@@ -5,11 +11,6 @@ from cosmoglobe.sky.base import (
 )
 from cosmoglobe.utils import utils
 from cosmoglobe.utils.utils import CompState
-
-from typing import List
-import astropy.units as u
-import healpy as hp
-import numpy as np
 
 
 class Model:

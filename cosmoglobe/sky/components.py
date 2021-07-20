@@ -1,21 +1,17 @@
+from pathlib import Path
+from sys import exit
+import warnings
+
+import astropy.units as u
+import numpy as np
+import healpy as hp
+
 from cosmoglobe.sky.base import (
     _DiffuseComponent,
     _PointSourceComponent,
 )
-from cosmoglobe.utils.functions import (
-    blackbody_emission,
-    gaunt_factor, 
-    thermodynamical_to_brightness
-)
+from cosmoglobe.utils import functions as F
 
-from pathlib import Path
-from sys import exit
-import astropy.units as u
-import numpy as np
-import healpy as hp
-import warnings
-
-warnings.simplefilter('once', UserWarning)
 
 DATA_DIR = Path(__file__).parent.parent.resolve() / 'data'
 RADIO_CATALOG = DATA_DIR / 'radio_catalog.dat'
@@ -135,7 +131,7 @@ class Dust(_DiffuseComponent):
         """
 
         blackbody_ratio = (
-            blackbody_emission(freq, T) / blackbody_emission(freq_ref, T)
+            F.blackbody_emission(freq, T) / F.blackbody_emission(freq_ref, T)
         )
         scaling = (freq/freq_ref)**(beta-2) * blackbody_ratio
 
@@ -192,7 +188,7 @@ class FreeFree(_DiffuseComponent):
         """
 
         gaunt_factor_ratio = (
-            gaunt_factor(freq, Te) / gaunt_factor(freq_ref, Te)
+            F.gaunt_factor(freq, Te) / F.gaunt_factor(freq_ref, Te)
         )
         scaling = (freq_ref/freq)**2 * gaunt_factor_ratio
 
@@ -375,7 +371,7 @@ class CMB(_DiffuseComponent):
 
         # We explicitly expand the dims to support broadcasting
         return np.expand_dims(
-            thermodynamical_to_brightness(freq), axis=0
+            F.thermodynamical_to_brightness(freq), axis=0
         )
 
 
