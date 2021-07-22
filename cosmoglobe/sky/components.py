@@ -236,8 +236,6 @@ class AME(_DiffuseComponent):
     label = 'ame'
 
     def __init__(self, amp, freq_ref, nu_p):
-        super().__init__(amp, freq_ref, nu_p=nu_p)
-
         spdust2_freq, spdust2_amp = np.loadtxt(SPDUST2_FILE, unpack=True)
         spdust2_freq = u.Quantity(spdust2_freq, unit=u.GHz)
         spdust2_amp = u.Quantity(spdust2_amp, unit=(u.Jy/u.sr))
@@ -245,6 +243,9 @@ class AME(_DiffuseComponent):
             u.K, equivalencies=u.brightness_temperature(spdust2_freq)
         )        
         self.spdust2 = np.array([spdust2_freq.si.value, spdust2_amp.si.value])
+
+        super().__init__(amp, freq_ref, nu_p=nu_p)
+
 
     def _get_freq_scaling(self, freq, freq_ref, nu_p):
         r"""See base class.
@@ -419,8 +420,8 @@ class Radio(_PointSourceComponent):
     def __init__(self, amp, freq_ref, nside, specind):
         super().__init__(amp, freq_ref, nside, specind=specind)
 
-        self.amp = u.Quantity(self.amp.value, unit='mJy')
         self.angular_coords = self._read_coords_from_catalog(RADIO_CATALOG)
+        self.amp = u.Quantity(self.amp.value, unit='mJy')
 
     def _get_freq_scaling(self, freq, freq_ref, specind):
         r"""See base class.

@@ -280,23 +280,28 @@ class Model:
         except KeyError:
             raise KeyError(f'{comp_label!r} is not a component in the model')
 
-    def __iter__(self):
-        """Returns iterable of all enabled components in the model."""
-        
-        components = [
+    @property
+    def components(self):
+        """Returns a list of enabled components."""
+        return [
             comp[0] for comp in self._components.values()
             if comp[1] is CompState.ENABLED
         ]
-        return iter(components)
+
+    def __iter__(self):
+        """Creates an iterator from the components list such that the 
+        model can be iterated over.
+        """       
+
+        return iter(self.components)
 
     def __repr__(self):        
         """Representation of the Model and all enabled components."""
 
         reprs = []
-        for key, component in self._components.items():
-            if component[1] is CompState.ENABLED:
-                component_repr = repr(component[0]) + '\n'
-                reprs.append(f'({key}): {component_repr}')
+        for component in self.components:
+            component_repr = repr(component) + '\n'
+            reprs.append(f'({component.label}): {component_repr}')
 
         main_repr = f'Model('
         main_repr += f'\n  nside: {self.nside}'

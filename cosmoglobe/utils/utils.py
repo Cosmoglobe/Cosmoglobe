@@ -29,9 +29,15 @@ def extract_scalars(spectral_parameters):
 
     scalars = {}
     for key, value in spectral_parameters.items():
+        if not isinstance(value, u.Quantity):
+            value = u.Quantity(value, unit=u.dimensionless_unscaled)
         if value.size > 1:
-            uniques = [np.unique(col) for col in value.value]
-            all_is_unique = all([len(col) == 1 for col in uniques])
+            if value.ndim > 1:
+                uniques = [np.unique(col) for col in value.value]
+                all_is_unique = all([len(col) == 1 for col in uniques])
+            else:
+                uniques = np.unique(value.value)
+                all_is_unique = len(uniques) == 1
             if all_is_unique:
                 scalars[key] = uniques*value.unit
         else:

@@ -195,7 +195,6 @@ class _Component(ABC):
         """
         
         grid = bp.get_interpolation_grid(self.spectral_parameters)
-
         if not grid:
         # Component does not have any spatially varying spectral parameters.
         # In this case we simply integrate the emission at each frequency 

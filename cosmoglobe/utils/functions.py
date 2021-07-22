@@ -88,7 +88,7 @@ def thermodynamical_to_brightness(freq, T=const.T_0):
     return ((x**2 * np.exp(x)) / (np.expm1(x)**2)).si
 
 
-u.quantity_input(freq=u.Hz)
+u.quantity_input(freq=u.Hz, T=u.K)
 def brightness_to_thermodynamical(freq, T=const.T_0):
     """Conversion factor between K_RJ and K_CMB.
 
