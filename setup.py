@@ -29,5 +29,6 @@ setuptools.setup(
         "numba",
         "cmasher",
         "tqdm",
+        "matplotlib",
     ]
 )

@@ -41,9 +41,8 @@ class _Component(ABC):
     ):
         r"""Simulates the component sky emission. 
 
-        This method is the main use case of component object. It 
-        simulates the sky emission a single frequency :math:`\nu` or 
-        integrated over a bandpass :math:`\tau`.
+        This method computes the full component sky emission for a single 
+        frequency :math:`\nu` or integrated over a  bandpass :math:`\tau`.
 
         Parameters
         ----------
@@ -333,7 +332,7 @@ class _PointSourceComponent(_Component):
 
         return self._points_to_map(emission, fwhm=fwhm)
 
-    def _points_to_map(self, amp, fwhm, n_fwhm=2):
+    def _points_to_map(self, amp, fwhm, n_fwhm=2, verbose=False):
         """Maps the cataloged point sources onto a healpix map with a truncated 
         gaussian beam. For more information, see 
          `Mitra et al. (2010) <https://arxiv.org/pdf/1005.1929.pdf>`_.
@@ -387,10 +386,12 @@ class _PointSourceComponent(_Component):
             beam_area = 2 * np.pi * sigma**2
             r_max = n_fwhm * fwhm.value
 
-            with tqdm(total=len(angular_coords), file=sys.stdout) as pbar:
+            with tqdm(
+                total=len(angular_coords), file=sys.stdout, disable=not verbose
+            ) as pbar:
                 sigma = sigma.value
                 beam = utils.gaussian_beam_2D
-                print('Smoothing point sources')
+                print('Smoothing point sources...')
 
                 for idx, (lon, lat) in enumerate(angular_coords):
                     vec = hp.ang2vec(lon, lat, lonlat=True)

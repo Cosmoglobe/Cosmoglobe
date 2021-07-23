@@ -19,7 +19,7 @@ class Model:
     This class acts as a container for the various components making up 
     the Cosmoglobe Sky Model, and provides methods to simulate the sky. 
     The primary use case of this class is to call its ``__call__`` 
-    function, which simulates the sky at a single frequency :math:`\nu`, 
+    method, which simulates the sky at a single frequency :math:`\nu`, 
     or integrated over a bandpass :math:`\tau`.
     
     Attributes
@@ -51,20 +51,38 @@ class Model:
         Simulates the sky at a given frequency :math:`\nu` or over a 
         bandpass :math:`\tau` given the Cosmoglobe Sky Model.
 
-    Notes
-    -----
-    The model object is self is an iterable:
-    the model components as following:
+    Examples
+    --------
+    Inspecting the model:
 
     >>> model = skymodel(nside=256)
-    >>> for component in model:
-            print(component)
-    AME(nu_p)
-    CMB()
-    Dust(beta, T)
-    FreeFree(Te)
-    Radio(specind)
-    Synchrotron(beta)
+    >>> print(model)
+    Model(
+      nside: 256
+      components( 
+        (ame): AME(nu_p)
+        (cmb): CMB()
+        (dust): Dust(beta, T)
+        (ff): FreeFree(Te)
+        (radio): Radio(specind)
+        (synch): Synchrotron(beta)
+      )
+    )
+
+    Simulating the full sky emission at some frequency, given a beam 
+    FWHM:
+
+    >>> import astropy.units as u
+    >>> emission = model(50*u.GHz, fwhm=30*u.arcmin)
+    >>> print(emission)
+    Smoothing point sources...
+    Smoothing diffuse emission...
+    [[ 2.25809786e+03  2.24380103e+03  2.25659060e+03 ... -2.34783682e+03
+      -2.30464421e+03 -2.30387946e+03]
+     [-1.64627550e+00  2.93583564e-01 -1.06788937e+00 ... -1.64354585e+01
+       1.60621841e+01 -1.05506092e+01]
+     [-4.15682825e+00  3.08881971e-01 -1.02012415e+00 ...  5.44745701e+00
+      -4.71776995e+00  4.39850830e+00]] uK
     """
 
     nside: int = None 
@@ -128,10 +146,9 @@ class Model:
     ):
         r"""Simulates the full model sky emission. 
 
-        This method is the main use case of the sky model object. It 
-        simulates the full model sky emission (sum of all component 
-        emission) a single frequency :math:`\nu` or integrated over a 
-        bandpass :math:`\tau`.
+        This method computes the full model sky emission (sum of all 
+        component emission) for a single frequency :math:`\nu` or 
+        integrated over a  bandpass :math:`\tau`.
 
         Parameters
         ----------
@@ -262,7 +279,7 @@ class Model:
         KeyError
             If the component is not currently enabled in the model.
         """
-        
+
         try:
             if self._components[comp_label][1] is CompState.ENABLED:
                 self._components[comp_label][1] = CompState.DISABLED

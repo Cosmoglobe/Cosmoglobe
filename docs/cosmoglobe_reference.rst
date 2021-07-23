@@ -6,8 +6,8 @@ cosmoglobe Documentation
 
 :Release: |release|
 
-This reference manual describes the objects and functions in cosmoglobe in
-detail. For learning how to use cosmoglobe, see our  
+This reference manual describes the objects and functions in *cosmoglobe* in
+detail. For learning how to use *cosmoglobe*, see our  
 :doc:`tutorials <cosmoglobe_tutorial>`.
 
 .. toctree::

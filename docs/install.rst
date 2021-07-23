@@ -5,8 +5,21 @@ Installation
 Dependencies
 ------------
 
-*cosmoglobe* is written in python, and uses healpy, numpy, scipy, numba, h5py, and astropy packages.
-The python version needs to be >= 3.8, and h5py => 3.0
+*cosmoglobe* is written in python, and requires a python version >= 3.8 to run.
+The required packages are:
+
+* ``numpy``
+* ``scipy``
+* ``healpy``
+* ``astropy``
+* ``h5py => 3.0``
+* ``tqdm``
+
+The following packages are required for the built-in plotting functionality:
+
+* ``cmasher``
+* ``matplotlib``
+
 
 Installing with pip
 -------------------
