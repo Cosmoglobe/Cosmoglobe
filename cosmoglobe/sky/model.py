@@ -94,6 +94,18 @@ class Model:
                 self._add_component_to_model(component)
 
     def _add_component_to_model(self, component):
+        """Adds a new component to the model.
+        
+        Parameters
+        ----------
+        component : `cosmoglobe.sky.base._Component`
+            Component to be added to the sky model.
+        """
+
+        if not isinstance(component, _Component):
+            raise TypeError(
+                f'component must be a subclass of {_Component}'
+            )
         name = component.label
         if name in self._components:
             raise KeyError(
@@ -250,6 +262,7 @@ class Model:
         KeyError
             If the component is not currently enabled in the model.
         """
+        
         try:
             if self._components[comp_label][1] is CompState.ENABLED:
                 self._components[comp_label][1] = CompState.DISABLED

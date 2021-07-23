@@ -172,56 +172,10 @@ class _Component(ABC):
             bandpass, freqs, output_unit
         )
 
-        bandpass_scaling = self._get_bandpass_scaling(freqs, bandpass)
+        bandpass_scaling = bp.get_bandpass_scaling(freqs, bandpass, self)
         emission = self.amp * bandpass_scaling * bandpass_coefficient
 
         return emission
-
-    def _get_bandpass_scaling(self, freqs, bandpass):
-        """Returns the frequency scaling factor given a bandpass profile and a
-        corresponding frequency array. 
-        
-        Parameters
-        ----------
-        freqs : `astropy.units.Quantity`
-            List of frequencies.
-        bandpass : `astropy.units.Quantity`
-            Normalized bandpass profile.
-
-        Returns
-        -------
-        bandpass_scaling : float, `numpy.ndarray`
-            Frequency scaling factor given a bandpass.
-        """
-        
-        grid = bp.get_interpolation_grid(self.spectral_parameters)
-        if not grid:
-        # Component does not have any spatially varying spectral parameters.
-        # In this case we simply integrate the emission at each frequency 
-        # weighted by the bandpass.
-            freq_scaling = self._get_freq_scaling(
-                freqs, self.freq_ref, **self.spectral_parameters
-            )
-
-            return np.expand_dims(
-                np.trapz(freq_scaling*bandpass, freqs), axis=1
-            )
-
-        elif len(grid) == 1:
-        # Component has one sptatially varying spectral parameter. In this 
-        # scenario we perform a 1D-interpolation in spectral parameter space.
-            return bp.interp1d(freqs, bandpass, grid, self)
-
-        elif len(grid) == 2:    
-        # Component has two sptatially varying spectral parameter. In this 
-        # scenario we perform a 2D-interpolation in spectral parameter space.
-            return bp.interp2d(freqs, bandpass, grid, self)
-
-        else:
-            raise NotImplementedError(
-                'Bandpass integration for comps with more than two spectral '
-                'parameters is not currently supported'
-            )
 
     @property
     def _is_polarized(self):
@@ -477,7 +431,7 @@ class _PointSourceComponent(_Component):
         except OSError:
             raise OSError('Could not find point source catalog')
 
-        if len(coords) == len(self.amp[0]):
-            return coords
-        else:
+        if len(coords) != len(self.amp[0]):
             raise ValueError('Cataloge does not match chain catalog')
+
+        return coords

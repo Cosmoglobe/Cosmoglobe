@@ -81,6 +81,48 @@ def get_bandpass_coefficient(bandpass, freqs, output_unit):
     return bandpass_coefficient
 
 
+def get_bandpass_scaling(freqs, bandpass, comp):
+    """Returns the frequency scaling factor given a bandpass profile and a
+    corresponding frequency array. 
+    
+    Parameters
+    ----------
+    freqs : `astropy.units.Quantity`
+        List of frequencies.
+    bandpass : `astropy.units.Quantity`
+        Normalized bandpass profile.
+    Returns
+    -------
+    bandpass_scaling : float, `numpy.ndarray`
+        Frequency scaling factor given a bandpass.
+    """
+    
+    grid = get_interpolation_grid(comp.spectral_parameters)
+    if not grid:
+    # Component does not have any spatially varying spectral parameters.
+    # In this case we simply integrate the emission at each frequency 
+    # weighted by the bandpass.
+        freq_scaling = comp._get_freq_scaling(
+            freqs, comp.freq_ref, **comp.spectral_parameters
+        )
+        return np.expand_dims(
+            np.trapz(freq_scaling*bandpass, freqs), axis=1
+        )
+    elif len(grid) == 1:
+    # Component has one sptatially varying spectral parameter. In this 
+    # scenario we perform a 1D-interpolation in spectral parameter space.
+        return interp1d(freqs, bandpass, grid, comp)
+    elif len(grid) == 2:    
+    # Component has two sptatially varying spectral parameter. In this 
+    # scenario we perform a 2D-interpolation in spectral parameter space.
+        return interp2d(freqs, bandpass, grid, comp)
+    else:
+        raise NotImplementedError(
+            'Bandpass integration for comps with more than two spectral '
+            'parameters is not currently supported'
+        )
+
+
 def get_interpolation_grid(spectral_parameters):
     """Returns a interpolation range.
     
