@@ -21,44 +21,20 @@ wmap = hp.read_map(chain_dir / 'wmap_band_iqusmap_r9_9yr_K_v5.fits')
 bp_freqs, bp, _ = np.loadtxt(bandpass, unpack=True)
 bp_freqs*= u.GHz
 bp *= u.K
-
+print(bp_freqs.mean())
 # model = model_from_chain(chain, nside=256)
 
-# plt.plot
-
 model = sky_model(nside=256)
-# print(help(model))
-# emission = model.dust(50*u.GHz, fwhm=50*u.arcmin, output_unit='MJy/sr')
-# print(emission[0])
-# np.linspace
+
+print(model)
 model.cmb.remove_dipole()
-# model.disable('radio')
-hp.mollview(model(bp_freqs, bp, fwhm=0.88*u.deg, output_unit='uK_RJ')[0], unit='uK_RJ', norm='hist')
-# hp.mollview(model.cmb(30*u.GHz, fwhm=0.88*u.deg, output_unit='uK_CMB')[0], norm='hist')
-# hp.mollview(model.cmb(100*u.GHz, fwhm=0.88*u.deg, output_unit='uK_CMB')[0], norm='hist')
-# hp.mollview(model.cmb(400*u.GHz, fwhm=0.88*u.deg, output_unit='uK_CMB')[0], norm='hist')
-# hp.mollview(model(bp_freqs, bp, fwhm=60*u.arcmin, output_unit='MJy/sr')[0], unit='MJy/sr', norm='hist')
-# hp.mollview(model(bp_freqs, bp, fwhm=60*u.arcmin, output_unit='uK_CMB')[0], unit='uK_CMB', norm='hist')
-# hp.mollview(model(bp_freqs, bp, fwhm=60*u.arcmin)[0],unit='uK_RJ', norm='hist')
-# hp.mollview(emission[0], norm='hist')
+# model._add_component_to_model(10)
+# hp.mollview(model.radio(40*u.GHz, output_unit='MJy/sr')[0], norm='hist')
+hp.mollview(model(22*u.GHz, fwhm=0.88*u.deg, output_unit='MJy/sr')[0], norm='hist')
+# hp.mollview(model(bp_freqs, bp, fwhm=0.88*u.deg, output_unit='MJy/sr')[0], norm='hist')
+# hp.mollview(model.radio(bp_freqs, bp, fwhm=0.88*u.deg, output_unit='MJy/sr')[0], norm='hist')
+# print(model(50*u.GHz, fwhm=30*u.arcmin))
+plt.show()
 
-# plot(model.dust(100.5*u.GHz,))
-# plt.show()
-# freqs = u.Quantity(np.arange(1, 3), unit=u.GHz)
-# print(model.synch.get_emission(freqs, fwhm=10*u.arcmin, output_unit='uK_CMB'))
-# chain_to_h5(chainfile=chain, output_dir='/Users/metinsan/Documents/doktor/models/test1')
-# model = model_from_h5('/Users/metinsan/Documents/doktor/models/test1/model_512.h5')
-# print(model)
-# model_to_h5(model, dirname)
-# model_from_h5(filename)
-# chain_to_h5(chain, dirname)
+u.brightness_temperature
 
-# plot(model, comp="dust")
-# plot(model, comp="ff")
-# plot(model, comp="synch")
-# plot(model, comp="ame")
-# plot(model, comp="cmb")
-# plot(model, freq=100*u.GHz, fwhm=20*u.arcmin)
-# emission = model(bp_freqs, bp, fwhm=30*u.arcmin, output_unit='MJy/sr')[0]
-# plot(emission)
-# plt.show()

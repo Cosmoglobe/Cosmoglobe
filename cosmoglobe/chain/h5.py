@@ -1,16 +1,17 @@
-from cosmoglobe.sky import components
-from cosmoglobe.sky import Model
-from cosmoglobe.utils import utils
+import inspect
+import pathlib
+import sys
 
 import astropy.units as u
 import h5py
 import healpy as hp
 import numpy as np
-import sys
-import inspect
-import pathlib
-from tqdm import tqdm
 from numba import njit
+from tqdm import tqdm
+
+from cosmoglobe.sky import components
+from cosmoglobe.sky import Model
+from cosmoglobe.utils import utils
 
 # Model parameter group name as implemented in commander
 param_group = 'parameters'
@@ -151,6 +152,7 @@ def comp_from_chain(file, component, component_class, model_nside, samples):
 
     # Getting arguments required to initialize component
     args_list = _get_comp_args(component_class) 
+    print(args_list)
     args = {}
     if isinstance(samples, list) and len(samples) > 1:
         get_items = _get_averaged_items
@@ -169,6 +171,8 @@ def comp_from_chain(file, component, component_class, model_nside, samples):
                 map_names.append(arg)
             elif _item_exists(file, component, arg):
                 other_items_names.append(arg)
+            elif arg == 'nside':
+                args['nside'] = nside
             else:
                 raise KeyError(f'item {arg} is not present in the chain')
 
@@ -216,8 +220,8 @@ def comp_from_chain(file, component, component_class, model_nside, samples):
 
     args.update(alms)
     args['amp'] *= amp_unit
-    args = utils._set_spectral_units(args)
-    scalars = utils._extract_scalars(args) # dont save scalar maps
+    args = utils.set_spectral_units(args)
+    scalars = utils.extract_scalars(args) # dont save scalar maps
     args.update(scalars)
     if 'freq_ref' in args_list:
         if comp_is_polarized:
@@ -530,6 +534,7 @@ def model_from_h5(filename):
 
     filename = pathlib.Path(filename)
     model = Model()
+    nside = None
     with h5py.File(filename, 'r') as f:
         for comp in f:
             amp_dset = f.get(f'{comp}/amp')
@@ -554,9 +559,22 @@ def model_from_h5(filename):
                     unit=dset.attrs.get('unit', None)
                 )
 
+            if nside is None:
+                nside = hp.get_nside(amp)
+
             component = COSMOGLOBE_COMPS[comp]
-            model._insert_component(
-                component(amp=amp, freq_ref=freq_ref, **spectral_parameters)
-            )
+            if comp == 'radio':
+                model._add_component_to_model(
+                    component(
+                        amp=amp, 
+                        freq_ref=freq_ref, 
+                        nside=nside,
+                        **spectral_parameters
+                    )
+                )            
+            else:
+                model._add_component_to_model(
+                    component(amp=amp, freq_ref=freq_ref, **spectral_parameters)
+                )
 
     return model

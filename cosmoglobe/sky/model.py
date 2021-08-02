@@ -1,27 +1,26 @@
-from cosmoglobe.sky import components
-from cosmoglobe.utils import utils
-from cosmoglobe.sky.base import (
-    _Component, 
-    _DiffuseComponent, 
-    _PointSourceComponent,
-    _LineComponent
-)
+from typing import List
 
 import astropy.units as u
 import healpy as hp
 import numpy as np
 
+from cosmoglobe.sky.base import (
+    _Component, 
+    _DiffuseComponent, 
+    _PointSourceComponent,
+)
+from cosmoglobe.utils import utils
+from cosmoglobe.utils.utils import CompState, ModelError
+
 
 class Model:
-    r"""Class that interfaces the Cosmoglobe Sky Model with commander3 
-    outputs for the purpose of producing astrophysical sky maps.
+    r"""Sky model object representing the Cosmoglobe Sky Model.
 
     This class acts as a container for the various components making up 
     the Cosmoglobe Sky Model, and provides methods to simulate the sky. 
     The primary use case of this class is to call its ``__call__`` 
-    function, which simulates the sky at a single frequency :math:`\nu`, 
-    or integrated over a bandpass :math:`\tau` given the present 
-    components in the model.
+    method, which simulates the sky at a single frequency :math:`\nu`, 
+    or integrated over a bandpass :math:`\tau`.
     
     Attributes
     ----------
@@ -39,83 +38,117 @@ class Model:
         The synchrotron sky component.
     nside : int
         Healpix resolution of the maps in sky model.
-    components : dict
-        Dictionary of all sky components included in the model.
-    is_polarized : bool
 
     Methods
     -------
     __call__
     disable
     enable
-    to_nside
 
     See Also
     --------
     __call__ : 
         Simulates the sky at a given frequency :math:`\nu` or over a 
         bandpass :math:`\tau` given the Cosmoglobe Sky Model.
+
+    Examples
+    --------
+    Inspecting the model:
+
+    >>> model = skymodel(nside=256)
+    >>> print(model)
+    Model(
+      nside: 256
+      components( 
+        (ame): AME(nu_p)
+        (cmb): CMB()
+        (dust): Dust(beta, T)
+        (ff): FreeFree(Te)
+        (radio): Radio(specind)
+        (synch): Synchrotron(beta)
+      )
+    )
+
+    Simulating the full sky emission at some frequency, given a beam 
+    FWHM:
+
+    >>> import astropy.units as u
+    >>> emission = model(50*u.GHz, fwhm=30*u.arcmin)
+    >>> print(emission)
+    Smoothing point sources...
+    Smoothing diffuse emission...
+    [[ 2.25809786e+03  2.24380103e+03  2.25659060e+03 ... -2.34783682e+03
+      -2.30464421e+03 -2.30387946e+03]
+     [-1.64627550e+00  2.93583564e-01 -1.06788937e+00 ... -1.64354585e+01
+       1.60621841e+01 -1.05506092e+01]
+     [-4.15682825e+00  3.08881971e-01 -1.02012415e+00 ...  5.44745701e+00
+      -4.71776995e+00  4.39850830e+00]] uK
     """
 
-    def __init__(self, components=None, nside=None):
+    nside: int = None 
+    components: List[_Component] = None, 
+
+    def __init__(self, nside=None, components=None):
         """Initializing a sky model. 
 
         Parameters
         ----------
-        components : list, optional
-            A list of `cosmoglobe.sky.component.Component` objects that 
-            constitutes the sky model (by default this is None and the 
-            components are iteratively added as they are read from a 
-            commander3 chain).
         nside : int, optional
             Healpix resolution of the maps in sky model (the default is 
             None, in which the model automatically detects the nside from
             the components).
+        components : list, optional
+            A list of `cosmoglobe.sky.base._Component` objects that 
+            constitutes the sky model (by default this is None and the 
+            components are iteratively added as they are read from a 
+            commander3 chain).
         """
 
         self.nside = nside
-        self.components = {}
-        self.disabled_components = {}
+        self._components = {}
 
         if components is not None:
             for component in components:
-                self._add_component(component)
+                self._add_component_to_model(component)
 
+    def _add_component_to_model(self, component):
+        """Adds a new component to the model.
+        
+        Parameters
+        ----------
+        component : `cosmoglobe.sky.base._Component`
+            Component to be added to the sky model.
+        """
 
-    def _add_component(self, component):
-        if not issubclass(component.__class__, _Component):
+        if not isinstance(component, _Component):
             raise TypeError(
-                f'{component} is not a subclass of cosmoglobe.sky._Component'
+                f'component must be a subclass of {_Component}'
+            )
+        name = component.label
+        if name in self._components:
+            raise KeyError(
+                f'component {name} is already a part of the model'
             )
 
-        name = component.label
-        if name in self.components:
-            raise KeyError(f'component {name} already exists in model')
-
-        if isinstance(component, _PointSourceComponent):
-            if not hasattr(components, 'nside'):
-                component.nside = self.nside
-        else:
-            nside = hp.get_nside(component.amp)
-            if nside != self.nside:
-                if self.nside is None:
-                    self.nside = nside
-                else:
-                    raise ValueError(
-                        f'component {name!r} has a reference map at NSIDE='
-                        f'{nside}, but model NSIDE is set to {self.nside}'
-                    )
-
         setattr(self, name, component)
-        self.components[name] = component
+        self._components[name] = [component, CompState.ENABLED]
 
+        if self.nside is None:
+            self.nside = hp.get_nside(component.amp)
 
     @u.quantity_input(
-        freq=u.Hz, bandpass=(u.Jy/u.sr, u.K, None), fwhm=(u.rad, u.deg, u.arcmin)
+        freqs=u.Hz, 
+        bandpass=(u.Jy/u.sr, u.K, None), 
+        fwhm=(u.rad, u.deg, u.arcmin)
     )
-    def __call__(self, freqs, bandpass=None, fwhm=0.0*u.rad, output_unit=u.uK):
-        r"""Computes the model emission (sum of all component emissions) 
-        at a single frequency :math:`\nu` or integrated over a bandpass :math:`\tau`.
+    def __call__(
+        self, freqs, bandpass=None, fwhm=0.0 * u.rad, output_unit=u.uK
+    ):
+        r"""Simulates the full model sky emission. 
+
+        This method computes the full model sky emission (sum of all 
+        component emission) for a single frequency :math:`\nu` or 
+        integrated over a  bandpass :math:`\tau`.
 
         Parameters
         ----------
@@ -131,10 +164,11 @@ class Model:
         fwhm : `astropy.units.Quantity`, optional
             The full width half max parameter of the Gaussian (Default is 
             0.0, which indicates no smoothing of output maps).
-        output_unit : `astropy.units.Unit`, optional
-            The desired output units of the emission (By default the 
-            output unit of the model is always in 
-            :math:`\mathrm{\mu K_{RJ}}`.
+        output_unit : str, `astropy.units.UnitBase`, optional
+            The desired output units of the emission. The supported units are
+            :math:`\mathrm{\mu K_{RJ}}` and :math:`\mathrm{MJ/sr}` (By 
+            default the output unit of the model is always in 
+            :math:`\mathrm{\mu K_{RJ}}`. 
 
         Returns
         -------
@@ -177,34 +211,36 @@ class Model:
 
         Examples
         --------
-        Full Sky Model emission at :math:`50\; \mathrm{GHz}`:
+        Simulated full sky emission at :math:`50\; \mathrm{GHz}`:
 
-        >>> from cosmoglobe.sky import skymodel
+        >>> from cosmoglobe import skymodel
         >>> import astropy.units as u
-        >>> model = skymodel(nside=256)
-        >>> model(50*u.GHz)[0]  # Stokes I parameter
+        >>> model = skymodel(nside=256) 
+        >>> model(50*u.GHz)[0]
         [ 2234.74893115  2291.99921295  2323.98779311 ... -2320.74732945
          -2271.54465982 -2292.22248419] uK
 
-        Dust emission at :math:`500\; \mathrm{GHz}` smoothed with a 
-        :math:`50\; '`  Gaussian beam in units of 
+        Simulated full sky emission at :math:`500\; \mathrm{GHz}` 
+        smoothed with a :math:`50\; '` Gaussian beam, outputed in units of 
         :math:`\mathrm{MJy} / \mathrm{sr}`:
 
-        >>> model.dust(500*u.GHz, fwhm=50*u.arcmin, output_unit='MJy/sr')[0]
-        [3.08898797e-05 3.25889729e-05 3.76313847e-05 ... 3.76599942e-05
-         3.99570235e-05 4.46317102e-05] MJy / sr
+        >>> model(500*u.GHz, fwhm=50*u.arcmin, output_unit='MJy/sr')[0]
+        [ 0.267749    0.26991688  0.28053964 ... -0.15846278 -0.15269807
+         -0.14408377] MJy / sr
         """
 
-        if self.is_polarized:
-            shape = (3, hp.nside2npix(self.nside))
-        else:
-            shape = (1, hp.nside2npix(self.nside))
+        shape = (3, hp.nside2npix(self.nside))
         diffuse_emission = np.zeros(shape)
-        ptsrc_emission = np.zeros(shape)
+        point_source_emission = np.zeros(shape)
 
-        unit = utils._str_to_astropy_unit(output_unit)
-        diffuse_emission = u.Quantity(diffuse_emission, unit=unit)
-        ptsrc_emission = u.Quantity(ptsrc_emission, unit=unit)
+        # The output unit may be a string denoting for instance K_CMB, which
+        # is critical information for the following routines. However, we 
+        # need to initialize the emission arrays with astropy units.
+        _output_unit = utils.str_to_astropy_unit(output_unit)
+        diffuse_emission = u.Quantity(diffuse_emission, unit=_output_unit)
+        point_source_emission = u.Quantity(
+            point_source_emission, unit=_output_unit
+        )
 
         for comp in self:
             if isinstance(comp, _DiffuseComponent):
@@ -217,169 +253,86 @@ class Model:
                     freqs, bandpass, fwhm=fwhm, output_unit=output_unit
                 )
                 for idx, row in enumerate(comp_emission):
-                    ptsrc_emission[idx] += row
+                    point_source_emission[idx] += row
 
+        if fwhm != 0.0 and diffuse_emission.value.any():
+            # Instead of calling the diffuse components _smooth function
+            # it is more efficient to sum all the emission first and then
+            # only perform a singled smoothing operation.
+            print('Smoothing diffuse emission...')
+            diffuse_emission = u.Quantity(
+                hp.smoothing(diffuse_emission, fwhm.to(u.rad).value),
+                unit=diffuse_emission.unit
+            )
 
-        if fwhm != 0.0:
-            # If diffuse emission is non-zero
-            print('Smoothing diffuse emission')
-            if diffuse_emission.value.any():
-                diffuse_emission = hp.smoothing(
-                    diffuse_emission, fwhm.to(u.rad).value
-                ) * diffuse_emission.unit
+        return diffuse_emission + point_source_emission
 
-        return diffuse_emission + ptsrc_emission
-
-
-    def disable(self, component):
+    def disable(self, comp_label):
         """Disable a component in the model.
 
         Parameters
         ----------
-        component : str, `cosmoglobe.sky._Component`
-            The name of a component or the the component class in the 
-            model.
+        comp_label : str
+            The component label.
 
         Raises
         ------
-        ValueError
-            If `component` is not a a `cosmoglobe.sky._Component` or 
-            its label.
         KeyError
-            If the component is not currently present in the model.
+            If the component is not currently enabled in the model.
         """
 
-        if isinstance(component, str):
-            comp = component
-        elif isinstance(component.__class__, _Component):
-            comp = component.label
-        else:
-            raise ValueError(
-                'component must be the component label in the model or the '
-                'component object'
-            )
         try:
-            self.disabled_components[comp] = self.components[comp]
+            if self._components[comp_label][1] is CompState.ENABLED:
+                self._components[comp_label][1] = CompState.DISABLED
+            else:
+                raise ModelError(f'{comp_label!r} is already disabled')
         except KeyError:
-            raise KeyError(f'{comp} is not enabled')
-        del self.components[comp]
+            raise KeyError(f'{comp_label!r} is not a component in the model')
 
-
-    def enable(self, component):
-        """enable a disabled component.
+    def enable(self, comp_label):
+        """Enable a disabled component.
 
         Parameters
         ----------
-        component : str, `cosmoglobe.sky.Component`
-            The name of a component or the the component class in the model.
+        comp_label : str
+            The component label.
         
         Raises
         ------
-        ValueError
-            If `component` is not a a `cosmoglobe.sky._Component` or 
-            its label.
         KeyError
             If the component is not currently disabled in the model.
         """
 
-        if isinstance(component, str):
-            comp = component
-        elif isinstance(component.__class__, _Component):
-            comp = component.label
-        else:
-            raise ValueError(
-                'component must be the component label in the model or the '
-                'component object'
-            )
-
         try:
-            self.components[comp] = self.disabled_components[comp]
+            if self._components[comp_label][1] is CompState.DISABLED:
+                self._components[comp_label][1] = CompState.ENABLED
+            else:
+                raise ModelError(f'{comp_label!r} is already enabled')
         except KeyError:
-            raise KeyError(f'{comp} is not disabled')
-        del self.disabled_components[comp]
-
-
-    def _insert_component(self, component):
-        """Insert a new component to the model.
-
-        Parameters
-        ----------
-        component : `cosmoglobe.sky.Component`:
-            Sky component to be added to the model. Must be a subclass of 
-            `cosmoglobe.sky.Component`.
-
-        """
-        self._add_component(component)
-
-
-    def _remove_component(self, name):
-        """Removes a component from the model.
-
-        Parameters
-        ----------
-        name : str
-            Component attribute name.
-        """
-
-        del self[name]
-
-
-    def to_nside(self, new_nside):
-        """ud_grades all maps in the component to a new nside.
-
-        Parameters
-        ----------
-        new_nside : int
-            Healpix map resolution parameter.
-
-        Raises
-        ------
-        ValueError
-            If NSIDE is not a power of 2.
-        """
-
-        if new_nside == self.nside:
-            print(f'Model is already at nside {new_nside}')
-            return
-        if not hp.isnsideok(new_nside, nest=True):
-            raise ValueError(f'nside: {new_nside} is not valid.')
-        
-        self.nside = new_nside
-        for comp in self:
-            comp.to_nside(new_nside)
-
+            raise KeyError(f'{comp_label!r} is not a component in the model')
 
     @property
-    def is_polarized(self):
-        """Returns True if model includes a polarized component and False 
-        otherwise.
-        """
-        for comp in self:
-            if comp.is_polarized:
-                return True
-        return False
-
+    def components(self):
+        """Returns a list of enabled components."""
+        return [
+            comp[0] for comp in self._components.values()
+            if comp[1] is CompState.ENABLED
+        ]
 
     def __iter__(self):
-        return iter(self.components.values())
+        """Creates an iterator from the components list such that the 
+        model can be iterated over.
+        """       
 
+        return iter(self.components)
 
-    def __len__(self):
-        return len(self.components)
+    def __repr__(self):        
+        """Representation of the Model and all enabled components."""
 
-
-    def __delitem__(self, name):
-        if name not in self.components:
-            raise KeyError(f'component {name} does not exist')
-        delattr(self, name)
-        del self.components[name]
-
-
-    def __repr__(self):
         reprs = []
-        for key, component in self.components.items():
+        for component in self.components:
             component_repr = repr(component) + '\n'
-            reprs.append(f'({key}): {component_repr}')
+            reprs.append(f'({component.label}): {component_repr}')
 
         main_repr = f'Model('
         main_repr += f'\n  nside: {self.nside}'
