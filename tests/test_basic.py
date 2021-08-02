@@ -21,14 +21,20 @@ wmap = hp.read_map(chain_dir / 'wmap_band_iqusmap_r9_9yr_K_v5.fits')
 bp_freqs, bp, _ = np.loadtxt(bandpass, unpack=True)
 bp_freqs*= u.GHz
 bp *= u.K
-
+print(bp_freqs.mean())
 # model = model_from_chain(chain, nside=256)
 
 model = sky_model(nside=256)
-# model.disable('d')
-# model.disable('cmb')
-model.enable('cmb')
-print(model)
-hp.mollview(model(bp_freqs, fwhm=0.88*u.deg, output_unit='mK')[0], norm='hist')
 
+print(model)
+model.cmb.remove_dipole()
+# model._add_component_to_model(10)
+# hp.mollview(model.radio(40*u.GHz, output_unit='MJy/sr')[0], norm='hist')
+hp.mollview(model(22*u.GHz, fwhm=0.88*u.deg, output_unit='MJy/sr')[0], norm='hist')
+# hp.mollview(model(bp_freqs, bp, fwhm=0.88*u.deg, output_unit='MJy/sr')[0], norm='hist')
+# hp.mollview(model.radio(bp_freqs, bp, fwhm=0.88*u.deg, output_unit='MJy/sr')[0], norm='hist')
+# print(model(50*u.GHz, fwhm=30*u.arcmin))
 plt.show()
+
+u.brightness_temperature
+
