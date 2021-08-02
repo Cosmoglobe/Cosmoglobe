@@ -58,10 +58,11 @@ class _Component(ABC):
         fwhm : `astropy.units.Quantity`, optional
             The full width half max parameter of the Gaussian (Default is 
             0.0, which indicates no smoothing of output maps).
-        output_unit : `astropy.units.UnitBase`, optional
-            The desired output units of the emission (By default the 
-            output unit of the model is always in 
-            :math:`\mathrm{\mu K_{RJ}}`.
+        output_unit : str, `astropy.units.UnitBase`, optional
+            The desired output units of the emission. The supported units are
+            :math:`\mathrm{\mu K_{RJ}}` and :math:`\mathrm{MJ/sr}` (By 
+            default the output unit of the model is always in 
+            :math:`\mathrm{\mu K_{RJ}}`. 
 
         Returns
         -------
@@ -173,7 +174,7 @@ class _Component(ABC):
 
         bandpass_scaling = bp.get_bandpass_scaling(freqs, bandpass, self)
         emission = self.amp * bandpass_scaling * bandpass_coefficient
-
+        
         return emission
 
     @property
@@ -355,7 +356,7 @@ class _PointSourceComponent(_Component):
 
         nside = self.nside
         angular_coords = self.angular_coords
-
+        
         if amp.ndim > 1:
             amp = np.squeeze(amp)
         healpix_map = u.Quantity(
@@ -374,6 +375,7 @@ class _PointSourceComponent(_Component):
             pixels = hp.ang2pix(nside, *angular_coords.T, lonlat=True)
             beam_area = hp.nside2pixarea(nside) * u.sr
             healpix_map[pixels] = amp
+            healpix_map /= beam_area.value
 
         else:
             # Apply a truncated gaussian beam to each point source
@@ -405,10 +407,7 @@ class _PointSourceComponent(_Component):
                     healpix_map[inds] += amp[idx] * beam(r, sigma)
                     pbar.update()
 
-        healpix_map = healpix_map.to(
-            u.uK, u.brightness_temperature(self.freq_ref, beam_area)
-        )
-
+        healpix_map /= beam_area.value
         return np.expand_dims(healpix_map, axis=0)
 
     def _read_coords_from_catalog(self, catalog):

@@ -164,10 +164,11 @@ class Model:
         fwhm : `astropy.units.Quantity`, optional
             The full width half max parameter of the Gaussian (Default is 
             0.0, which indicates no smoothing of output maps).
-        output_unit : `astropy.units.UnitBase`, optional
-            The desired output units of the emission (By default the 
-            output unit of the model is always in 
-            :math:`\mathrm{\mu K_{RJ}}`.
+        output_unit : str, `astropy.units.UnitBase`, optional
+            The desired output units of the emission. The supported units are
+            :math:`\mathrm{\mu K_{RJ}}` and :math:`\mathrm{MJ/sr}` (By 
+            default the output unit of the model is always in 
+            :math:`\mathrm{\mu K_{RJ}}`. 
 
         Returns
         -------
