@@ -566,6 +566,7 @@ def model_from_h5(filename):
 
             if nside is None:
                 nside = hp.get_nside(amp)
+                model.nside = nside
 
             component = COSMOGLOBE_COMPS[comp]
             if comp == 'radio':
@@ -573,7 +574,6 @@ def model_from_h5(filename):
                     component(
                         amp=amp, 
                         freq_ref=freq_ref, 
-                        nside=nside,
                         **spectral_parameters
                     )
                 )            

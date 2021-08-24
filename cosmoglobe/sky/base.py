@@ -31,6 +31,27 @@ class SkyComponent(ABC):
             spectral_parameters
         )
 
+    @abstractmethod
+    def _smooth_emission(
+        self, 
+        emission: u.Quantity, 
+        fwhm: u.Quantity
+    ) -> u.Quantity:
+        """Smooths simulated emission given a beam FWHM.
+
+        Parameters
+        ----------
+        emission
+            Simulated emission.
+        fwhm
+            The full width half max parameter of the Gaussian. Default: 0.0
+
+        Returns
+        -------
+        emission
+            Smoothed emission.
+        """
+
     @u.quantity_input(
         freqs=u.Hz, 
         bandpass=(u.Jy/u.sr, u.K, None), 
@@ -113,8 +134,8 @@ class SkyComponent(ABC):
         [0.00054551 0.00053428 0.00051471 ... 0.00046559 0.00047185 0.00047065]
          MJy / sr
         """
-
-        if np.size(freqs.size) == 1:
+        
+        if np.size(freqs) == 1:
             emission = self._get_delta_emission(freqs)
             emission = self._smooth_emission(emission, fwhm)
             if output_unit is not None:
@@ -201,27 +222,6 @@ class SkyComponent(ABC):
             for key, value in spectral_parameters.items()
         }
 
-    @abstractmethod
-    def _smooth_emission(
-        self, 
-        emission: u.Quantity, 
-        fwhm: u.Quantity
-    ) -> u.Quantity:
-        """Smooths simulated emission given a beam FWHM.
-
-        Parameters
-        ----------
-        emission
-            Simulated emission.
-        fwhm
-            The full width half max parameter of the Gaussian. Default: 0.0
-
-        Returns
-        -------
-        emission
-            Smoothed emission.
-        """
-
     def __repr__(self) -> str:
         """Representation of the component."""
 
@@ -240,14 +240,6 @@ class SkyComponent(ABC):
 
 class Diffuse(SkyComponent):
     """Abstract base class for diffuse sky components."""
-
-    def __init__(
-        self, 
-        amp: u.Quantity, 
-        freq_ref: u.Quantity, 
-        **spectral_parameters: Dict[str, u.Quantity]
-    ) -> None:
-        super().__init__(amp, freq_ref, **spectral_parameters)
 
     @abstractmethod
     def _get_freq_scaling(
@@ -295,14 +287,6 @@ class Diffuse(SkyComponent):
 
 class PointSource(SkyComponent):
     """Abstract base class for point source sky components."""
-
-    def __init__(
-        self, 
-        amp: u.Quantity, 
-        freq_ref: u.Quantity, 
-        **spectral_parameters: Dict[str, u.Quantity]
-    ) -> None:       
-        super().__init__(amp, freq_ref, **spectral_parameters)
 
     @abstractmethod
     def _get_freq_scaling(
