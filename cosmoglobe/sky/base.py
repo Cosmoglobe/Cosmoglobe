@@ -298,12 +298,8 @@ class _DiffuseComponent(_Component):
 class _PointSourceComponent(_Component):
     """Abstract base class for a point source sky component."""
 
-    def __init__(self, amp, freq_ref, nside, **spectral_parameters):
+    def __init__(self, amp, freq_ref, **spectral_parameters):
         super().__init__(amp, freq_ref, **spectral_parameters)
-
-        # Point source components explicitly require a nside attribute 
-        # since the amplitudes are not stored in healpix maps.
-        self.nside = nside
 
     @abstractmethod
     def _get_freq_scaling(freq, freq_ref, **spectral_parameters):
@@ -323,6 +319,12 @@ class _PointSourceComponent(_Component):
         scaling : `astropy.units.Quantity`
             Frequency scaling factor with dimensionless units.
         """
+
+    def _set_nside(self, nside):
+        # Point source components explicitly require a nside attribute 
+        # since the amplitudes are not stored in healpix maps.
+
+        self.nside = nside
 
     def _smooth_emission(self, emission, fwhm):
         """See base class. 
@@ -348,17 +350,15 @@ class _PointSourceComponent(_Component):
             The fwhm multiplier used in computing radial cut off r_max 
             calculated as r_max = n_fwhm * fwhm of the Gaussian.
             Default: 2.
-        nside : int
-            The healpix map resolution of the output map. If component is part 
-            of a sky model, we automatically select the model nside. 
-            Default: None.
         """
 
         nside = self.nside
+
         angular_coords = self.angular_coords
-        
+
         if amp.ndim > 1:
             amp = np.squeeze(amp)
+
         healpix_map = u.Quantity(
             np.zeros(hp.nside2npix(nside)), unit=amp.unit
         )
@@ -404,6 +404,7 @@ class _PointSourceComponent(_Component):
                         ),
                         lonlat=True
                     )
+
                     healpix_map[inds] += amp[idx] * beam(r, sigma)
                     pbar.update()
 

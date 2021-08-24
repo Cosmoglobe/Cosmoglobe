@@ -417,8 +417,8 @@ class Radio(_PointSourceComponent):
 
     label = 'radio'
 
-    def __init__(self, amp, freq_ref, nside, specind):
-        super().__init__(amp, freq_ref, nside, specind=specind)
+    def __init__(self, amp, freq_ref, specind):
+        super().__init__(amp, freq_ref, specind=specind)
 
         self.angular_coords = self._read_coords_from_catalog(RADIO_CATALOG)
 

@@ -98,7 +98,7 @@ def model_from_chain(file, nside=None, samples='all', burn_in=None, comps=None):
             pbar.set_description(f'{comp:<{padding}}')
             comp = comp_from_chain(file, comp, comps[comp], 
                                      nside, samples)                                           
-            model._insert_component(comp)
+            model._add_component_to_model(comp)
             pbar.update(1)
 
         pbar.set_description('Done')
@@ -140,6 +140,7 @@ def comp_from_chain(file, component, component_class, model_nside, samples):
     freq_ref = (parameters['nu_ref']*u.Hz).to(u.GHz)
     fwhm_ref = (parameters['fwhm']*u.arcmin).to(u.rad)
     nside = parameters['nside']
+
     if parameters['polarization'] == 'True':
         comp_is_polarized = True
     else:
@@ -152,7 +153,7 @@ def comp_from_chain(file, component, component_class, model_nside, samples):
 
     # Getting arguments required to initialize component
     args_list = _get_comp_args(component_class) 
-    print(args_list)
+
     args = {}
     if isinstance(samples, list) and len(samples) > 1:
         get_items = _get_averaged_items
@@ -184,6 +185,7 @@ def comp_from_chain(file, component, component_class, model_nside, samples):
     maps_ = get_items(
         file, samples, component, [f'{map_}_map' for map_ in map_names]
     )
+
     maps = dict(zip(map_names, maps_))
     if maps:
         if model_nside is not None and nside != model_nside:
@@ -229,6 +231,9 @@ def comp_from_chain(file, component, component_class, model_nside, samples):
         else:
             freq = u.Quantity(freq_ref[0])
         args['freq_ref'] = freq
+
+    if component =='radio':
+       args['specind'] = args['specind'][0] # take alpha from chain
 
     return component_class(**args)
 

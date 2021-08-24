@@ -135,6 +135,9 @@ class Model:
 
         if self.nside is None:
             self.nside = hp.get_nside(component.amp)
+        
+        if hasattr(component, '_set_nside'):
+            component._set_nside(self.nside)
 
     @u.quantity_input(
         freqs=u.Hz, 
