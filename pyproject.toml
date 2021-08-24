@@ -1,8 +1,26 @@
+[tool.poetry]
+name = "cosmoglobe"
+version = "0.9.30"
+description = "cosmoglobe is a python package that interfaces the Cosmoglobe Sky Model with commander3 outputs for the purpose of producing astrophysical sky maps."
+authors = ["Metin San <metinisan@gmail.com>", "Trygve Leithe Svalheim <t.l.svalheim@astro.uio.no>"]
+license = "GNU GPLv3"
+
+[tool.poetry.dependencies]
+python = ">=3.8,<3.10"
+numpy = "^1.21.2"
+scipy = "^1.7.1"
+healpy = "^1.15.0"
+astropy = "^4.3.1"
+h5py = "^3.4.0"
+tqdm = "^4.62.2"
+cmasher = "^1.6.2"
+matplotlib = "^3.4.3"
+
+[tool.poetry.dev-dependencies]
+Sphinx = "^4.1.2"
+numpydoc = "^1.1.0"
+sphinx-rtd-theme = "^0.5.2"
+
 [build-system]
-
-requires = [
-    "setuptools>=42",
-    "wheel",
-]
-
-build-backend = 'setuptools.build_meta'
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

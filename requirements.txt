@@ -1,9 +1,0 @@
-numpy
-astropy
-matplotlib
-numba
-numpydoc
-h5py>=3.0
-healpy
-scipy
-cmasher
