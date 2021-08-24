@@ -83,8 +83,8 @@ html_css_files = [
 
 source_suffix = ['.rst', '.ipynb']
 
-import_module('cosmoglobe')
-package = sys.modules['cosmoglobe']
+# import_module('cosmoglobe')
+# package = sys.modules['cosmoglobe']
 # version = package.__version__.split("-", 1)[0]
 # release = package.__version__
 

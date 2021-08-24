@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict
-from sys import exit
+from typing import Dict, Optional, Union
 import sys
 import warnings
 
@@ -15,14 +14,15 @@ import cosmoglobe.utils.bandpass as bp
 warnings.simplefilter('once', UserWarning)
 
 
-class _Component(ABC):
+class SkyComponent(ABC):
     """Abstract base class for a sky component"""
 
-    amp: u.Quantity
-    freq_ref: u.Quantity
-    spectral_parameters: Dict[str, u.Quantity]
-
-    def __init__(self, amp, freq_ref, **spectral_parameters):
+    def __init__(
+        self, 
+        amp: u.Quantity, 
+        freq_ref: u.Quantity, 
+        **spectral_parameters: Dict[str, u.Quantity]
+    ) -> None:
         """Initializes a sky component."""
         
         self.amp = self._reshape_amp(amp)
@@ -37,28 +37,32 @@ class _Component(ABC):
         fwhm=(u.rad, u.deg, u.arcmin),
     )
     def __call__(
-        self, freqs, bandpass=None, fwhm=0.0 * u.rad, output_unit=u.uK
-    ):
-        r"""Simulates the component sky emission. 
+        self, 
+        freqs: u.Quantity, 
+        bandpass: Optional[u.Quantity] = None, 
+        fwhm: u.Quantity = 0.0 * u.rad, 
+        output_unit: Union[str, u.UnitBase] = u.uK
+    ) -> u.Quantity:
+        r"""Simulates and returns the sky emission of a component. 
 
-        This method computes the full component sky emission for a single 
+        This method computes the sky emission of a component for a single 
         frequency :math:`\nu` or integrated over a  bandpass :math:`\tau`.
 
         Parameters
         ----------
-        freqs : `astropy.units.Quantity`
+        freqs
             A frequency, or a list of frequencies for which to evaluate 
             the sky emission.
-        bandpass : `astropy.units.Quantity`, optional
+        bandpass
             Bandpass profile corresponding to the frequencies. Default is 
             None. If `bandpass` is None and `freqs` is a single frequency,
             a delta peak is assumed (unless `freqs` is a list of 
             frequencies, for which a top-hat bandpass is used to perform  
             bandpass integration instead).
-        fwhm : `astropy.units.Quantity`, optional
+        fwhm
             The full width half max parameter of the Gaussian (Default is 
             0.0, which indicates no smoothing of output maps).
-        output_unit : str, `astropy.units.UnitBase`, optional
+        output_unit
             The desired output units of the emission. The supported units are
             :math:`\mathrm{\mu K_{RJ}}` and :math:`\mathrm{MJ/sr}` (By 
             default the output unit of the model is always in 
@@ -66,7 +70,7 @@ class _Component(ABC):
 
         Returns
         -------
-        `astropy.units.Quantity`
+        Emission
             The component emission.
 
         Notes
@@ -110,11 +114,11 @@ class _Component(ABC):
          MJy / sr
         """
 
-        if freqs.size == 1:
+        if np.size(freqs.size) == 1:
             emission = self._get_delta_emission(freqs)
             emission = self._smooth_emission(emission, fwhm)
             if output_unit is not None:
-                emission = utils.emission_to_unit(emission, freqs, output_unit)
+                emission = utils.to_unit(emission, freqs, output_unit)
         else:
             emission = self._get_bandpass_emission(
                 freqs, bandpass, output_unit=output_unit
@@ -123,19 +127,8 @@ class _Component(ABC):
 
         return emission
 
-    def _get_delta_emission(self, freq):
-        """Simulates the component emission at a delta frequency.
-        
-        Parameters
-        ----------
-        freq : `astropy.units.Quantity`
-            A delta frequency.
-
-        Returns
-        -------
-        `astropy.units.Quantity`
-            Simulated emission.
-        """
+    def _get_delta_emission(self, freq: u.Quantity) -> u.Quantity:
+        """Simulates the component emission at a delta frequency."""
 
         scaling = self._get_freq_scaling(
             freq, self.freq_ref, **self.spectral_parameters
@@ -143,25 +136,13 @@ class _Component(ABC):
 
         return self.amp * scaling
 
-    def _get_bandpass_emission(self, freqs, bandpass=None, output_unit=u.uK):
-        """Computes the simulated component emission over a bandpass.
-
-        If no bandpass is passed, a top-hat bandpass is assumed.
-
-        Parameters
-        ----------
-        freqs : `astropy.units.Quantity`
-            Bandpass frequencies.
-        bandpass : `astropy.units.Quantity`
-            Bandpass profile. Default: None
-        output_unit : `astropy.units.UnitBase`
-            The desired output unit of the emission. Default: None
-
-        Returns
-        -------
-        emission : `astropy.units.Quantity`
-            Simulated emission.
-        """
+    def _get_bandpass_emission(
+        self, 
+        freqs: u.Quantity, 
+        bandpass: u.Quantity = None, 
+        output_unit: u.UnitBase = u.uK
+    ) -> u.Quantity:
+        """Simulates the component emission at over a bandpass."""
 
         if bandpass is None:
             warnings.warn('Bandpass is None. Defaulting to top-hat bandpass')
@@ -178,7 +159,7 @@ class _Component(ABC):
         return emission
 
     @property
-    def _is_polarized(self):
+    def _is_polarized(self) -> bool:
         """Returns True if component is polarized and False if not."""
 
         if self.amp.shape[0] == 3:
@@ -187,13 +168,13 @@ class _Component(ABC):
         return False
 
     @staticmethod
-    def _reshape_amp(amp):
+    def _reshape_amp(amp: u.Quantity) -> u.Quantity:
         """Reshapes the reference frequency to a broadcastable shape."""
 
         return amp if amp.ndim != 1 else np.expand_dims(amp, axis=0)
 
     @staticmethod
-    def _reshape_freq_ref(freq_ref):
+    def _reshape_freq_ref(freq_ref: u.Quantity) -> u.Quantity:
         """Reshapes the reference frequency to a broadcastable shape."""
 
         if freq_ref is None:
@@ -207,10 +188,12 @@ class _Component(ABC):
         elif freq_ref.size == 3:
             return freq_ref.reshape((3,1))
         else:
-            raise ValueError('Unrecognized shape.')
+            raise ValueError('Unrecognized shape')
 
     @staticmethod
-    def _reshape_spectral_parameters(spectral_parameters):
+    def _reshape_spectral_parameters(
+        spectral_parameters: Dict[str, u.Quantity]
+    ) -> Dict[str, u.Quantity]:
         """Reshapes the spectral parameters to a broadcastable shape."""
 
         return {
@@ -219,23 +202,27 @@ class _Component(ABC):
         }
 
     @abstractmethod
-    def _smooth_emission(self, emission, fwhm):
+    def _smooth_emission(
+        self, 
+        emission: u.Quantity, 
+        fwhm: u.Quantity
+    ) -> u.Quantity:
         """Smooths simulated emission given a beam FWHM.
 
         Parameters
         ----------
-        emission : `astropy.units.Quantity`
+        emission
             Simulated emission.
-        fwhm : `astropy.units.Quantity`
+        fwhm
             The full width half max parameter of the Gaussian. Default: 0.0
 
         Returns
         -------
-        emission : `astropy.units.Quantity`
+        emission
             Smoothed emission.
         """
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Representation of the component."""
 
         main_repr = f'{self.__class__.__name__}'
@@ -251,32 +238,43 @@ class _Component(ABC):
         return main_repr
 
 
-class _DiffuseComponent(_Component):
-    """Abstract base class for a diffuse sky component."""
+class Diffuse(SkyComponent):
+    """Abstract base class for diffuse sky components."""
 
-    def __init__(self, amp, freq_ref, **spectral_parameters):
+    def __init__(
+        self, 
+        amp: u.Quantity, 
+        freq_ref: u.Quantity, 
+        **spectral_parameters: Dict[str, u.Quantity]
+    ) -> None:
         super().__init__(amp, freq_ref, **spectral_parameters)
 
     @abstractmethod
-    def _get_freq_scaling(freq, freq_ref, **spectral_parameters):
+    def _get_freq_scaling(
+        freq: u.Quantity, 
+        freq_ref: u.Quantity, 
+        **spectral_parameters: Dict[str, u.Quantity]
+    ) -> u.Quantity:
         r"""Computes the frequency scaling for a component.
         
         Parameters
         ----------
-        freq : `astropy.units.Quantity`
+        freq
             Frequency at which to evaluate the model.
-        freq_ref : `astropy.units.Quantity`
+        freq_ref
             Reference frequencies for the components `amp` map.
-        spectral_parameters : `np.ndarray`, `astropy.units.Quantity`
+        spectral_parameters
             The spectral parameters of the component. 
             
         Returns
         -------
-        scaling : `astropy.units.Quantity`
+        scaling
             Frequency scaling factor with dimensionless units.
         """
 
-    def _smooth_emission(self, emission, fwhm):
+    def _smooth_emission(
+        self, emission: u.Quantity, fwhm: u.Quantity
+    ) -> u.Quantity:
         """See base class."""
         
         if fwhm == 0.0:
@@ -295,38 +293,54 @@ class _DiffuseComponent(_Component):
         return emission
 
 
-class _PointSourceComponent(_Component):
-    """Abstract base class for a point source sky component."""
+class PointSource(SkyComponent):
+    """Abstract base class for point source sky components."""
 
-    def __init__(self, amp, freq_ref, **spectral_parameters):
+    def __init__(
+        self, 
+        amp: u.Quantity, 
+        freq_ref: u.Quantity, 
+        **spectral_parameters: Dict[str, u.Quantity]
+    ) -> None:       
         super().__init__(amp, freq_ref, **spectral_parameters)
 
     @abstractmethod
-    def _get_freq_scaling(freq, freq_ref, **spectral_parameters):
+    def _get_freq_scaling(
+        freq: u.Quantity, 
+        freq_ref: u.Quantity, 
+        **spectral_parameters: Dict[str, u.Quantity]
+    ) -> u.Quantity:
         r"""Computes the frequency scaling for a component.
         
         Parameters
         ----------
-        freq : `astropy.units.Quantity`
+        freq
             Frequency at which to evaluate the model.
-        freq_ref : `astropy.units.Quantity`
+        freq_ref
             Reference frequencies for the components `amp` map.
-        spectral_parameters : `np.ndarray`, `astropy.units.Quantity`
+        spectral_parameters
             The spectral parameters of the component. 
             
         Returns
         -------
-        scaling : `astropy.units.Quantity`
+        scaling
             Frequency scaling factor with dimensionless units.
         """
 
-    def _set_nside(self, nside):
-        # Point source components explicitly require a nside attribute 
-        # since the amplitudes are not stored in healpix maps.
+    def _set_nside(self, nside: int) -> None:
+        """Sets the nside of the sky model.
+        
+        Point source components explicitly require a nside attribute 
+        since the amplitudes are not stored in healpix maps.
+        """
 
         self.nside = nside
 
-    def _smooth_emission(self, emission, fwhm):
+    def _smooth_emission(
+        self, 
+        emission: u.Quantity, 
+        fwhm: u.Quantity
+    ) -> u.Quantity:
         """See base class. 
         
         In addition to smoothing the point sources, this method also maps 
@@ -335,18 +349,24 @@ class _PointSourceComponent(_Component):
 
         return self._points_to_map(emission, fwhm=fwhm)
 
-    def _points_to_map(self, amp, fwhm, n_fwhm=2, verbose=False):
+    def _points_to_map(
+        self, 
+        amp: u.Quantity, 
+        fwhm: u.Quantity, 
+        n_fwhm: int = 2, 
+        verbose: bool = False
+    ) -> u.Quantity:
         """Maps the cataloged point sources onto a healpix map with a truncated 
         gaussian beam. For more information, see 
          `Mitra et al. (2010) <https://arxiv.org/pdf/1005.1929.pdf>`_.
 
         Parameters
         ----------
-        amp : `astropy.units.Quantity`
+        amp
             Amplitudes of the point sources.
-        fwhm : `astropy.units.Quantity`
+        fwhm
             The full width half max parameter of the Gaussian. Default: 0.0
-        n_fwhm : int, float
+        n_fwhm
             The fwhm multiplier used in computing radial cut off r_max 
             calculated as r_max = n_fwhm * fwhm of the Gaussian.
             Default: 2.
@@ -409,21 +429,22 @@ class _PointSourceComponent(_Component):
                     pbar.update()
 
         healpix_map /= beam_area.value
+
         return np.expand_dims(healpix_map, axis=0)
 
-    def _read_coords_from_catalog(self, catalog):
+    def _read_coords_from_catalog(self, catalog: str) -> np.ndarray:
         """Reads in the angular coordinates of the point sources from a 
         given catalog.
 
         Parameters
         ----------
-        catalog : str
+        catalog
             Path to the point source catalog. Default is the COM_GB6 
             catalog.
         
         Returns
         -------
-        coords : `numpy.ndarray`
+        coords
             Longitude and latitude values of each point source
         """
         

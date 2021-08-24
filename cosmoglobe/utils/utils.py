@@ -83,7 +83,7 @@ def str_to_astropy_unit(unit):
     return output_unit
 
 
-def emission_to_unit(emission, freqs, unit):
+def to_unit(emission, freqs, unit):
     """Converts the unit of the emission.
     
     Parameters

@@ -5,9 +5,9 @@ import healpy as hp
 import numpy as np
 
 from cosmoglobe.sky.base import (
-    _Component, 
-    _DiffuseComponent, 
-    _PointSourceComponent,
+    SkyComponent, 
+    Diffuse, 
+    PointSource,
 )
 from cosmoglobe.utils import utils
 from cosmoglobe.utils.utils import CompState, ModelError
@@ -86,7 +86,7 @@ class Model:
     """
 
     nside: int = None 
-    components: List[_Component] = None, 
+    components: List[SkyComponent] = None, 
 
     def __init__(self, nside=None, components=None):
         """Initializing a sky model. 
@@ -98,7 +98,7 @@ class Model:
             None, in which the model automatically detects the nside from
             the components).
         components : list, optional
-            A list of `cosmoglobe.sky.base._Component` objects that 
+            A list of `cosmoglobe.sky.base.SkyComponent` objects that 
             constitutes the sky model (by default this is None and the 
             components are iteratively added as they are read from a 
             commander3 chain).
@@ -116,13 +116,13 @@ class Model:
         
         Parameters
         ----------
-        component : `cosmoglobe.sky.base._Component`
+        component : `cosmoglobe.sky.base.SkyComponent`
             Component to be added to the sky model.
         """
 
-        if not isinstance(component, _Component):
+        if not isinstance(component, SkyComponent):
             raise TypeError(
-                f'component must be a subclass of {_Component}'
+                f'component must be a subclass of {SkyComponent}'
             )
         name = component.label
         if name in self._components:
@@ -246,12 +246,12 @@ class Model:
         )
 
         for comp in self:
-            if isinstance(comp, _DiffuseComponent):
+            if isinstance(comp, Diffuse):
                 comp_emission = comp(freqs, bandpass, output_unit=output_unit)
                 for idx, row in enumerate(comp_emission):
                     diffuse_emission[idx] += row
 
-            elif isinstance(comp, _PointSourceComponent):
+            elif isinstance(comp, PointSource):
                 comp_emission = comp(
                     freqs, bandpass, fwhm=fwhm, output_unit=output_unit
                 )

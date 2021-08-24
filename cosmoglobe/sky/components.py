@@ -1,16 +1,16 @@
 from pathlib import Path
-from sys import exit
 import warnings
 
 import astropy.units as u
 import numpy as np
 import healpy as hp
 
-from cosmoglobe.sky.base import (
-    _DiffuseComponent,
-    _PointSourceComponent,
+from cosmoglobe.sky.base import Diffuse, PointSource
+from cosmoglobe.utils.functions import (
+    thermodynamical_to_brightness, 
+    blackbody_emission, 
+    gaunt_factor
 )
-from cosmoglobe.utils import functions as F
 
 
 DATA_DIR = Path(__file__).parent.parent.resolve() / 'data'
@@ -18,7 +18,7 @@ RADIO_CATALOG = DATA_DIR / 'radio_catalog.dat'
 SPDUST2_FILE = DATA_DIR / 'spdust2_cnm.dat'
 
 
-class Synchrotron(_DiffuseComponent):
+class Synchrotron(Diffuse):
     r"""Class representing the synchrotron component.
 
     Attributes
@@ -75,7 +75,7 @@ class Synchrotron(_DiffuseComponent):
         return scaling
 
 
-class Dust(_DiffuseComponent):
+class Dust(Diffuse):
     r"""Class representing the thermal dust component.
     
     Attributes
@@ -131,14 +131,14 @@ class Dust(_DiffuseComponent):
         """
 
         blackbody_ratio = (
-            F.blackbody_emission(freq, T) / F.blackbody_emission(freq_ref, T)
+            blackbody_emission(freq, T) / blackbody_emission(freq_ref, T)
         )
         scaling = (freq/freq_ref)**(beta-2) * blackbody_ratio
 
         return scaling
 
 
-class FreeFree(_DiffuseComponent):
+class FreeFree(Diffuse):
     r"""Class representing the free-free component.
 
     Attributes
@@ -188,14 +188,14 @@ class FreeFree(_DiffuseComponent):
         """
 
         gaunt_factor_ratio = (
-            F.gaunt_factor(freq, Te) / F.gaunt_factor(freq_ref, Te)
+            gaunt_factor(freq, Te) / gaunt_factor(freq_ref, Te)
         )
         scaling = (freq_ref/freq)**2 * gaunt_factor_ratio
 
         return scaling
 
 
-class AME(_DiffuseComponent):
+class AME(Diffuse):
     r"""Class representing the spinning dust component.
 
     Attributes
@@ -275,7 +275,7 @@ class AME(_DiffuseComponent):
         return scaling
 
 
-class CMB(_DiffuseComponent):
+class CMB(Diffuse):
     r"""Class representing the CMB component.
 
     Attributes
@@ -372,11 +372,11 @@ class CMB(_DiffuseComponent):
 
         # We explicitly expand the dims to support broadcasting
         return np.expand_dims(
-            F.thermodynamical_to_brightness(freq), axis=0
+            thermodynamical_to_brightness(freq), axis=0
         )
 
 
-class Radio(_PointSourceComponent):
+class Radio(PointSource):
     r"""Class representing the radio component.
 
     Attributes
