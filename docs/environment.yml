@@ -9,6 +9,7 @@ dependencies:
   - matplotlib
   - scipy
   - numpydoc
+  - numba
   - nbsphinx
   - numpydoc
   - healpy
