@@ -1,27 +1,23 @@
-from typing import List
+from typing import List, Iterator, Optional
 
 import astropy.units as u
 import healpy as hp
 import numpy as np
 
-from cosmoglobe.sky.base import (
-    SkyComponent, 
-    Diffuse, 
-    PointSource,
-)
+from cosmoglobe.sky.base import SkyComponent, Diffuse, PointSource
 from cosmoglobe.utils import utils
-from cosmoglobe.utils.utils import CompState, ModelError
+from cosmoglobe.utils.utils import State, ModelError
 
 
 class Model:
     r"""Sky model object representing the Cosmoglobe Sky Model.
 
-    This class acts as a container for the various components making up 
-    the Cosmoglobe Sky Model, and provides methods to simulate the sky. 
-    The primary use case of this class is to call its ``__call__`` 
-    method, which simulates the sky at a single frequency :math:`\nu`, 
+    This class acts as a container for the various components making up
+    the Cosmoglobe Sky Model, and provides methods to simulate the sky.
+    The primary use case of this class is to call its ``__call__``
+    method, which simulates the sky at a single frequency :math:`\nu`,
     or integrated over a bandpass :math:`\tau`.
-    
+
     Attributes
     ----------
     AME : `cosmoglobe.sky.components.AME`
@@ -47,8 +43,8 @@ class Model:
 
     See Also
     --------
-    __call__ : 
-        Simulates the sky at a given frequency :math:`\nu` or over a 
+    __call__ :
+        Simulates the sky at a given frequency :math:`\nu` or over a
         bandpass :math:`\tau` given the Cosmoglobe Sky Model.
 
     Examples
@@ -59,7 +55,7 @@ class Model:
     >>> print(model)
     Model(
       nside: 256
-      components( 
+      components(
         (ame): AME(nu_p)
         (cmb): CMB()
         (dust): Dust(beta, T)
@@ -69,7 +65,7 @@ class Model:
       )
     )
 
-    Simulating the full sky emission at some frequency, given a beam 
+    Simulating the full sky emission at some frequency, given a beam
     FWHM:
 
     >>> import astropy.units as u
@@ -85,22 +81,21 @@ class Model:
       -4.71776995e+00  4.39850830e+00]] uK
     """
 
-    nside: int = None 
-    components: List[SkyComponent] = None, 
-
-    def __init__(self, nside=None, components=None):
-        """Initializing a sky model. 
+    def __init__(
+        self, nside: int = None, components: Optional[List[SkyComponent]] = None
+    ) -> None:
+        """Initializing a sky model.
 
         Parameters
         ----------
-        nside : int, optional
-            Healpix resolution of the maps in sky model (the default is 
+        nside
+            Healpix resolution of the maps in sky model (the default is
             None, in which the model automatically detects the nside from
             the components).
-        components : list, optional
-            A list of `cosmoglobe.sky.base.SkyComponent` objects that 
-            constitutes the sky model (by default this is None and the 
-            components are iteratively added as they are read from a 
+        components
+            A list of `cosmoglobe.sky.base.SkyComponent` objects that
+            constitutes the sky model (by default this is None and the
+            components are iteratively added as they are read from a
             commander3 chain).
         """
 
@@ -111,42 +106,40 @@ class Model:
             for component in components:
                 self._add_component_to_model(component)
 
-    def _add_component_to_model(self, component):
+    def _add_component_to_model(self, component: SkyComponent) -> None:
         """Adds a new component to the model.
-        
+
         Parameters
         ----------
-        component : `cosmoglobe.sky.base.SkyComponent`
+        component
             Component to be added to the sky model.
         """
 
         if not isinstance(component, SkyComponent):
-            raise TypeError(
-                f'component must be a subclass of {SkyComponent}'
-            )
+            raise TypeError(f"component must be a subclass of {SkyComponent}")
         name = component.label
         if name in self._components:
-            raise KeyError(
-                f'component {name} is already a part of the model'
-            )
+            raise KeyError(f"component {name} is already a part of the model")
 
         setattr(self, name, component)
-        self._components[name] = [component, CompState.ENABLED]
+        self._components[name] = [component, State.ENABLED]
 
         if self.nside is None:
             self.nside = hp.get_nside(component.amp)
-        
-        if hasattr(component, '_set_nside'):
+
+        if hasattr(component, "_set_nside"):
             component._set_nside(self.nside)
 
     @u.quantity_input(
-        freqs=u.Hz, 
-        bandpass=(u.Jy/u.sr, u.K, None), 
-        fwhm=(u.rad, u.deg, u.arcmin)
+        freqs=u.Hz, bandpass=(u.Jy / u.sr, u.K, None), fwhm=(u.rad, u.deg, u.arcmin)
     )
     def __call__(
-        self, freqs, bandpass=None, fwhm=0.0 * u.rad, output_unit=u.uK
-    ):
+        self,
+        freqs: u.Quantity,
+        bandpass: Optional[u.Quantity] = None,
+        fwhm: u.Quantity = 0.0 * u.rad,
+        output_unit: u.UnitBase = u.uK,
+    ) -> u.Quantity:
         r"""Simulates the full model sky emission. 
 
         This method computes the full model sky emission (sum of all 
@@ -232,18 +225,15 @@ class Model:
          -0.14408377] MJy / sr
         """
 
-        shape = (3, hp.nside2npix(self.nside))
-        diffuse_emission = np.zeros(shape)
+        diffuse_emission = np.zeros(shape := (3, hp.nside2npix(self.nside)))
         point_source_emission = np.zeros(shape)
 
         # The output unit may be a string denoting for instance K_CMB, which
-        # is critical information for the following routines. However, we 
+        # is critical information for the following routines. However, we
         # need to initialize the emission arrays with astropy units.
         _output_unit = utils.str_to_astropy_unit(output_unit)
         diffuse_emission = u.Quantity(diffuse_emission, unit=_output_unit)
-        point_source_emission = u.Quantity(
-            point_source_emission, unit=_output_unit
-        )
+        point_source_emission = u.Quantity(point_source_emission, unit=_output_unit)
 
         for comp in self:
             if isinstance(comp, Diffuse):
@@ -262,20 +252,20 @@ class Model:
             # Instead of calling the diffuse components _smooth function
             # it is more efficient to sum all the emission first and then
             # only perform a singled smoothing operation.
-            print('Smoothing diffuse emission...')
+            print("Smoothing diffuse emission...")
             diffuse_emission = u.Quantity(
                 hp.smoothing(diffuse_emission, fwhm.to(u.rad).value),
-                unit=diffuse_emission.unit
+                unit=diffuse_emission.unit,
             )
 
         return diffuse_emission + point_source_emission
 
-    def disable(self, comp_label):
+    def disable(self, comp_label: str) -> None:
         """Disable a component in the model.
 
         Parameters
         ----------
-        comp_label : str
+        comp_label
             The component label.
 
         Raises
@@ -285,21 +275,21 @@ class Model:
         """
 
         try:
-            if self._components[comp_label][1] is CompState.ENABLED:
-                self._components[comp_label][1] = CompState.DISABLED
+            if self._components[comp_label][1] is State.ENABLED:
+                self._components[comp_label][1] = State.DISABLED
             else:
-                raise ModelError(f'{comp_label!r} is already disabled')
+                raise ModelError(f"{comp_label!r} is already disabled")
         except KeyError:
-            raise KeyError(f'{comp_label!r} is not a component in the model')
+            raise KeyError(f"{comp_label!r} is not a component in the model")
 
-    def enable(self, comp_label):
+    def enable(self, comp_label: str) -> None:
         """Enable a disabled component.
 
         Parameters
         ----------
-        comp_label : str
+        comp_label
             The component label.
-        
+
         Raises
         ------
         KeyError
@@ -307,41 +297,40 @@ class Model:
         """
 
         try:
-            if self._components[comp_label][1] is CompState.DISABLED:
-                self._components[comp_label][1] = CompState.ENABLED
+            if self._components[comp_label][1] is State.DISABLED:
+                self._components[comp_label][1] = State.ENABLED
             else:
-                raise ModelError(f'{comp_label!r} is already enabled')
+                raise ModelError(f"{comp_label!r} is already enabled")
         except KeyError:
-            raise KeyError(f'{comp_label!r} is not a component in the model')
+            raise KeyError(f"{comp_label!r} is not a component in the model")
 
     @property
-    def components(self):
+    def components(self) -> List[SkyComponent]:
         """Returns a list of enabled components."""
         return [
-            comp[0] for comp in self._components.values()
-            if comp[1] is CompState.ENABLED
+            comp[0] for comp in self._components.values() if comp[1] is State.ENABLED
         ]
 
-    def __iter__(self):
-        """Creates an iterator from the components list such that the 
+    def __iter__(self) -> Iterator:
+        """Creates an iterator from the components list such that the
         model can be iterated over.
-        """       
+        """
 
         return iter(self.components)
 
-    def __repr__(self):        
+    def __repr__(self) -> str:
         """Representation of the Model and all enabled components."""
 
         reprs = []
         for component in self.components:
-            component_repr = repr(component) + '\n'
-            reprs.append(f'({component.label}): {component_repr}')
+            component_repr = repr(component) + "\n"
+            reprs.append(f"({component.label}): {component_repr}")
 
-        main_repr = f'Model('
-        main_repr += f'\n  nside: {self.nside}'
-        main_repr += '\n  components( '
-        main_repr += '\n    ' + '    '.join(reprs)
-        main_repr += f'  )'
-        main_repr += f'\n)'
+        main_repr = f"Model("
+        main_repr += f"\n  nside: {self.nside}"
+        main_repr += "\n  components( "
+        main_repr += "\n    " + "    ".join(reprs)
+        main_repr += f"  )"
+        main_repr += f"\n)"
 
         return main_repr
