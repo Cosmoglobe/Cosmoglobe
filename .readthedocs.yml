@@ -1,8 +1,5 @@
 version: 2
 
-sphinx: 
-   configuration: docs/conf.py
-
 build:
    image: latest
 
@@ -13,6 +10,7 @@ python:
         path: .
         extra_requirements:
           - docs
+      - requirements: requirements.txt
 
-submodules:
-    include: all
+sphinx: 
+   configuration: docs/conf.py
