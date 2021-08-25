@@ -1,8 +1,8 @@
 .. module:: cosmoglobe
 
-====================
+========================
 cosmoglobe Documentation
-====================
+========================
 
 :Release: |release|
 

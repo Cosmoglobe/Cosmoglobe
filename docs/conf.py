@@ -12,19 +12,19 @@
 #
 import sys, os
 from importlib import import_module
-import sphinx_rtd_theme
+
 # import os
 # import sys
-sys.path.insert(0, os.path.abspath('../../'))
+sys.path.insert(0, os.path.abspath("../../"))
 # sys.path.append(os.path.abspath("."))
 # -- Project information -----------------------------------------------------
 
-project = 'cosmoglobe'
-copyright = '2021, Metin San'
-author = 'Metin San'
+project = "cosmoglobe"
+copyright = "2021, Metin San"
+author = "Metin San"
 
 # The full version, including alpha/beta/rc tags
-release = '1.0.0'
+release = "1.0.0"
 
 
 # -- General configuration ---------------------------------------------------
@@ -36,20 +36,20 @@ extensions = [
     "sphinx.ext.autosectionlabel",
     "sphinx.ext.autosummary",
     "sphinx.ext.autodoc",
-    'sphinx.ext.viewcode',
-    "nbsphinx",
+    "sphinx.ext.viewcode",
     "numpydoc",
+    "nbsphinx",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
-autodoc_default_flags = ['members']
+autodoc_default_flags = ["members"]
 autosummary_generate = True
 # -- Options for HTML output -------------------------------------------------
 
@@ -63,25 +63,24 @@ numpydoc_show_class_members = False
 # so a file named "default.css" will overwrite the builtin "default.css".
 
 # Using pydata theme with custom numpy css
-html_theme = 'pydata_sphinx_theme'
+html_theme = "pydata_sphinx_theme"
 
-html_logo = '_static/cosmoglobe.svg'
+html_logo = "_static/cosmoglobe.svg"
 
-html_favicon = '_static/favicon/favicon-96x96.png'
+html_favicon = "_static/favicon/favicon-96x96.png"
 
 html_theme_options = {
-    'logo_link': 'index',
-    'collapse_navigation': True,
-    'github_url': 'https://github.com/Cosmoglobe/Cosmoglobe',
+    "logo_link": "index",
+    "collapse_navigation": True,
+    "github_url": "https://github.com/Cosmoglobe/Cosmoglobe",
 }
 
-html_static_path = ['_static/']
+html_static_path = ["_static/"]
 
-html_css_files = [
-    'css/cosmoglobe.css'
-]
+html_css_files = ["css/cosmoglobe.css"]
 
-source_suffix = ['.rst', '.ipynb']
+source_suffix = [".rst", ".ipynb"]
+exclude_patterns = ["_build", "**.ipynb_checkpoints"]
 
 # import_module('cosmoglobe')
 # package = sys.modules['cosmoglobe']
