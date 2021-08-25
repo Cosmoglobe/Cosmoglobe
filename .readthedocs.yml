@@ -1,7 +1,7 @@
 version: 2
 
-conda:
-    environment: docs/environment.yml
+sphinx: 
+   configuration: docs/conf.py
 
 build:
    image: latest
@@ -11,6 +11,8 @@ python:
    install:
       - method: pip
         path: .
+        extra_requirements:
+          - docs
 
 submodules:
     include: all
