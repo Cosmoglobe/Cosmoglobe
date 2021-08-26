@@ -18,16 +18,15 @@ cmasher = "^1.6.2"
 matplotlib = "^3.4.3"
 
 [tool.poetry.dev-dependencies]
-Sphinx = "^4.1.2"
 numpydoc = "^1.1.0"
 ipython = "^7.26.0"
 pydata-sphinx-theme = "^0.6.3"
-nbsphinx = "<=0.8.6"
+nbsphinx = "=0.8.3"
 black = "^21.7b0"
-ipykernel = "^6.2.0"
+Sphinx = "^4.1.2"
 pandoc = "^1.1.0"
-jupyter = "^1.0.0"
-sphinx-autobuild = "^2021.3.14"
+ipykernel = "^6.2.0"
+async_generator = "^1.10"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

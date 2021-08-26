@@ -37,8 +37,8 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinx.ext.autodoc",
     "sphinx.ext.viewcode",
-    "numpydoc",
     "nbsphinx",
+    "numpydoc",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -47,7 +47,7 @@ templates_path = ["_templates"]
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "**.ipynb_checkpoints"]
 
 autodoc_default_flags = ["members"]
 autosummary_generate = True
@@ -80,7 +80,6 @@ html_static_path = ["_static/"]
 html_css_files = ["css/cosmoglobe.css"]
 
 source_suffix = [".rst", ".ipynb"]
-exclude_patterns = ["_build", "**.ipynb_checkpoints"]
 
 # import_module('cosmoglobe')
 # package = sys.modules['cosmoglobe']
@@ -92,4 +91,4 @@ exclude_patterns = ["_build", "**.ipynb_checkpoints"]
 
 import glob
 
-autosummary_generate = glob.glob("*.rst")
+# autosummary_generate = glob.glob("*.rst")

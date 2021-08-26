@@ -17,3 +17,4 @@ dependencies:
   - tqdm
   - ipython
   - pydata-sphinx-theme
+  - pandoc
