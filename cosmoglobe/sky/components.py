@@ -426,8 +426,8 @@ class Radio(PointSource):
         # manually set it to "mJy/sr" to make it convertable to uK. This does
         # not cause any problems, since in all cases, we end up dividing the
         # emission by some beam_area.
-        self.amp = u.Quantity(self.amp.value, unit="mJy/sr")
-        self.amp = self.amp.to(
+        self._amp = u.Quantity(self._amp.value, unit="mJy/sr")
+        self._amp = self.amp.to(
             u.uK, equivalencies=u.thermodynamic_temperature(self.freq_ref)
         )
 

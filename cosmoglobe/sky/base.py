@@ -1,21 +1,28 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Optional, Union
-import sys
 import warnings
 
 import astropy.units as u
 import healpy as hp
 import numpy as np
-from tqdm import tqdm
 
-from cosmoglobe.utils import utils
-import cosmoglobe.utils.bandpass as bp
+from cosmoglobe.utils.utils import NsideMissingError, gaussian_beam_2D, to_unit
+from cosmoglobe.utils.bandpass import (
+    get_bandpass_coefficient,
+    get_bandpass_scaling,
+    get_normalized_bandpass,
+)
 
 warnings.simplefilter("once", UserWarning)
 
 
 class SkyComponent(ABC):
-    """Abstract base class for a sky component"""
+    """Abstract base class for a sky component.
+
+    This class implements the `__call__` function which is responsible for
+    simulating and returning the sky emission. Additionally, it enforces
+    the implementation of a `_smooth_emission` function for any sub class.
+    """
 
     def __init__(
         self,
@@ -23,13 +30,39 @@ class SkyComponent(ABC):
         freq_ref: u.Quantity,
         **spectral_parameters: Dict[str, u.Quantity],
     ) -> None:
-        """Initializes a sky component."""
+        """Initializes a sky component and reshape inputs."""
 
-        self.amp = self._reshape_amp(amp)
-        self.freq_ref = self._reshape_freq_ref(freq_ref)
-        self.spectral_parameters = self._reshape_spectral_parameters(
+        self._amp = self._reshape_amp(amp)
+        self._freq_ref = self._reshape_freq_ref(freq_ref)
+        self._spectral_parameters = self._reshape_spectral_parameters(
             spectral_parameters
         )
+
+    @property
+    def amp(self) -> u.Quantity:
+        """Amplitude map the sky component."""
+
+        return self._amp
+
+    @property
+    def freq_ref(self) -> u.Quantity:
+        """Reference frequency of the amplitude map."""
+
+        return self._freq_ref
+
+    @property
+    def spectral_parameters(self) -> Dict[str, u.Quantity]:
+        """Reference frequency of the amplitude map."""
+
+        return self._spectral_parameters
+
+    @property
+    def _is_polarized(self) -> bool:
+        """Returns True if component is polarized and False if not."""
+
+        if self.amp.shape[0] == 3:
+            return True
+        return False
 
     @abstractmethod
     def _smooth_emission(self, emission: u.Quantity, fwhm: u.Quantity) -> u.Quantity:
@@ -135,7 +168,7 @@ class SkyComponent(ABC):
             emission = self._get_delta_emission(freqs)
             emission = self._smooth_emission(emission, fwhm)
             if output_unit is not None:
-                emission = utils.to_unit(emission, freqs, output_unit)
+                emission = to_unit(emission, freqs, output_unit)
         else:
             emission = self._get_bandpass_emission(
                 freqs, bandpass, output_unit=output_unit
@@ -165,22 +198,13 @@ class SkyComponent(ABC):
             warnings.warn("Bandpass is None. Defaulting to top-hat bandpass")
             bandpass = np.ones(freqs_len := len(freqs)) / freqs_len * u.K
 
-        bandpass = bp.get_normalized_bandpass(bandpass, freqs)
-        bandpass_coefficient = bp.get_bandpass_coefficient(bandpass, freqs, output_unit)
+        bandpass = get_normalized_bandpass(bandpass, freqs)
+        bandpass_coefficient = get_bandpass_coefficient(bandpass, freqs, output_unit)
 
-        bandpass_scaling = bp.get_bandpass_scaling(freqs, bandpass, self)
+        bandpass_scaling = get_bandpass_scaling(freqs, bandpass, self)
         emission = self.amp * bandpass_scaling * bandpass_coefficient
 
         return emission
-
-    @property
-    def _is_polarized(self) -> bool:
-        """Returns True if component is polarized and False if not."""
-
-        if self.amp.shape[0] == 3:
-            return True
-
-        return False
 
     @staticmethod
     def _reshape_amp(amp: u.Quantity) -> u.Quantity:
@@ -278,6 +302,8 @@ class Diffuse(SkyComponent):
 class PointSource(SkyComponent):
     """Abstract base class for point source sky components."""
 
+    _nside: int = None
+
     @abstractmethod
     def _get_freq_scaling(
         freq: u.Quantity,
@@ -300,15 +326,6 @@ class PointSource(SkyComponent):
         scaling
             Frequency scaling factor with dimensionless units.
         """
-
-    def _set_nside(self, nside: int) -> None:
-        """Sets the nside of the sky model.
-
-        Point source components explicitly require a nside attribute
-        since the amplitudes are not stored in healpix maps.
-        """
-
-        self.nside = nside
 
     def _smooth_emission(self, emission: u.Quantity, fwhm: u.Quantity) -> u.Quantity:
         """See base class.
@@ -338,7 +355,11 @@ class PointSource(SkyComponent):
             Default: 2.
         """
 
-        nside = self.nside
+        nside = self._nside
+        if nside is None:
+            raise NsideMissingError(
+                "The _nside attribute of a point source have not been set"
+            )
 
         angular_coords = self.angular_coords
 
@@ -355,7 +376,7 @@ class PointSource(SkyComponent):
 
         if sigma == 0.0:
             # No smoothing nesecarry. We directly map the sources to pixels
-            warnings.warn("mapping point sources to pixels without beam smoothing.")
+            warnings.warn("Mapping point sources to pixels without beam smoothing.")
             pixels = hp.ang2pix(nside, *angular_coords.T, lonlat=True)
             beam_area = hp.nside2pixarea(nside) * u.sr
             healpix_map[pixels] = amp
@@ -371,24 +392,19 @@ class PointSource(SkyComponent):
             beam_area = 2 * np.pi * sigma ** 2
             r_max = n_fwhm * fwhm.value
 
-            with tqdm(
-                total=len(angular_coords), file=sys.stdout, disable=not verbose
-            ) as pbar:
-                sigma = sigma.value
-                beam = utils.gaussian_beam_2D
-                print("Smoothing point sources...")
+            sigma = sigma.value
+            beam = gaussian_beam_2D
+            print("Smoothing point sources...")
 
-                for idx, (lon, lat) in enumerate(angular_coords):
-                    vec = hp.ang2vec(lon, lat, lonlat=True)
-                    inds = hp.query_disc(nside, vec, r_max)
-                    r = hp.rotator.angdist(
-                        np.array([pix_lon[inds], pix_lat[inds]]),
-                        np.array([lon, lat]),
-                        lonlat=True,
-                    )
-
-                    healpix_map[inds] += amp[idx] * beam(r, sigma)
-                    pbar.update()
+            for idx, (lon, lat) in enumerate(angular_coords):
+                vec = hp.ang2vec(lon, lat, lonlat=True)
+                inds = hp.query_disc(nside, vec, r_max)
+                r = hp.rotator.angdist(
+                    np.array([pix_lon[inds], pix_lat[inds]]),
+                    np.array([lon, lat]),
+                    lonlat=True,
+                )
+                healpix_map[inds] += amp[idx] * beam(r, sigma)
 
         healpix_map /= beam_area.value
 

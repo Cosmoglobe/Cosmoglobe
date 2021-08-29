@@ -27,6 +27,7 @@ Sphinx = "^4.1.2"
 pandoc = "^1.1.0"
 ipykernel = "^6.2.0"
 async_generator = "^1.10"
+jinja2= "<3.0.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

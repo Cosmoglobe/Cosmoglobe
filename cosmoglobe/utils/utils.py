@@ -18,6 +18,10 @@ class NsideError(Exception):
     """Raised if there is a NSIDE related problem."""
 
 
+class NsideMissingError(Exception):
+    """Raised if a point source componentis missing the nside attribute."""
+
+
 class ModelError(Exception):
     """Raised if there is a Model related problem."""
 

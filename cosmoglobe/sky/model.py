@@ -19,17 +19,17 @@ class Model:
 
     Attributes
     ----------
-    ame : `cosmoglobe.sky.components.AME`
+    ame : :class:`cosmoglobe.sky.components.AME`
         The AME sky component.
-    cmb : `cosmoglobe.sky.components.CMB`
+    cmb : :class:`cosmoglobe.sky.components.CMB`
         The CMB sky component.
-    dust : `cosmoglobe.sky.components.Dust`
+    dust : :class:`cosmoglobe.sky.components.Dust`
         The dust sky component.
-    ff : `cosmoglobe.sky.components.FreeFree`
+    ff : :class:`cosmoglobe.sky.components.FreeFree`
         The free-free sky component.
-    radio : `cosmoglobe.sky.components.Radio`
+    radio : :class:`cosmoglobe.sky.components.Radio`
         The radio sky component.
-    synch : `cosmoglobe.sky.components.Synchrotron`
+    synch : :class:`cosmoglobe.sky.components.Synchrotron`
         The synchrotron sky component.
     nside : int
         Healpix resolution of the maps in sky model.
@@ -90,9 +90,9 @@ class Model:
         Parameters
         ----------
         nside
-            Healpix resolution of the maps in sky model (the default is
-            None, in which the model automatically detects the nside from
-            the components).
+            Healpix resolution of the maps in sky model. If None, nside 
+            will match the first component added to the model. Defaults to
+            None.
         components
             A list of `SkyComponent` objects that constitutes the sky
             model (by default this is None and the components are
@@ -304,8 +304,8 @@ class Model:
         if self._nside is None:
             self._nside = hp.get_nside(component.amp)
 
-        if hasattr(component, "_set_nside"):
-            component._set_nside(self._nside)
+        if hasattr(component, "_nside"):
+            component._nside = self._nside
 
     def __iter__(self) -> Iterator:
         """Returns an iterator with active model components"""
