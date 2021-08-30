@@ -47,13 +47,13 @@ class SkyComponent(ABC):
 
     @property
     def freq_ref(self) -> u.Quantity:
-        """Reference frequency of the amplitude map."""
+        """Reference frequencies of the amplitude map."""
 
         return self._freq_ref
 
     @property
     def spectral_parameters(self) -> Dict[str, u.Quantity]:
-        """Reference frequency of the amplitude map."""
+        """Spectral parameters."""
 
         return self._spectral_parameters
 
