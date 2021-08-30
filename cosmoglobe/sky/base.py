@@ -37,6 +37,7 @@ class SkyComponent(ABC):
         self._spectral_parameters = self._reshape_spectral_parameters(
             spectral_parameters
         )
+        self._is_polarized = True if self._amp.shape[0] == 3 else False
 
     @property
     def amp(self) -> u.Quantity:
@@ -55,14 +56,6 @@ class SkyComponent(ABC):
         """Reference frequency of the amplitude map."""
 
         return self._spectral_parameters
-
-    @property
-    def _is_polarized(self) -> bool:
-        """Returns True if component is polarized and False if not."""
-
-        if self.amp.shape[0] == 3:
-            return True
-        return False
 
     @abstractmethod
     def _smooth_emission(self, emission: u.Quantity, fwhm: u.Quantity) -> u.Quantity:

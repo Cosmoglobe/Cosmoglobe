@@ -295,6 +295,8 @@ class Model:
         if not isinstance(component, SkyComponent):
             raise TypeError(f"component must be a subclass of {SkyComponent}")
         name = component.label
+        if name is None:
+            raise ValueError("Cannot add component without label")
         if name in self._components:
             raise KeyError(f"component {name} is already a part of the model")
 
