@@ -243,7 +243,7 @@ def autoparams(
     for an identified sky component.
     """
     if isinstance(unit, u.UnitBase):
-        unit = unit.to_string()
+        unit = unit.to_string('latex')
     if comp is None:
         params = {
             "right_label": right_label,
@@ -335,7 +335,6 @@ def autoparams(
             if params["ticks"] == "auto":
                 params["ticks"] = [None, None]
             params["ticks"][-1] = max
-
     # Math text in labels
     for i in [
         "right_label",
@@ -343,8 +342,8 @@ def autoparams(
         "unit",
     ]:
         if params[i] and params[i] != "":
-            params[i] = r"$" + params[i] + "$"
-
+            if "$" not in params[i]:
+                params[i] = r"$" + params[i] + "$"
     return params
 
 

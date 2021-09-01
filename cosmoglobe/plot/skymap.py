@@ -30,6 +30,7 @@ def plot(
     fwhm=0.0 * u.arcmin,
     nside=None,
     mask=None,
+    maskfill=None,
     cmap=None,
     norm=None,
     remove_dip=False,
@@ -197,6 +198,18 @@ def plot(
             "figure_size_ratio": ratio,
         }
 
+    if not fontsize: 
+        fontsize={
+               'xlabel': 11,
+               'ylabel': 11,
+               'xtick_label': 8,
+               'ytick_label': 8,
+               'title': 12,
+               'cbar_label': 11,
+               'cbar_tick_label': 9,
+               'left_label': 11, 
+               'right_label': 11
+            }
     set_style(darkmode)
 
     # Translate sig to correct format
@@ -272,19 +285,23 @@ def plot(
     if isinstance(m, u.Quantity):
         m = m.value
 
+    # ud_grade map
+    if nside is not None and nside != hp.get_nside(m):
+        m = hp.ud_grade(m, nside)
+    else:
+        nside = hp.get_nside(m)
+
     # Mask map
     if mask is not None:
         if isinstance(mask, str):
             mask = hp.read_map(mask)
 
         m = hp.ma(m)
+        if hp.get_nside(mask) != nside:
+            print("Input mask nside is different, ud_grading to output nside.")
+            mask = hp.ud_grade(mask, nside)
         m.mask = np.logical_not(mask)
 
-    # ud_grade map
-    if nside is not None and nside != hp.get_nside(m):
-        m = hp.ud_grade(m, nside)
-    else:
-        nside = hp.get_nside(m)
 
     # Smooth map
     if fwhm > 0.0 and diffuse:
@@ -328,7 +345,8 @@ def plot(
 
     # Colormap
     cmap = load_cmap(params["cmap"])
-
+    if maskfill: cmap.set_bad(maskfill)
+    
     # Plot using mollview if interactive mode
     if interactive:
         if params["norm"] == "log":
@@ -370,6 +388,7 @@ def plot(
             custom_ytick_labels=custom_ytick_labels,
         )
         return ret
+    
 
     # Plot figure
     ret = hp.newvisufunc.projview(
@@ -380,18 +399,14 @@ def plot(
         cmap=cmap,
         xsize=xsize,
         override_plot_properties=override_plot_properties,
-        # fontsize={
-        #    'xlabel': 10,
-        #    'ylabel': 10,
-        #    'xtick_label': 10,
-        #    'ytick_label': 10,
-        #    'title': 10,
-        #    'cbar_label': 10,
-        #    'cbar_tick_label': 10,
-        # },
+        graticule=graticule,
+        graticule_color=graticule_color,
+        fontsize=fontsize,
+        xtick_label_color=xtick_label_color,
+        ytick_label_color=ytick_label_color,
+        projection_type=projection_type,
         **kwargs,
     )
-
     # Remove color bar because of healpy bug
     plt.gca().collections[-1].colorbar.remove()
     # Add pretty color bar
@@ -403,22 +418,23 @@ def plot(
             ticks,
             ticklabels,
             params["unit"],
+            fontsize=fontsize,
             linthresh=1,
             norm=params["norm"],
         )
 
     #### Right Title ####
     plt.text(
-        4.5, 1.1, params["right_label"], ha="center", va="center",
+        0.925, 0.925, params["right_label"], ha="center", va="center", fontsize=fontsize["right_label"], transform=plt.gca().transAxes
     )
     #### Left Title (stokes parameter label by default) ####
     plt.text(
-        -4.5, 1.1, params["left_label"], ha="center", va="center",
+        0.075, 0.925, params["left_label"], ha="center", va="center", fontsize=fontsize["left_label"], transform=plt.gca().transAxes
     )
     return ret
 
 
-def apply_colorbar(fig, ax, image, ticks, ticklabels, unit, linthresh, norm=None):
+def apply_colorbar(fig, ax, image, ticks, ticklabels, unit, fontsize, linthresh, norm=None):
     """
     This function applies a colorbar to the figure and formats the ticks.
     """
@@ -433,8 +449,8 @@ def apply_colorbar(fig, ax, image, ticks, ticklabels, unit, linthresh, norm=None
         ticks=ticks,
         format=FuncFormatter(fmt),
     )
-    cb.ax.set_xticklabels(ticklabels,)
-    cb.ax.xaxis.set_label_text(unit)
+    cb.ax.set_xticklabels(ticklabels,size=fontsize["cbar_tick_label"])
+    cb.ax.xaxis.set_label_text(unit, size=fontsize["cbar_label"])
     if norm == "log":
         linticks = np.linspace(-1, 1, 3) * linthresh
         logmin = np.round(ticks[0])
