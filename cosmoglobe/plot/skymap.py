@@ -15,7 +15,6 @@ from .plottools import *
 # Fix for macos openMP duplicate bug
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
-
 @u.quantity_input(freq=u.Hz, fwhm=(u.arcmin, u.rad, u.deg))
 def plot(
     input,
@@ -35,6 +34,7 @@ def plot(
     norm=None,
     remove_dip=False,
     remove_mono=False,
+    title=None,
     right_label=None,
     left_label=None,
     width=None,
@@ -89,15 +89,15 @@ def plot(
     freq : astropy GHz, optional
         frequency in GHz needed for scaling maps when using a model object input
         default = None
+    ticks : list or str, optional
+        Min and max value for data. If None, uses 97.5th percentile.
+        default = None
     min : float, optional
       The minimum range value. If specified, overwrites autodetector.
       default = None
     max : float, optional
       The maximum range value. If specified, overwrites autodetector.
       default = None
-    ticks : list or str, optional
-        Min and max value for data. If None, uses 97.5th percentile.
-        default = None
     cbar : bool, optional
         Toggles the colorbar
         cbar = True
@@ -107,12 +107,11 @@ def plot(
     mask : str path or np.ndarray, optional
         Apply a mask file to data
         default = None
-    remove_dip : bool, optional
-        If mdmask is specified, fits and removes a dipole.
-        default = True
-    remove_mono : bool, optional
-        If mdmask is specified, fits and removes a monopole.
-        default = True
+    cmap : str, optional
+        Colormap (ex. sunburst, planck, jet). Both matplotliib and cmasher
+        available as of now. Also supports qualitative plotly map, [ex.
+        q-Plotly-4 (q for qualitative 4 for max color)] Sets planck as default.
+        default = None
     norm : str, optional
         if norm=='linear':
             normal 
@@ -120,14 +119,14 @@ def plot(
             Normalizes data using a semi-logscale linear between -1 and 1.
             Autodetector uses this sometimes, you will be warned.
         default = None
-    darkmode : bool, optional
-        Plots all outlines in white for dark backgrounds, and adds 'dark' in
-        filename.
-        default = False
-    cmap : str, optional
-        Colormap (ex. sunburst, planck, jet). Both matplotliib and cmasher
-        available as of now. Also supports qualitative plotly map, [ex.
-        q-Plotly-4 (q for qualitative 4 for max color)] Sets planck as default.
+    remove_dip : bool, optional
+        If mdmask is specified, fits and removes a dipole.
+        default = True
+    remove_mono : bool, optional
+        If mdmask is specified, fits and removes a monopole.
+        default = True
+    unit : str, optional
+        Unit label for colorbar
         default = None
     title : str, optional
         Sets the full figure title. Has LaTeX functionaliity (ex. $A_{s}$.)
@@ -138,6 +137,10 @@ def plot(
     left_label : str, optional
         Sets the upper left title. Has LaTeX functionaliity (ex. $A_{s}$.)
         default = None
+    darkmode : bool, optional
+        Plots all outlines in white for dark backgrounds, and adds 'dark' in
+        filename.
+        default = False
     rot : scalar or sequence, optional
       Describe the rotation to apply.
       In the form (lon, lat, psi) (unit: degrees) : the point at
@@ -157,6 +160,8 @@ def plot(
       add graticule
     graticule_labels : bool
       longitude and latitude labels
+    return_only_data : bool
+      Return figure
     projection_type :  {'aitoff', 'hammer', 'lambert', 'mollweide', 'cart', '3d', 'polar'}
       type of the plot
     cb_orientation : {'horizontal', 'vertical'}
@@ -175,6 +180,7 @@ def plot(
       change the color of the longitude tick labels, some color maps make it hard to read black tick labels
     fontsize:  dict
         Override fontsize of labels: 'xlabel', 'ylabel', 'title', 'xtick_label', 'ytick_label', 'cbar_label', 'cbar_tick_label'.
+        default = None
     phi_convention : string
         convention on x-axis (phi), 'counterclockwise' (default), 'clockwise', 'symmetrical' (phi as it is truly given)
         if `flip` is 'geo', `phi_convention` should be set to 'clockwise'.
@@ -290,7 +296,7 @@ def plot(
         m = hp.ud_grade(m, nside)
     else:
         nside = hp.get_nside(m)
-
+    
     # Mask map
     if mask is not None:
         if isinstance(mask, str):
@@ -301,7 +307,6 @@ def plot(
             print("Input mask nside is different, ud_grading to output nside.")
             mask = hp.ud_grade(mask, nside)
         m.mask = np.logical_not(mask)
-
 
     # Smooth map
     if fwhm > 0.0 and diffuse:
@@ -328,6 +333,11 @@ def plot(
             ticks[0] = pmin
         if ticks[-1] is None:
             ticks[-1] = pmax
+
+    # Update parameter dictionary
+    params["nside"] = nside
+    params["width"] = width
+    params["ticks"] = ticks
 
     # Special case if dipole is detected in freqmap
     if comp_full == "freqmap":
@@ -387,7 +397,7 @@ def plot(
             custom_xtick_labels=custom_xtick_labels,
             custom_ytick_labels=custom_ytick_labels,
         )
-        return ret
+        return ret, params
     
 
     # Plot figure
@@ -398,13 +408,29 @@ def plot(
         cbar=False,
         cmap=cmap,
         xsize=xsize,
-        override_plot_properties=override_plot_properties,
+        # unedited params
+        title=title,
+        rot=rot,
+        coord=coord,
+        nest=nest,
+        flip=flip,
         graticule=graticule,
-        graticule_color=graticule_color,
-        fontsize=fontsize,
+        graticule_labels=graticule_labels,
+        return_only_data=return_only_data,
+        projection_type=projection_type,
+        cb_orientation=cb_orientation,
+        xlabel=xlabel,
+        ylabel=ylabel,
+        longitude_grid_spacing=longitude_grid_spacing,
+        latitude_grid_spacing=latitude_grid_spacing,
+        override_plot_properties=override_plot_properties,
         xtick_label_color=xtick_label_color,
         ytick_label_color=ytick_label_color,
-        projection_type=projection_type,
+        graticule_color=graticule_color,
+        fontsize=fontsize,
+        phi_convention=phi_convention,
+        custom_xtick_labels=custom_xtick_labels,
+        custom_ytick_labels=custom_ytick_labels,
         **kwargs,
     )
     # Remove color bar because of healpy bug
@@ -431,7 +457,7 @@ def plot(
     plt.text(
         0.075, 0.925, params["left_label"], ha="center", va="center", fontsize=fontsize["left_label"], transform=plt.gca().transAxes
     )
-    return ret
+    return ret, params
 
 
 def apply_colorbar(fig, ax, image, ticks, ticklabels, unit, fontsize, linthresh, norm=None):

@@ -43,8 +43,8 @@ def set_style(darkmode=False,):
 
     tex_fonts = {
         # Use 10pt font in plots, to match 10pt font in document
-        "axes.labelsize": 10,
-        "font.size": 10,
+        "axes.labelsize": 11,
+        "font.size": 11,
         # Make the legend/label fonts a little smaller
         "legend.fontsize": 8,
         "xtick.labelsize": 8,
@@ -189,7 +189,7 @@ def load_cmap(cmap,):
 
                 cmap = plt.get_cmap(cmap)
 
-    print("Colormap:" + f" {cmap.name}")
+    #print("Colormap:" + f" {cmap.name}")
     return cmap
 
 
