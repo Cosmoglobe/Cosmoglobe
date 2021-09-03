@@ -6,6 +6,7 @@ from cosmoglobe.sky.model import Model
 
 import warnings
 import os
+from rich import print
 import healpy as hp
 import numpy as np
 import astropy.units as u
@@ -84,7 +85,7 @@ def plot(
         default = None
     comp : string, optional
         Component label for automatic identification of plotting
-        parameters based on information from autoparams.json 
+        parameters based on information from autoparams.json
         default = None
     freq : astropy GHz, optional
         frequency in GHz needed for scaling maps when using a model object input
@@ -114,7 +115,7 @@ def plot(
         default = None
     norm : str, optional
         if norm=='linear':
-            normal 
+            normal
         if norm=='log':
             Normalizes data using a semi-logscale linear between -1 and 1.
             Autodetector uses this sometimes, you will be warned.
@@ -196,26 +197,31 @@ def plot(
         override_plot_properties = None
     else:
         if isinstance(width, str):
-            width = {"x": 2.75, "s": 3.5, "m": 4.7, "l": 7,}[width]
-        ratio= 0.63 if cbar else 0.5
+            width = {
+                "x": 2.75,
+                "s": 3.5,
+                "m": 4.7,
+                "l": 7,
+            }[width]
+        ratio = 0.63 if cbar else 0.5
         xsize = int((1000 / 8.5) * width)
         override_plot_properties = {
             "figure_width": width,
             "figure_size_ratio": ratio,
         }
 
-    if not fontsize: 
-        fontsize={
-               'xlabel': 11,
-               'ylabel': 11,
-               'xtick_label': 8,
-               'ytick_label': 8,
-               'title': 12,
-               'cbar_label': 11,
-               'cbar_tick_label': 9,
-               'left_label': 11, 
-               'right_label': 11
-            }
+    if not fontsize:
+        fontsize = {
+            "xlabel": 11,
+            "ylabel": 11,
+            "xtick_label": 8,
+            "ytick_label": 8,
+            "title": 12,
+            "cbar_label": 11,
+            "cbar_tick_label": 9,
+            "left_label": 11,
+            "right_label": 11,
+        }
     set_style(darkmode)
 
     # Translate sig to correct format
@@ -239,12 +245,15 @@ def plot(
         m = hp.read_map(input, field=sig)
     elif isinstance(input, Model):
         """
-        Get data from model object with frequency scaling        
+        Get data from model object with frequency scaling
         """
         if comp is None:
             if freq is not None:
                 comp_full = "freqmap"
-                m = input(freq, fwhm=fwhm,)
+                m = input(
+                    freq,
+                    fwhm=fwhm,
+                )
             else:
                 raise ModelError(
                     f"Model object passed with comp and freq set to None"
@@ -296,7 +305,7 @@ def plot(
         m = hp.ud_grade(m, nside)
     else:
         nside = hp.get_nside(m)
-    
+
     # Mask map
     if mask is not None:
         if isinstance(mask, str):
@@ -304,7 +313,7 @@ def plot(
 
         m = hp.ma(m)
         if hp.get_nside(mask) != nside:
-            print("Input mask nside is different, ud_grading to output nside.")
+            print("[orange]Input mask nside is different, ud_grading to output nside.[/orange]")
             mask = hp.ud_grade(mask, nside)
         m.mask = np.logical_not(mask)
 
@@ -344,7 +353,7 @@ def plot(
         # if colorbar is super-saturated
         while len(m[abs(m) > ticks[-1]]) / hp.nside2npix(nside) > 0.7:
             ticks = [tick * 10 for tick in ticks]
-            print("Colormap saturated. Expanding color-range.")
+            print("[orange]Colormap saturated. Expanding color-range.[/orange]")
 
     # Create ticklabels from final ticks
     ticklabels = [fmt(i, 1) for i in ticks]
@@ -355,8 +364,9 @@ def plot(
 
     # Colormap
     cmap = load_cmap(params["cmap"])
-    if maskfill: cmap.set_bad(maskfill)
-    
+    if maskfill:
+        cmap.set_bad(maskfill)
+
     # Plot using mollview if interactive mode
     if interactive:
         if params["norm"] == "log":
@@ -398,8 +408,8 @@ def plot(
             custom_ytick_labels=custom_ytick_labels,
         )
         return ret, params
-    
 
+    warnings.filterwarnings("ignore") # Healpy complains too much
     # Plot figure
     ret = hp.newvisufunc.projview(
         m,
@@ -433,34 +443,49 @@ def plot(
         custom_ytick_labels=custom_ytick_labels,
         **kwargs,
     )
-    # Remove color bar because of healpy bug
-    plt.gca().collections[-1].colorbar.remove()
-    # Add pretty color bar
-    if cbar:
-        apply_colorbar(
-            plt.gcf(),
-            plt.gca(),
-            ret,
-            ticks,
-            ticklabels,
-            params["unit"],
-            fontsize=fontsize,
-            linthresh=1,
-            norm=params["norm"],
-        )
+    if not return_only_data:
+        # Remove color bar because of healpy bug
+        plt.gca().collections[-1].colorbar.remove()
+        # Add pretty color bar
+        if cbar:
+            apply_colorbar(
+                plt.gcf(),
+                plt.gca(),
+                ret,
+                ticks,
+                ticklabels,
+                params["unit"],
+                fontsize=fontsize,
+                linthresh=1,
+                norm=params["norm"],
+            )
 
     #### Right Title ####
     plt.text(
-        0.925, 0.925, params["right_label"], ha="center", va="center", fontsize=fontsize["right_label"], transform=plt.gca().transAxes
+        0.925,
+        0.925,
+        params["right_label"],
+        ha="center",
+        va="center",
+        fontsize=fontsize["right_label"],
+        transform=plt.gca().transAxes,
     )
     #### Left Title (stokes parameter label by default) ####
     plt.text(
-        0.075, 0.925, params["left_label"], ha="center", va="center", fontsize=fontsize["left_label"], transform=plt.gca().transAxes
+        0.075,
+        0.925,
+        params["left_label"],
+        ha="center",
+        va="center",
+        fontsize=fontsize["left_label"],
+        transform=plt.gca().transAxes,
     )
     return ret, params
 
 
-def apply_colorbar(fig, ax, image, ticks, ticklabels, unit, fontsize, linthresh, norm=None):
+def apply_colorbar(
+    fig, ax, image, ticks, ticklabels, unit, fontsize, linthresh, norm=None
+):
     """
     This function applies a colorbar to the figure and formats the ticks.
     """
@@ -475,7 +500,7 @@ def apply_colorbar(fig, ax, image, ticks, ticklabels, unit, fontsize, linthresh,
         ticks=ticks,
         format=FuncFormatter(fmt),
     )
-    cb.ax.set_xticklabels(ticklabels,size=fontsize["cbar_tick_label"])
+    cb.ax.set_xticklabels(ticklabels, size=fontsize["cbar_tick_label"])
     cb.ax.xaxis.set_label_text(unit, size=fontsize["cbar_label"])
     if norm == "log":
         linticks = np.linspace(-1, 1, 3) * linthresh
@@ -505,7 +530,9 @@ def apply_colorbar(fig, ax, image, ticks, ticklabels, unit, fontsize, linthresh,
         cb.ax.xaxis.set_ticks(minorticks, minor=True)
 
     cb.ax.tick_params(
-        which="both", axis="x", direction="in",
+        which="both",
+        axis="x",
+        direction="in",
     )
     cb.ax.xaxis.labelpad = 0
     # workaround for issue with viewers, see colorbar docstring

@@ -22,7 +22,14 @@ def traceplot(
 ):
 
     # Make figure
-    fig, ax = make_fig(figsize, fignum, hold, subplot, reuse_axes, darkmode,)
+    fig, ax = make_fig(
+        figsize,
+        fignum,
+        hold,
+        subplot,
+        reuse_axes,
+        darkmode,
+    )
 
     if input.ndim < 2:
         input.reshape(1, -1)
@@ -32,11 +39,15 @@ def traceplot(
     colors = getattr(pcol.qualitative, cmap)
     cmap = mpl.colors.ListedColormap(colors)
 
-    positions = legend_positions(input,)
+    positions = legend_positions(
+        input,
+    )
 
     for i in range(N_comps):
         plt.plot(
-            input[i], color=cmap(i), linewidth=2,
+            input[i],
+            color=cmap(i),
+            linewidth=2,
         )
 
         # Add the text to the right
@@ -63,7 +74,8 @@ def traceplot(
     ax.spines["right"].set_visible(False)
     ax.tick_params(axis="both", which="both", direction="in")
     plt.yticks(
-        rotation=90, va="center",
+        rotation=90,
+        va="center",
     )
     plt.subplots_adjust(wspace=0, hspace=0.0, right=1)
     plt.tight_layout()

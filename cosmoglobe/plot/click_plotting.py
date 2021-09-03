@@ -1,17 +1,19 @@
 import click
+from rich import print
 import astropy.units as u
 import matplotlib.pyplot as plt
 import os
 
 import cosmoglobe.plot as splot
 from cosmoglobe.sky import model_from_chain
+from .plottools import *
 
 @click.group()
 def commands_plotting():
     pass
 
 @commands_plotting.command()
-@click.argument("input", type=click.STRING,)
+@click.argument("input", nargs=-1)
 @click.option("-sig", default=0, help="Signal to be plotted 0 by default (0, 1, 2 is interprated as IQU)",)
 @click.option("-comp", default=None, type=click.STRING, help="Component name for autosetting plottingparameters",)
 @click.option("-freq", default=None, type=click.FLOAT, help="Frequency in GHz needed for scaling maps when using a model object input",)
@@ -61,87 +63,119 @@ def commands_plotting():
 @click.option("-outdir", default=None, type=click.Path(exists=True), help="Output directory for plot",)
 @click.option("-outname", default=None, type=click.STRING, help="Output filename, overwrites autonaming",)
 @click.option("-show", is_flag=True, help='Displays the figure in addition to saving',)
+@click.option("-gif", is_flag=True, help='Convert inputs to gif',)
+@click.option("-fps", default=3, type=click.INT, help="Gif speed, 300 by default.",)
 @click.option("-sample", default=-1, type=click.INT, help="Select sample when inputing .h5 file",)
-def plot(input, sig, comp, freq, ticks, min, max, nocbar, unit, fwhm, nside, mask, maskfill, cmap, norm, remove_dip, remove_mono, title, right_label, left_label, width, xsize, darkmode, interactive, rot, coord, nest, flip, graticule, graticule_labels, return_only_data, projection_type, cb_orientation, xlabel, ylabel, longitude_grid_spacing, latitude_grid_spacing, override_plot_properties, xtick_label_color, ytick_label_color, graticule_color, fontsize, phi_convention, custom_xtick_labels, custom_ytick_labels, white_background, png, outdir, outname, show, sample):
+def plot(input, sig, comp, freq, ticks, min, max, nocbar, unit, fwhm, nside, mask, maskfill, cmap, norm, remove_dip, remove_mono, title, right_label, left_label, width, xsize, darkmode, interactive, rot, coord, nest, flip, graticule, graticule_labels, return_only_data, projection_type, cb_orientation, xlabel, ylabel, longitude_grid_spacing, latitude_grid_spacing, override_plot_properties, xtick_label_color, ytick_label_color, graticule_color, fontsize, phi_convention, custom_xtick_labels, custom_ytick_labels, white_background, png, outdir, outname, show, gif, fps, sample):
     """
-    This function wraps around the plotting function and plots fits files
-    input: filename of fits file, optional plotting params
+    This function invokes the plot function from the command line
+    input: filename of fits or h5 file, optional plotting paramameters
     """
-    filename = input
-    cbar = False if nocbar else True
-    if freq is not None: freq*=u.GHz
-    if fwhm is not None: fwhm*=u.arcmin
-    comps=comp 
-    if ".h5" in input:
-        if sample is None:
-            raise ValueError(
-                "HDF file passed, please specify sample"
-            )
-        if comp is None:
-            if freq is None:             
-                print("Warning! Neither frequency nor component selected. Plotting sky at 70GHz")
-                freq=70*u.GHz
-            comp = "freqmap"
-        input = model_from_chain(input, comps=comps, nside=nside, samples=sample)
 
-    _, params = splot(input, sig=sig, comp=comps, freq=freq, ticks=ticks, min=min, max=max, cbar=cbar, unit=unit, fwhm=fwhm, nside=nside, mask=mask, maskfill=maskfill, cmap=cmap, norm=norm, remove_dip=remove_dip, remove_mono=remove_mono, title=title, right_label=right_label, left_label=left_label, width=width, xsize=xsize, darkmode=darkmode, interactive=interactive, rot=rot, coord=coord, nest=nest, flip=flip, graticule=graticule, graticule_labels=graticule_labels, return_only_data=return_only_data, projection_type=projection_type, cb_orientation=cb_orientation, xlabel=xlabel, ylabel=ylabel, longitude_grid_spacing=longitude_grid_spacing, latitude_grid_spacing=latitude_grid_spacing, override_plot_properties=override_plot_properties, xtick_label_color=xtick_label_color, ytick_label_color=ytick_label_color, graticule_color=graticule_color, fontsize=fontsize, phi_convention=phi_convention, custom_xtick_labels=custom_xtick_labels, custom_ytick_labels=custom_ytick_labels,)
-    if show:
-        plt.show()
+    imgs = [] # Container for images used with gif
+    for i, filename in enumerate(input):
+        cbar = False if nocbar else True
+        freq_ = None if freq is None else freq*u.GHz
+        fwhm_ = None if fwhm is None else fwhm*u.arcmin
+        comps=comp 
+        if ".h5" in filename:
+            if sample is None:
+                raise ValueError(
+                    "HDF file passed, please specify sample"
+                )
+            if comp is None:
+                if freq is None:             
+                    print("[bold orange]Warning! Neither frequency nor component selected. Plotting sky at 70GHz[/bold orange]")
+                    freq=70*u.GHz
+                comp = "freqmap"
+            filename = model_from_chain(filename, comps=comps, nside=nside, samples=sample)
 
-    """
-    Filename formatting and  outputting
-    """
-    if ".h5" in filename:
-        filename = filename.replace(os.path.split(filename)[-1],os.path.split(filename)[-1]+"_"+comp)
-        filename = filename.replace(".h5","")
-    else:
-        filename = filename.replace(".fits", "")
+        # Super hacky gif fix because "hold" is not implemented in newvisufunc
+        if gif and i>0: return_only_data=True
+
+        # Actually plot the stuff
+        img, params = splot(filename, sig=sig, comp=comps, freq=freq_, ticks=ticks, min=min, max=max, cbar=cbar, unit=unit, fwhm=fwhm_, nside=nside, mask=mask, maskfill=maskfill, cmap=cmap, norm=norm, remove_dip=remove_dip, remove_mono=remove_mono, title=title, right_label=right_label, left_label=left_label, width=width, xsize=xsize, darkmode=darkmode, interactive=interactive, rot=rot, coord=coord, nest=nest, flip=flip, graticule=graticule, graticule_labels=graticule_labels, return_only_data=return_only_data, projection_type=projection_type, cb_orientation=cb_orientation, xlabel=xlabel, ylabel=ylabel, longitude_grid_spacing=longitude_grid_spacing, latitude_grid_spacing=latitude_grid_spacing, override_plot_properties=override_plot_properties, xtick_label_color=xtick_label_color, ytick_label_color=ytick_label_color, graticule_color=graticule_color, fontsize=fontsize, phi_convention=phi_convention, custom_xtick_labels=custom_xtick_labels, custom_ytick_labels=custom_ytick_labels,)
+
+        # Super hacky gif fix because "hold" is not implemented in newvisufunc
+        if gif and i>0: 
+            longitude, latitude, grid_map = img
+            img = plt.pcolormesh(
+                longitude,
+                latitude,
+                grid_map,
+                vmin=params["ticks"][0],
+                vmax=params["ticks"][-1],
+                rasterized=True,
+                cmap=load_cmap(params["cmap"]),
+                shading="auto",
+                )
+        if show:
+            plt.show()
+
+        """
+        Filename formatting and  outputting
+        """
+        if ".h5" in filename:
+            filename = filename.replace(os.path.split(filename)[-1],os.path.split(filename)[-1]+"_"+comp)
+            filename = filename.replace(".h5","")
+        else:
+            filename = filename.replace(".fits", "")
 
 
-    *path, outfile = os.path.split(filename)
-    if path==['']: path="."
-    outfile = outfile.replace("_IQU_", "_").replace("_I_", "_")
-    if freq is not None: outfile = outfile.replace(comp, f"{comp}-{int(freq.value)}GHz")
-    if outdir: path = outdir
+        *path, outfile = os.path.split(filename)
+        #if path==['']: path="."
+        outfile = outfile.replace("_IQU_", "_").replace("_I_", "_")
+        if freq is not None: outfile = outfile.replace(comp, f"{comp}-{int(freq.value)}GHz")
+        if outdir: path = outdir
 
-    filename = []
-    filename.append(f"{str(int(fwhm.value))}arcmin") if float(fwhm.value) > 0 else None
-    filename.append("cb") if cbar else None
-    filename.append("masked") if mask else None
-    filename.append("nodip") if remove_dip else None
-    filename.append("dark") if darkmode else None
-    if params["cmap"] is None: params["cmap"]="planck"
-    filename.append(f'c-{params["cmap"]}')
+        filename = []
+        filename.append(f"{str(int(fwhm_.value))}arcmin") if float(fwhm_.value) > 0 else None
+        filename.append("cb") if cbar else None
+        filename.append("masked") if mask else None
+        filename.append("nodip") if remove_dip else None
+        filename.append("dark") if darkmode else None
+        if params["cmap"] is None: params["cmap"]="planck"
+        filename.append(f'c-{params["cmap"]}')
 
-    nside_tag = "_n" + str(int(params["nside"]))
-    if nside_tag in outfile:
-        outfile = outfile.replace(nside_tag, "")
+        nside_tag = "_n" + str(int(params["nside"]))
+        if nside_tag in outfile:
+            outfile = outfile.replace(nside_tag, "")
 
-    if params["width"] is None: width = 10
+        if params["width"] is None: width = 8.5
 
-    if isinstance(sig, int): sig = ["I","Q", "U"][sig]
-    fn = outfile + f'_{sig}_w{str(int(width))}' + nside_tag
+        if isinstance(sig, int): sig = ["I","Q", "U"][sig]
+        fn = outfile + f'_{sig}_w{str(int(width))}' + nside_tag
 
-    for i in filename:
-        fn += f"_{i}"
+        for i in filename:
+            fn += f"_{i}"
 
-    filetype = "png" if png else "pdf"
-    if outname:
-        filetype = "png" if outname.endswith(".png") else "pdf"
+        filetype = "png" if png else "pdf"
+        if outname:
+            filetype = "png" if outname.endswith(".png") else "pdf"
 
-    fn += f".{filetype}"
-    if outname: fn = outname
+        fn += f".{filetype}"
+        if outname: fn = outname
 
-    if outdir:
-        fn = outdir + "/" + os.path.split(fn)[-1]
+        if outdir:
+            fn = outdir + "/" + os.path.split(fn)[-1]
 
-    tp = False if white_background else True  
-    filetype = "png" if png else "pdf"
-    print(f"Outputting {fn}")
 
- 
-    plt.savefig(f"{path}/{fn}", bbox_inches="tight", pad_inches=0.02, transparent=tp, format=filetype, dpi=300)
-
+        if gif:
+            # Append images for animation 
+            imgs.append([img])
+        else:
+            tp = False if white_background else True  
+            filetype = "png" if png else "pdf"
+            print(f"[bold green]Outputting {fn}[/bold green]")
+            path = "." if path[0]=="" else path[0]
+            plt.savefig(f"{path}/{fn}", bbox_inches="tight", pad_inches=0.02, transparent=tp, format=filetype, dpi=300)
+    
+    if gif:
+        import matplotlib.animation as animation
+        ani = animation.ArtistAnimation(plt.gcf(), imgs, blit=True)
+        fn = fn.replace(filetype,"gif")
+        print(f"[bold green]Outputting {fn}[/bold green]")
+        ani.save(fn,dpi=300,writer=animation.PillowWriter(fps=fps))
 
 if __name__ == '__main__':
     plot()
