@@ -16,6 +16,8 @@ h5py = ">=3.0.0"
 tqdm = "^4.62.2"
 cmasher = "^1.6.2"
 matplotlib = "^3.4.3"
+click = ">=8.0.1"
+rich = "^10.9.0"
 
 [tool.poetry.dev-dependencies]
 numpydoc = "^1.1.0"
@@ -32,3 +34,6 @@ jinja2= "<3.0.0"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+cosmoglobe = 'cosmoglobe.__main__:cli'

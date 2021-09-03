@@ -211,8 +211,10 @@ def comp_from_chain(
 
     alms_ = get_items(file, samples, component, [f"{alm}_alm" for alm in alm_names])
     alms = dict(zip(alm_names, alms_))
+
+    tempsamp = samples[-1] if isinstance(samples, list) else samples
     alms_lmax_ = _get_items(
-        file, samples[-1], component, [f"{alm}_lmax" for alm in alm_names]
+        file, tempsamp, component, [f"{alm}_lmax" for alm in alm_names]
     )
     alms_lmax = dict(zip(alm_names, [int(lmax) for lmax in alms_lmax_]))
 

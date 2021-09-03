@@ -28,7 +28,14 @@ def hist(
     """
 
     # Make figure
-    fig, ax = make_fig(figsize, fignum, hold, subplot, reuse_axes, darkmode,)
+    fig, ax = make_fig(
+        figsize,
+        fignum,
+        hold,
+        subplot,
+        reuse_axes,
+        darkmode,
+    )
 
     # Use matplotlib histogram function with specific options
     n, bins, patches = plt.hist(
@@ -55,6 +62,7 @@ def hist(
     ax.spines["right"].set_visible(False)
     ax.tick_params(axis="both", which="both", direction="in")
     plt.yticks(
-        rotation=90, va="center",
+        rotation=90,
+        va="center",
     )
     return n, bins, patches
