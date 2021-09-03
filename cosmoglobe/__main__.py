@@ -11,3 +11,4 @@ cli = click.CommandCollection(sources=[commands_plotting], context_settings=CONT
 
 if __name__ == '__main__':
     cli()
+    
