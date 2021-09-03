@@ -1,5 +1,6 @@
 
 .. module:: cosmoglobe
+   :noindex:
 
 ====================
 cosmoglobe Tutorials

@@ -3,9 +3,9 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-=======================================
+#######################################
 Welcome to the cosmoglobe documentation 
-=======================================
+#######################################
 
 *cosmoglobe* is a python package that interfaces the Cosmoglobe Sky
 Model with *commander3* outputs for the purpose of producing astrophysical
@@ -50,5 +50,3 @@ License
    :titlesonly:
 
    license
-
-.. 

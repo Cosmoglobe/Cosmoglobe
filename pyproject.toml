@@ -1,8 +1,39 @@
+[tool.poetry]
+name = "cosmoglobe"
+version = "0.9.32"
+description = "cosmoglobe is a python package that interfaces the Cosmoglobe Sky Model with commander3 outputs for the purpose of producing astrophysical sky maps."
+authors = ["Metin San <metinisan@gmail.com>", "Trygve Leithe Svalheim <t.l.svalheim@astro.uio.no>"]
+license = "GNU GPLv3"
+
+[tool.poetry.dependencies]
+python = ">=3.8,<3.10"
+numpy = ">=1.19.0,<1.20.0"
+numba = "^0.50.1"
+scipy = ">=1.6.0"
+healpy = "^1.15.0"
+astropy = "^4.3.1"
+h5py = ">=3.0.0"
+tqdm = "^4.62.2"
+cmasher = "^1.6.2"
+matplotlib = "^3.4.3"
+click = ">=8.0.1"
+rich = "^10.9.0"
+
+[tool.poetry.dev-dependencies]
+numpydoc = "^1.1.0"
+ipython = "^7.26.0"
+pydata-sphinx-theme = "^0.6.3"
+nbsphinx = "=0.8.3"
+black = "^21.7b0"
+Sphinx = "^4.1.2"
+pandoc = "^1.1.0"
+ipykernel = "^6.2.0"
+async_generator = "^1.10"
+jinja2= "<3.0.0"
+
 [build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
 
-requires = [
-    "setuptools>=42",
-    "wheel",
-]
-
-build-backend = 'setuptools.build_meta'
+[tool.poetry.scripts]
+cosmoglobe = 'cosmoglobe.__main__:cli'

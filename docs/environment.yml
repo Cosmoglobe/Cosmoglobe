@@ -9,11 +9,12 @@ dependencies:
   - matplotlib
   - scipy
   - numpydoc
+  - numba
   - nbsphinx
-  - numpydoc
   - healpy
   - h5py>=3.0
   - cmasher
   - tqdm
   - ipython
   - pydata-sphinx-theme
+  - pandoc

@@ -4,6 +4,7 @@ import warnings
 from .. import data as data_dir
 
 import cmasher
+from rich import print
 import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as u
@@ -19,7 +20,7 @@ def apply_logscale(m, ticks, linthresh=1):
     This function converts the data to logscale,
     and also converts the tick locations correspondingly
     """
-    print("Applying semi-logscale")
+    print("[orange]Applying semi-logscale[/orange]")
     m = symlog(m, linthresh)
     new_ticks = []
     for i in ticks:
@@ -29,28 +30,34 @@ def apply_logscale(m, ticks, linthresh=1):
     return m, new_ticks
 
 
-def set_style(darkmode=False,):
+def set_style(
+    darkmode=False,
+):
     """
     This function sets the color parameter and text style
     """
     plt.rc(
-        "font", family="serif",
+        "font",
+        family="serif",
     )
     plt.rcParams["mathtext.fontset"] = "stix"
     plt.rc(
-        "text.latex", preamble=r"\usepackage{sfmath}",
+        "text.latex",
+        preamble=r"\usepackage{sfmath}",
     )
 
     tex_fonts = {
         # Use 10pt font in plots, to match 10pt font in document
-        "axes.labelsize": 10,
-        "font.size": 10,
+        "axes.labelsize": 11,
+        "font.size": 11,
         # Make the legend/label fonts a little smaller
         "legend.fontsize": 8,
         "xtick.labelsize": 8,
         "ytick.labelsize": 8,
     }
-    plt.rcParams.update(tex_fonts,)
+    plt.rcParams.update(
+        tex_fonts,
+    )
 
     ## If darkmode plot (white frames), change colors:
     if darkmode:
@@ -70,7 +77,13 @@ def set_style(darkmode=False,):
 
 
 def make_fig(
-    figsize, fignum, hold, subplot, reuse_axes, darkmode=False, projection=None,
+    figsize,
+    fignum,
+    hold,
+    subplot,
+    reuse_axes,
+    darkmode=False,
+    projection=None,
 ):
     """
     Create matplotlib figure, add subplot, use current axes etc.
@@ -127,7 +140,9 @@ def make_fig(
     return fig, ax
 
 
-def load_cmap(cmap,):
+def load_cmap(
+    cmap,
+):
     """
     This function takes the colormap label and loads the colormap object
     """
@@ -189,7 +204,7 @@ def load_cmap(cmap,):
 
                 cmap = plt.get_cmap(cmap)
 
-    print("Colormap:" + f" {cmap.name}")
+    # print("Colormap:" + f" {cmap.name}")
     return cmap
 
 
@@ -243,7 +258,7 @@ def autoparams(
     for an identified sky component.
     """
     if isinstance(unit, u.UnitBase):
-        unit = unit.to_string()
+        unit = unit.to_string("latex")
     if comp is None:
         params = {
             "right_label": right_label,
@@ -260,7 +275,7 @@ def autoparams(
         try:
             params = autoparams[comp]
         except:
-            print(f"Component label {comp} not found. Using unidentified profile.")
+            print(f"[orange]Component label {comp} not found. Using unidentified profile.[/orange]")
             print(f"available keys are: {autoparams.keys()}")
             params = autoparams["unidentified"]
 
@@ -319,7 +334,7 @@ def autoparams(
                 and comp not in specials
             ):
                 warnings.warn(
-                    f"Input frequency is different from reference, autosetting ticks"
+                    f"[orange]Input frequency is different from reference, autosetting ticks[/orange]"
                 )
                 print(f'input: {freq}, reference: {params["freq_ref"]}')
                 params["ticks"] = "auto"
@@ -335,7 +350,6 @@ def autoparams(
             if params["ticks"] == "auto":
                 params["ticks"] = [None, None]
             params["ticks"][-1] = max
-
     # Math text in labels
     for i in [
         "right_label",
@@ -343,12 +357,14 @@ def autoparams(
         "unit",
     ]:
         if params[i] and params[i] != "":
-            params[i] = r"$" + params[i] + "$"
-
+            if "$" not in params[i]:
+                params[i] = r"$" + params[i] + "$"
     return params
 
 
-def legend_positions(input,):
+def legend_positions(
+    input,
+):
     """
     Calculate position of labels to the right in plot...
     """
@@ -377,7 +393,6 @@ def legend_positions(input,):
     min_ = np.min(np.min(input))
     max_ = np.max(np.max(input))
     dpush = np.abs(max_ - min_) * 0.01
-    print(min_, max_, dpush)
 
     pushings = 0
     while True:
@@ -389,7 +404,6 @@ def legend_positions(input,):
             break
 
         pushings += 1
-    print(pushings)
     return positions
 
 

@@ -6,6 +6,7 @@ from cosmoglobe.sky.model import Model
 
 import warnings
 import os
+from rich import print
 import healpy as hp
 import numpy as np
 import astropy.units as u
@@ -14,7 +15,6 @@ from .plottools import *
 
 # Fix for macos openMP duplicate bug
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
-
 
 @u.quantity_input(freq=u.Hz, fwhm=(u.arcmin, u.rad, u.deg))
 def plot(
@@ -30,10 +30,12 @@ def plot(
     fwhm=0.0 * u.arcmin,
     nside=None,
     mask=None,
+    maskfill=None,
     cmap=None,
     norm=None,
     remove_dip=False,
     remove_mono=False,
+    title=None,
     right_label=None,
     left_label=None,
     width=None,
@@ -83,10 +85,13 @@ def plot(
         default = None
     comp : string, optional
         Component label for automatic identification of plotting
-        parameters based on information from autoparams.json 
+        parameters based on information from autoparams.json
         default = None
     freq : astropy GHz, optional
         frequency in GHz needed for scaling maps when using a model object input
+        default = None
+    ticks : list or str, optional
+        Min and max value for data. If None, uses 97.5th percentile.
         default = None
     min : float, optional
       The minimum range value. If specified, overwrites autodetector.
@@ -94,9 +99,6 @@ def plot(
     max : float, optional
       The maximum range value. If specified, overwrites autodetector.
       default = None
-    ticks : list or str, optional
-        Min and max value for data. If None, uses 97.5th percentile.
-        default = None
     cbar : bool, optional
         Toggles the colorbar
         cbar = True
@@ -106,27 +108,26 @@ def plot(
     mask : str path or np.ndarray, optional
         Apply a mask file to data
         default = None
+    cmap : str, optional
+        Colormap (ex. sunburst, planck, jet). Both matplotliib and cmasher
+        available as of now. Also supports qualitative plotly map, [ex.
+        q-Plotly-4 (q for qualitative 4 for max color)] Sets planck as default.
+        default = None
+    norm : str, optional
+        if norm=='linear':
+            normal
+        if norm=='log':
+            Normalizes data using a semi-logscale linear between -1 and 1.
+            Autodetector uses this sometimes, you will be warned.
+        default = None
     remove_dip : bool, optional
         If mdmask is specified, fits and removes a dipole.
         default = True
     remove_mono : bool, optional
         If mdmask is specified, fits and removes a monopole.
         default = True
-    norm : str, optional
-        if norm=='linear':
-            normal 
-        if norm=='log':
-            Normalizes data using a semi-logscale linear between -1 and 1.
-            Autodetector uses this sometimes, you will be warned.
-        default = None
-    darkmode : bool, optional
-        Plots all outlines in white for dark backgrounds, and adds 'dark' in
-        filename.
-        default = False
-    cmap : str, optional
-        Colormap (ex. sunburst, planck, jet). Both matplotliib and cmasher
-        available as of now. Also supports qualitative plotly map, [ex.
-        q-Plotly-4 (q for qualitative 4 for max color)] Sets planck as default.
+    unit : str, optional
+        Unit label for colorbar
         default = None
     title : str, optional
         Sets the full figure title. Has LaTeX functionaliity (ex. $A_{s}$.)
@@ -137,6 +138,10 @@ def plot(
     left_label : str, optional
         Sets the upper left title. Has LaTeX functionaliity (ex. $A_{s}$.)
         default = None
+    darkmode : bool, optional
+        Plots all outlines in white for dark backgrounds, and adds 'dark' in
+        filename.
+        default = False
     rot : scalar or sequence, optional
       Describe the rotation to apply.
       In the form (lon, lat, psi) (unit: degrees) : the point at
@@ -156,6 +161,8 @@ def plot(
       add graticule
     graticule_labels : bool
       longitude and latitude labels
+    return_only_data : bool
+      Return figure
     projection_type :  {'aitoff', 'hammer', 'lambert', 'mollweide', 'cart', '3d', 'polar'}
       type of the plot
     cb_orientation : {'horizontal', 'vertical'}
@@ -174,6 +181,7 @@ def plot(
       change the color of the longitude tick labels, some color maps make it hard to read black tick labels
     fontsize:  dict
         Override fontsize of labels: 'xlabel', 'ylabel', 'title', 'xtick_label', 'ytick_label', 'cbar_label', 'cbar_tick_label'.
+        default = None
     phi_convention : string
         convention on x-axis (phi), 'counterclockwise' (default), 'clockwise', 'symmetrical' (phi as it is truly given)
         if `flip` is 'geo', `phi_convention` should be set to 'clockwise'.
@@ -189,14 +197,31 @@ def plot(
         override_plot_properties = None
     else:
         if isinstance(width, str):
-            width = {"x": 2.75, "s": 3.5, "m": 4.7, "l": 7,}[width]
-        ratio= 0.63 if cbar else 0.5
+            width = {
+                "x": 2.75,
+                "s": 3.5,
+                "m": 4.7,
+                "l": 7,
+            }[width]
+        ratio = 0.63 if cbar else 0.5
         xsize = int((1000 / 8.5) * width)
         override_plot_properties = {
             "figure_width": width,
             "figure_size_ratio": ratio,
         }
 
+    if not fontsize:
+        fontsize = {
+            "xlabel": 11,
+            "ylabel": 11,
+            "xtick_label": 8,
+            "ytick_label": 8,
+            "title": 12,
+            "cbar_label": 11,
+            "cbar_tick_label": 9,
+            "left_label": 11,
+            "right_label": 11,
+        }
     set_style(darkmode)
 
     # Translate sig to correct format
@@ -220,12 +245,15 @@ def plot(
         m = hp.read_map(input, field=sig)
     elif isinstance(input, Model):
         """
-        Get data from model object with frequency scaling        
+        Get data from model object with frequency scaling
         """
         if comp is None:
             if freq is not None:
                 comp_full = "freqmap"
-                m = input(freq, fwhm=fwhm,)
+                m = input(
+                    freq,
+                    fwhm=fwhm,
+                )
             else:
                 raise ModelError(
                     f"Model object passed with comp and freq set to None"
@@ -272,19 +300,22 @@ def plot(
     if isinstance(m, u.Quantity):
         m = m.value
 
+    # ud_grade map
+    if nside is not None and nside != hp.get_nside(m):
+        m = hp.ud_grade(m, nside)
+    else:
+        nside = hp.get_nside(m)
+
     # Mask map
     if mask is not None:
         if isinstance(mask, str):
             mask = hp.read_map(mask)
 
         m = hp.ma(m)
+        if hp.get_nside(mask) != nside:
+            print("[orange]Input mask nside is different, ud_grading to output nside.[/orange]")
+            mask = hp.ud_grade(mask, nside)
         m.mask = np.logical_not(mask)
-
-    # ud_grade map
-    if nside is not None and nside != hp.get_nside(m):
-        m = hp.ud_grade(m, nside)
-    else:
-        nside = hp.get_nside(m)
 
     # Smooth map
     if fwhm > 0.0 and diffuse:
@@ -312,12 +343,17 @@ def plot(
         if ticks[-1] is None:
             ticks[-1] = pmax
 
+    # Update parameter dictionary
+    params["nside"] = nside
+    params["width"] = width
+    params["ticks"] = ticks
+
     # Special case if dipole is detected in freqmap
     if comp_full == "freqmap":
         # if colorbar is super-saturated
         while len(m[abs(m) > ticks[-1]]) / hp.nside2npix(nside) > 0.7:
             ticks = [tick * 10 for tick in ticks]
-            print("Colormap saturated. Expanding color-range.")
+            print("[orange]Colormap saturated. Expanding color-range.[/orange]")
 
     # Create ticklabels from final ticks
     ticklabels = [fmt(i, 1) for i in ticks]
@@ -328,6 +364,8 @@ def plot(
 
     # Colormap
     cmap = load_cmap(params["cmap"])
+    if maskfill:
+        cmap.set_bad(maskfill)
 
     # Plot using mollview if interactive mode
     if interactive:
@@ -369,8 +407,9 @@ def plot(
             custom_xtick_labels=custom_xtick_labels,
             custom_ytick_labels=custom_ytick_labels,
         )
-        return ret
+        return ret, params
 
+    warnings.filterwarnings("ignore") # Healpy complains too much
     # Plot figure
     ret = hp.newvisufunc.projview(
         m,
@@ -379,46 +418,74 @@ def plot(
         cbar=False,
         cmap=cmap,
         xsize=xsize,
+        # unedited params
+        title=title,
+        rot=rot,
+        coord=coord,
+        nest=nest,
+        flip=flip,
+        graticule=graticule,
+        graticule_labels=graticule_labels,
+        return_only_data=return_only_data,
+        projection_type=projection_type,
+        cb_orientation=cb_orientation,
+        xlabel=xlabel,
+        ylabel=ylabel,
+        longitude_grid_spacing=longitude_grid_spacing,
+        latitude_grid_spacing=latitude_grid_spacing,
         override_plot_properties=override_plot_properties,
-        # fontsize={
-        #    'xlabel': 10,
-        #    'ylabel': 10,
-        #    'xtick_label': 10,
-        #    'ytick_label': 10,
-        #    'title': 10,
-        #    'cbar_label': 10,
-        #    'cbar_tick_label': 10,
-        # },
+        xtick_label_color=xtick_label_color,
+        ytick_label_color=ytick_label_color,
+        graticule_color=graticule_color,
+        fontsize=fontsize,
+        phi_convention=phi_convention,
+        custom_xtick_labels=custom_xtick_labels,
+        custom_ytick_labels=custom_ytick_labels,
         **kwargs,
     )
-
-    # Remove color bar because of healpy bug
-    plt.gca().collections[-1].colorbar.remove()
-    # Add pretty color bar
-    if cbar:
-        apply_colorbar(
-            plt.gcf(),
-            plt.gca(),
-            ret,
-            ticks,
-            ticklabels,
-            params["unit"],
-            linthresh=1,
-            norm=params["norm"],
-        )
+    if not return_only_data:
+        # Remove color bar because of healpy bug
+        plt.gca().collections[-1].colorbar.remove()
+        # Add pretty color bar
+        if cbar:
+            apply_colorbar(
+                plt.gcf(),
+                plt.gca(),
+                ret,
+                ticks,
+                ticklabels,
+                params["unit"],
+                fontsize=fontsize,
+                linthresh=1,
+                norm=params["norm"],
+            )
 
     #### Right Title ####
     plt.text(
-        4.5, 1.1, params["right_label"], ha="center", va="center",
+        0.925,
+        0.925,
+        params["right_label"],
+        ha="center",
+        va="center",
+        fontsize=fontsize["right_label"],
+        transform=plt.gca().transAxes,
     )
     #### Left Title (stokes parameter label by default) ####
     plt.text(
-        -4.5, 1.1, params["left_label"], ha="center", va="center",
+        0.075,
+        0.925,
+        params["left_label"],
+        ha="center",
+        va="center",
+        fontsize=fontsize["left_label"],
+        transform=plt.gca().transAxes,
     )
-    return ret
+    return ret, params
 
 
-def apply_colorbar(fig, ax, image, ticks, ticklabels, unit, linthresh, norm=None):
+def apply_colorbar(
+    fig, ax, image, ticks, ticklabels, unit, fontsize, linthresh, norm=None
+):
     """
     This function applies a colorbar to the figure and formats the ticks.
     """
@@ -433,8 +500,8 @@ def apply_colorbar(fig, ax, image, ticks, ticklabels, unit, linthresh, norm=None
         ticks=ticks,
         format=FuncFormatter(fmt),
     )
-    cb.ax.set_xticklabels(ticklabels,)
-    cb.ax.xaxis.set_label_text(unit)
+    cb.ax.set_xticklabels(ticklabels, size=fontsize["cbar_tick_label"])
+    cb.ax.xaxis.set_label_text(unit, size=fontsize["cbar_label"])
     if norm == "log":
         linticks = np.linspace(-1, 1, 3) * linthresh
         logmin = np.round(ticks[0])
@@ -463,7 +530,9 @@ def apply_colorbar(fig, ax, image, ticks, ticklabels, unit, linthresh, norm=None
         cb.ax.xaxis.set_ticks(minorticks, minor=True)
 
     cb.ax.tick_params(
-        which="both", axis="x", direction="in",
+        which="both",
+        axis="x",
+        direction="in",
     )
     cb.ax.xaxis.labelpad = 0
     # workaround for issue with viewers, see colorbar docstring

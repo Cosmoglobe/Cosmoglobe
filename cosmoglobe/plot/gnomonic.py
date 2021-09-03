@@ -54,7 +54,11 @@ def gnomplot(
     nside = hp.get_nside(x)
 
     if float(fwhm) > 0:
-        x = hp.smoothing(x, fwhm=fwhm * (2 * np.pi) / 21600, lmax=3 * nside,)
+        x = hp.smoothing(
+            x,
+            fwhm=fwhm * (2 * np.pi) / 21600,
+            lmax=3 * nside,
+        )
     if remove_dip:
         x = hp.remove_dipole(x, gal_cut=30, copy=True, verbose=True)
     if remove_mono:
@@ -81,7 +85,13 @@ def gnomplot(
         if params[i] and params[i] != "":
             params[i] = r"$" + params[i] + "$"
 
-    fig, ax = make_fig(figsize, fignum, hold, subplot, reuse_axes,)
+    fig, ax = make_fig(
+        figsize,
+        fignum,
+        hold,
+        subplot,
+        reuse_axes,
+    )
     image = plt.imshow(
         reproj_im,
         origin="lower",
