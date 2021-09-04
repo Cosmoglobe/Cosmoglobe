@@ -1,26 +1,33 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import matplotlib as mpl
-from .plottools import set_style, legend_positions, make_fig
 
+from .plottools import *
+from cosmoglobe.chain.h5 import _get_items, _get_samples
 
-def traceplot(
+def trace(
     input,
-    header=None,
-    labelval=False,
-    xlabel=None,
+    dataset=None,
+    sig=0,
+    labels=None,
+    showval=True,
+    burnin=0,
+    xlabel="Gibbs sample",
     ylabel=None,
     nbins=None,
-    burnin=0,
-    cmap=None,
-    figsize=(7, 2),
+    cmap="tab10",
+    figsize=(8, 3),
     darkmode=False,
     fignum=None,
     subplot=None,
     hold=False,
     reuse_axes=False,
 ):
-
+    if isinstance(input, str) and input.endswith('.h5') and dataset is not None:
+        if ylabel == None: ylabel = dataset
+        filename = input
+        component, *items = dataset.split('/')
+        input = np.concatenate([_get_items(filename, sample=sample, component=component, items=items) for sample in _get_samples(filename)], axis=0)
+        
     # Make figure
     fig, ax = make_fig(
         figsize,
@@ -32,43 +39,44 @@ def traceplot(
     )
 
     if input.ndim < 2:
-        input.reshape(1, -1)
-    N_comps, N = input.shape
+        input.reshape(-1, 1, 1)
+    elif  input.ndim == 2:
+        input.reshape(0, 1, -1)
+    Nsamp, Nsig, Ncomp = input.shape
 
-    # Swap colors around
-    colors = getattr(pcol.qualitative, cmap)
-    cmap = mpl.colors.ListedColormap(colors)
+    cmap = load_cmap(cmap)
+    positions = legend_positions(input[:,sig,:],)
 
-    positions = legend_positions(
-        input,
-    )
-
-    for i in range(N_comps):
+    for i in range(Ncomp):
         plt.plot(
-            input[i],
+            input[:,sig,i],
             color=cmap(i),
             linewidth=2,
         )
 
         # Add the text to the right
-        if header is not None:
+        if labels is not None:
+            hpos = Nsamp*1.01
             plt.text(
-                N + N * 0.01,
+                hpos,
                 positions[i],
-                rf"{header[i]}",
+                rf"{labels[i]}",
                 color=cmap(i),
                 fontweight="normal",
             )
-        if labelval:
-            mean = np.mean(input[i, burnin:])
-            std = np.std(input[i, burnin:])
+
+        if showval:
+            mean = np.mean(input[burnin:, sig, i])
+            std = np.std(input[burnin:, sig, i])
             label2 = rf"{mean:.2f}$\pm${std:.2f}"
+            valpos = Nsamp*1.01 if labels is None else Nsamp*1.1
             plt.text(
-                N + N * 0.1, positions[i], label2, color=cmap(i), fontweight="normal"
+                valpos, positions[i], label2, color=cmap(i), fontweight="normal"
             )
 
-    ax.set_xlim(right=N)
+    ax.set_xlim(right=Nsamp)
     ax.set_ylabel(ylabel)
+    ax.set_xlabel(xlabel)
     # Tick and spine parameters
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
