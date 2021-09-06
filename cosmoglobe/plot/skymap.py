@@ -1,8 +1,6 @@
 from copy import Error
 from multiprocessing import Value
-from cosmoglobe.utils.utils import ModelError
 from logging import error
-from cosmoglobe.sky.model import Model
 
 import warnings
 import os
@@ -29,6 +27,7 @@ def plot(
     unit=None,
     fwhm=0.0 * u.arcmin,
     nside=None,
+    sample=-1,
     mask=None,
     maskfill=None,
     cmap=None,
@@ -196,13 +195,16 @@ def plot(
     if width is None:
         override_plot_properties = None
     else:
-        if isinstance(width, str):
-            width = {
-                "x": 2.75,
-                "s": 3.5,
-                "m": 4.7,
-                "l": 7,
-            }[width]
+        try:
+            width = int(width)
+        except:
+            if isinstance(width, str):
+                width = {
+                    "x": 2.75,
+                    "s": 3.5,
+                    "m": 4.7,
+                    "l": 7,
+                }[width]
         ratio = 0.63 if cbar else 0.5
         xsize = int((1000 / 8.5) * width)
         override_plot_properties = {
@@ -233,72 +235,8 @@ def plot(
     if isinstance(sig, str):
         sig = stokes.index(sig)
 
-    # Parsing component string
-    comp_full = comp
-    if comp is not None:
-        comp, *specparam = comp.split()
-    diffuse = True  # For future functionality
-
-    # If map is string, interprate as file path
-    if isinstance(input, str):
-        # field = 0 if sig is None else sig
-        m = hp.read_map(input, field=sig)
-    elif isinstance(input, Model):
-        """
-        Get data from model object with frequency scaling
-        """
-        if comp is None:
-            if freq is not None:
-                comp_full = "freqmap"
-                m = input(
-                    freq,
-                    fwhm=fwhm,
-                )
-            else:
-                raise ModelError(
-                    f"Model object passed with comp and freq set to None"
-                    f"comp: {comp} freq: {freq}"
-                )
-        else:
-            if len(specparam) > 0 and isinstance(specparam[0], str):
-                m = getattr(input, comp).spectral_parameters[specparam[0]]
-
-                if len(m[sig]) == 1:
-                    warnings.warn(
-                        "Same value across the whole sky, mapping to array of length Npix"
-                    )
-                    m = np.full(hp.nside2npix(input.nside), m[sig])
-            else:
-                if freq is None:
-                    freq_ref = getattr(input, comp).freq_ref
-                    freq = freq_ref.value
-                    m = getattr(input, comp).amp
-                    if comp == "radio":
-                        m = getattr(input, comp)(freq_ref, fwhm=fwhm)
-                        diffuse = False
-                    try:
-                        freq = round(freq.squeeze()[sig], 5) * freq_ref.unit
-                    except IndexError:
-                        freq = round(freq, 5) * freq_ref.unit
-                else:
-                    m = getattr(input, comp)(freq, fwhm=fwhm)
-    elif isinstance(input, np.ndarray):
-        m = input
-    else:
-        raise TypeError(
-            f"Type {type(input)} of input not supported"
-            f"Supports numpy array, cosmoglobe model object or fits file string"
-        )
-    if not isinstance(input, Model) and freq is not None:
-        freq = None
-        warnings.warn("freq only usable with model object. Setting freq to None")
-    # Make sure it is a 1d array
-    if m.ndim > 1:
-        m = m[sig]
-
-    # Convert astropy map to numpy array
-    if isinstance(m, u.Quantity):
-        m = m.value
+    # Get data
+    m = get_data(input, sig, comp, freq, fwhm, nside=nside, sample=sample)
 
     # ud_grade map
     if nside is not None and nside != hp.get_nside(m):
@@ -318,7 +256,7 @@ def plot(
         m.mask = np.logical_not(mask)
 
     # Smooth map
-    if fwhm > 0.0 and diffuse:
+    if fwhm > 0.0:
         m = hp.smoothing(m, fwhm.to(u.rad).value)
 
     # Remove mono/dipole
@@ -329,7 +267,7 @@ def plot(
 
     # Fetching autoset parameters
     params = autoparams(
-        comp_full, sig, right_label, left_label, unit, ticks, min, max, norm, cmap, freq
+        comp, sig, right_label, left_label, unit, ticks, min, max, norm, cmap, freq
     )
 
     # Ticks and ticklabels
@@ -349,7 +287,7 @@ def plot(
     params["ticks"] = ticks
 
     # Special case if dipole is detected in freqmap
-    if comp_full == "freqmap":
+    if comp == "freqmap":
         # if colorbar is super-saturated
         while len(m[abs(m) > ticks[-1]]) / hp.nside2npix(nside) > 0.7:
             ticks = [tick * 10 for tick in ticks]
@@ -482,59 +420,3 @@ def plot(
     )
     return ret, params
 
-
-def apply_colorbar(
-    fig, ax, image, ticks, ticklabels, unit, fontsize, linthresh, norm=None
-):
-    """
-    This function applies a colorbar to the figure and formats the ticks.
-    """
-    from matplotlib.ticker import FuncFormatter
-
-    cb = fig.colorbar(
-        image,
-        ax=ax,
-        orientation="horizontal",
-        shrink=0.4,
-        pad=0.04,
-        ticks=ticks,
-        format=FuncFormatter(fmt),
-    )
-    cb.ax.set_xticklabels(ticklabels, size=fontsize["cbar_tick_label"])
-    cb.ax.xaxis.set_label_text(unit, size=fontsize["cbar_label"])
-    if norm == "log":
-        linticks = np.linspace(-1, 1, 3) * linthresh
-        logmin = np.round(ticks[0])
-        logmax = np.round(ticks[-1])
-
-        logticks_min = -(10 ** np.arange(0, abs(logmin) + 1))
-        logticks_max = 10 ** np.arange(0, logmax + 1)
-        ticks_ = np.unique(np.concatenate((logticks_min, linticks, logticks_max)))
-        # cb.set_ticks(np.concatenate((ticks,symlog(ticks_))), []) # Set major ticks
-
-        logticks = symlog(ticks_, linthresh)
-        logticks = [x for x in logticks if x not in ticks]
-        cb.set_ticks(np.concatenate((ticks, logticks)))  # Set major ticks
-        cb.ax.set_xticklabels(ticklabels + [""] * len(logticks))
-
-        minorticks = np.linspace(-linthresh, linthresh, 5)
-        minorticks2 = np.arange(2, 10) * linthresh
-
-        for i in range(len(logticks_min)):
-            minorticks = np.concatenate((-(10 ** i) * minorticks2, minorticks))
-        for i in range(len(logticks_max)):
-            minorticks = np.concatenate((minorticks, 10 ** i * minorticks2))
-
-        minorticks = symlog(minorticks, linthresh)
-        minorticks = minorticks[(minorticks >= ticks[0]) & (minorticks <= ticks[-1])]
-        cb.ax.xaxis.set_ticks(minorticks, minor=True)
-
-    cb.ax.tick_params(
-        which="both",
-        axis="x",
-        direction="in",
-    )
-    cb.ax.xaxis.labelpad = 0
-    # workaround for issue with viewers, see colorbar docstring
-    cb.solids.set_edgecolor("face")
-    return cb

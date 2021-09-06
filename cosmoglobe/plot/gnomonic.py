@@ -4,31 +4,35 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from functools import partial
-from .plottools import load_cmap, fmt, autoparams, apply_logscale, set_style, make_fig
+from .plottools import *
 
-
-def gnomplot(
-    map_,
-    lon,
-    lat,
-    auto=None,
+@u.quantity_input(freq=u.Hz, fwhm=(u.arcmin, u.rad, u.deg))
+def gnom(
+    input,
+    lon=0,
+    lat=0,
+    comp=None,
     sig=0,
+    freq=None,
+    nside=None,
     size=20,
+    sample=-1,
     vmin=None,
     vmax=None,
+    ticks=None,
     rng=None,
-    title=None,
-    ltitle=None,
+    left_label=None,
+    right_label=None,
     unit=None,
-    cmap="planck",
+    cmap=None,
     graticule=False,
-    logscale=False,
-    colorbar=True,
-    fwhm=0.0,
+    norm=None,
+    cbar=True,
+    fwhm=0.0*u.arcmin,
     remove_dip=False,
     remove_mono=False,
-    fontsize=11,
-    figsize=(5, 6),
+    fontsize=None,
+    figsize=(3, 4),
     darkmode=False,
     fignum=None,
     subplot=None,
@@ -38,52 +42,72 @@ def gnomplot(
     """
     Gnomonic view plotting.
     """
+    if not fontsize:
+        fontsize = {
+            "xlabel": 11,
+            "ylabel": 11,
+            "xtick_label": 8,
+            "ytick_label": 8,
+            "title": 12,
+            "cbar_label": 11,
+            "cbar_tick_label": 9,
+            "left_label": 11,
+            "right_label": 11,
+        }
+
     # Set plotting rcParams
     set_style(darkmode)
-
     xsize = 5000
     reso = size * 60 / xsize
-    if isinstance(map_, str):
-        x = hp.read_map(map_, field=sig, verbose=False, dtype=None)
-    else:
-        if map_.ndim > 1:
-            x = map_[sig]
-        else:
-            x = map_
 
-    nside = hp.get_nside(x)
+    # Get data
+    m = get_data(input, sig, comp, freq, fwhm, nside=nside, sample=sample)
 
-    if float(fwhm) > 0:
-        x = hp.smoothing(
-            x,
-            fwhm=fwhm * (2 * np.pi) / 21600,
+    nside = hp.get_nside(m)
+
+    if float(fwhm.value) > 0:
+        m = hp.smoothing(
+            m,
+            fwhm=fwhm.to(u.rad).value,
             lmax=3 * nside,
         )
     if remove_dip:
-        x = hp.remove_dipole(x, gal_cut=30, copy=True, verbose=True)
+        m = hp.remove_dipole(m, gal_cut=30, copy=True, verbose=True)
     if remove_mono:
-        x = hp.remove_monopole(x, gal_cut=30, copy=True, verbose=True)
+        m = hp.remove_monopole(m, gal_cut=30, copy=True, verbose=True)
 
     proj = hp.projector.GnomonicProj(
         rot=[lon, lat, 0.0], coord="G", xsize=xsize, ysize=xsize, reso=reso
     )
-    reproj_im = proj.projmap(x, vec2pix_func=partial(hp.vec2pix, nside))
+    reproj_im = proj.projmap(m, vec2pix_func=partial(hp.vec2pix, nside))
 
-    if rng is not None:
-        vmin = -rng
-        vmax = rng
+    # Fetching autoset parameters
+    params = autoparams(
+        comp, sig, right_label, left_label, unit, ticks, vmin, vmax, norm, cmap, freq
+    )
 
-    params = autoparams(auto, sig, title, ltitle, unit, None, logscale, cmap)
-    vmin, vmax = (params["ticks"][0], params["ticks"][-1])
-    if params["logscale"]:
-        x, (vmin, vmax) = apply_logscale(x, [vmin, vmax], linthresh=1)
 
-    cmap = load_cmap(params["cmap"], params["logscale"])
+    # Ticks and ticklabels
+    ticks = params["ticks"]
+    if ticks == "auto" or params["norm"] == "hist":
+        ticks = get_percentile(reproj_im, 97.5)
+    elif None in ticks:
+        pmin, pmax = get_percentile(reproj_im, 97.5)
+        if ticks[0] is None:
+            ticks[0] = pmin
+        if ticks[-1] is None:
+            ticks[-1] = pmax
 
-    # Format for latex
-    for i in ["title", "unit", "left_title"]:
-        if params[i] and params[i] != "":
-            params[i] = r"$" + params[i] + "$"
+    # Update parameter dictionary
+    params["ticks"] = ticks
+
+    # Create ticklabels from final ticks
+    ticklabels = [fmt(i, 1) for i in ticks]
+    # Semi-log normalization
+    if params["norm"] == "log":
+        reproj_im, ticks = apply_logscale(reproj_im, ticks, linthresh=1)
+
+    cmap = load_cmap(params["cmap"])
 
     fig, ax = make_fig(
         figsize,
@@ -96,8 +120,8 @@ def gnomplot(
         reproj_im,
         origin="lower",
         interpolation="nearest",
-        vmin=vmin,
-        vmax=vmax,
+        vmin=ticks[0],
+        vmax=ticks[-1],
         cmap=cmap,
     )
     plt.xticks([])
@@ -105,36 +129,38 @@ def gnomplot(
     plt.text(
         0.95,
         0.95,
-        params["title"],
+        params["right_label"],
         color="black",
         va="top",
         ha="right",
         transform=ax.transAxes,
-        fontsize=fontsize + 4,
+        fontsize=fontsize["title"],
     )
     plt.text(
         0.05,
         0.95,
-        params["left_title"],
+        params["left_label"],
         color="black",
         va="top",
         transform=ax.transAxes,
-        fontsize=fontsize + 4,
+        fontsize=fontsize["title"],
     )
-    if colorbar:
-        # colorbar
-        from matplotlib.ticker import FuncFormatter
-
-        cb = plt.colorbar(
+    
+    if cbar:
+        apply_colorbar(
+            plt.gcf(),
+            plt.gca(),
             image,
-            orientation="horizontal",
-            shrink=0.5,
-            pad=0.03,
-            format=FuncFormatter(fmt),
+            ticks,
+            ticklabels,
+            params["unit"],
+            fontsize=fontsize,
+            linthresh=1,
+            norm=params["norm"],
+            shrink=0.7,
         )
-        cb.ax.tick_params(which="both", axis="x", direction="in", labelsize=fontsize)
-        cb.ax.xaxis.set_label_text(params["unit"])
-        cb.ax.xaxis.label.set_size(fontsize)
 
     if graticule:
         hp.graticule()
+    
+    return image, params

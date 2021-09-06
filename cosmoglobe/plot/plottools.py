@@ -2,10 +2,15 @@
 from re import T
 import warnings
 from .. import data as data_dir
+from cosmoglobe.sky.model import Model
+from cosmoglobe.sky import model_from_chain
+
+from cosmoglobe.utils.utils import ModelError
 
 import cmasher
 from rich import print
 import numpy as np
+import healpy as hp
 import matplotlib.pyplot as plt
 import astropy.units as u
 from matplotlib.colors import colorConverter, LinearSegmentedColormap, ListedColormap
@@ -60,21 +65,22 @@ def set_style(
     )
 
     ## If darkmode plot (white frames), change colors:
+    params = [
+        "text.color",
+        "axes.edgecolor",
+        "axes.labelcolor",
+        "xtick.color",
+        "ytick.color",
+        "grid.color",
+        "legend.facecolor",
+        "legend.edgecolor",
+    ]
     if darkmode:
-        params = [
-            "text.color",
-            "axes.facecolor",
-            "axes.edgecolor",
-            "axes.labelcolor",
-            "xtick.color",
-            "ytick.color",
-            "grid.color",
-            "legend.facecolor",
-            "legend.edgecolor",
-        ]
         for p in params:
             plt.rcParams[p] = "white"
-
+    else:
+        for p in params:
+            plt.rcParams[p] = "black"
 
 def make_fig(
     figsize,
@@ -368,7 +374,7 @@ def legend_positions(
     """
     Calculate position of labels to the right in plot...
     """
-    positions = input[:, -1]
+    positions = input[-1,:]
 
     def push(dpush):
         """
@@ -478,3 +484,141 @@ def find_nearest(array, value):
     array = np.asarray(array)
     idx = (np.abs(array - value)).argmin()
     return array[idx], idx
+
+
+def apply_colorbar(
+    fig, ax, image, ticks, ticklabels, unit, fontsize, linthresh, norm=None, shrink=0.3
+):
+    """
+    This function applies a colorbar to the figure and formats the ticks.
+    """
+    from matplotlib.ticker import FuncFormatter
+
+    cb = fig.colorbar(
+        image,
+        ax=ax,
+        orientation="horizontal",
+        shrink=shrink,
+        pad=0.04,
+        ticks=ticks,
+        format=FuncFormatter(fmt),
+    )
+    cb.ax.set_xticklabels(ticklabels, size=fontsize["cbar_tick_label"])
+    cb.ax.xaxis.set_label_text(unit, size=fontsize["cbar_label"])
+    if norm == "log":
+        linticks = np.linspace(-1, 1, 3) * linthresh
+        logmin = np.round(ticks[0])
+        logmax = np.round(ticks[-1])
+
+        logticks_min = -(10 ** np.arange(0, abs(logmin) + 1))
+        logticks_max = 10 ** np.arange(0, logmax + 1)
+        ticks_ = np.unique(np.concatenate((logticks_min, linticks, logticks_max)))
+        # cb.set_ticks(np.concatenate((ticks,symlog(ticks_))), []) # Set major ticks
+
+        logticks = symlog(ticks_, linthresh)
+        logticks = [x for x in logticks if x not in ticks]
+        cb.set_ticks(np.concatenate((ticks, logticks)))  # Set major ticks
+        cb.ax.set_xticklabels(ticklabels + [""] * len(logticks))
+
+        minorticks = np.linspace(-linthresh, linthresh, 5)
+        minorticks2 = np.arange(2, 10) * linthresh
+
+        for i in range(len(logticks_min)):
+            minorticks = np.concatenate((-(10 ** i) * minorticks2, minorticks))
+        for i in range(len(logticks_max)):
+            minorticks = np.concatenate((minorticks, 10 ** i * minorticks2))
+
+        minorticks = symlog(minorticks, linthresh)
+        minorticks = minorticks[(minorticks >= ticks[0]) & (minorticks <= ticks[-1])]
+        cb.ax.xaxis.set_ticks(minorticks, minor=True)
+
+    cb.ax.tick_params(
+        which="both",
+        axis="x",
+        direction="in",
+    )
+    cb.ax.xaxis.labelpad = 0
+    # workaround for issue with viewers, see colorbar docstring
+    cb.solids.set_edgecolor("face")
+    return cb
+
+def get_data(input, sig,  comp, freq, fwhm, nside=None, sample=None, ):
+    # Parsing component string
+    if comp is not None:
+        comp, *specparam = comp.split()
+
+    # If map is string, read data
+    if isinstance(input, str):
+        if input.endswith(".h5"):
+            if sample is None:
+                raise ValueError(
+                    "HDF file passed, please specify sample"
+                )
+            if comp is None:
+                if freq is None:             
+                    print("[bold orange]Warning! Neither frequency nor component selected. Plotting sky at 70GHz[/bold orange]")
+                    freq=70*u.GHz
+                comp = "freqmap"
+            input = model_from_chain(input, comps=comp, nside=nside, samples=sample)
+        elif input.endswith(".fits"):
+            input = hp.read_map(input, field=sig)
+        else:
+            raise ValueError(
+                    "HDF file passed, please specify sample"
+                )
+
+    if isinstance(input, Model):
+        """
+        Get data from model object with frequency scaling
+        """
+        if comp is None:
+            if freq is None:
+                print("[bold orange]Warning! Neither frequency nor component selected. Plotting sky at 70GHz[/bold orange]")
+                comp = "freqmap"
+                freq=70*u.GHz
+            m = input(
+                freq,
+                fwhm=fwhm,
+            )
+        else:
+            if len(specparam) > 0 and isinstance(specparam[0], str):
+                m = getattr(input, comp).spectral_parameters[specparam[0]]
+
+                if len(m[sig]) == 1:
+                    warnings.warn(
+                        "Same value across the whole sky, mapping to array of length Npix"
+                    )
+                    m = np.full(hp.nside2npix(input.nside), m[sig])
+            else:
+                if freq is None:
+                    freq_ref = getattr(input, comp).freq_ref
+                    freq = freq_ref.value
+                    m = getattr(input, comp).amp
+                    if comp == "radio":
+                        m = getattr(input, comp)(freq_ref, fwhm=fwhm)
+                        diffuse = False
+                    try:
+                        freq = round(freq.squeeze()[sig], 5) * freq_ref.unit
+                    except IndexError:
+                        freq = round(freq, 5) * freq_ref.unit
+                else:
+                    m = getattr(input, comp)(freq, fwhm=fwhm)
+    elif isinstance(input, np.ndarray):
+        m = input
+    else:
+        raise TypeError(
+            f"Type {type(input)} of input not supported"
+            f"Supports numpy array, cosmoglobe model object or fits file string"
+        )
+    if not isinstance(input, Model) and freq is not None:
+        freq = None
+        warnings.warn("freq only usable with model object. Setting freq to None")
+    # Make sure it is a 1d array
+    if m.ndim > 1:
+        m = m[sig]
+
+    # Convert astropy map to numpy array
+    if isinstance(m, u.Quantity):
+        m = m.value
+
+    return m
