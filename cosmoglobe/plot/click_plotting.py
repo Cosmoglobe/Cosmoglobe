@@ -103,15 +103,15 @@ def plot(input, sig, comp, freq, ticks, min, max, nocbar, unit, fwhm, nside, sam
                     cmap=load_cmap(params["cmap"]),
                     shading="auto",
                     )
-
+            
+            """
             # Show title for gifs
             sample = re.search('_k([0-9]*)', filename)
             if sample:
                 sample = sample.group(1).lstrip("0")
             else:
                 sample = filename
-            plt.title(sample)
-
+            """
         if show:
             plt.show()
 
