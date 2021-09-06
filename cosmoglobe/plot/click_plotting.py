@@ -3,6 +3,7 @@ from rich import print
 import astropy.units as u
 import matplotlib.pyplot as plt
 import os
+import re
 
 from cosmoglobe.plot import plot as cplot
 from cosmoglobe.plot import trace as ctrace
@@ -69,12 +70,12 @@ def commands_plotting():
 @click.option("-show", is_flag=True, help='Displays the figure in addition to saving',)
 @click.option("-gif", is_flag=True, help='Convert inputs to gif',)
 @click.option("-fps", default=3, type=click.INT, help="Gif speed, 300 by default.",)
-def plot(input, sig, comp, freq, ticks, min, max, nocbar, unit, fwhm, nside, sample, mask, maskfill, cmap, norm, remove_dip, remove_mono, title, right_label, left_label, width, xsize, darkmode, interactive, rot, coord, nest, flip, graticule, graticule_labels, return_only_data, projection_type, cb_orientation, xlabel, ylabel, longitude_grid_spacing, latitude_grid_spacing, override_plot_properties, xtick_label_color, ytick_label_color, graticule_color, fontsize, phi_convention, custom_xtick_labels, custom_ytick_labels, white_background, png, outdir, outname, show, gif, fps,):
+@click.option("-dpi", default=300, type=click.INT, help="DPI of output file. 300 by default.",)
+def plot(input, sig, comp, freq, ticks, min, max, nocbar, unit, fwhm, nside, sample, mask, maskfill, cmap, norm, remove_dip, remove_mono, title, right_label, left_label, width, xsize, darkmode, interactive, rot, coord, nest, flip, graticule, graticule_labels, return_only_data, projection_type, cb_orientation, xlabel, ylabel, longitude_grid_spacing, latitude_grid_spacing, override_plot_properties, xtick_label_color, ytick_label_color, graticule_color, fontsize, phi_convention, custom_xtick_labels, custom_ytick_labels, white_background, png, outdir, outname, show, gif, fps, dpi,):
     """
     This function invokes the plot function from the command line
     input: filename of fits or h5 file, optional plotting paramameters
     """
-
     imgs = [] # Container for images used with gif
     for i, filename in enumerate(input):
         cbar = False if nocbar else True
@@ -89,18 +90,28 @@ def plot(input, sig, comp, freq, ticks, min, max, nocbar, unit, fwhm, nside, sam
         img, params = cplot(filename, sig=sig, comp=comps, freq=freq_, ticks=ticks, min=min, max=max, cbar=cbar, unit=unit, fwhm=fwhm_, nside=nside, sample=sample, mask=mask, maskfill=maskfill, cmap=cmap, norm=norm, remove_dip=remove_dip, remove_mono=remove_mono, title=title, right_label=right_label, left_label=left_label, width=width, xsize=xsize, darkmode=darkmode, interactive=interactive, rot=rot, coord=coord, nest=nest, flip=flip, graticule=graticule, graticule_labels=graticule_labels, return_only_data=return_only_data, projection_type=projection_type, cb_orientation=cb_orientation, xlabel=xlabel, ylabel=ylabel, longitude_grid_spacing=longitude_grid_spacing, latitude_grid_spacing=latitude_grid_spacing, override_plot_properties=override_plot_properties, xtick_label_color=xtick_label_color, ytick_label_color=ytick_label_color, graticule_color=graticule_color, fontsize=fontsize, phi_convention=phi_convention, custom_xtick_labels=custom_xtick_labels, custom_ytick_labels=custom_ytick_labels,)
 
         # Super hacky gif fix because "hold" is not implemented in newvisufunc
-        if gif and i>0: 
-            longitude, latitude, grid_map = img
-            img = plt.pcolormesh(
-                longitude,
-                latitude,
-                grid_map,
-                vmin=params["ticks"][0],
-                vmax=params["ticks"][-1],
-                rasterized=True,
-                cmap=load_cmap(params["cmap"]),
-                shading="auto",
-                )
+        if gif:
+            if i>0: 
+                longitude, latitude, grid_map = img
+                img = plt.pcolormesh(
+                    longitude,
+                    latitude,
+                    grid_map,
+                    vmin=params["ticks"][0],
+                    vmax=params["ticks"][-1],
+                    rasterized=True,
+                    cmap=load_cmap(params["cmap"]),
+                    shading="auto",
+                    )
+
+            # Show title for gifs
+            sample = re.search('_k([0-9]*)', filename)
+            if sample:
+                sample = sample.group(1).lstrip("0")
+            else:
+                sample = filename
+            plt.title(sample)
+
         if show:
             plt.show()
 
@@ -151,14 +162,14 @@ def plot(input, sig, comp, freq, ticks, min, max, nocbar, unit, fwhm, nside, sam
             filetype = "png" if png else "pdf"
             path = "." if path[0]=="" else path[0]
             print(f"[bold green]Outputting {fn}[/bold green] to {path}")
-            plt.savefig(f"{path}/{fn}", bbox_inches="tight", pad_inches=0.02, transparent=tp, format=filetype, dpi=300)
+            plt.savefig(f"{path}/{fn}", bbox_inches="tight", pad_inches=0.02, transparent=tp, format=filetype, dpi=dpi)
     
     if gif:
         import matplotlib.animation as animation
         ani = animation.ArtistAnimation(plt.gcf(), imgs, blit=True)
         fn = fn.replace(filetype,"gif")
         print(f"[bold green]Outputting {fn}[/bold green]")
-        ani.save(fn,dpi=300,writer=animation.PillowWriter(fps=fps))
+        ani.save(fn,dpi=dpi,writer=animation.PillowWriter(fps=fps))
 
 
 @commands_plotting.command()
@@ -196,7 +207,8 @@ def plot(input, sig, comp, freq, ticks, min, max, nocbar, unit, fwhm, nside, sam
 @click.option("-outname", default=None, type=click.STRING, help="Output filename, overwrites autonaming",)
 @click.option("-show", is_flag=True, help='Displays the figure in addition to saving',)
 @click.option("-png", is_flag=True, help="Saves output as .png ().pdf by default)",)
-def gnom(input, lon, lat, comp, sig, freq, sample, nside, size, vmin, vmax, ticks, rng, left_label, right_label, unit, cmap, graticule, norm, nocbar, fwhm, remove_dip, remove_mono, fontsize, figsize, darkmode, fignum, subplot, hold, reuse_axes, outdir, outname, show, png):
+@click.option("-dpi", default=300, type=click.INT, help="DPI of output file. 300 by default.",)
+def gnom(input, lon, lat, comp, sig, freq, sample, nside, size, vmin, vmax, ticks, rng, left_label, right_label, unit, cmap, graticule, norm, nocbar, fwhm, remove_dip, remove_mono, fontsize, figsize, darkmode, fignum, subplot, hold, reuse_axes, outdir, outname, show, png, dpi,):
     """
     This function plots a fits file in gnomonic view.
     It is wrapper on the cosmoglobe "gnom" function.s
@@ -221,7 +233,7 @@ def gnom(input, lon, lat, comp, sig, freq, sample, nside, size, vmin, vmax, tick
     path = "." if path[0]=="" else path[0]
     fn = os.path.splitext(fn)[0] + f".{filetype}"
     print(f"[bold green]Outputting {fn}[/bold green] to {path}")
-    plt.savefig(f"{path}/{fn}", bbox_inches="tight", pad_inches=0.02, format=filetype, dpi=300)
+    plt.savefig(f"{path}/{fn}", bbox_inches="tight", pad_inches=0.02, format=filetype, dpi=dpi)
 
 
 @commands_plotting.command()
@@ -245,7 +257,8 @@ def gnom(input, lon, lat, comp, sig, freq, sample, nside, size, vmin, vmax, tick
 @click.option("-outname", default=None, type=click.STRING, help="Output filename, overwrites autonaming",)
 @click.option("-show", is_flag=True, help='Displays the figure in addition to saving',)
 @click.option("-png", is_flag=True, help="Saves output as .png ().pdf by default)",)
-def trace(input, dataset, sig, labels, showval, burnin, xlabel, ylabel, nbins, cmap, figsize, darkmode, fignum, subplot, hold, reuse_axes, outdir, outname, show, png):
+@click.option("-dpi", default=300, type=click.INT, help="DPI of output file. 300 by default.",)
+def trace(input, dataset, sig, labels, showval, burnin, xlabel, ylabel, nbins, cmap, figsize, darkmode, fignum, subplot, hold, reuse_axes, outdir, outname, show, png, dpi,):
     """
     This function creates a trace plot off data in a HDF file.
     This is a click wrapper the same function in cosmoglobe.
@@ -266,4 +279,4 @@ def trace(input, dataset, sig, labels, showval, burnin, xlabel, ylabel, nbins, c
     path = "." if path[0]=="" else path[0]
     fn = os.path.splitext(fn)[0] + f".{filetype}"
     print(f"[bold green]Outputting {fn}[/bold green] to {path}")
-    plt.savefig(f"{path}/{fn}", bbox_inches="tight", pad_inches=0.02, format=filetype, dpi=300)
+    plt.savefig(f"{path}/{fn}", bbox_inches="tight", pad_inches=0.02, format=filetype, dpi=dpi)

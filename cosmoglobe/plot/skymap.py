@@ -195,13 +195,16 @@ def plot(
     if width is None:
         override_plot_properties = None
     else:
-        if isinstance(width, str):
-            width = {
-                "x": 2.75,
-                "s": 3.5,
-                "m": 4.7,
-                "l": 7,
-            }[width]
+        try:
+            width = int(width)
+        except:
+            if isinstance(width, str):
+                width = {
+                    "x": 2.75,
+                    "s": 3.5,
+                    "m": 4.7,
+                    "l": 7,
+                }[width]
         ratio = 0.63 if cbar else 0.5
         xsize = int((1000 / 8.5) * width)
         override_plot_properties = {
