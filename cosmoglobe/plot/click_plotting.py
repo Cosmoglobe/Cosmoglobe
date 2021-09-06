@@ -119,11 +119,11 @@ def plot(input, sig, comp, freq, ticks, min, max, nocbar, unit, fwhm, nside, sam
         Filename formatting and  outputting
         """
         *path, fn = os.path.split(filename)
-        fn = os.path.splitext(fn)[0] 
+        fn, ftype = os.path.splitext(fn)
+        if ftype==".h5": fn += "_"+comp
         
-        if ".h5" in fn: fn += +"_"+comp
         fn = fn.replace("_IQU_", "_").replace("_I_", "_")
-        if freq is not None: fn = fn.replace(comp, f"{comp}-{int(freq.value)}GHz")
+        if freq_ is not None: fn = fn.replace(comp, f"{comp}-{int(freq_.value)}GHz")
         if outdir: path = outdir
 
         filename = []
