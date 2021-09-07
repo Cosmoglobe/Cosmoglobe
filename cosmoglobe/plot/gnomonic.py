@@ -83,7 +83,7 @@ def gnom(
 
     # Fetching autoset parameters
     params = autoparams(
-        comp, sig, right_label, left_label, unit, ticks, vmin, vmax, norm, cmap, freq
+        comp, sig, right_label, left_label, unit, ticks, vmin, vmax, rng, norm, cmap, freq
     )
 
 

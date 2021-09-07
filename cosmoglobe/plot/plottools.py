@@ -25,7 +25,7 @@ def apply_logscale(m, ticks, linthresh=1):
     This function converts the data to logscale,
     and also converts the tick locations correspondingly
     """
-    print("[orange]Applying semi-logscale[/orange]")
+    print("[magenta]Applying semi-logscale[/magenta]")
     m = symlog(m, linthresh)
     new_ticks = []
     for i in ticks:
@@ -257,7 +257,7 @@ def symlog(m, linthresh=1.0):
 
 
 def autoparams(
-    comp, sig, right_label, left_label, unit, ticks, min, max, norm, cmap, freq
+    comp, sig, right_label, left_label, unit, ticks, min, max, rng, norm, cmap, freq
 ):
     """
     This parses the autoparams json file for automatically setting parameters
@@ -281,7 +281,7 @@ def autoparams(
         try:
             params = autoparams[comp]
         except:
-            print(f"[orange]Component label {comp} not found. Using unidentified profile.[/orange]")
+            print(f"[magenta]Component label {comp} not found. Using unidentified profile.[/magenta]")
             print(f"available keys are: {autoparams.keys()}")
             params = autoparams["unidentified"]
 
@@ -297,12 +297,18 @@ def autoparams(
 
         specials = ["residual", "freqmap", "bpcorr", "smap"]
         if any(j in comp for j in specials):
-            params["right_label"] = (
-                params["right_label"]
-                + "{"
-                + f'{("%.5f" % freq.value).rstrip("0").rstrip(".")}'
-                + "}"
-            )
+            if freq is not None:
+                params["right_label"] = (
+                    params["right_label"]
+                    + "{"
+                    + f'{("%.5f" % freq.value).rstrip("0").rstrip(".")}'
+                    + "}"
+                )
+            else:
+                params["right_label"] = None
+                warnings.warn(
+                    f'Specify frequency with -freq for automatic frequency labeling with the "freqmap" profile'
+                )
 
         if "rms" in comp:
             params["right_label"] += "^{\mathrm{RMS}}"
@@ -335,27 +341,31 @@ def autoparams(
             )
         if ticks == None:
             if (
-                freq != None
+                freq is not None
                 and params["freq_ref"] != freq.value
                 and comp not in specials
             ):
                 warnings.warn(
-                    f"[orange]Input frequency is different from reference, autosetting ticks[/orange]"
+                    f"Input frequency is different from reference, autosetting ticks"
                 )
                 print(f'input: {freq}, reference: {params["freq_ref"]}')
                 params["ticks"] = "auto"
 
     if params["ticks"] is None:
         params["ticks"] = [min, max]
+    
     if ticks != "auto":
-        if min is not None:
-            if params["ticks"] == "auto":
-                params["ticks"] = [None, None]
-            params["ticks"][0] = min
-        if max is not None:
-            if params["ticks"] == "auto":
-                params["ticks"] = [None, None]
-            params["ticks"][-1] = max
+        if rng is not None:
+            params["ticks"] = [-rng, 0.0, rng]
+        else:
+            if min is not None:
+                if params["ticks"] == "auto":
+                    params["ticks"] = [None, None]
+                params["ticks"][0] = min
+            if max is not None:
+                if params["ticks"] == "auto":
+                    params["ticks"] = [None, None]
+                params["ticks"][-1] = max
     # Math text in labels
     for i in [
         "right_label",
@@ -542,7 +552,7 @@ def apply_colorbar(
     cb.solids.set_edgecolor("face")
     return cb
 
-def get_data(input, sig,  comp, freq, fwhm, nside=None, sample=None, ):
+def get_data(input, sig, comp, freq, fwhm, nside=None, sample=None, ):
     # Parsing component string
     if comp is not None:
         comp, *specparam = comp.split()
@@ -556,63 +566,65 @@ def get_data(input, sig,  comp, freq, fwhm, nside=None, sample=None, ):
                 )
             if comp is None:
                 if freq is None:             
-                    print("[bold orange]Warning! Neither frequency nor component selected. Plotting sky at 70GHz[/bold orange]")
+                    print("[bold magenta]Warning! Neither frequency nor component selected. Plotting sky at 70GHz[/bold magenta]")
                     freq=70*u.GHz
                 comp = "freqmap"
-            input = model_from_chain(input, comps=comp, nside=nside, samples=sample)
+            data = model_from_chain(input, comps=comp, nside=nside, samples=sample)
         elif input.endswith(".fits"):
-            input = hp.read_map(input, field=sig)
+            data = hp.read_map(input, field=sig)
         else:
             raise ValueError(
                     "HDF file passed, please specify sample"
                 )
-
-    if isinstance(input, Model):
+    else:
+        data = input
+    
+    if isinstance(data, Model):
         """
         Get data from model object with frequency scaling
         """
         if comp is None:
             if freq is None:
-                print("[bold orange]Warning! Neither frequency nor component selected. Plotting sky at 70GHz[/bold orange]")
+                print("[bold magenta]Warning! Neither frequency nor component selected. Plotting sky at 70GHz[/bold magenta]")
                 comp = "freqmap"
                 freq=70*u.GHz
-            m = input(
+            m = data(
                 freq,
                 fwhm=fwhm,
             )
         else:
             if len(specparam) > 0 and isinstance(specparam[0], str):
-                m = getattr(input, comp).spectral_parameters[specparam[0]]
+                m = getattr(data, comp).spectral_parameters[specparam[0]]
 
                 if len(m[sig]) == 1:
                     warnings.warn(
                         "Same value across the whole sky, mapping to array of length Npix"
                     )
-                    m = np.full(hp.nside2npix(input.nside), m[sig])
+                    m = np.full(hp.nside2npix(data.nside), m[sig])
             else:
                 if freq is None:
-                    freq_ref = getattr(input, comp).freq_ref
+                    freq_ref = getattr(data, comp).freq_ref
                     freq = freq_ref.value
-                    m = getattr(input, comp).amp
+                    m = getattr(data, comp).amp
                     if comp == "radio":
-                        m = getattr(input, comp)(freq_ref, fwhm=fwhm)
+                        m = getattr(data, comp)(freq_ref, fwhm=fwhm)
                         diffuse = False
                     try:
                         freq = round(freq.squeeze()[sig], 5) * freq_ref.unit
                     except IndexError:
                         freq = round(freq, 5) * freq_ref.unit
                 else:
-                    m = getattr(input, comp)(freq, fwhm=fwhm)
-    elif isinstance(input, np.ndarray):
-        m = input
+                    m = getattr(data, comp)(freq, fwhm=fwhm)
+    elif isinstance(data, np.ndarray):
+        m = data
+        if m.ndim == 1 and sig>0:
+            print(f'[magenta]Input array is 1d, specified signal will only be used for labeling, make sure this is correct.[/magenta]')
     else:
         raise TypeError(
-            f"Type {type(input)} of input not supported"
+            f"Type {type(data)} of data not supported"
             f"Supports numpy array, cosmoglobe model object or fits file string"
         )
-    if not isinstance(input, Model) and freq is not None:
-        freq = None
-        warnings.warn("freq only usable with model object. Setting freq to None")
+
     # Make sure it is a 1d array
     if m.ndim > 1:
         m = m[sig]
