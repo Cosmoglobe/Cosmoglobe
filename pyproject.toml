@@ -1,14 +1,14 @@
 [tool.poetry]
 name = "cosmoglobe"
-version = "0.9.35"
+version = "0.9.36"
 description = "cosmoglobe is a python package that interfaces the Cosmoglobe Sky Model with commander3 outputs for the purpose of producing astrophysical sky maps."
 authors = ["Metin San <metinisan@gmail.com>", "Trygve Leithe Svalheim <t.l.svalheim@astro.uio.no>"]
 license = "GNU GPLv3"
 
 [tool.poetry.dependencies]
-python = "=3.8"
-numpy = ">=1.19.0,<1.20.0"
-numba = "^0.50.1"
+python = ">=3.8,<3.10"
+numpy = ">=1.17.0,<1.21.0"
+numba = "^0.54.0"
 scipy = ">=1.6.0"
 healpy = "^1.15.0"
 astropy = "^4.3.1"
