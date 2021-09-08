@@ -13,7 +13,6 @@ import astropy.units as u
 nside = 64
 npix = hp.nside2npix(nside)
 
-
 class TestModifiedBlackbody(unittest.TestCase):
 
     def setUp(self):

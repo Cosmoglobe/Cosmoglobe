@@ -23,6 +23,7 @@ def plot(
     ticks=None,
     min=None,
     max=None,
+    rng=None,
     cbar=True,
     unit=None,
     fwhm=0.0 * u.arcmin,
@@ -97,6 +98,9 @@ def plot(
       default = None
     max : float, optional
       The maximum range value. If specified, overwrites autodetector.
+      default = None
+    rng : float, optional
+      Sets this value as min and max value. If specified, overwrites autodetector.
       default = None
     cbar : bool, optional
         Toggles the colorbar
@@ -251,7 +255,7 @@ def plot(
 
         m = hp.ma(m)
         if hp.get_nside(mask) != nside:
-            print("[orange]Input mask nside is different, ud_grading to output nside.[/orange]")
+            print("[magenta]Input mask nside is different, ud_grading to output nside.[/magenta]")
             mask = hp.ud_grade(mask, nside)
         m.mask = np.logical_not(mask)
 
@@ -267,7 +271,7 @@ def plot(
 
     # Fetching autoset parameters
     params = autoparams(
-        comp, sig, right_label, left_label, unit, ticks, min, max, norm, cmap, freq
+        comp, sig, right_label, left_label, unit, ticks, min, max, rng, norm, cmap, freq
     )
 
     # Ticks and ticklabels
@@ -287,11 +291,11 @@ def plot(
     params["ticks"] = ticks
 
     # Special case if dipole is detected in freqmap
-    if comp == "freqmap":
+    if comp == "freqmap" and min is None and max is None and rng is None:
         # if colorbar is super-saturated
         while len(m[abs(m) > ticks[-1]]) / hp.nside2npix(nside) > 0.7:
             ticks = [tick * 10 for tick in ticks]
-            print("[orange]Colormap saturated. Expanding color-range.[/orange]")
+            print("[magenta]Colormap saturated. Expanding color-range.[/magenta]")
 
     # Create ticklabels from final ticks
     ticklabels = [fmt(i, 1) for i in ticks]

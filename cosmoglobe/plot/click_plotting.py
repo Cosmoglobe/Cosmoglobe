@@ -24,6 +24,7 @@ def commands_plotting():
 @click.option("-ticks", default=None, help="Min and max value for data. If None, uses 97.5th percentile.",)
 @click.option("-min", default=None, type=click.FLOAT, help="Min value of colorbar, overrides autodetector.",)
 @click.option("-max", default=None, type=click.FLOAT, help="Max value of colorbar, overrides autodetector.",)
+@click.option("-range", "rng", default=None, type=click.FLOAT, help="Color bar range")
 @click.option("-nocbar", is_flag=True, help='Adds colorbar ("cb" in filename)',)
 @click.option("-unit", default=None, type=click.STRING, help="Set unit (Under color bar), has LaTeX functionality. Ex. $\mu$",)
 @click.option("-fwhm", default=0.0, type=click.FLOAT, help="FWHM of smoothing, in arcmin.",)
@@ -71,7 +72,7 @@ def commands_plotting():
 @click.option("-gif", is_flag=True, help='Convert inputs to gif',)
 @click.option("-fps", default=3, type=click.INT, help="Gif speed, 300 by default.",)
 @click.option("-dpi", default=300, type=click.INT, help="DPI of output file. 300 by default.",)
-def plot(input, sig, comp, freq, ticks, min, max, nocbar, unit, fwhm, nside, sample, mask, maskfill, cmap, norm, remove_dip, remove_mono, title, right_label, left_label, width, xsize, darkmode, interactive, rot, coord, nest, flip, graticule, graticule_labels, return_only_data, projection_type, cb_orientation, xlabel, ylabel, longitude_grid_spacing, latitude_grid_spacing, override_plot_properties, xtick_label_color, ytick_label_color, graticule_color, fontsize, phi_convention, custom_xtick_labels, custom_ytick_labels, white_background, png, outdir, outname, show, gif, fps, dpi,):
+def plot(input, sig, comp, freq, ticks, min, max, rng, nocbar, unit, fwhm, nside, sample, mask, maskfill, cmap, norm, remove_dip, remove_mono, title, right_label, left_label, width, xsize, darkmode, interactive, rot, coord, nest, flip, graticule, graticule_labels, return_only_data, projection_type, cb_orientation, xlabel, ylabel, longitude_grid_spacing, latitude_grid_spacing, override_plot_properties, xtick_label_color, ytick_label_color, graticule_color, fontsize, phi_convention, custom_xtick_labels, custom_ytick_labels, white_background, png, outdir, outname, show, gif, fps, dpi,):
     """
     This function invokes the plot function from the command line
     input: filename of fits or h5 file, optional plotting paramameters
@@ -87,7 +88,7 @@ def plot(input, sig, comp, freq, ticks, min, max, nocbar, unit, fwhm, nside, sam
         if gif and i>0: return_only_data=True
 
         # Actually plot the stuff
-        img, params = cplot(filename, sig=sig, comp=comps, freq=freq_, ticks=ticks, min=min, max=max, cbar=cbar, unit=unit, fwhm=fwhm_, nside=nside, sample=sample, mask=mask, maskfill=maskfill, cmap=cmap, norm=norm, remove_dip=remove_dip, remove_mono=remove_mono, title=title, right_label=right_label, left_label=left_label, width=width, xsize=xsize, darkmode=darkmode, interactive=interactive, rot=rot, coord=coord, nest=nest, flip=flip, graticule=graticule, graticule_labels=graticule_labels, return_only_data=return_only_data, projection_type=projection_type, cb_orientation=cb_orientation, xlabel=xlabel, ylabel=ylabel, longitude_grid_spacing=longitude_grid_spacing, latitude_grid_spacing=latitude_grid_spacing, override_plot_properties=override_plot_properties, xtick_label_color=xtick_label_color, ytick_label_color=ytick_label_color, graticule_color=graticule_color, fontsize=fontsize, phi_convention=phi_convention, custom_xtick_labels=custom_xtick_labels, custom_ytick_labels=custom_ytick_labels,)
+        img, params = cplot(filename, sig=sig, comp=comps, freq=freq_, ticks=ticks, min=min, max=max, rng=rng, cbar=cbar, unit=unit, fwhm=fwhm_, nside=nside, sample=sample, mask=mask, maskfill=maskfill, cmap=cmap, norm=norm, remove_dip=remove_dip, remove_mono=remove_mono, title=title, right_label=right_label, left_label=left_label, width=width, xsize=xsize, darkmode=darkmode, interactive=interactive, rot=rot, coord=coord, nest=nest, flip=flip, graticule=graticule, graticule_labels=graticule_labels, return_only_data=return_only_data, projection_type=projection_type, cb_orientation=cb_orientation, xlabel=xlabel, ylabel=ylabel, longitude_grid_spacing=longitude_grid_spacing, latitude_grid_spacing=latitude_grid_spacing, override_plot_properties=override_plot_properties, xtick_label_color=xtick_label_color, ytick_label_color=ytick_label_color, graticule_color=graticule_color, fontsize=fontsize, phi_convention=phi_convention, custom_xtick_labels=custom_xtick_labels, custom_ytick_labels=custom_ytick_labels,)
 
         # Super hacky gif fix because "hold" is not implemented in newvisufunc
         if gif:
@@ -126,14 +127,14 @@ def plot(input, sig, comp, freq, ticks, min, max, nocbar, unit, fwhm, nside, sam
         if freq_ is not None: fn = fn.replace(comp, f"{comp}-{int(freq_.value)}GHz")
         if outdir: path = outdir
 
-        filename = []
-        filename.append(f"{str(int(fwhm_.value))}arcmin") if float(fwhm_.value) > 0 else None
-        filename.append("cb") if cbar else None
-        filename.append("masked") if mask else None
-        filename.append("nodip") if remove_dip else None
-        filename.append("dark") if darkmode else None
+        tags = []
+        tags.append(f"{str(int(fwhm_.value))}arcmin") if float(fwhm_.value) > 0 else None
+        tags.append("cb") if cbar else None
+        tags.append("masked") if mask else None
+        tags.append("nodip") if remove_dip else None
+        tags.append("dark") if darkmode else None
         if params["cmap"] is None: params["cmap"]="planck"
-        filename.append(f'c-{params["cmap"]}')
+        tags.append(f'c-{params["cmap"]}')
 
         nside_tag = "_n" + str(int(params["nside"]))
         if nside_tag in fn: fn = fn.replace(nside_tag, "")
@@ -143,7 +144,7 @@ def plot(input, sig, comp, freq, ticks, min, max, nocbar, unit, fwhm, nside, sam
         if isinstance(sig, int): sig = ["I","Q", "U"][sig]
         fn = fn + f'_{sig}_w{str(int(width))}' + nside_tag
 
-        for i in filename: fn += f"_{i}"
+        for i in tags: fn += f"_{i}"
 
         filetype = "png" if png else "pdf"
         if outname:
@@ -179,9 +180,9 @@ def plot(input, sig, comp, freq, ticks, min, max, nocbar, unit, fwhm, nside, sam
 @click.option("-comp", default=None, type=click.STRING, help="Component name for autosetting plottingparameters",)
 @click.option("-sig", default=0, help="Which sky signal to plot",)
 @click.option("-freq", default=None, type=click.FLOAT, help="Frequency in GHz needed for scaling maps when using a model object input",)
-@click.option("-sample", default=-1, type=click.INT, help="Select sample when inputing .h5 file",)
 @click.option("-nside", default=None, type=click.INT, help="nside for optional ud_grade.",)
 @click.option("-size", default=20, type=click.INT)
+@click.option("-sample", default=-1, type=click.INT, help="Select sample when inputing .h5 file",)
 @click.option("-min", "vmin", default=None, type=click.FLOAT, help="Min value of colorbar, overrides autodetector.",)
 @click.option("-max", "vmax", default=None, type=click.FLOAT, help="Max value of colorbar, overrides autodetector.",)
 @click.option("-ticks", default=None, help="Min and max value for data. If None, uses 97.5th percentile.",)
@@ -208,7 +209,7 @@ def plot(input, sig, comp, freq, ticks, min, max, nocbar, unit, fwhm, nside, sam
 @click.option("-show", is_flag=True, help='Displays the figure in addition to saving',)
 @click.option("-png", is_flag=True, help="Saves output as .png ().pdf by default)",)
 @click.option("-dpi", default=300, type=click.INT, help="DPI of output file. 300 by default.",)
-def gnom(input, lon, lat, comp, sig, freq, sample, nside, size, vmin, vmax, ticks, rng, left_label, right_label, unit, cmap, graticule, norm, nocbar, fwhm, remove_dip, remove_mono, fontsize, figsize, darkmode, fignum, subplot, hold, reuse_axes, outdir, outname, show, png, dpi,):
+def gnom(input, lon, lat, comp, sig, freq, nside, size, sample, vmin, vmax, ticks, rng, left_label, right_label, unit, cmap, graticule, norm, nocbar, fwhm, remove_dip, remove_mono, fontsize, figsize, darkmode, fignum, subplot, hold, reuse_axes, outdir, outname, show, png, dpi,):
     """
     This function plots a fits file in gnomonic view.
     It is wrapper on the cosmoglobe "gnom" function.s
@@ -217,7 +218,7 @@ def gnom(input, lon, lat, comp, sig, freq, sample, nside, size, vmin, vmax, tick
     freq_ = None if freq is None else freq*u.GHz
     fwhm_ = None if fwhm is None else fwhm*u.arcmin
     figsize = (3,4) if figsize is None else figsize
-    img, params = cgnom(input, lon, lat, comp, sig, freq_, sample, nside, size, vmin, vmax, ticks, rng, left_label, right_label, unit, cmap, graticule, norm, cbar, fwhm_, remove_dip, remove_mono, fontsize, figsize, darkmode, fignum, subplot, hold, reuse_axes,)
+    img, params = cgnom(input, lon, lat, comp, sig, freq_, nside, size, sample, vmin, vmax, ticks, rng, left_label, right_label, unit, cmap, graticule, norm, cbar, fwhm_, remove_dip, remove_mono, fontsize, figsize, darkmode, fignum, subplot, hold, reuse_axes,)
 
     if show: plt.show()
 
