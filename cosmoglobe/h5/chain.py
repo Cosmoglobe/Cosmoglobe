@@ -93,7 +93,10 @@ class Chain:
         return [f"{sample:06d}" for sample in list(samples)]
 
     def get(
-        self, item: str, samples: Optional[Iterable[str]] = None, burn_in: int = None
+        self,
+        item: str,
+        samples: Optional[Iterable[str]] = None,
+        burn_in: Optional[int] = None,
     ) -> List[Any]:
         """Returns the value of an item for all samples.
 
@@ -141,7 +144,10 @@ class Chain:
         return values
 
     def mean(
-        self, item: str, samples: Optional[Iterable[str]] = None, burn_in: int = None
+        self,
+        item: str,
+        samples: Optional[Iterable[str]] = None,
+        burn_in: Optional[int] = None,
     ) -> Any:
         """Returns the mean of an item over all samples.
 
@@ -194,7 +200,7 @@ class Chain:
 
         return value
 
-    def _process_samples(self, item, samples, burn_in):
+    def _process_samples(self, item: str, samples: list, burn_in: int) -> list:
         """Validates and process inputted samples."""
 
         if item.startswith(PARAMETER_GROUP_NAME):
