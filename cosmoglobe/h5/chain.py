@@ -6,7 +6,7 @@ import h5py
 from numba import njit
 import numpy as np
 
-from cosmoglobe.h5 import COSMOGLOBE_COMPS
+from cosmoglobe.sky import COSMOGLOBE_COMPS
 from cosmoglobe.h5.exceptions import (
     ChainFormatError,
     ChainItemNotFoundError,
@@ -87,10 +87,6 @@ class Chain:
         """Path to the chainfile."""
 
         return self._path
-
-    @staticmethod
-    def _int_to_sample(samples: Union[List[int], int]) -> Union[List[str], str]:
-        return [f"{sample:06d}" for sample in list(samples)]
 
     def get(
         self,
@@ -200,6 +196,26 @@ class Chain:
 
         return value
 
+    def __getitem__(self, key) -> Any:
+        """Returns an item from the chain.
+        
+        Note that alms are not unpacked into HEALPIX convention using the
+        key lookup."""
+
+        with h5py.File(self.path, "r") as file:
+            try:
+                item = file[key]
+            except KeyError as error:
+                raise ChainItemNotFoundError(error)
+
+            if isinstance(item, h5py.Group):
+                return list(item.keys())
+
+            elif isinstance(item, h5py.Dataset):
+                if np.issubdtype(item.dtype, np.string_):
+                    return item.asstr()[()]
+                return item[()]
+
     def _process_samples(self, item: str, samples: list, burn_in: int) -> list:
         """Validates and process inputted samples."""
 
@@ -235,22 +251,9 @@ class Chain:
 
         return samples
 
-    def __getitem__(self, key) -> Any:
-        """Returns an item from the chain."""
-
-        with h5py.File(self.path, "r") as file:
-            try:
-                item = file[key]
-            except KeyError as error:
-                raise ChainItemNotFoundError(error)
-
-            if isinstance(item, h5py.Group):
-                return list(item.keys())
-
-            elif isinstance(item, h5py.Dataset):
-                if np.issubdtype(item.dtype, np.string_):
-                    return item.asstr()[()]
-                return item[()]
+    @staticmethod
+    def _int_to_sample(samples: Union[List[int], int]) -> Union[List[str], str]:
+        return [f"{sample:06d}" for sample in list(samples)]
 
     def __str__(self) -> str:
         """Representation of the chain."""

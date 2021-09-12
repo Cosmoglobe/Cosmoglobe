@@ -6,9 +6,9 @@ import healpy as hp
 import numpy as np
 from tqdm import tqdm
 
-from cosmoglobe.h5 import COSMOGLOBE_COMPS
 from cosmoglobe.h5.chain import Chain
 from cosmoglobe.h5.exceptions import ChainComponentNotFoundError, ChainItemNotFoundError
+from cosmoglobe.sky import COSMOGLOBE_COMPS
 from cosmoglobe.sky.base import SkyComponent
 from cosmoglobe.sky.model import Model
 
