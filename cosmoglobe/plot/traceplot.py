@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from .plottools import *
-from cosmoglobe.chain.h5 import _get_items, _get_samples
+from cosmoglobe.h5.h5 import _get_items, _get_samples
 
 def trace(
     input,

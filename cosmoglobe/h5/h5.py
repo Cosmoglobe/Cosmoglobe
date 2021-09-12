@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 from cosmoglobe.sky.components import AME, CMB, Dust, FreeFree, Radio, Synchrotron
 from cosmoglobe.sky.base import SkyComponent
-from cosmoglobe.sky import Model
+from cosmoglobe.sky.model import Model
 from cosmoglobe.utils import utils
 
 # Model parameter group name as implemented in commander
@@ -455,8 +455,6 @@ def unpack_alms_from_chain(data: np.ndarray, lmax: int) -> np.ndarray:
     Unpacking algorithm:
     https://github.com/trygvels/c3pp/blob/2a2937926c260cbce15e6d6d6e0e9d23b0be1262/src/tools.py#L9
 
-    TODO: look over this function and see if it can be improved.
-
     Parameters
     ----------
     data
@@ -468,8 +466,8 @@ def unpack_alms_from_chain(data: np.ndarray, lmax: int) -> np.ndarray:
     -------
     alms
         Unpacked version of the Commander alms (2-dimensional array)
-
     """
+    
     n = len(data)
     n_alms = int(lmax * (2 * lmax + 1 - lmax) / 2 + lmax + 1)
     alms = np.zeros((n, n_alms), dtype=np.complex128)

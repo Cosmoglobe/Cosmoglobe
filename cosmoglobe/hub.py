@@ -4,7 +4,7 @@ from typing import Optional
 
 from astropy.utils.data import download_file
 
-from cosmoglobe.chain.h5 import model_from_h5
+# from cosmoglobe.chain.h5 import model_from_h5
 
 data_url = pathlib.Path("http://cosmoglobe.uio.no/releases/")
 

@@ -417,18 +417,21 @@ class Radio(PointSource):
     def __init__(
         self, amp: u.Quantity, freq_ref: u.Quantity, specind: u.Quantity
     ) -> None:
+
+        specind = specind[0] # We only need the alpha specind for this model
         super().__init__(amp, freq_ref, specind=specind)
-
         self.angular_coords = self._read_coords_from_catalog(RADIO_CATALOG)
-
+        
         # Note that the true unit of self.amp at this stage is "mJy". Here we
         # manually set it to "mJy/sr" to make it convertable to uK. This does
         # not cause any problems, since in all cases, we end up dividing the
         # emission by some beam_area.
         self._amp = u.Quantity(self._amp.value, unit="mJy/sr")
-        self._amp = self.amp.to(
+        self._amp = self._amp.to(
             u.uK, equivalencies=u.thermodynamic_temperature(self.freq_ref)
         )
+
+
 
     def _get_freq_scaling(
         self, freq: u.Quantity, freq_ref: u.Quantity, specind: u.Quantity
