@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 import inspect
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Literal
 
 import astropy.units as u
 import healpy as hp
@@ -60,7 +60,6 @@ class ModelFactory:
         -------
             Initialized sky component object.
         """
-
         try:
             comp_class = COSMOGLOBE_COMPS[component]
         except KeyError:
@@ -72,7 +71,7 @@ class ModelFactory:
         class_args = list(signature.parameters.keys())
 
         args = {}
-        
+
         # Contexts are operations that needs to be done to the data in the
         # chain before it can be used in the sky model.
         mappings = chain_context.get_mappings(component)
@@ -125,7 +124,7 @@ class ModelFactory:
 def model_from_chain(
     chain: Union[str, Chain],
     nside: Optional[int] = None,
-    samples: Union[List[int], int] = DEFAULT_SAMPLE,
+    samples: Union[int, Literal["all"]] = DEFAULT_SAMPLE,
     burn_in: Optional[int] = None,
 ) -> Model:
     """Initialize and return a cosmoglobe sky model from a chainfile.
@@ -137,9 +136,9 @@ def model_from_chain(
     nside
         Model HEALPIX map resolution parameter.
     samples
-        A list of which samples to average over to create the reference maps
-        in the model, or a single sample. Defaults to the last sample in
-        the chain.
+        The sample number for which to extract the model. If the input
+        is 'all', then the model will an average of all samples in the chain.
+        Defaults to the last sample in the chain.
     burn_in
         Burn in sample in the chain.
 
@@ -148,6 +147,10 @@ def model_from_chain(
     model
         Initialized sky mode object.
     """
+    if isinstance(samples, str) and samples != "all":
+        raise ValueError(
+            "samples must be either a single int representing a sample, or equal to 'all'"
+        )
 
     model_factory = ModelFactory(chain, samples, burn_in)
 

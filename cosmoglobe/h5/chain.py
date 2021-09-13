@@ -229,15 +229,14 @@ class Chain:
                 "lookup instead (chain['parameters/...'])"
             )
 
-        if samples is None:
+        if samples is None or samples == "all":
             samples = self.samples
         elif samples == -1:
             samples = [self.samples[-1]]
         elif isinstance(samples, int):
-            if samples in self.samples:
-                samples = [samples]
-            else:
-                raise ChainSampleError("input samples is not in the chain")
+            samples = self._int_to_sample([samples])
+            if not samples[0] in self.samples:
+                raise ChainSampleError(f"input sample {samples} is not in the chain")
         elif isinstance(samples, Iterable):
             samples = list(samples)
         else:
