@@ -212,6 +212,8 @@ class SkyComponent(ABC):
         if freq_ref is None:
             return
         elif freq_ref.size == 1:
+            if np.ndim(freq_ref) == 0:
+                return np.expand_dims(freq_ref, axis=0)
             return freq_ref
         elif freq_ref.size == 2:
             return np.expand_dims(

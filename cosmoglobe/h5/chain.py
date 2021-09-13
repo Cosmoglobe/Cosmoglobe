@@ -137,6 +137,9 @@ class Chain:
                 )
             values = [unpack_alms_from_chain(value, lmax) for value in values]
 
+        if len(values) == 1:
+            return values[0]
+
         return values
 
     def mean(
@@ -198,7 +201,7 @@ class Chain:
 
     def __getitem__(self, key) -> Any:
         """Returns an item from the chain.
-        
+
         Note that alms are not unpacked into HEALPIX convention using the
         key lookup."""
 
@@ -228,15 +231,23 @@ class Chain:
 
         if samples is None:
             samples = self.samples
-        else:
-            if isinstance(samples, Iterable):
-                samples = list(samples)
+        elif samples == -1:
+            samples = [self.samples[-1]]
+        elif isinstance(samples, int):
+            if samples in self.samples:
+                samples = [samples]
             else:
-                raise ChainSampleError("input samples must be an iterable")
-            if samples[0] == 0:
-                raise ChainSampleError("Chain samples starts at 1, not 0")
-            if len(samples) > self.nsamples:
-                raise ChainSampleError(f"Chain only has {self.nsamples} samples")
+                raise ChainSampleError("input samples is not in the chain")
+        elif isinstance(samples, Iterable):
+            samples = list(samples)
+        else:
+            raise ChainSampleError(
+                "input samples must be an iterable or an int pointing to a sample"
+            )
+        if samples[0] == 0:
+            raise ChainSampleError("Chain samples starts at 1, not 0")
+        if len(samples) > self.nsamples:
+            raise ChainSampleError(f"Chain only has {self.nsamples} samples")
 
         if burn_in is None:
             burn_in = self.burn_in

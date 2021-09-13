@@ -1,10 +1,13 @@
-from typing import Dict, Iterable
+from typing import Dict, Iterable, TYPE_CHECKING
 
 import astropy.units as u
 import numpy as np
 from scipy.interpolate import RectBivariateSpline
 
 import cosmoglobe.utils.constants as const
+
+if TYPE_CHECKING:
+    from cosmoglobe.sky.base import SkyComponent
 
 
 @u.quantity_input(bandpass=(u.Jy / u.sr, u.K), freqs=u.Hz)
@@ -110,7 +113,10 @@ def get_bandpass_scaling(
         freq_scaling = comp._get_freq_scaling(
             freqs, comp.freq_ref, **comp.spectral_parameters
         )
-        return np.expand_dims(np.trapz(freq_scaling * bandpass, freqs), axis=1)
+        integral = np.trapz(freq_scaling * bandpass, freqs)
+        if np.ndim(integral) > 0:
+            return np.expand_dims(integral, axis=1)
+        return integral
     elif len(grid) == 1:
         # Component has one sptatially varying spectral parameter. In this
         # scenario we perform a 1D-interpolation in spectral parameter space.
