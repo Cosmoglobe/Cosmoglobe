@@ -140,7 +140,7 @@ class Chain:
         if len(values) == 1:
             return values[0]
 
-        return values
+        return np.asarray(values)
 
     def mean(
         self,
