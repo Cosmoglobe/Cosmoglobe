@@ -25,15 +25,12 @@ DEFAULT_SAMPLE = -1
 class ModelFactory:
     """Class that creates sky models from chains."""
 
-    chain: Union[str, Chain]
-    samples: Optional[Union[List[int], int]] = None
+    chain: Chain
+    samples: Optional[Union[range, int]] = None
     burn_in: Optional[int] = None
 
     def create(self, nside: Optional[int] = None) -> Model:
         """Initialize and return a sky component from a chainfile."""
-
-        if not isinstance(self.chain, Chain):
-            self.chain = Chain(self.chain, self.burn_in)
 
         if self.chain.version is ChainVersion.OLD:
             raise ChainFormatError(
@@ -134,7 +131,7 @@ class ModelFactory:
 def model_from_chain(
     chain: Union[str, Chain],
     nside: Optional[int] = None,
-    samples: Union[int, Literal["all"]] = DEFAULT_SAMPLE,
+    samples: Union[range, int, Literal["all"]] = DEFAULT_SAMPLE,
     burn_in: Optional[int] = None,
 ) -> Model:
     """Initialize and return a cosmoglobe sky model from a chainfile.
@@ -157,11 +154,16 @@ def model_from_chain(
     model
         Initialized sky mode object.
     """
-    if isinstance(samples, str) and samples != "all":
-        raise ValueError(
-            "samples must be either a single int representing a sample, or equal to 'all'"
-        )
 
+    if not isinstance(chain, Chain):
+        chain = Chain(chain, burn_in)
+
+    if isinstance(samples, str):
+        if samples.lower() == "all":
+            samples = range(1, len(chain.samples))
+        else:
+            raise ValueError("samples must be either 'all', an int, or a range")
+        
     model_factory = ModelFactory(chain, samples, burn_in)
 
     return model_factory.create(nside)

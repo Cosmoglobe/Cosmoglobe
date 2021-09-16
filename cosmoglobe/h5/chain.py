@@ -35,7 +35,7 @@ class Chain:
             raise FileNotFoundError(f"{path.name} was not found")
         try:
             with h5py.File(path, "r") as file:
-                ...
+                pass
         except OSError:
             raise ChainFormatError(f"{path.name} is not a HDF5 file")
 
@@ -111,7 +111,7 @@ class Chain:
     def get(
         self,
         item: str,
-        samples: Optional[Iterable[str]] = None,
+        samples: Optional[Union[range, int]] = None,
         burn_in: Optional[int] = None,
     ) -> List[Any]:
         """Returns the value of an item for all samples.
@@ -165,7 +165,7 @@ class Chain:
     def mean(
         self,
         item: str,
-        samples: Optional[Iterable[str]] = None,
+        samples: Optional[Union[range, int]] = None,
         burn_in: Optional[int] = None,
     ) -> Any:
         """Returns the mean of an item over all samples.
@@ -239,7 +239,9 @@ class Chain:
                     return item.asstr()[()]
                 return item[()]
 
-    def _process_samples(self, item: str, samples: list, burn_in: int) -> list:
+    def _process_samples(
+        self, item: str, samples: Optional[Union[range, int]], burn_in: int
+    ) -> List[str]:
         """Validates and process inputted samples."""
 
         if item.startswith(PARAMETER_GROUP_NAME):
@@ -249,15 +251,14 @@ class Chain:
                 "lookup instead (chain['parameters/...'])"
             )
 
-        if samples is None or samples == "all":
+        if samples is None:
             samples = self.samples
-        elif samples == -1:
-            samples = [self.samples[-1]]
         elif isinstance(samples, int):
-            samples = self._int_to_sample([samples])
-            if not samples[0] in self.samples:
+            try:
+                samples = [self.samples[samples]]
+            except IndexError:
                 raise ChainSampleError(f"input sample {samples} is not in the chain")
-        elif isinstance(samples, Iterable):
+        elif isinstance(samples, range):
             samples = list(samples)
         else:
             raise ChainSampleError(
