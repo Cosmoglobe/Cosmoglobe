@@ -6,9 +6,13 @@ import astropy.units as u
 import healpy as hp
 from tqdm import tqdm
 
-from cosmoglobe.h5.chain import Chain
+from cosmoglobe.h5.chain import Chain, ChainVersion
 from cosmoglobe.h5.context import chain_context
-from cosmoglobe.h5.exceptions import ChainComponentNotFoundError, ChainItemNotFoundError
+from cosmoglobe.h5.exceptions import (
+    ChainComponentNotFoundError,
+    ChainItemNotFoundError,
+    ChainFormatError,
+)
 from cosmoglobe.sky.model import Model
 from cosmoglobe.sky.base import SkyComponent
 from cosmoglobe.sky import COSMOGLOBE_COMPS
@@ -30,6 +34,12 @@ class ModelFactory:
 
         if not isinstance(self.chain, Chain):
             self.chain = Chain(self.chain, self.burn_in)
+
+        if self.chain.version is ChainVersion.OLD:
+            raise ChainFormatError(
+                "cannot initialize a sky model from a chain without a "
+                "parameter group"
+            )
 
         model = Model(nside=nside)
         with tqdm(total=len(self.chain.components)) as progress_bar:

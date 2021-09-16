@@ -1,3 +1,4 @@
+from enum import Enum, auto
 from pathlib import Path
 import textwrap
 from typing import Any, Dict, Iterable, List, Optional, Union
@@ -15,6 +16,13 @@ from cosmoglobe.h5.exceptions import (
 
 
 PARAMETER_GROUP_NAME = "parameters"
+
+
+class ChainVersion(Enum):
+    """The version number of the chain."""
+
+    OLD = auto()
+    NEW = auto()
 
 
 class Chain:
@@ -37,26 +45,32 @@ class Chain:
                 raise ChainFormatError
             try:
                 samples.remove(PARAMETER_GROUP_NAME)
+                version = ChainVersion.NEW
             except ValueError:
-                raise ChainFormatError
+                version = ChainVersion.OLD
+
             sampled_groups = list(file[samples[0]].keys())
             components = [
                 group for group in sampled_groups if group in COSMOGLOBE_COMPS
             ]
 
-            parameters = {}
-            for component, group in file[PARAMETER_GROUP_NAME].items():
-                parameters[component] = {}
-                for key, value in group.items():
-                    if np.issubdtype(value.dtype, np.string_):
-                        value = value.asstr()
-                    parameters[component][key] = value[()]
+            if version is ChainVersion.NEW:
+                parameters = {}
+                for component, group in file[PARAMETER_GROUP_NAME].items():
+                    parameters[component] = {}
+                    for key, value in group.items():
+                        if np.issubdtype(value.dtype, np.string_):
+                            value = value.asstr()
+                        parameters[component][key] = value[()]
+            else:
+                parameters = None
 
         self.burn_in = burn_in
         self._path = path
         self._samples = samples
         self._components = components
         self._parameters = parameters
+        self._version = version
 
     @property
     def samples(self) -> List[str]:
@@ -87,6 +101,12 @@ class Chain:
         """Path to the chainfile."""
 
         return self._path
+
+    @property
+    def version(self) -> ChainVersion:
+        """Chain version."""
+
+        return self._version
 
     def get(
         self,
