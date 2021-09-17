@@ -1,7 +1,7 @@
 from enum import Enum, auto
 from pathlib import Path
 import textwrap
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Union
 
 import h5py
 from numba import njit
@@ -109,7 +109,7 @@ class Chain:
         return self._version
 
     def _key_exists(func: Callable) -> Callable:
-        """Decotrator function to check if key exists in chain."""
+        """Decotrator to check if the requested key exists in the chain."""
 
         def wrapper(self, key: str, *args, **kwargs) -> Callable:
             if key.split("/")[0] not in self.samples:
@@ -140,8 +140,8 @@ class Chain:
         key
             A sampled key.
         samples
-            A list of samples for which to return the key value. If None,
-            all samples are selected. Defaults to None.
+            An int or a range of samples for which to return the value. If
+            None, all samples in the chain are used.
         burn_in
             The burn_in sample. If provided, all samples before the burn_in
             is ignored. If None, but the chain was initialized with a burn_in,
@@ -180,8 +180,8 @@ class Chain:
         key
             A sampled key.
         samples
-            A list of samples to average over. If None, all samples are
-            averaged. Defaults to None.
+            An int or a range of samples to average over. If None, all
+            samples in the chain are used.
         burn_in
             The burn_in sample. If provided, all samples before the burn_in
             is ignored. If None, but the chain was initialized with a burn_in,
@@ -210,11 +210,52 @@ class Chain:
         return value
 
     @_key_exists
-    def __getitem__(self, key) -> Any:
+    def column(
+        self, key: str, samples: Optional[Union[int, range]] = None
+    ) -> Generator:
+        """Returns a generator to be used in a for loop.
+
+        Parameters
+        ----------
+        key
+            A sampled key.
+        samples
+            An int or a range of samples to average over. If None, all
+            samples in the chain are used.
+
+        Returns
+        -------
+            A generator that can be looped over to yield each sampled value.
+        """
+
+        if samples:
+            samples = self._process_samples(key, samples)
+        else:
+            samples = self.samples
+
+        with h5py.File(self.path, "r") as file:
+            for sample in samples:
+                value = file[f"{sample}/{key}"][()]
+                if "alm" in key:
+                    value = self._unpack_alms(key, value)
+
+                yield value
+
+    @_key_exists
+    def __getitem__(self, key: str) -> Any:
         """Returns the value of a key from the chain.
 
-        Note that alms are not unpacked into HEALPIX convention using the
-        key lookup."""
+        NOTE: alms are not unpacked into HEALPIX convention. Use either
+        the `get`, `mean` or `column` functions for that.
+
+        Parameters
+        ----------
+        key
+            Key in the chain for which to get the value.
+
+        Returns
+            The value of the key.
+        """
 
         with h5py.File(self.path, "r") as file:
             item = file[key]
@@ -227,7 +268,10 @@ class Chain:
                 return item[()]
 
     def _process_samples(
-        self, key: str, samples: Optional[Union[range, int]], burn_in: int
+        self,
+        key: str,
+        samples: Optional[Union[range, int]],
+        burn_in: Optional[int] = None,
     ) -> List[str]:
         """Validates and process inputted samples."""
 
