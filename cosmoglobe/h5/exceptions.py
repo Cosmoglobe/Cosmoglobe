@@ -1,13 +1,13 @@
-class ChainItemNotFoundError(Exception):
-    """Raised when an item is missing from the chain."""
+class ChainKeyError(Exception):
+    """Raised when a key is missing from the chain."""
 
 
 class ChainSampleError(Exception):
-    """Raised when an item is missing from the chain."""
+    """Raised when a sample is missing from the chain."""
 
 
 class ChainComponentNotFoundError(Exception):
-    """Raised when an item is missing from the chain."""
+    """Raised when a component is missing from the chain."""
 
 
 class ChainFormatError(Exception):

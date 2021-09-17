@@ -1,7 +1,7 @@
 from enum import Enum, auto
 from pathlib import Path
 import textwrap
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import h5py
 from numba import njit
@@ -10,7 +10,7 @@ import numpy as np
 from cosmoglobe.sky import COSMOGLOBE_COMPS
 from cosmoglobe.h5.exceptions import (
     ChainFormatError,
-    ChainItemNotFoundError,
+    ChainKeyError,
     ChainSampleError,
 )
 
@@ -108,20 +108,39 @@ class Chain:
 
         return self._version
 
+    def _key_exists(func: Callable) -> Callable:
+        """Decotrator function to check if key exists in chain."""
+
+        def wrapper(self, key: str, *args, **kwargs) -> Callable:
+            if key.split("/")[0] not in self.samples:
+                path = f"{self.samples[0]}/{key}"
+            else:
+                path = key
+
+            with h5py.File(self.path, "r") as file:
+                try:
+                    file[path]
+                except KeyError:
+                    raise ChainKeyError(f"{key=} not found in chain")
+            return func(self, key, *args, **kwargs)
+
+        return wrapper
+
+    @_key_exists
     def get(
         self,
-        item: str,
+        key: str,
         samples: Optional[Union[range, int]] = None,
         burn_in: Optional[int] = None,
     ) -> List[Any]:
-        """Returns the value of an item for all samples.
+        """Returns the value of an key for all samples.
 
         Parameters
         ----------
-        item
-            A sampled item.
+        key
+            A sampled key.
         samples
-            A list of samples for which to return the item value. If None,
+            A list of samples for which to return the key value. If None,
             all samples are selected. Defaults to None.
         burn_in
             The burn_in sample. If provided, all samples before the burn_in
@@ -131,49 +150,35 @@ class Chain:
         Returns
         -------
         values
-            The value of the item for each samples.
+            The value of the key for each samples.
         """
 
-        samples = self._process_samples(item, samples, burn_in)
+        samples = self._process_samples(key, samples, burn_in)
 
         with h5py.File(self.path, "r") as file:
-            try:
-                values = [file[f"{sample}/{item}"][()] for sample in samples]
-            except KeyError:
-                raise ChainItemNotFoundError(
-                    f"{item=!r} was not found. The item must be a dataset "
-                    "present in all sample groups"
-                )
+            values = [file[f"{sample}/{key}"][()] for sample in samples]
 
-        # If the extracted value is an alm, we unpack it from the Commander
-        # convention into the HEALPIX convention.
-        if "alm" in item:
-            try:
-                lmax = self[f"{self.samples[0]}/{item[:-3]}lmax"]
-            except KeyError:
-                raise ChainItemNotFoundError(
-                    f"{item} does not exist. Cannot unpack alms from chain "
-                    "without an lmax"
-                )
-            values = [unpack_alms_from_chain(value, lmax) for value in values]
+        if "alm" in key:
+            values = self._unpack_alms(key, values)
 
         if len(values) == 1:
             return values[0]
 
         return np.asarray(values)
 
+    @_key_exists
     def mean(
         self,
-        item: str,
+        key: str,
         samples: Optional[Union[range, int]] = None,
         burn_in: Optional[int] = None,
     ) -> Any:
-        """Returns the mean of an item over all samples.
+        """Returns the mean of an key over all samples.
 
         Parameters
         ----------
-        item
-            A sampled item.
+        key
+            A sampled key.
         samples
             A list of samples to average over. If None, all samples are
             averaged. Defaults to None.
@@ -185,52 +190,34 @@ class Chain:
         Returns
         -------
         value
-            The averaged value of the item over all samples.
+            The averaged value of the key over all samples.
         """
 
-        samples = self._process_samples(item, samples, burn_in)
+        samples = self._process_samples(key, samples, burn_in)
 
         with h5py.File(self.path, "r") as file:
-            try:
-                value = file[f"{samples[0]}/{item}"][()]
-            except KeyError:
-                raise ChainItemNotFoundError(
-                    f"{item=!r} was not found. The item must be a dataset "
-                    "present in all sample groups"
-                )
+            value = file[f"{samples[0]}/{key}"][()]
             dtype = value.dtype.type
             if len(samples) > 1:
                 for sample in samples[1:]:
-                    value += file[f"{sample}/{item}"][()]
+                    value += file[f"{sample}/{key}"][()]
 
         value = dtype(value / len(samples))
 
-        # If the extracted value is an alm, we unpack it from the Commander
-        # convention into the HEALPIX convention.
-        if "alm" in item:
-            try:
-                lmax = self[f"{self.samples[0]}/{item[:-3]}lmax"]
-            except KeyError:
-                raise ChainItemNotFoundError(
-                    f"{item} does not exist. Cannot unpack alms from chain "
-                    "without an lmax"
-                )
-            value = unpack_alms_from_chain(value, lmax)
+        if "alm" in key:
+            value = self._unpack_alms(key, value)
 
         return value
 
+    @_key_exists
     def __getitem__(self, key) -> Any:
-        """Returns an item from the chain.
+        """Returns the value of a key from the chain.
 
         Note that alms are not unpacked into HEALPIX convention using the
         key lookup."""
 
         with h5py.File(self.path, "r") as file:
-            try:
-                item = file[key]
-            except KeyError as error:
-                raise ChainItemNotFoundError(error)
-
+            item = file[key]
             if isinstance(item, h5py.Group):
                 return list(item.keys())
 
@@ -240,11 +227,11 @@ class Chain:
                 return item[()]
 
     def _process_samples(
-        self, item: str, samples: Optional[Union[range, int]], burn_in: int
+        self, key: str, samples: Optional[Union[range, int]], burn_in: int
     ) -> List[str]:
         """Validates and process inputted samples."""
 
-        if item.startswith(PARAMETER_GROUP_NAME):
+        if key.startswith(PARAMETER_GROUP_NAME):
             raise ValueError(
                 "Can only extract items from sample groups. To access "
                 f"items in the {PARAMETER_GROUP_NAME} group, use dictionary "
@@ -261,19 +248,18 @@ class Chain:
         elif isinstance(samples, range):
             samples = list(samples)
         else:
-            raise ChainSampleError(
-                "input samples must be an iterable or an int pointing to a sample"
-            )
-        if samples[0] == 0:
-            raise ChainSampleError("Chain samples starts at 1, not 0")
+            raise ChainSampleError("input samples must be an int or a range")
+
         if len(samples) > self.nsamples:
-            raise ChainSampleError(f"Chain only has {self.nsamples} samples")
+            raise ChainSampleError(
+                f"samples out of range with chain. chain only has {self.nsamples} samples"
+            )
 
         if burn_in is None:
             burn_in = self.burn_in
         if burn_in is not None:
             if burn_in >= self.nsamples:
-                raise ValueError(f"{burn_in=} out of range for {self.nsamples=}.")
+                raise ChainSampleError(f"{burn_in=} out of range with {self.nsamples=}")
             else:
                 samples = samples[burn_in:]
 
@@ -285,6 +271,23 @@ class Chain:
     @staticmethod
     def _int_to_sample(samples: Union[List[int], int]) -> Union[List[str], str]:
         return [f"{sample:06d}" for sample in list(samples)]
+
+    def _unpack_alms(
+        self, key: str, values: Union[np.ndarray, List[np.ndarray]]
+    ) -> Union[np.ndarray, List[np.ndarray]]:
+        """Unpacks alms from Commander to HEALPIX format."""
+
+        try:
+            lmax = self[f"{self.samples[0]}/{key[:-3]}lmax"]
+        except KeyError:
+            raise ChainKeyError(
+                f"{key} does not exist. Cannot unpack alms from chain "
+                "without an lmax present in the chain"
+            )
+        if isinstance(values, list):
+            return [unpack_alms_from_chain(value, lmax) for value in values]
+
+        return unpack_alms_from_chain(values, lmax)
 
     def __str__(self) -> str:
         """Representation of the chain."""
@@ -326,7 +329,7 @@ class Chain:
 
 
 @njit
-def unpack_alms_from_chain(data: np.ndarray, lmax: int) -> np.ndarray:
+def unpack_alms_from_chain(data, lmax):
     """Unpacks alms from the Commander chain output.
 
     Unpacking algorithm:

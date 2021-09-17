@@ -10,7 +10,7 @@ from cosmoglobe.h5.chain import Chain, ChainVersion
 from cosmoglobe.h5.context import chain_context
 from cosmoglobe.h5.exceptions import (
     ChainComponentNotFoundError,
-    ChainItemNotFoundError,
+    ChainKeyError,
     ChainFormatError,
 )
 from cosmoglobe.sky.model import Model
@@ -99,12 +99,12 @@ class ModelFactory:
                         f"{component}/{chain_arg}_alm", samples=self.samples
                     )
                     is_alm = True
-                except ChainItemNotFoundError:
+                except ChainKeyError:
                     try:
                         value = self.chain.mean(
                             f"{component}/{chain_arg}", samples=self.samples
                         )
-                    except ChainItemNotFoundError:
+                    except ChainKeyError:
                         value = self.chain.mean(
                             f"{component}/{chain_arg}_map", samples=self.samples
                         )
