@@ -210,7 +210,7 @@ class Chain:
         return value
 
     @_key_exists
-    def column(
+    def load(
         self, key: str, samples: Optional[Union[int, range]] = None
     ) -> Generator:
         """Returns a generator to be used in a for loop.
