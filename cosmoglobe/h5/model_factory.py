@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 import inspect
-from typing import List, Union, Optional, Literal
+from typing import Union, Optional, Literal
 
 import astropy.units as u
 import healpy as hp
