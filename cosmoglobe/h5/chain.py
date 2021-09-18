@@ -39,7 +39,7 @@ class Chain:
         with h5py.File(path, "r") as file:
             samples = list(file.keys())
             if not samples:
-                raise ChainFormatError
+                raise ChainFormatError("chain has no samples")
             try:
                 samples.remove(PARAMETER_GROUP_NAME)
                 version = ChainVersion.NEW
