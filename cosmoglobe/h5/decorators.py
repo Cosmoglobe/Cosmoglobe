@@ -1,5 +1,4 @@
 from functools import wraps
-from typing import Callable
 
 import h5py
 
@@ -8,11 +7,11 @@ from cosmoglobe.h5.alms import unpack_alms_from_chain
 from cosmoglobe.h5.exceptions import ChainKeyError, ChainSampleError
 
 
-def validate_key(func: Callable) -> Callable:
+def validate_key(func):
     """Decotrator to check if the requested key exists in the chain."""
 
     @wraps(func)
-    def wrapper(*args, **kwargs) -> Callable:
+    def wrapper(*args, **kwargs):
         chain, key, *_ = args
 
         root = key.split("/")[0]
@@ -31,11 +30,11 @@ def validate_key(func: Callable) -> Callable:
     return wrapper
 
 
-def validate_samples(func: Callable) -> Callable:
+def validate_samples(func):
     """Decotrator to check if the samples exist."""
 
     @wraps(func)
-    def wrapper(*args, **kwargs) -> Callable:
+    def wrapper(*args, **kwargs):
         chain, *_ = args
         samples = kwargs.get("samples")
         if samples is None:
@@ -65,11 +64,11 @@ def validate_samples(func: Callable) -> Callable:
     return wrapper
 
 
-def unpack_alms(func: Callable) -> Callable:
+def unpack_alms(func):
     """Decotrator to that unpacks alms if they key is an alm."""
 
     @wraps(func)
-    def wrapper(*args, **kwargs) -> Callable:
+    def wrapper(*args, **kwargs):
         chain, key, *_ = args
         values = func(*args, **kwargs)
 
