@@ -61,8 +61,9 @@ def model_from_chain(
             "cannot initialize a sky model from a chain without a " "parameter group"
         )
 
+    print(f"Initializing model from {chain.path.name}")
     components: List[SkyComponent] = []
-    with tqdm(total=len(chain.components)) as progress_bar:
+    with tqdm(total=len(chain.components), ncols=75) as progress_bar:
         padding = len(max(chain.components, key=len))
         for component in chain.components:
             progress_bar.set_description(f"{component:<{padding}}")
