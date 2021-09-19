@@ -3,6 +3,8 @@ from typing import Callable
 
 import h5py
 
+from cosmoglobe.h5 import PARAMETER_GROUP_NAME
+from cosmoglobe.h5.alms import unpack_alms_from_chain
 from cosmoglobe.h5.exceptions import ChainKeyError, ChainSampleError
 
 
@@ -13,10 +15,12 @@ def validate_key(func: Callable) -> Callable:
     def wrapper(*args, **kwargs) -> Callable:
         chain, key, *_ = args
 
-        if key.split("/")[0] not in chain.samples:
-            path = f"{chain.samples[0]}/{key}"
-        else:
+        root = key.split("/")[0]
+        if root.startswith(PARAMETER_GROUP_NAME) or root in chain.samples:
             path = key
+        else:
+            path = f"{chain.samples[0]}/{key}"
+
         with h5py.File(chain.path, "r") as file:
             try:
                 file[path]
@@ -52,10 +56,26 @@ def validate_samples(func: Callable) -> Callable:
             )
 
         if all(isinstance(sample, int) for sample in samples):
-            samples = chain._to_chain_sample_format(samples)
+            samples = chain._format_samples(samples)
 
         kwargs["samples"] = samples
 
         return func(*args, **kwargs)
+
+    return wrapper
+
+
+def unpack_alms(func: Callable) -> Callable:
+    """Decotrator to that unpacks alms if they key is an alm."""
+
+    @wraps(func)
+    def wrapper(*args, **kwargs) -> Callable:
+        chain, key, *_ = args
+        values = func(*args, **kwargs)
+
+        if "alm" in key:
+            return unpack_alms_from_chain(chain, values, key)
+
+        return values
 
     return wrapper

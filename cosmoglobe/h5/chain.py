@@ -1,29 +1,23 @@
-from enum import Enum, auto
 from pathlib import Path
 import textwrap
-from typing import Any, Dict, Generator, Iterable, List, Optional, Union
+from typing import Any, Dict, Generator, List, Optional, Union
 
 import h5py
-from numba import njit
 import numpy as np
 
-from cosmoglobe.h5.exceptions import ChainFormatError, ChainKeyError, ChainSampleError
-from cosmoglobe.h5.decorators import validate_key, validate_samples
+from cosmoglobe.h5 import ChainVersion, PARAMETER_GROUP_NAME
+from cosmoglobe.h5.alms import unpack_alms_from_chain
+from cosmoglobe.h5.decorators import validate_key, validate_samples, unpack_alms
+from cosmoglobe.h5.exceptions import ChainFormatError, ChainSampleError
 from cosmoglobe.sky import COSMOGLOBE_COMPS
 
 
-PARAMETER_GROUP_NAME = "parameters"
-
-
-class ChainVersion(Enum):
-    """The version number of the chain."""
-
-    OLD = auto()
-    NEW = auto()
-
-
 class Chain:
-    """An interface for Cosmoglobe chainfiles."""
+    """An interface for Cosmoglobe chainfiles.
+
+    This class aims to provide a convenient interface for working with
+    Cosmoglobe chain files.
+    """
 
     def __init__(self, path: Union[str, Path], burn_in: Optional[int] = None) -> None:
         """Validate and initialize the Chain object."""
@@ -111,12 +105,8 @@ class Chain:
 
     @validate_key
     @validate_samples
-    def get(
-        self,
-        key: str,
-        *,
-        samples: Optional[Union[range, int]] = None,
-    ) -> List[Any]:
+    @unpack_alms
+    def get(self, key: str, *, samples: Optional[Union[range, int]] = None) -> Any:
         """Returns the value of an key for all samples.
 
         Parameters
@@ -137,19 +127,12 @@ class Chain:
         with h5py.File(self.path, "r") as file:
             values = [file[f"{sample}/{key}"][()] for sample in samples]
 
-        if "alm" in key:
-            values = self._unpack_alms(key, values)
-
         return np.asarray(values) if len(values) != 1 else values[0]
 
     @validate_key
     @validate_samples
-    def mean(
-        self,
-        key: str,
-        *,
-        samples: Optional[Union[range, int]] = None,
-    ) -> Any:
+    @unpack_alms
+    def mean(self, key: str, *, samples: Optional[Union[range, int]] = None) -> Any:
         """Returns the mean of an key over all samples.
 
         Parameters
@@ -174,22 +157,17 @@ class Chain:
                 for sample in samples[1:]:
                     value += file[f"{sample}/{key}"][()]
 
-        value = dtype(value / len(samples))
-
-        if "alm" in key:
-            value = self._unpack_alms(key, value)
-
-        return value
+        return dtype(value / len(samples))  # Converting back to original dtype
 
     @validate_key
     @validate_samples
     def load(
-        self,
-        key: str,
-        *,
-        samples: Optional[Union[int, range]] = None,
+        self, key: str, *, samples: Optional[Union[int, range]] = None
     ) -> Generator:
         """Returns a generator to be used in a for loop.
+
+        NOTE to devs: The unpack_alms decorator wont work on this function
+        due to it not processing the returned data until it is iterated over.
 
         Parameters
         ----------
@@ -209,16 +187,14 @@ class Chain:
             for sample in samples:
                 value = file[f"{sample}/{key}"][()]
                 if "alm" in key:
-                    value = self._unpack_alms(key, value)
+                    value = unpack_alms_from_chain(self, value, key)
 
                 yield value
 
     @validate_key
+    @unpack_alms
     def __getitem__(self, key: str) -> Any:
         """Returns the value of a key from the chain.
-
-        NOTE: alms are not unpacked into HEALPIX convention. Use either
-        the `get`, `mean` or `load` functions to retrieve unpacked alms.
 
         Parameters
         ----------
@@ -240,39 +216,20 @@ class Chain:
                     return item.asstr()[()]
                 return item[()]
 
-    @staticmethod
-    def _to_chain_sample_format(
-        samples: Union[List[int], int]
-    ) -> Union[List[str], str]:
-        """Converts sample numbers to the format in the chain files."""
+    def _format_samples(self, samples: Union[List[int], int]) -> Union[List[str], str]:
+        """Converts a range to the string format of the samples in the chain."""
 
-        if isinstance(samples, Iterable):
-            return [f"{sample:06d}" for sample in list(samples)]
+        n = len(self.samples[0])  # Getting the number of leading zeros
+        if isinstance(samples, list):
+            return [f"{sample:0{n}d}" for sample in samples]
 
-        return f"{samples:06d}"
-
-    def _unpack_alms(
-        self, key: str, values: Union[np.ndarray, List[np.ndarray]],
-    ) -> Union[np.ndarray, List[np.ndarray]]:
-        """Unpacks alms from Commander to HEALPIX format."""
-
-        try:
-            lmax = self[f"{self.samples[0]}/{key[:-3]}lmax"]
-        except KeyError:
-            raise ChainKeyError(
-                f"{key} does not exist. Cannot unpack alms from chain "
-                "without an lmax present in the chain"
-            )
-        if isinstance(values, list):
-            return [unpack_alms_from_chain(value, lmax) for value in values]
-
-        return unpack_alms_from_chain(values, lmax)
+        return f"{samples:0{n}d}"
 
     def __str__(self) -> str:
         """Representation of the chain."""
 
         COL_LEN = 40
-        META = {
+        CHAIN_META = {
             "Num Samples": self.nsamples,
             "Num Components": len(self.components),
             "Size": f"{self.path.stat().st_size / (1024 * 1024 * 1024):.3f}" + " GB",
@@ -292,7 +249,7 @@ class Chain:
         main_repr += "-" * COL_LEN + "\n"
         main_repr += "\n"
 
-        for key, value in META.items():
+        for key, value in CHAIN_META.items():
             main_repr += f"{key:<{COL_LEN//2 - 1}}{'='}{value:>{COL_LEN//2}}\n"
 
         main_repr += "\n"
@@ -304,50 +261,3 @@ class Chain:
         main_repr += "-" * COL_LEN + "\n"
 
         return main_repr
-
-
-@njit
-def unpack_alms_from_chain(data, lmax):
-    """Unpacks alms from the Commander chain output.
-
-    Unpacking algorithm:
-    https://github.com/trygvels/c3pp/blob/2a2937926c260cbce15e6d6d6e0e9d23b0be1262/src/tools.py#L9
-
-    Parameters
-    ----------
-    data
-        alms from a commander chainfile.
-    lmax
-        Maximum value for l used in the alms.
-
-    Returns
-    -------
-    alms
-        Unpacked version of the Commander alms (2-dimensional array)
-    """
-
-    n = len(data)
-    n_alms = int(lmax * (2 * lmax + 1 - lmax) / 2 + lmax + 1)
-    alms = np.zeros((n, n_alms), dtype=np.complex128)
-
-    for sigma in range(n):
-        i = 0
-        for l in range(lmax + 1):
-            j_real = l ** 2 + l
-            alms[sigma, i] = complex(data[sigma, j_real], 0.0)
-            i += 1
-
-        for m in range(1, lmax + 1):
-            for l in range(m, lmax + 1):
-                j_real = l ** 2 + l + m
-                j_comp = l ** 2 + l - m
-                alms[sigma, i] = (
-                    complex(
-                        data[sigma, j_real],
-                        data[sigma, j_comp],
-                    )
-                    / np.sqrt(2.0)
-                )
-                i += 1
-
-    return alms
