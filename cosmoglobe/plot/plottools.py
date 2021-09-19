@@ -5,8 +5,6 @@ from .. import data as data_dir
 from cosmoglobe.sky.model import Model
 from cosmoglobe import model_from_chain
 
-from cosmoglobe.utils.utils import ModelError
-
 import cmasher
 from rich import print
 import numpy as np

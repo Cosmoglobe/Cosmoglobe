@@ -1,30 +1,29 @@
-from typing import Dict, Any
-from abc import ABC, abstractmethod
+from typing import Dict, Any, Protocol
 
 import astropy.units as u
 import numpy as np
 
-from cosmoglobe.h5.context_factory import ChainContextFactory
+from cosmoglobe.h5.chain_contextfactory import ChainContextFactory
 
 
-class ChainContext(ABC):
-    """Base class for chain context.
+class ChainContext(Protocol):
+    """Protocol defining context for chain files.
 
     Chain context defines additional processing required on the chain items
     before they are ready to be put into the sky model.
     """
 
-    PRE: bool = False
+    def __call__(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Function that performs the processing on the specific chain item.
 
-    @abstractmethod
-    def context(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Function that performs the processing on the specific chain item."""
+        This function needs to manipulate and return the `args` dictionary
+        """
 
 
-class FreqRefContext(ChainContext):
-    def context(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Re-shapes freq_ref for unpolarized components."""
+class FreqRefContext:
+    """Re-shapes freq_ref for unpolarized components."""
 
+    def __call__(self, args: Dict[str, Any]) -> Dict[str, Any]:
         if "freq_ref" in args:
             args["freq_ref"] = args["freq_ref"].to("GHz")
             if args["amp"].shape[0] != 3:
@@ -33,36 +32,36 @@ class FreqRefContext(ChainContext):
         return args
 
 
-class RadioContext(ChainContext):
-    def context(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Context for the radio component in the chain.
+class RadioContext:
+    """Context for the radio component in the chain.
 
-        In the chain, the amp of radio is stored in units of 'mJy'. Here we
-        manually set convert it to 'uK' through astropy.
+    In the chain, the amp of radio is stored in units of 'mJy'. Here we
+    manually set convert it to 'uK' through astropy.
 
-        NOTE: we pretend that amp has units of 'mJy/sr' to be able convert
-        the units properly. This is fine since we always end dividing by
-        the beam_area when converting the amplitudes to HEALPIX maps.
-        """
+    NOTE: we pretend that amp has units of 'mJy/sr' to be able convert
+    the units properly. This is fine since we always end dividing by
+    the beam_area when converting the amplitudes to HEALPIX maps.
+    """
 
+    def __call__(self, args: Dict[str, Any]) -> Dict[str, Any]:
         args["alpha"] = args["alpha"][0]
-        amp, freq = args["amp"], args["freq_ref"]
-        args["amp"] = u.Quantity(amp.value, unit="mJy/sr").to(
-            u.uK, equivalencies=u.thermodynamic_temperature(freq)
+        args["amp"] = u.Quantity(args["amp"].value, unit="mJy/sr").to(
+            u.uK, equivalencies=u.thermodynamic_temperature(args["freq_ref"])
         )
 
         return args
 
 
-class MapToScalarContext(ChainContext):
-    def context(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Extract and returns a scalar.
+class MapToScalarContext:
+    """Extract and returns a scalar.
 
-        Datasets in the cosmoglobe chains tends to be stored in HEALPIX maps.
-        A quantity is considered a scalar if it is constant in over all axes.
-        """
+    Datasets in the cosmoglobe chains tends to be stored in HEALPIX maps.
+    A quantity is considered a scalar if it is constant over all axes of the
+    dataset.
+    """
 
-        for key, value in args.items(): 
+    def __call__(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        for key, value in args.items():
             if np.size(value) > 1:
                 if np.ndim(value) > 1:
                     uniques = [np.unique(col) for col in value]
