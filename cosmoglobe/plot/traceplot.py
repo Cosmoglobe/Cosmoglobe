@@ -2,7 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from .plottools import *
-from cosmoglobe.h5.h5 import _get_items, _get_samples
+from cosmoglobe.h5.chain import Chain
+
 
 def trace(
     input,
@@ -22,12 +23,22 @@ def trace(
     hold=False,
     reuse_axes=False,
 ):
-    if isinstance(input, str) and input.endswith('.h5') and dataset is not None:
-        if ylabel == None: ylabel = dataset
-        filename = input
-        component, *items = dataset.split('/')
-        input = np.concatenate([_get_items(filename, sample=sample, component=component, items=items) for sample in _get_samples(filename)], axis=0)
-        
+    if isinstance(input, str) and input.endswith(".h5") and dataset is not None:
+        chain = Chain(input)
+        if ylabel == None:
+            ylabel = dataset
+        #component, *items = dataset.split("/")
+        input = chain.get(dataset)
+        """
+        np.concatenate(
+            [
+                chain.get(filename, sample=sample, component=component, items=items)
+                for sample in _get_samples(filename)
+            ],
+            axis=0,
+        )
+        """
+
     # Make figure
     fig, ax = make_fig(
         figsize,
@@ -40,23 +51,25 @@ def trace(
 
     if input.ndim < 2:
         input.reshape(-1, 1, 1)
-    elif  input.ndim == 2:
+    elif input.ndim == 2:
         input.reshape(0, 1, -1)
     Nsamp, Nsig, Ncomp = input.shape
 
     cmap = load_cmap(cmap)
-    positions = legend_positions(input[:,sig,:],)
+    positions = legend_positions(
+        input[:, sig, :],
+    )
 
     for i in range(Ncomp):
         plt.plot(
-            input[:,sig,i],
+            input[:, sig, i],
             color=cmap(i),
             linewidth=2,
         )
 
         # Add the text to the right
         if labels is not None:
-            hpos = Nsamp*1.01
+            hpos = Nsamp * 1.01
             plt.text(
                 hpos,
                 positions[i],
@@ -69,10 +82,8 @@ def trace(
             mean = np.mean(input[burnin:, sig, i])
             std = np.std(input[burnin:, sig, i])
             label2 = rf"{mean:.2f}$\pm${std:.2f}"
-            valpos = Nsamp*1.01 if labels is None else Nsamp*1.1
-            plt.text(
-                valpos, positions[i], label2, color=cmap(i), fontweight="normal"
-            )
+            valpos = Nsamp * 1.01 if labels is None else Nsamp * 1.1
+            plt.text(valpos, positions[i], label2, color=cmap(i), fontweight="normal")
 
     ax.set_xlim(right=Nsamp)
     ax.set_ylabel(ylabel)

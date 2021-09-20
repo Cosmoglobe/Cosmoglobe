@@ -1,9 +1,10 @@
 # This file contains useful functions used across different plotting scripts.
-from re import T
+from re import A, T
 import warnings
 from .. import data as data_dir
 from cosmoglobe.sky.model import Model
-from cosmoglobe import model_from_chain
+from cosmoglobe.h5.model import model_from_chain
+from cosmoglobe.h5.chain import Chain
 
 import cmasher
 from rich import print
@@ -17,6 +18,17 @@ from matplotlib import _pylab_helpers
 from pathlib import Path
 import json
 
+FIGURE_WIDTHS = {
+                    "x": 2.75,
+                    "s": 3.5,
+                    "m": 4.7,
+                    "l": 7,
+                }
+STOKES = [
+    "I",
+    "Q",
+    "U",
+]
 
 def apply_logscale(m, ticks, linthresh=1):
     """
@@ -31,7 +43,6 @@ def apply_logscale(m, ticks, linthresh=1):
 
     m = np.maximum(np.minimum(m, new_ticks[-1]), new_ticks[0])
     return m, new_ticks
-
 
 def set_style(
     darkmode=False,
@@ -143,7 +154,6 @@ def make_fig(
 
     return fig, ax
 
-
 def load_cmap(
     cmap,
 ):
@@ -211,7 +221,6 @@ def load_cmap(
     # print("Colormap:" + f" {cmap.name}")
     return cmap
 
-
 def get_percentile(m, percentile):
     """
     This function gets appropriate min and max
@@ -223,7 +232,6 @@ def get_percentile(m, percentile):
     vmin = 0.0 if abs(vmin) < 1e-5 else vmin
     vmax = 0.0 if abs(vmax) < 1e-5 else vmax
     return [vmin, vmax]
-
 
 def fmt(x, pos):
     """
@@ -254,7 +262,6 @@ def symlog(m, linthresh=1.0):
     # Extra fact of 2 ln 10 makes symlog(m) = m in linear regime
     m = m / linthresh / (2 * np.log(10))
     return np.log10(0.5 * (m + np.sqrt(4.0 + m * m)))
-
 
 def autoparams(
     comp, sig, right_label, left_label, unit, ticks, min, max, rng, norm, cmap, freq
@@ -377,7 +384,6 @@ def autoparams(
                 params[i] = r"$" + params[i] + "$"
     return params
 
-
 def legend_positions(
     input,
 ):
@@ -421,7 +427,6 @@ def legend_positions(
 
         pushings += 1
     return positions
-
 
 def gradient_fill(x, y, fill_color=None, ax=None, alpha=1.0, invert=False, **kwargs):
     """
@@ -477,7 +482,6 @@ def gradient_fill(x, y, fill_color=None, ax=None, alpha=1.0, invert=False, **kwa
     ax.autoscale(True)
     return line, im
 
-
 def gradient_fill_between(ax, x, y1, y2, color="#ffa15a", alpha=0.5):
     N = 100
     y = np.zeros((N, len(y1)))
@@ -488,7 +492,6 @@ def gradient_fill_between(ax, x, y1, y2, color="#ffa15a", alpha=0.5):
     for i in range(1, N):
         ax.fill_between(x, y[i - 1], y[i], color=color, alpha=alpha[i], zorder=-10)
         ax.set_rasterization_zorder(-1)
-
 
 def find_nearest(array, value):
     array = np.asarray(array)
@@ -504,9 +507,8 @@ def standalone_colorbar(cmap, ticks, ticklabels=None, unit=None, fontsize=None, 
     if ticklabels is None: ticklabels = format_list(ticks)
     apply_colorbar(plt.gcf(), plt.gca(), img, ticks, ticklabels, unit, fontsize=fontsize, norm=norm, shrink=shrink)
     
-
 def apply_colorbar(
-    fig, ax, image, ticks, ticklabels, unit, fontsize=None, linthresh=1, norm=None, shrink=1
+    fig, ax, image, ticks, ticklabels, unit, fontsize=None, linthresh=1, norm=None, shrink=0.3
 ):
     """
     This function applies a colorbar to the figure and formats the ticks.
@@ -564,29 +566,42 @@ def apply_colorbar(
     cb.solids.set_edgecolor("face")
     return cb
 
-def get_data(input, sig, comp, freq, fwhm, nside=None, sample=None, ):
+def get_data(input, sig, comp, freq, fwhm, nside=None, sample=-1, ):
     # Parsing component string
+    fwhm_=None
+    specparam = "amp"
     if comp is not None:
-        comp, *specparam = comp.split()
+        comp, *specparam_ = comp.split()
+        if specparam_: specparam = specparam_[0]
 
     # If map is string, read data
     if isinstance(input, str):
+        # If string input, then read either hdf or fits
         if input.endswith(".h5"):
-            if sample is None:
-                raise ValueError(
-                    "HDF file passed, please specify sample"
-                )
             if comp is None:
                 if freq is None:             
                     print("[bold magenta]Warning! Neither frequency nor component selected. Plotting sky at 70GHz[/bold magenta]")
                     freq=70*u.GHz
+                data = model_from_chain(input, components=comp, nside=nside, samples=sample)
                 comp = "freqmap"
-            data = model_from_chain(input, comps=comp, nside=nside, samples=sample)
+            else:
+                if freq is not None:
+                    # If frequency is specified, simulate sky with model.
+                    data = model_from_chain(input, components=comp, nside=nside, samples=sample)
+                else:
+                    chain = Chain(input,)
+                    lmax = chain.get(f'{comp}/{specparam}_lmax', samples=sample)
+                    alms = chain.get(f'{comp}/{specparam}_alm', samples=sample)
+                    fwhm_ = chain.parameters[comp]['fwhm']*u.arcmin
+                    nside_ = chain.parameters[comp]["nside"]
+                    pol = True if specparam == "amp" and alms.shape[0] == 3 else False
+                    data = hp.alm2map(alms, nside=nside_, fwhm=fwhm_.to(u.rad).value, lmax=lmax, pol=pol)
+
         elif input.endswith(".fits"):
             data = hp.read_map(input, field=sig)
         else:
             raise ValueError(
-                    "HDF file passed, please specify sample"
+                    "Input file must be .fits or .h5"
                 )
     else:
         data = input
@@ -602,31 +617,33 @@ def get_data(input, sig, comp, freq, fwhm, nside=None, sample=None, ):
                 freq=70*u.GHz
             m = data(
                 freq,
-                fwhm=fwhm,
+                fwhm=fwhm
             )
         else:
-            if len(specparam) > 0 and isinstance(specparam[0], str):
-                m = getattr(data, comp).spectral_parameters[specparam[0]]
+            if specparam == "amp":
+                if freq is None:
+                    # Get map at reference frequency if freq not specified
+                    freq_ref = getattr(data, comp).freq_ref
+                    freq = freq_ref.value
+                    m = getattr(data, comp).amp
+                    if comp == "radio":
+                        m = getattr(data, comp)(freq_ref, fwhm=fwhm)
+                    try:
+                        freq = round(freq.squeeze()[sig], 5) * freq_ref.unit
+                    except IndexError:
+                        freq = round(freq, 5) * freq_ref.unit
+                else:
+                    # If freq is specified, scale with sky model
+                    m = getattr(data, comp)(freq, fwhm=fwhm)
+            else:
+                m = getattr(data, comp).spectral_parameters[specparam]
 
                 if len(m[sig]) == 1:
                     warnings.warn(
                         "Same value across the whole sky, mapping to array of length Npix"
                     )
                     m = np.full(hp.nside2npix(data.nside), m[sig])
-            else:
-                if freq is None:
-                    freq_ref = getattr(data, comp).freq_ref
-                    freq = freq_ref.value
-                    m = getattr(data, comp).amp
-                    if comp == "radio":
-                        m = getattr(data, comp)(freq_ref, fwhm=fwhm)
-                        diffuse = False
-                    try:
-                        freq = round(freq.squeeze()[sig], 5) * freq_ref.unit
-                    except IndexError:
-                        freq = round(freq, 5) * freq_ref.unit
-                else:
-                    m = getattr(data, comp)(freq, fwhm=fwhm)
+
     elif isinstance(data, np.ndarray):
         m = data
         if m.ndim == 1 and sig>0:
@@ -644,6 +661,14 @@ def get_data(input, sig, comp, freq, fwhm, nside=None, sample=None, ):
     # Convert astropy map to numpy array
     if isinstance(m, u.Quantity):
         m = m.value
+
+    # ud_grade map
+    if nside is not None and nside != hp.get_nside(m):
+        m = hp.ud_grade(m, nside)
+    
+    # Smooth map
+    if fwhm > 0.0 and fwhm_ is None:
+        m = hp.smoothing(m, fwhm.to(u.rad).value)
 
     return m
 

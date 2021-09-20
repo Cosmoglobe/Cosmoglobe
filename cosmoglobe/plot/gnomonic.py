@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from functools import partial
 from .plottools import *
 
+
 @u.quantity_input(freq=u.Hz, fwhm=(u.arcmin, u.rad, u.deg))
 def gnom(
     input,
@@ -28,7 +29,7 @@ def gnom(
     graticule=False,
     norm=None,
     cbar=True,
-    fwhm=0.0*u.arcmin,
+    fwhm=0.0 * u.arcmin,
     remove_dip=False,
     remove_mono=False,
     fontsize=None,
@@ -83,9 +84,19 @@ def gnom(
 
     # Fetching autoset parameters
     params = autoparams(
-        comp, sig, right_label, left_label, unit, ticks, vmin, vmax, rng, norm, cmap, freq
+        comp,
+        sig,
+        right_label,
+        left_label,
+        unit,
+        ticks,
+        vmin,
+        vmax,
+        rng,
+        norm,
+        cmap,
+        freq,
     )
-
 
     # Ticks and ticklabels
     ticks = params["ticks"]
@@ -103,7 +114,7 @@ def gnom(
 
     # Create ticklabels from final ticks
     ticklabels = format_list(ticks)
-    
+
     # Semi-log normalization
     if params["norm"] == "log":
         reproj_im, ticks = apply_logscale(reproj_im, ticks, linthresh=1)
@@ -146,7 +157,7 @@ def gnom(
         transform=ax.transAxes,
         fontsize=fontsize["title"],
     )
-    
+
     if cbar:
         apply_colorbar(
             plt.gcf(),
@@ -163,5 +174,5 @@ def gnom(
 
     if graticule:
         hp.graticule()
-    
+
     return image, params

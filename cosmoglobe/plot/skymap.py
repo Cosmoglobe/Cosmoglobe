@@ -13,9 +13,11 @@ from .plottools import *
 # Fix for macos openMP duplicate bug
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
+
 @u.quantity_input(freq=u.Hz, fwhm=(u.arcmin, u.rad, u.deg))
 def plot(
     input,
+    *,
     sig=0,
     comp=None,
     freq=None,
@@ -62,7 +64,6 @@ def plot(
     phi_convention="counterclockwise",
     custom_xtick_labels=None,
     custom_ytick_labels=None,
-    **kwargs
 ):
     """
     General plotting function for healpix maps.
@@ -191,23 +192,16 @@ def plot(
         override x-axis tick labels
     custom_ytick_labels : list
         override y-axis tick labels
-        kwargs : keywords
-      any additional keyword is passed to pcolormesh
     """
     # Pick sizes from size dictionary for page width plots
     if width is None:
         override_plot_properties = None
     else:
         try:
-            width = int(width)
-        except:
+            width = float(width)
+        except ValueError:
             if isinstance(width, str):
-                width = {
-                    "x": 2.75,
-                    "s": 3.5,
-                    "m": 4.7,
-                    "l": 7,
-                }[width]
+                width = FIGURE_WIDTHS[width]
         ratio = 0.63 if cbar else 0.5
         xsize = int((1000 / 8.5) * width)
         override_plot_properties = {
@@ -220,22 +214,12 @@ def plot(
     set_style(darkmode)
 
     # Translate sig to correct format
-    stokes = [
-        "I",
-        "Q",
-        "U",
-    ]
     if isinstance(sig, str):
-        sig = stokes.index(sig)
+        sig = STOKES.index(sig)
 
     # Get data
     m = get_data(input, sig, comp, freq, fwhm, nside=nside, sample=sample)
-
-    # ud_grade map
-    if nside is not None and nside != hp.get_nside(m):
-        m = hp.ud_grade(m, nside)
-    else:
-        nside = hp.get_nside(m)
+    nside = hp.get_nside(m)
 
     # Mask map
     if mask is not None:
@@ -244,7 +228,9 @@ def plot(
 
         m = hp.ma(m)
         if hp.get_nside(mask) != nside:
-            print("[magenta]Input mask nside is different, ud_grading to output nside.[/magenta]")
+            print(
+                "[magenta]Input mask nside is different, ud_grading to output nside.[/magenta]"
+            )
             mask = hp.ud_grade(mask, nside)
         m.mask = np.logical_not(mask)
 
@@ -254,9 +240,17 @@ def plot(
 
     # Remove mono/dipole
     if remove_dip:
-        m = hp.remove_dipole(m, gal_cut=30, copy=True, )
+        m = hp.remove_dipole(
+            m,
+            gal_cut=30,
+            copy=True,
+        )
     if remove_mono:
-        m = hp.remove_monopole(m, gal_cut=30, copy=True, )
+        m = hp.remove_monopole(
+            m,
+            gal_cut=30,
+            copy=True,
+        )
 
     # Fetching autoset parameters
     params = autoparams(
@@ -340,7 +334,7 @@ def plot(
         )
         return ret, params
 
-    warnings.filterwarnings("ignore") # Healpy complains too much
+    warnings.filterwarnings("ignore")  # Healpy complains too much
     # Plot figure
     ret = hp.newvisufunc.projview(
         m,
@@ -372,7 +366,6 @@ def plot(
         phi_convention=phi_convention,
         custom_xtick_labels=custom_xtick_labels,
         custom_ytick_labels=custom_ytick_labels,
-        **kwargs
     )
     if not return_only_data:
         # Remove color bar because of healpy bug
@@ -412,4 +405,3 @@ def plot(
         transform=plt.gca().transAxes,
     )
     return ret, params
-
