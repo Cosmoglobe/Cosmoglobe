@@ -73,7 +73,7 @@ class ChainContextFactory:
         if component not in self._context:
             raise KeyError(f"No context is registered for {component=}")
 
-        return [context for context in self._context.get(component)]
+        return [context for context in self._context[component]]
 
     def get_mappings(self, component: str) -> Dict[str, str]:
         """Returns the mappings between notation for a component."""

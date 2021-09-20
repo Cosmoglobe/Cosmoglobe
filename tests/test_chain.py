@@ -5,9 +5,9 @@ import pytest
 import numpy as np
 import healpy as hp
 
+from cosmoglobe.h5 import ChainVersion
 from cosmoglobe.h5.chain import Chain
 from cosmoglobe.h5.exceptions import ChainFormatError, ChainKeyError, ChainSampleError
-from cosmoglobe.sky import COSMOGLOBE_COMPS
 
 
 # This path needs to exist in the test environment
@@ -71,13 +71,7 @@ def test_nsamples(chain, chain_burn_in):
 def test_version_type(chain):
     """Tests the type of the version property."""
 
-    assert isinstance(chain.version, str)
-
-
-def test_version_type(chain):
-    """Tests the type of the version property."""
-
-    assert isinstance(chain.path, pathlib.Path)
+    assert isinstance(chain.version, ChainVersion)
 
 
 def test_path_type(chain):
@@ -111,6 +105,16 @@ def test_validate_samples(chain):
     with pytest.raises(ChainSampleError):
         chain.get("dust/amp_alm", samples=range(0, 200))
 
+    with pytest.raises(ChainSampleError):
+        chain.mean("dust/amp_alm", samples=100)
+
+    with pytest.raises(ChainSampleError):
+        chain.load("dust/amp_alm", samples=100)
+
+    chain.get("dust/amp_alm", samples=1)
+    chain.mean("dust/amp_alm", samples=range(10))
+    chain.load("dust/amp_alm", samples=-1)
+
 
 def test_unpack_alms(chain):
     """Tests the unpack_alms decorator.
@@ -133,6 +137,12 @@ def test_validate_key(chain):
 
     with pytest.raises(ChainKeyError):
         chain.get("dust/invalid_key")
+
+    with pytest.raises(ChainKeyError):
+        chain.mean("dust/invalid_key")
+
+    with pytest.raises(ChainKeyError):
+        chain.load("dust/invalid_key")
 
     with pytest.raises(ChainKeyError):
         chain["000010/dust/invalid_key"]

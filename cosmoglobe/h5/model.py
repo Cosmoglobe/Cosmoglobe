@@ -23,7 +23,7 @@ DEFAULT_SAMPLE = -1
 def model_from_chain(
     chain: Union[str, Chain],
     nside: Optional[int] = None,
-    samples: Union[range, int, Literal["all"]] = DEFAULT_SAMPLE,
+    samples: Optional[Union[range, int, Literal["all"]]] = DEFAULT_SAMPLE,
     burn_in: Optional[int] = None,
 ) -> Model:
     """Initialize and return a cosmoglobe sky model from a chainfile.
