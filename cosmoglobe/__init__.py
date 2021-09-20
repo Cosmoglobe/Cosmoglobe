@@ -9,6 +9,6 @@ from cosmoglobe.sky.components import (
 )
 from cosmoglobe.hub import sky_model
 from cosmoglobe.chain.h5 import model_from_chain
-from cosmoglobe.plot import plot
+from cosmoglobe.plot import plot, gnom, trace
 
 __all__ = ("Class",)
