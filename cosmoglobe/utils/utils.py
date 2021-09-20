@@ -1,29 +1,9 @@
-from enum import Enum, auto
 from typing import Dict, Iterable
 
 import astropy.units as u
 import numpy as np
 
 import cosmoglobe.utils.functions as F
-
-
-class State(Enum):
-    """State of a model component."""
-
-    ENABLED = auto()
-    DISABLED = auto()
-
-
-class NsideError(Exception):
-    """Raised if there is a NSIDE related problem."""
-
-
-class NsideMissingError(Exception):
-    """Raised if a point source componentis missing the nside attribute."""
-
-
-class ModelError(Exception):
-    """Raised if there is a Model related problem."""
 
 
 def extract_scalars(spectral_parameters: Dict[str, u.Quantity]):

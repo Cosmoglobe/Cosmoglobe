@@ -1,3 +1,4 @@
+from enum import Enum, auto
 from typing import List, Iterator, Optional
 
 import astropy.units as u
@@ -5,7 +6,18 @@ import healpy as hp
 import numpy as np
 
 from cosmoglobe.sky.base import SkyComponent, Diffuse, PointSource
-from cosmoglobe.utils.utils import State, ModelError, str_to_astropy_unit
+from cosmoglobe.utils.utils import str_to_astropy_unit
+from cosmoglobe.sky.exceptions import (
+    ModelComponentNotFoundError,
+    ModelComponentError,
+)
+
+
+class State(Enum):
+    """State of a model component."""
+
+    ENABLED = auto()
+    DISABLED = auto()
 
 
 class Model:
@@ -90,7 +102,7 @@ class Model:
         Parameters
         ----------
         nside
-            Healpix resolution of the maps in sky model. If None, nside 
+            Healpix resolution of the maps in sky model. If None, nside
             will match the first component added to the model. Defaults to
             None.
         components
@@ -263,9 +275,11 @@ class Model:
             if self._components[comp_label][1] is State.ENABLED:
                 self._components[comp_label][1] = State.DISABLED
             else:
-                raise ModelError(f"{comp_label!r} is already disabled")
+                raise ModelComponentError(f"{comp_label!r} is already disabled")
         except KeyError:
-            raise KeyError(f"{comp_label!r} is not a component in the model")
+            raise ModelComponentNotFoundError(
+                f"{comp_label!r} is not present in the model"
+            )
 
     def enable(self, comp_label: str) -> None:
         """Enable a disabled component.
@@ -285,9 +299,11 @@ class Model:
             if self._components[comp_label][1] is State.DISABLED:
                 self._components[comp_label][1] = State.ENABLED
             else:
-                raise ModelError(f"{comp_label!r} is already enabled")
+                raise ModelComponentError(f"{comp_label!r} is already enabled")
         except KeyError:
-            raise KeyError(f"{comp_label!r} is not a component in the model")
+            raise ModelComponentNotFoundError(
+                f"{comp_label!r} is not a component in the model"
+            )
 
     def _add_component_to_model(self, component: SkyComponent) -> None:
         """Adds a new component to the model."""
@@ -298,7 +314,9 @@ class Model:
         if name is None:
             raise ValueError("Cannot add component without label")
         if name in self._components:
-            raise KeyError(f"component {name} is already a part of the model")
+            raise ModelComponentError(
+                f"component {name} is already a part of the model"
+            )
 
         setattr(self, name, component)
         self._components[name] = [component, State.ENABLED]

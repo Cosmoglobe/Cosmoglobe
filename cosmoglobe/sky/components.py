@@ -179,21 +179,21 @@ class FreeFree(Diffuse):
 
     label = "ff"
 
-    def __init__(self, amp: u.Quantity, freq_ref: u.Quantity, Te: u.Quantity) -> None:
-        super().__init__(amp, freq_ref, Te=Te)
+    def __init__(self, amp: u.Quantity, freq_ref: u.Quantity, T_e: u.Quantity) -> None:
+        super().__init__(amp, freq_ref, T_e=T_e)
 
     def _get_freq_scaling(
-        self, freq: u.Quantity, freq_ref: u.Quantity, Te: u.Quantity
+        self, freq: u.Quantity, freq_ref: u.Quantity, T_e: u.Quantity
     ) -> u.Quantity:
         r"""See base class.
 
         Parameters
         ----------
-        Te
+        T_e
             Electron temperature.
         """
 
-        gaunt_factor_ratio = gaunt_factor(freq, Te) / gaunt_factor(freq_ref, Te)
+        gaunt_factor_ratio = gaunt_factor(freq, T_e) / gaunt_factor(freq_ref, T_e)
         scaling = (freq_ref / freq) ** 2 * gaunt_factor_ratio
 
         return scaling
@@ -239,7 +239,11 @@ class AME(Diffuse):
 
     label = "ame"
 
-    def __init__(self, amp: u.Quantity, freq_ref: u.Quantity, nu_p: u.Quantity) -> None:
+    def __init__(
+        self, amp: u.Quantity, freq_ref: u.Quantity, freq_peak: u.Quantity
+    ) -> None:
+        super().__init__(amp, freq_ref, freq_peak=freq_peak)
+
         spdust2_freq, spdust2_amp = np.loadtxt(SPDUST2_FILE, unpack=True)
         spdust2_freq = u.Quantity(spdust2_freq, unit=u.GHz)
         spdust2_amp = u.Quantity(spdust2_amp, unit=(u.Jy / u.sr))
@@ -248,21 +252,18 @@ class AME(Diffuse):
         )
         self.spdust2 = np.array([spdust2_freq.si.value, spdust2_amp.si.value])
 
-        super().__init__(amp, freq_ref, nu_p=nu_p)
-
     def _get_freq_scaling(
-        self, freq: u.Quantity, freq_ref: u.Quantity, nu_p: u.Quantity
+        self, freq: u.Quantity, freq_ref: u.Quantity, freq_peak: u.Quantity
     ) -> u.Quantity:
         r"""See base class.
 
         Parameters
         ----------
-        nu_p
+        freq_peak
             Peak frequency.
         """
-
         spdust2 = self.spdust2
-        peak_scale = 30 * u.GHz / nu_p
+        peak_scale = 30 * u.GHz / freq_peak
 
         # AME is undefined at outside of this frequency range
         if not np.logical_and(
@@ -416,23 +417,13 @@ class Radio(PointSource):
     label = "radio"
 
     def __init__(
-        self, amp: u.Quantity, freq_ref: u.Quantity, specind: u.Quantity
+        self, amp: u.Quantity, freq_ref: u.Quantity, alpha: u.Quantity
     ) -> None:
-        super().__init__(amp, freq_ref, specind=specind)
-
+        super().__init__(amp, freq_ref, alpha=alpha)
         self.angular_coords = self._read_coords_from_catalog(RADIO_CATALOG)
 
-        # Note that the true unit of self.amp at this stage is "mJy". Here we
-        # manually set it to "mJy/sr" to make it convertable to uK. This does
-        # not cause any problems, since in all cases, we end up dividing the
-        # emission by some beam_area.
-        self._amp = u.Quantity(self._amp.value, unit="mJy/sr")
-        self._amp = self.amp.to(
-            u.uK, equivalencies=u.thermodynamic_temperature(self.freq_ref)
-        )
-
     def _get_freq_scaling(
-        self, freq: u.Quantity, freq_ref: u.Quantity, specind: u.Quantity
+        self, freq: u.Quantity, freq_ref: u.Quantity, alpha: u.Quantity
     ) -> u.Quantity:
         r"""See base class.
 
@@ -442,6 +433,6 @@ class Radio(PointSource):
             Power law spectral index.
         """
 
-        scaling = (freq / freq_ref) ** (specind - 2)
+        scaling = (freq / freq_ref) ** (alpha - 2)
 
         return scaling

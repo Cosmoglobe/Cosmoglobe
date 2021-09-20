@@ -6,7 +6,7 @@ import astropy.units as u
 import healpy as hp
 import numpy as np
 
-from cosmoglobe.utils.utils import NsideMissingError, gaussian_beam_2D, to_unit
+from cosmoglobe.utils.utils import gaussian_beam_2D, to_unit
 from cosmoglobe.utils.bandpass import (
     get_bandpass_coefficient,
     get_bandpass_scaling,
@@ -212,6 +212,8 @@ class SkyComponent(ABC):
         if freq_ref is None:
             return
         elif freq_ref.size == 1:
+            if np.ndim(freq_ref) == 0:
+                return np.expand_dims(freq_ref, axis=0)
             return freq_ref
         elif freq_ref.size == 2:
             return np.expand_dims(
@@ -350,7 +352,7 @@ class PointSource(SkyComponent):
 
         nside = self._nside
         if nside is None:
-            raise NsideMissingError(
+            raise AttributeError(
                 "The _nside attribute of a point source have not been set"
             )
 

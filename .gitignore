@@ -57,7 +57,8 @@ distribute-*.tar.gz
 # Ignore test files
 tests/
 test.py
-context.py
+.pytest_cache
+
 
 # VS code
 .vscode

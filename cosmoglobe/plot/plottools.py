@@ -3,9 +3,7 @@ from re import T
 import warnings
 from .. import data as data_dir
 from cosmoglobe.sky.model import Model
-from cosmoglobe.sky import model_from_chain
-
-from cosmoglobe.utils.utils import ModelError
+from cosmoglobe import model_from_chain
 
 import cmasher
 from rich import print
