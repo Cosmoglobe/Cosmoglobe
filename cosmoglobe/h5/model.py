@@ -145,12 +145,13 @@ def _comp_from_chain(
                     nside=nside if nside is not None else chain_params["nside"],
                     fwhm=(chain_params["fwhm"] * u.arcmin).to("rad").value,
                     pol=pol,
+                    pixwin=True,
                 )
 
         args[arg] = u.Quantity(value, unit=units[arg] if arg in units else None)
 
-    post_contexts = chain_context.get_context(component)
-    for context in post_contexts:
+    contexts = chain_context.get_context(component)
+    for context in contexts:
         args.update(context(args))
 
     return comp_class(**args)

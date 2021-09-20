@@ -1,6 +1,4 @@
-import os
 import healpy as hp
-import numpy as np
 import matplotlib.pyplot as plt
 
 from functools import partial
@@ -66,12 +64,6 @@ def gnom(
 
     nside = hp.get_nside(m)
 
-    if float(fwhm.value) > 0:
-        m = hp.smoothing(
-            m,
-            fwhm=fwhm.to(u.rad).value,
-            lmax=3 * nside,
-        )
     if remove_dip:
         m = hp.remove_dipole(m, gal_cut=30, copy=True, verbose=True)
     if remove_mono:
