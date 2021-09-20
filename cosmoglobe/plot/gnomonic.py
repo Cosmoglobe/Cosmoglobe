@@ -102,7 +102,8 @@ def gnom(
     params["ticks"] = ticks
 
     # Create ticklabels from final ticks
-    ticklabels = [fmt(i, 1) for i in ticks]
+    ticklabels = format_list(ticks)
+    
     # Semi-log normalization
     if params["norm"] == "log":
         reproj_im, ticks = apply_logscale(reproj_im, ticks, linthresh=1)

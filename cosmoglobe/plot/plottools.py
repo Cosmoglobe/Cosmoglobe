@@ -244,6 +244,8 @@ def fmt(x, pos):
         x = round(x, 2)
         return fr"${x}$"
 
+def format_list(items):
+    return [fmt(i, 1) for i in items]
 
 def symlog(m, linthresh=1.0):
     """
@@ -493,15 +495,25 @@ def find_nearest(array, value):
     idx = (np.abs(array - value)).argmin()
     return array[idx], idx
 
+def standalone_colorbar(cmap, ticks, ticklabels=None, unit=None, fontsize=None, norm=None, shrink=.3, darkmode=False, width=10):
+    set_style(darkmode)
+    if fontsize is None: fontsize=get_default_fontsize()
+    plt.figure(figsize=(width,2))
+    img = plt.imshow(np.array([[ticks[0],ticks[-1]]]), load_cmap(cmap))
+    plt.gca().set_visible(False)
+    if ticklabels is None: ticklabels = format_list(ticks)
+    apply_colorbar(plt.gcf(), plt.gca(), img, ticks, ticklabels, unit, fontsize=fontsize, norm=norm, shrink=shrink)
+    
 
 def apply_colorbar(
-    fig, ax, image, ticks, ticklabels, unit, fontsize, linthresh, norm=None, shrink=0.3
+    fig, ax, image, ticks, ticklabels, unit, fontsize=None, linthresh=1, norm=None, shrink=1
 ):
     """
     This function applies a colorbar to the figure and formats the ticks.
     """
     from matplotlib.ticker import FuncFormatter
 
+    if fontsize is None: fontsize = get_default_fontsize()
     cb = fig.colorbar(
         image,
         ax=ax,
@@ -512,6 +524,8 @@ def apply_colorbar(
         format=FuncFormatter(fmt),
     )
     cb.ax.set_xticklabels(ticklabels, size=fontsize["cbar_tick_label"])
+    if isinstance(unit, u.UnitBase):
+        unit = unit.to_string("latex")
     cb.ax.xaxis.set_label_text(unit, size=fontsize["cbar_label"])
     if norm == "log":
         linticks = np.linspace(-1, 1, 3) * linthresh
@@ -632,3 +646,16 @@ def get_data(input, sig, comp, freq, fwhm, nside=None, sample=None, ):
         m = m.value
 
     return m
+
+def get_default_fontsize():
+    return {
+            "xlabel": 11,
+            "ylabel": 11,
+            "xtick_label": 8,
+            "ytick_label": 8,
+            "title": 12,
+            "cbar_label": 11,
+            "cbar_tick_label": 9,
+            "left_label": 11,
+            "right_label": 11,
+        }

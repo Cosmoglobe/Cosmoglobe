@@ -1,4 +1,3 @@
-from copy import Error
 from multiprocessing import Value
 from logging import error
 
@@ -63,7 +62,7 @@ def plot(
     phi_convention="counterclockwise",
     custom_xtick_labels=None,
     custom_ytick_labels=None,
-    **kwargs,
+    **kwargs
 ):
     """
     General plotting function for healpix maps.
@@ -217,17 +216,7 @@ def plot(
         }
 
     if not fontsize:
-        fontsize = {
-            "xlabel": 11,
-            "ylabel": 11,
-            "xtick_label": 8,
-            "ytick_label": 8,
-            "title": 12,
-            "cbar_label": 11,
-            "cbar_tick_label": 9,
-            "left_label": 11,
-            "right_label": 11,
-        }
+        fontsize = get_default_fontsize()
     set_style(darkmode)
 
     # Translate sig to correct format
@@ -265,9 +254,9 @@ def plot(
 
     # Remove mono/dipole
     if remove_dip:
-        m = hp.remove_dipole(m, gal_cut=30, copy=True, verbose=True)
+        m = hp.remove_dipole(m, gal_cut=30, copy=True, )
     if remove_mono:
-        m = hp.remove_monopole(m, gal_cut=30, copy=True, verbose=True)
+        m = hp.remove_monopole(m, gal_cut=30, copy=True, )
 
     # Fetching autoset parameters
     params = autoparams(
@@ -298,7 +287,7 @@ def plot(
             print("[magenta]Colormap saturated. Expanding color-range.[/magenta]")
 
     # Create ticklabels from final ticks
-    ticklabels = [fmt(i, 1) for i in ticks]
+    ticklabels = format_list(ticks)
 
     # Semi-log normalization
     if params["norm"] == "log":
@@ -383,7 +372,7 @@ def plot(
         phi_convention=phi_convention,
         custom_xtick_labels=custom_xtick_labels,
         custom_ytick_labels=custom_ytick_labels,
-        **kwargs,
+        **kwargs
     )
     if not return_only_data:
         # Remove color bar because of healpy bug
