@@ -239,11 +239,11 @@ class Chain:
     def _format_samples(self, samples: Union[List[int], int]) -> Union[List[str], str]:
         """Converts a range to the string format of the samples in the chain."""
 
-        n = len(self.samples[0])  # Getting the number of leading zeros
+        leading_zeros = len(self.samples[0])
         if isinstance(samples, list):
-            return [f"{sample:0{n}d}" for sample in samples]
+            return [f"{sample:0{leading_zeros}d}" for sample in samples]
 
-        return f"{samples:0{n}d}"
+        return f"{samples:0{leading_zeros}d}"
 
     def __str__(self) -> str:
         """Representation of the chain."""

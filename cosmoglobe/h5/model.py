@@ -22,6 +22,7 @@ DEFAULT_SAMPLE = -1
 
 def model_from_chain(
     chain: Union[str, Chain],
+    components: Optional[List[str]] = None,
     nside: Optional[int] = None,
     samples: Optional[Union[range, int, Literal["all"]]] = DEFAULT_SAMPLE,
     burn_in: Optional[int] = None,
@@ -32,6 +33,8 @@ def model_from_chain(
     ----------
     chain
         Path to a Cosmoglobe chainfile or a Chain object.
+    components
+        List of components to include in the model.
     nside
         Model HEALPIX map resolution parameter.
     samples
@@ -62,15 +65,22 @@ def model_from_chain(
         )
 
     print(f"Initializing model from {chain.path.name}")
-    components: List[SkyComponent] = []
-    with tqdm(total=len(chain.components), ncols=75) as progress_bar:
+    if components is None:
+        components = chain.components
+    elif any(component not in chain.components for component in components):
+        raise ChainComponentNotFoundError(f"component was not found in chain")
+
+    initialized_components: List[SkyComponent] = []
+    with tqdm(total=len(components), ncols=75) as progress_bar:
         padding = len(max(chain.components, key=len))
-        for component in chain.components:
+        for component in components:
             progress_bar.set_description(f"{component:<{padding}}")
-            components.append(_comp_from_chain(chain, component, nside, samples))
+            initialized_components.append(
+                _comp_from_chain(chain, component, nside, samples)
+            )
             progress_bar.update()
 
-    return Model(nside=nside, components=components)
+    return Model(nside=nside, components=initialized_components)
 
 
 def _comp_from_chain(
