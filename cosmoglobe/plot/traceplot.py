@@ -12,7 +12,7 @@ def trace(
     labels=None,
     showval=True,
     burnin=0,
-    xlabel="Gibbs sample",
+    xlabel=None,
     ylabel=None,
     nbins=None,
     cmap="tab10",
@@ -29,15 +29,6 @@ def trace(
             ylabel = dataset
         #component, *items = dataset.split("/")
         input = chain.get(dataset)
-        """
-        np.concatenate(
-            [
-                chain.get(filename, sample=sample, component=component, items=items)
-                for sample in _get_samples(filename)
-            ],
-            axis=0,
-        )
-        """
 
     # Make figure
     fig, ax = make_fig(
@@ -88,6 +79,7 @@ def trace(
     ax.set_xlim(right=Nsamp)
     ax.set_ylabel(ylabel)
     ax.set_xlabel(xlabel)
+
     # Tick and spine parameters
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
