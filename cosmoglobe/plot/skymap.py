@@ -1,13 +1,12 @@
-from multiprocessing import Value
-from logging import error
-
 import warnings
 import os
+
 from rich import print
 import healpy as hp
 import numpy as np
 import astropy.units as u
 import matplotlib.pyplot as plt
+
 from .plottools import *
 
 # Fix for macos openMP duplicate bug
