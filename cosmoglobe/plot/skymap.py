@@ -13,7 +13,6 @@ from .plottools import *
 # Fix for macos openMP duplicate bug
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
-
 @u.quantity_input(freq=u.Hz, fwhm=(u.arcmin, u.rad, u.deg))
 def plot(
     input,
@@ -193,6 +192,7 @@ def plot(
     custom_ytick_labels : list
         override y-axis tick labels
     """
+    
     # Pick sizes from size dictionary for page width plots
     if width is None:
         override_plot_properties = None
@@ -207,19 +207,21 @@ def plot(
         override_plot_properties = {
             "figure_width": width,
             "figure_size_ratio": ratio,
+            "cbar_pad": 0.04,
+            "cbar_shrink": 0.3,
         }
 
     if not fontsize:
-        fontsize = get_default_fontsize()
+        fontsize = DEFAULT_FONTSIZES
     set_style(darkmode)
 
     # Translate sig to correct format
     if isinstance(sig, str):
         sig = STOKES.index(sig)
 
+
     # Get data
-    m = get_data(input, sig, comp, freq, fwhm, nside=nside, sample=sample)
-    nside = hp.get_nside(m)
+    m, comp, freq, nside = get_data(input, sig, comp, freq, fwhm, nside=nside, sample=sample)
 
     # Mask map
     if mask is not None:
@@ -233,10 +235,6 @@ def plot(
             )
             mask = hp.ud_grade(mask, nside)
         m.mask = np.logical_not(mask)
-
-    # Smooth map
-    if fwhm > 0.0:
-        m = hp.smoothing(m, fwhm.to(u.rad).value)
 
     # Remove mono/dipole
     if remove_dip:
@@ -252,64 +250,72 @@ def plot(
             copy=True,
         )
 
-    # Fetching autoset parameters
-    params = autoparams(
-        comp, sig, right_label, left_label, unit, ticks, min, max, rng, norm, cmap, freq
+    
+    # Pass all your arguments in, return parsed plotting parameters
+    params = get_params(
+        data=m,
+        comp=comp,
+        sig=sig,
+        right_label=right_label,
+        left_label=left_label,
+        unit=unit,
+        ticks=ticks,
+        min=min,
+        max=max,
+        rng=rng,
+        norm=norm,
+        cmap=cmap,
+        freq_ref=freq,
+        width=width,
+        nside=nside,
     )
-
-    # Ticks and ticklabels
-    ticks = params["ticks"]
-    if ticks == "auto" or params["norm"] == "hist":
-        ticks = get_percentile(m, 97.5)
-    elif None in ticks:
-        pmin, pmax = get_percentile(m, 97.5)
-        if ticks[0] is None:
-            ticks[0] = pmin
-        if ticks[-1] is None:
-            ticks[-1] = pmax
-
-    # Update parameter dictionary
-    params["nside"] = nside
-    params["width"] = width
-    params["ticks"] = ticks
-
-    # Special case if dipole is detected in freqmap
-    if comp == "freqmap" and min is None and max is None and rng is None:
-        # if colorbar is super-saturated
-        while len(m[abs(m) > ticks[-1]]) / hp.nside2npix(nside) > 0.7:
-            ticks = [tick * 10 for tick in ticks]
-            print("[magenta]Colormap saturated. Expanding color-range.[/magenta]")
-
-    # Create ticklabels from final ticks
-    ticklabels = format_list(ticks)
 
     # Semi-log normalization
     if params["norm"] == "log":
-        m, ticks = apply_logscale(m, ticks, linthresh=1)
+        params["data"], params["ticks"] = apply_logscale(
+            params["data"], params["ticks"], linthresh=1
+        )
 
     # Colormap
     cmap = load_cmap(params["cmap"])
     if maskfill:
         cmap.set_bad(maskfill)
 
-    # Plot using mollview if interactive mode
-    if interactive:
+    
+    if interactive: # Plot using mollview if interactive mode
         if params["norm"] == "log":
             params["norm"] = None
-            # Ticklabels not available for this
-            params["unit"] = r"$\log($" + params["unit"] + r"$)$"
-        if right_label is None:
-            ttl = params["right_title"]
-        ret = hp.mollview(
-            m,
-            min=ticks[0],
-            max=ticks[-1],
-            cbar=cbar,
+        hp.mollview(
+            params["data"],
+            min=params["ticks"][0],
+            max=params["ticks"][-1],
+            cbar=False,
             cmap=cmap,
             unit=params["unit"],
-            title=ttl,
+            title=title,
             norm=params["norm"],
             # unedited params
+            rot=rot,
+            coord=coord,
+            nest=nest,
+            flip=flip,
+            return_projected_map=True,
+        )
+        ret=plt.gca().get_images()[0]
+
+    else: # Using fancy projview
+
+        warnings.filterwarnings("ignore")  # Healpy complains too much
+        # Plot figure
+        ret = hp.newvisufunc.projview(
+            params["data"],
+            min=params["ticks"][0],
+            max=params["ticks"][-1],
+            cbar=False,
+            cmap=cmap,
+            xsize=xsize,
+            # unedited params
+            title=title,
             rot=rot,
             coord=coord,
             nest=nest,
@@ -332,56 +338,34 @@ def plot(
             custom_xtick_labels=custom_xtick_labels,
             custom_ytick_labels=custom_ytick_labels,
         )
-        return ret, params
-
-    warnings.filterwarnings("ignore")  # Healpy complains too much
-    # Plot figure
-    ret = hp.newvisufunc.projview(
-        m,
-        min=ticks[0],
-        max=ticks[-1],
-        cbar=False,
-        cmap=cmap,
-        xsize=xsize,
-        # unedited params
-        title=title,
-        rot=rot,
-        coord=coord,
-        nest=nest,
-        flip=flip,
-        graticule=graticule,
-        graticule_labels=graticule_labels,
-        return_only_data=return_only_data,
-        projection_type=projection_type,
-        cb_orientation=cb_orientation,
-        xlabel=xlabel,
-        ylabel=ylabel,
-        longitude_grid_spacing=longitude_grid_spacing,
-        latitude_grid_spacing=latitude_grid_spacing,
-        override_plot_properties=override_plot_properties,
-        xtick_label_color=xtick_label_color,
-        ytick_label_color=ytick_label_color,
-        graticule_color=graticule_color,
-        fontsize=fontsize,
-        phi_convention=phi_convention,
-        custom_xtick_labels=custom_xtick_labels,
-        custom_ytick_labels=custom_ytick_labels,
-    )
-    if not return_only_data:
         # Remove color bar because of healpy bug
         plt.gca().collections[-1].colorbar.remove()
+        
+    
+    if not return_only_data:
+
+        if override_plot_properties is not None:
+            cbar_pad = override_plot_properties["cbar_pad"]
+            cbar_shrink = override_plot_properties["cbar_shrink"]
+        else: 
+            cbar_pad = 0.04
+            cbar_shrink = 0.3
+
         # Add pretty color bar
         if cbar:
             apply_colorbar(
                 plt.gcf(),
                 plt.gca(),
                 ret,
-                ticks,
-                ticklabels,
+                params["ticks"],
+                params["ticklabels"],
                 params["unit"],
                 fontsize=fontsize,
                 linthresh=1,
                 norm=params["norm"],
+                cbar_pad=cbar_pad,
+                cbar_shrink=cbar_shrink
+
             )
 
     #### Right Title ####
@@ -404,4 +388,6 @@ def plot(
         fontsize=fontsize["left_label"],
         transform=plt.gca().transAxes,
     )
+
+
     return ret, params

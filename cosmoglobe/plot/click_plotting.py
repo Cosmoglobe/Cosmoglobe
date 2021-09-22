@@ -635,6 +635,18 @@ def plot(
     help="remove colorbar",
 )
 @click.option(
+    "-cbar_pad",
+    default=0.04,
+    type=click.FLOAT,
+    help="Colorbar space",
+)
+@click.option(
+    "-cbar_shrink",
+    default=0.7,
+    type=click.FLOAT,
+    help="Colorbar size",
+)
+@click.option(
     "-fwhm",
     default=0.0,
     type=click.FLOAT,
@@ -738,6 +750,8 @@ def gnom(
     graticule,
     norm,
     nocbar,
+    cbar_pad,
+    cbar_shrink,
     fwhm,
     remove_dip,
     remove_mono,
@@ -783,6 +797,8 @@ def gnom(
         graticule,
         norm,
         cbar,
+        cbar_pad,
+        cbar_shrink,
         fwhm_,
         remove_dip,
         remove_mono,
@@ -797,27 +813,27 @@ def gnom(
 
     if show:
         plt.show()
-
-    *path, fn = os.path.split(input)
-    if outname:
-        filetype = "png" if outname.endswith(".png") else "pdf"
     else:
-        fn = (
-            os.path.splitext(fn)[0]
-            + f'_gnomonic_{["I","Q","U"][sig]}_{lon}lon{lat}lat_{size}x{size}deg_c-{params["cmap"]}'
-        )
-        filetype = "png" if png else "pdf"
+        *path, fn = os.path.split(input)
+        if outname:
+            filetype = "png" if outname.endswith(".png") else "pdf"
+        else:
+            fn = (
+                os.path.splitext(fn)[0]
+                + f'_gnomonic_{["I","Q","U"][sig]}_{lon}lon{lat}lat_{size}x{size}deg_c-{params["cmap"]}'
+            )
+            filetype = "png" if png else "pdf"
 
-    if outname:
-        fn = outname
-    if outdir:
-        path = [outdir]
-    path = "." if path[0] == "" else path[0]
-    fn = os.path.splitext(fn)[0] + f".{filetype}"
-    print(f"[bold green]Outputting {fn}[/bold green] to {path}")
-    plt.savefig(
-        f"{path}/{fn}", bbox_inches="tight", pad_inches=0.02, format=filetype, dpi=dpi
-    )
+        if outname:
+            fn = outname
+        if outdir:
+            path = [outdir]
+        path = "." if path[0] == "" else path[0]
+        fn = os.path.splitext(fn)[0] + f".{filetype}"
+        print(f"[bold green]Outputting {fn}[/bold green] to {path}")
+        plt.savefig(
+            f"{path}/{fn}", bbox_inches="tight", pad_inches=0.02, format=filetype, dpi=dpi
+        )
 
 
 @commands_plotting.command()
@@ -842,9 +858,9 @@ def gnom(
     help="List of label values for each input",
 )
 @click.option(
-    "-showval",
+    "-hideval",
     is_flag=True,
-    help="Show mean and standard deviation of samples",
+    help="Hide mean and standard deviation of samples",
 )
 @click.option(
     "-burnin",
@@ -940,7 +956,7 @@ def trace(
     dataset,
     sig,
     labels,
-    showval,
+    hideval,
     burnin,
     xlabel,
     ylabel,
@@ -962,7 +978,9 @@ def trace(
     This function creates a trace plot off data in a HDF file.
     This is a click wrapper the same function in cosmoglobe.
     """
-
+    labels = labels.split(" ")
+    if figsize is None: figsize = (8, 3)
+    showval=True if not hideval else False
     ctrace(
         input,
         dataset,
@@ -984,20 +1002,20 @@ def trace(
 
     if show:
         plt.show()
-
-    *path, fn = os.path.split(input)
-    if outname:
-        filetype = "png" if outname.endswith(".png") else "pdf"
     else:
-        filetype = "png" if png else "pdf"
+        *path, fn = os.path.split(input)
+        if outname:
+            filetype = "png" if outname.endswith(".png") else "pdf"
+        else:
+            filetype = "png" if png else "pdf"
 
-    if outname:
-        fn = outname
-    if outdir:
-        path = [outdir]
-    path = "." if path[0] == "" else path[0]
-    fn = os.path.splitext(fn)[0] + f".{filetype}"
-    print(f"[bold green]Outputting {fn}[/bold green] to {path}")
-    plt.savefig(
-        f"{path}/{fn}", bbox_inches="tight", pad_inches=0.02, format=filetype, dpi=dpi
-    )
+        if outname:
+            fn = outname
+        if outdir:
+            path = [outdir]
+        path = "." if path[0] == "" else path[0]
+        fn = os.path.splitext(fn)[0] + f".{filetype}"
+        print(f"[bold green]Outputting {fn}[/bold green] to {path}")
+        plt.savefig(
+            f"{path}/{fn}", bbox_inches="tight", pad_inches=0.02, format=filetype, dpi=dpi
+        )

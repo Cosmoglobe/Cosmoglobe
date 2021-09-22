@@ -29,6 +29,8 @@ def gnom(
     graticule=False,
     norm=None,
     cbar=True,
+    cbar_pad=0.04,
+    cbar_shrink=0.7,
     fwhm=0.0 * u.arcmin,
     remove_dip=False,
     remove_mono=False,
@@ -55,23 +57,13 @@ def gnom(
             "left_label": 11,
             "right_label": 11,
         }
-
     # Set plotting rcParams
     set_style(darkmode)
-    xsize = 5000
+    xsize = 1000
     reso = size * 60 / xsize
 
     # Get data
-    m = get_data(input, sig, comp, freq, fwhm, nside=nside, sample=sample)
-
-    nside = hp.get_nside(m)
-
-    if float(fwhm.value) > 0:
-        m = hp.smoothing(
-            m,
-            fwhm=fwhm.to(u.rad).value,
-            lmax=3 * nside,
-        )
+    m, comp, freq, nside  = get_data(input, sig, comp, freq, fwhm, nside=nside, sample=sample)
     if remove_dip:
         m = hp.remove_dipole(m, gal_cut=30, copy=True, verbose=True)
     if remove_mono:
@@ -82,42 +74,28 @@ def gnom(
     )
     reproj_im = proj.projmap(m, vec2pix_func=partial(hp.vec2pix, nside))
 
-    # Fetching autoset parameters
-    params = autoparams(
-        comp,
-        sig,
-        right_label,
-        left_label,
-        unit,
-        ticks,
-        vmin,
-        vmax,
-        rng,
-        norm,
-        cmap,
-        freq,
+    # Pass all your arguments in, return parsed plotting parameters
+    params = get_params(
+        data=reproj_im, 
+        comp=comp,
+        sig=sig,
+        right_label=right_label,
+        left_label=left_label,
+        unit=unit,
+        ticks=ticks,
+        min=vmin,
+        max=vmax,
+        rng=rng,
+        norm=norm,
+        cmap=cmap,
+        freq_ref=freq,
+        width=figsize[0],
+        nside=nside
     )
-
-    # Ticks and ticklabels
-    ticks = params["ticks"]
-    if ticks == "auto" or params["norm"] == "hist":
-        ticks = get_percentile(reproj_im, 97.5)
-    elif None in ticks:
-        pmin, pmax = get_percentile(reproj_im, 97.5)
-        if ticks[0] is None:
-            ticks[0] = pmin
-        if ticks[-1] is None:
-            ticks[-1] = pmax
-
-    # Update parameter dictionary
-    params["ticks"] = ticks
-
-    # Create ticklabels from final ticks
-    ticklabels = format_list(ticks)
 
     # Semi-log normalization
     if params["norm"] == "log":
-        reproj_im, ticks = apply_logscale(reproj_im, ticks, linthresh=1)
+        params["data"], params["ticks"] = apply_logscale(params["data"], params["ticks"], linthresh=1)
 
     cmap = load_cmap(params["cmap"])
 
@@ -126,16 +104,17 @@ def gnom(
         fignum,
         hold,
         subplot,
-        reuse_axes,
+        reuse_axes
     )
     image = plt.imshow(
-        reproj_im,
+        params["data"],
         origin="lower",
         interpolation="nearest",
-        vmin=ticks[0],
-        vmax=ticks[-1],
-        cmap=cmap,
+        vmin=params["ticks"][0],
+        vmax=params["ticks"][-1],
+        cmap=cmap
     )
+
     plt.xticks([])
     plt.yticks([])
     plt.text(
@@ -146,7 +125,7 @@ def gnom(
         va="top",
         ha="right",
         transform=ax.transAxes,
-        fontsize=fontsize["title"],
+        fontsize=fontsize["title"]
     )
     plt.text(
         0.05,
@@ -155,7 +134,7 @@ def gnom(
         color="black",
         va="top",
         transform=ax.transAxes,
-        fontsize=fontsize["title"],
+        fontsize=fontsize["title"]
     )
 
     if cbar:
@@ -163,13 +142,14 @@ def gnom(
             plt.gcf(),
             plt.gca(),
             image,
-            ticks,
-            ticklabels,
+            params["ticks"],
+            params["ticklabels"],
             params["unit"],
             fontsize=fontsize,
             linthresh=1,
             norm=params["norm"],
-            shrink=0.7,
+            cbar_pad=cbar_pad,
+            cbar_shrink=cbar_shrink
         )
 
     if graticule:
