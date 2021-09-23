@@ -111,8 +111,10 @@ def to_unit(emission: u.Quantity, freqs: u.Quantity, unit: u.UnitBase) -> u.Quan
     try:
         unit = u.Unit(unit)
         emission = emission.to(unit, equivalencies=u.brightness_temperature(freqs))
-
+    except u.UnitConversionError:
+        raise u.UnitConversionError("unit must be compatible with K")
     except ValueError:
+
         if unit.lower().endswith("k_rj"):
             unit = u.Unit(unit[:-3])
         elif unit.lower().endswith("k_cmb"):

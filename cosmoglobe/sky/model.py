@@ -1,5 +1,5 @@
 from enum import Enum, auto
-from typing import List, Iterator, Optional
+from typing import Dict, List, Iterator, Optional, Tuple, Union
 
 import astropy.units as u
 import healpy as hp
@@ -112,7 +112,7 @@ class Model:
         """
 
         self._nside = nside
-        self._components = {}
+        self._components: Dict[str, List[Union[SkyComponent, State]]] = {}
 
         if components is not None:
             for component in components:
@@ -222,15 +222,16 @@ class Model:
          -0.14408377] MJy / sr
         """
 
-        diffuse_emission = np.zeros((3, hp.nside2npix(self._nside)))
-        point_source_emission = np.zeros_like(diffuse_emission)
-
         # The output unit may be a string denoting for instance K_CMB, which
         # is critical information for the following routines. However, we
         # need to initialize the emission arrays with astropy units.
         _output_unit = str_to_astropy_unit(output_unit)
-        diffuse_emission = u.Quantity(diffuse_emission, unit=_output_unit)
-        point_source_emission = u.Quantity(point_source_emission, unit=_output_unit)
+        diffuse_emission = u.Quantity(
+            np.zeros((3, hp.nside2npix(self._nside))), unit=_output_unit
+        )
+        point_source_emission = u.Quantity(
+            np.zeros((3, hp.nside2npix(self._nside))), unit=_output_unit
+        )
 
         for comp in self.components:
             if isinstance(comp, Diffuse):
@@ -325,7 +326,7 @@ class Model:
             self._nside = hp.get_nside(component.amp)
 
         if hasattr(component, "_nside"):
-            component._nside = self._nside
+            component._nside = self._nside # type: ignore
 
     def __iter__(self) -> Iterator:
         """Returns an iterator with active model components"""

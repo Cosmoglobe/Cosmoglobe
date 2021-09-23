@@ -7,7 +7,7 @@ from scipy.interpolate import RectBivariateSpline
 import cosmoglobe.utils.constants as const
 
 if TYPE_CHECKING:
-    from cosmoglobe.sky.base import SkyComponent
+    from cosmoglobe.sky.basecomponent import SkyComponent
 
 
 @u.quantity_input(bandpass=(u.Jy / u.sr, u.K), freqs=u.Hz)
@@ -110,9 +110,7 @@ def get_bandpass_scaling(
         # Component does not have any spatially varying spectral parameters.
         # In this case we simply integrate the emission at each frequency
         # weighted by the bandpass.
-        freq_scaling = comp._get_freq_scaling(
-            freqs, comp.freq_ref, **comp.spectral_parameters
-        )
+        freq_scaling = comp._get_freq_scaling(freqs, **comp.spectral_parameters)
         integral = np.trapz(freq_scaling * bandpass, freqs)
         if np.ndim(integral) > 0:
             return np.expand_dims(integral, axis=1)
@@ -202,13 +200,20 @@ def interp1d(
     # Grid dictionary only has one item
     ((key, grid),) = grid.items()
 
-    if comp._is_polarized:
+    if comp.amp.shape[0] == 3:
         integrals = np.zeros((len(grid), 3))
     else:
         integrals = np.zeros((len(grid), 1))
 
     for idx, grid_point in enumerate(grid):
-        freq_scaling = comp._get_freq_scaling(freqs, comp.freq_ref, **{key: grid_point})
+        scalar_params = {
+            param: value
+            for param, value in comp.spectral_parameters.items()
+            if param != key
+        }
+        freq_scaling = comp._get_freq_scaling(
+            freqs, **{key: grid_point}, **scalar_params
+        )
         integrals[idx] = np.trapz(freq_scaling * bandpass, freqs)
 
     # We transpose the array to make it into row format similar to how
@@ -253,7 +258,7 @@ def interp2d(
 
     # Make n x n mesh grid for the spectral parameters
     n = len(list(grid.values())[0])
-    if comp._is_polarized:
+    if comp.amp.shape[0] == 3:
         integrals = np.zeros((n, n, 3))
     else:
         integrals = np.zeros((n, n, 1))
@@ -265,9 +270,7 @@ def interp2d(
     for i in range(n):
         for j in range(n):
             grid_spectrals = {key: value[i, j] for key, value in mesh_grid.items()}
-            freq_scaling = comp._get_freq_scaling(
-                freqs, comp.freq_ref, **grid_spectrals
-            )
+            freq_scaling = comp._get_freq_scaling(freqs, **grid_spectrals)
             integrals[i, j] = np.trapz(freq_scaling * bandpass, freqs)
     integrals = np.transpose(integrals)
 

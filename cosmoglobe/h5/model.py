@@ -76,14 +76,14 @@ def model_from_chain(
         for component in components:
             progress_bar.set_description(f"{component:<{padding}}")
             initialized_components.append(
-                _comp_from_chain(chain, component, nside, samples)
+                comp_from_chain(chain, component, nside, samples)
             )
             progress_bar.update()
 
     return Model(nside=nside, components=initialized_components)
 
 
-def _comp_from_chain(
+def comp_from_chain(
     chain: Chain,
     component: str,
     nside: Optional[int] = None,

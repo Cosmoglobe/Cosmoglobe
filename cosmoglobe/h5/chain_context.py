@@ -1,6 +1,6 @@
 from typing import Dict, Any, Protocol
 
-import astropy.units as u
+from astropy.units import Quantity, Unit, thermodynamic_temperature
 import numpy as np
 
 from cosmoglobe.h5.chain_contextfactory import ChainContextFactory
@@ -45,8 +45,8 @@ class RadioContext:
 
     def __call__(self, args: Dict[str, Any]) -> Dict[str, Any]:
         args["alpha"] = args["alpha"][0]
-        args["amp"] = u.Quantity(args["amp"].value, unit="mJy/sr").to(
-            u.uK, equivalencies=u.thermodynamic_temperature(args["freq_ref"])
+        args["amp"] = Quantity(args["amp"].value, unit="mJy/sr").to(
+            Unit("uK"), equivalencies=thermodynamic_temperature(args["freq_ref"])
         )
 
         return args
@@ -71,7 +71,7 @@ class MapToScalarContext:
                     all_cols_are_unique = len(uniques) == 1
 
                 if all_cols_are_unique:
-                    args[key] = u.Quantity(uniques, unit=value.unit)
+                    args[key] = Quantity(uniques, unit=value.unit)
 
         return args
 
@@ -87,7 +87,9 @@ chain_context.register_mapping(["radio"], {"alpha": "specind"})
 chain_context.register_mapping(["ame"], {"freq_peak": "nu_p"})
 chain_context.register_mapping(["ff"], {"T_e": "Te"})
 
-chain_context.register_units([], {"amp": u.uK, "freq_ref": u.Hz})
-chain_context.register_units(["ame"], {"nu_p": u.GHz})
-chain_context.register_units(["dust"], {"T": u.K})
-chain_context.register_units(["ff"], {"T_e": u.K})
+chain_context.register_units([], {"freq_ref": Unit("Hz")})
+chain_context.register_units(["cmb", "ame", "dust", "synch", "ff"], {"amp": Unit("uK"), "freq_ref": Unit("Hz")})
+chain_context.register_units(["radio"], {"amp": Unit("mJy")})
+chain_context.register_units(["ame"], {"nu_p": Unit("GHz")})
+chain_context.register_units(["dust"], {"T": Unit("K")})
+chain_context.register_units(["ff"], {"T_e": Unit("K")})

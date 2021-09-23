@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Optional, Union
+from pathlib import Path
+from typing import Any, Dict, Optional, Union
 import warnings
 
 import astropy.units as u
@@ -24,11 +25,13 @@ class SkyComponent(ABC):
     the implementation of a `_smooth_emission` function for any sub class.
     """
 
+    label: str
+
     def __init__(
         self,
         amp: u.Quantity,
         freq_ref: u.Quantity,
-        **spectral_parameters: Dict[str, u.Quantity],
+        **spectral_parameters: Any,
     ) -> None:
         """Initializes a sky component and reshape inputs."""
 
@@ -52,7 +55,7 @@ class SkyComponent(ABC):
         return self._freq_ref
 
     @property
-    def spectral_parameters(self) -> Dict[str, u.Quantity]:
+    def spectral_parameters(self) -> Any:
         """Spectral parameters."""
 
         return self._spectral_parameters
@@ -75,9 +78,7 @@ class SkyComponent(ABC):
         """
 
     @u.quantity_input(
-        freqs=u.Hz,
-        bandpass=(u.Jy / u.sr, u.K, None),
-        fwhm=(u.rad, u.deg, u.arcmin),
+        freqs=u.Hz, bandpass=(u.Jy / u.sr, u.K, None), fwhm=(u.rad, u.deg, u.arcmin)
     )
     def __call__(
         self,
@@ -254,28 +255,6 @@ class SkyComponent(ABC):
 class Diffuse(SkyComponent):
     """Abstract base class for diffuse sky components."""
 
-    @abstractmethod
-    def _get_freq_scaling(
-        freq: u.Quantity,
-        freq_ref: u.Quantity,
-        **spectral_parameters: Dict[str, u.Quantity],
-    ) -> u.Quantity:
-        r"""Computes the frequency scaling for a component.
-
-        Parameters
-        ----------
-        freq
-            Frequency at which to evaluate the model.
-        freq_ref
-            Reference frequencies for the components `amp` map.
-        spectral_parameters
-            The spectral parameters of the component.
-
-        Returns
-        -------
-        scaling
-            Frequency scaling factor with dimensionless units.
-        """
 
     def _smooth_emission(self, emission: u.Quantity, fwhm: u.Quantity) -> u.Quantity:
         """See base class."""
@@ -297,30 +276,8 @@ class Diffuse(SkyComponent):
 class PointSource(SkyComponent):
     """Abstract base class for point source sky components."""
 
-    _nside: int = None
-
-    @abstractmethod
-    def _get_freq_scaling(
-        freq: u.Quantity,
-        freq_ref: u.Quantity,
-        **spectral_parameters: Dict[str, u.Quantity],
-    ) -> u.Quantity:
-        r"""Computes the frequency scaling for a component.
-
-        Parameters
-        ----------
-        freq
-            Frequency at which to evaluate the model.
-        freq_ref
-            Reference frequencies for the components `amp` map.
-        spectral_parameters
-            The spectral parameters of the component.
-
-        Returns
-        -------
-        scaling
-            Frequency scaling factor with dimensionless units.
-        """
+    _nside: Union[int, None] = None
+    angular_coords: np.ndarray
 
     def _smooth_emission(self, emission: u.Quantity, fwhm: u.Quantity) -> u.Quantity:
         """See base class.
@@ -405,7 +362,7 @@ class PointSource(SkyComponent):
 
         return np.expand_dims(healpix_map, axis=0)
 
-    def _read_coords_from_catalog(self, catalog: str) -> np.ndarray:
+    def _read_coords_from_catalog(self, catalog: Union[str, Path]) -> np.ndarray:
         """Reads in the angular coordinates of the point sources from a
         given catalog.
 
