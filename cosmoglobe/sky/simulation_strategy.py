@@ -1,5 +1,5 @@
 from math import pi, log, sqrt
-from typing import Any, Protocol, Union, overload
+from typing import Any, Protocol, Union
 import warnings
 
 from astropy.units import Quantity, Unit
@@ -7,16 +7,16 @@ import numpy as np
 import healpy as hp
 
 from cosmoglobe.utils.bandpass import (
-    get_normalized_bandpass,
-    get_bandpass_coefficient,
     get_bandpass_scaling,
 )
 from cosmoglobe.utils.utils import to_unit, gaussian_beam_2D
+from cosmoglobe.sky._bandpass import normalize_bandpass, bandpass_coefficient
 from cosmoglobe.sky import DEFAULT_OUTPUT_UNIT, NO_SMOOTHING
-from cosmoglobe.sky.basecomponent import (
+from cosmoglobe.sky.base_components import (
     SkyComponent,
     DiffuseComponent,
     PointSourceComponent,
+    LineComponent,
 )
 
 
@@ -111,13 +111,16 @@ class DiffuseSimulationStrategy:
                 np.ones(freqs_len := len(freqs)) / freqs_len * DEFAULT_OUTPUT_UNIT
             )
 
-        bandpass = get_normalized_bandpass(bandpass, freqs)
-        bandpass_coefficient = get_bandpass_coefficient(bandpass, freqs, output_unit)
+        bandpass = normalize_bandpass(freqs, bandpass)
 
         bandpass_scaling = get_bandpass_scaling(freqs, bandpass, component)
-        emission = component.amp * bandpass_scaling * bandpass_coefficient
+        emission = component.amp * bandpass_scaling
+        input_unit = emission.unit
+        unit_coefficient = bandpass_coefficient(
+            freqs, bandpass, input_unit, output_unit
+        )
 
-        return emission
+        return emission * unit_coefficient
 
 
 class PointSourceSimulationStrategy:
@@ -161,17 +164,18 @@ class PointSourceSimulationStrategy:
                 np.ones(freqs_len := len(freqs)) / freqs_len * DEFAULT_OUTPUT_UNIT
             )
 
-        bandpass = get_normalized_bandpass(bandpass, freqs)
-        bandpass_coefficient = get_bandpass_coefficient(bandpass, freqs, output_unit)
-        print(bandpass_coefficient.unit, "UNITUNITUNIT", output_unit)
-
+        bandpass = normalize_bandpass(freqs, bandpass)
         bandpass_scaling = get_bandpass_scaling(freqs, bandpass, component)
-        point_sources = component.amp * bandpass_scaling * bandpass_coefficient
+        point_sources = component.amp * bandpass_scaling
         emission = self.pointsources_to_healpix(
             point_sources, component.catalog, nside, fwhm
         )
+        input_unit = emission.unit
+        unit_coefficient = bandpass_coefficient(
+            freqs, bandpass, input_unit, output_unit
+        )
 
-        return emission
+        return emission * unit_coefficient
 
     def pointsources_to_healpix(
         self, point_sources: Quantity, catalog: np.ndarray, nside: int, fwhm: Quantity
@@ -198,8 +202,6 @@ class PointSourceSimulationStrategy:
                 "without beam smoothing"
             )
             point_source_pixels = hp.ang2pix(nside, *catalog, lonlat=True)
-
-            print(healpix, "Before")
             for idx, col in enumerate(point_sources):
                 healpix[idx, point_source_pixels] = col
 
@@ -222,7 +224,8 @@ class PointSourceSimulationStrategy:
             beam = gaussian_beam_2D
 
             print("Smoothing point sources...")
-            for idx, (lon, lat) in enumerate(catalog):
+            lons, lats = catalog
+            for idx, (lon, lat) in enumerate(zip(lons, lats)):
                 vec = hp.ang2vec(lon, lat, lonlat=True)
                 inds = hp.query_disc(nside, vec, r_max)
                 r = hp.rotator.angdist(
@@ -230,36 +233,38 @@ class PointSourceSimulationStrategy:
                     np.array([lon, lat]),
                     lonlat=True,
                 )
-                healpix[inds] += point_sources[idx] * beam(r, sigma.value)
+                for col_idx, col in enumerate(point_sources):
+                    healpix[col_idx, inds] += col[idx] * beam(r, sigma.value)
+                
+                # healpix[:, inds] *= beam(r, sigma.value)
 
             beam_area = 2 * pi * sigma ** 2
             return healpix / beam_area
 
 
+class LineSimulationStrategy:
+    """Simulation strategy for Line components."""
 
-# class LineSimulationStrategy:
-#     """Simulation strategy for Line components."""
+    def delta(
+        self,
+        component: LineComponent,
+        freq: Quantity,
+        output_unit: Union[str, Unit],
+        **_,
+    ) -> Quantity:
+        """See base class."""
+        ...
 
-#     def delta(
-#         self,
-#         component: Line,
-#         freq: Quantity,
-#         output_unit: Union[str, Unit],
-#         **_,
-#     ) -> Quantity:
-#         """See base class."""
-#         ...
-
-#     def bandpass(
-#         self,
-#         component: Line,
-#         freqs: Quantity,
-#         bandpass: Quantity,
-#         output_unit: Union[str, Unit],
-#         **_,
-#     ) -> Quantity:
-#         """See base class."""
-#         ...
+    def bandpass(
+        self,
+        component: LineComponent,
+        freqs: Quantity,
+        bandpass: Quantity,
+        output_unit: Union[str, Unit],
+        **_,
+    ) -> Quantity:
+        """See base class."""
+        ...
 
 
 def get_simulation_strategy(component: SkyComponent) -> SimulationStrategy:
@@ -267,8 +272,8 @@ def get_simulation_strategy(component: SkyComponent) -> SimulationStrategy:
 
     if isinstance(component, DiffuseComponent):
         return DiffuseSimulationStrategy()
-    # elif isinstance(component, Line):
-    #     return LineSimulationStrategy()
+    elif isinstance(component, LineComponent):
+        return LineSimulationStrategy()
     elif isinstance(component, PointSourceComponent):
         return PointSourceSimulationStrategy()
     else:

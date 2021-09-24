@@ -5,7 +5,7 @@ import numpy as np
 from numba import njit
 
 from cosmoglobe.h5 import PARAMETER_GROUP_NAME
-from cosmoglobe.h5.exceptions import ChainKeyError
+from cosmoglobe.h5._exceptions import ChainKeyError
 
 if TYPE_CHECKING:
     from cosmoglobe.h5.chain import Chain

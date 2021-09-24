@@ -7,7 +7,7 @@ import healpy as hp
 
 from cosmoglobe.h5 import ChainVersion
 from cosmoglobe.h5.chain import Chain
-from cosmoglobe.h5.exceptions import ChainFormatError, ChainKeyError, ChainSampleError
+from cosmoglobe.h5._exceptions import ChainFormatError, ChainKeyError, ChainSampleError
 
 
 # This path needs to exist in the test environment

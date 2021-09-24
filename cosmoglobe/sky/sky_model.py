@@ -2,26 +2,77 @@ from typing import Dict, Iterator, List, Optional, Union
 
 from astropy.units import Quantity, Unit
 import healpy as hp
-import numpy as np
 
 from cosmoglobe.sky import DEFAULT_OUTPUT_UNIT, NO_SMOOTHING
-from cosmoglobe.sky.basecomponent import (
+from cosmoglobe.sky.base_components import (
     SkyComponent,
     PointSourceComponent,
     DiffuseComponent,
     LineComponent,
 )
-from cosmoglobe.sky.exceptions import NsideError, SkyModelComponentError
+from cosmoglobe.sky._exceptions import NsideError, SkyModelComponentError
 from cosmoglobe.sky.simulation import SkySimulator, simulator
 
 
 class SkyModel:
-    """Cosmoglobe Sky Model."""
+    r"""Sky model object representing the Cosmoglobe Sky Model.
+
+    This class acts as a container for the various components making up
+    the Cosmoglobe Sky Model, and provides methods to simulate the sky.
+    The primary use case of this class is to call its ``__call__``
+    method, which simulates the sky at a single frequency :math:`\nu`,
+    or integrated over a bandpass :math:`\tau`.
+    
+    Methods
+    -------
+    __call__
+
+    Examples
+    --------
+    Inspecting the model:
+
+    >>> model = skymodel(nside=256)
+    >>> print(model)
+    Model(
+      nside: 256
+      components(
+        (ame): AME(nu_p)
+        (cmb): CMB()
+        (dust): Dust(beta, T)
+        (ff): FreeFree(Te)
+        (radio): Radio(specind)
+        (synch): Synchrotron(beta)
+      )
+    )
+
+    Simulating the full sky emission at some frequency, given a beam
+    FWHM:
+
+    >>> import astropy.units as u
+    >>> emission = model(50*u.GHz, fwhm=30*u.arcmin)
+    >>> print(emission)
+    Smoothing point sources...
+    Smoothing diffuse emission...
+    [[ 2.25809786e+03  2.24380103e+03  2.25659060e+03 ... -2.34783682e+03
+      -2.30464421e+03 -2.30387946e+03]
+     [-1.64627550e+00  2.93583564e-01 -1.06788937e+00 ... -1.64354585e+01
+       1.60621841e+01 -1.05506092e+01]
+     [-4.15682825e+00  3.08881971e-01 -1.02012415e+00 ...  5.44745701e+00
+      -4.71776995e+00  4.39850830e+00]] uK
+    """
 
     simulator: SkySimulator = simulator
 
     def __init__(self, nside: int, components: List[SkyComponent]) -> None:
-        """Initializes the Sky Model."""
+        """Initializes an instance of the Cosmoglobe Sky Model.
+
+        Parameters
+        ----------
+        nside
+            Healpix resolution of the maps in sky model.
+        components
+            A list of `SkyComponent`to include in the model.
+        """
 
         self.nside = nside
         if not all(
@@ -73,11 +124,35 @@ class SkyModel:
         freqs: Quantity,
         bandpass: Optional[Quantity] = None,
         *,
-        comps: List[str] = None,
+        comps: Optional[List[str]] = None,
         fwhm: Quantity = NO_SMOOTHING,
         output_unit: Union[str, Unit] = DEFAULT_OUTPUT_UNIT,
     ) -> Quantity:
-        """Simulates the diffuse sky emission."""
+        r"""Simulates and returns the full sky model emission.
+
+        Parameters
+        ----------
+        freqs
+            A frequency, or a list of frequencies.
+        bandpass
+            Bandpass profile corresponding to the frequencies in `freqs`. 
+            If `bandpass` is None and `freqs` is a single frequency, a 
+            delta peak is assumed. Defaults to None. 
+        comps
+            List of component labels. If None, all components in the sky
+            model is included. Defaults to None.
+        fwhm
+            The full width half max parameter of the Gaussian. Defaults to
+            0.0, which indicates no smoothing of output maps.
+        output_unit
+            The desired output units of the emission. Units must be compatible
+            with K_RJ or Jy/sr.
+
+        Returns
+        -------
+        emission
+            The simulated emission given the Cosmoglobe Sky Model.
+        """
 
         if comps is not None:
             if not all(component in self.components for component in comps):

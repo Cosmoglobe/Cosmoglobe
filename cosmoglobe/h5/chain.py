@@ -6,10 +6,10 @@ import h5py
 import numpy as np
 
 from cosmoglobe.h5 import ChainVersion, PARAMETER_GROUP_NAME
-from cosmoglobe.h5.alms import unpack_alms_from_chain
-from cosmoglobe.h5.decorators import validate_key, validate_samples, unpack_alms
-from cosmoglobe.h5.exceptions import ChainFormatError, ChainSampleError
-from cosmoglobe.sky import COSMOGLOBE_COMPS
+from cosmoglobe.h5._alms import unpack_alms_from_chain
+from cosmoglobe.h5._decorators import validate_key, validate_samples, unpack_alms
+from cosmoglobe.h5._exceptions import ChainFormatError, ChainSampleError
+from cosmoglobe.sky.components import COSMOGLOBE_COMPS
 
 
 class Chain:
@@ -20,7 +20,16 @@ class Chain:
     """
 
     def __init__(self, path: Union[str, Path], burn_in: Optional[int] = None) -> None:
-        """Validate and initialize the Chain object."""
+        """Validate and initialize the Chain object.
+        
+        Parameters
+        ----------
+        path
+            Path to the chainfile.
+        burn_in
+            Burn in sample. All samples prior to (and including) the burn 
+            in sample is discarded.
+        """
 
         if not (path := Path(path)).is_file():
             raise FileNotFoundError(f"{path.name} was not found")

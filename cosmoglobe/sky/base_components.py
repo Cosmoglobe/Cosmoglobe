@@ -13,34 +13,37 @@ import healpy as hp
 import numpy as np
 
 from cosmoglobe.sky import DEFAULT_OUTPUT_UNIT, DEFAULT_FREQ_UNIT
-from cosmoglobe.sky.exceptions import NsideError
+from cosmoglobe.sky._exceptions import NsideError
 
 
 class SkyComponent(Protocol):
-    """Protocol for a Cosmoglobe Sky Component."""
+    """Protocol for a Cosmoglobe sky component."""
 
     @property
     def label(self) -> str:
-        ...
-
-    @property
-    def amp(self) -> Quantity:
-        ...
+        """Component label."""
 
     @property
     def freq_ref(self) -> Quantity:
-        ...
+        """Reference frequency of the amplitude map."""
+
+    @property
+    def amp(self) -> Quantity:
+        """Amplitude map."""
 
     @property
     def spectral_parameters(self) -> Dict[str, Quantity]:
-        ...
+        """Dictionary containing spectral parameters."""
 
     def __repr__(self) -> str:
-        """Representation of a Cosmoglobe Sky Component."""
+        """Representation sky component."""
 
 
 class DiffuseComponent(ABC):
-    """Base class for diffuse emission sky components."""
+    """Base class for any diffuse emission sky components.
+
+    For a description of the class properties, see the SkyComponent protocol.
+    """
 
     def __init__(
         self,
@@ -49,7 +52,7 @@ class DiffuseComponent(ABC):
         freq_ref: Quantity,
         **spectral_parameters: Quantity,
     ) -> None:
-        """Initializing base sky component class."""
+        """Initializing and validating input."""
 
         self._label = label
         self.freq_ref = freq_ref
@@ -60,36 +63,42 @@ class DiffuseComponent(ABC):
     def _get_freq_scaling(
         self, freqs: Quantity, **spectral_parameters: Quantity
     ) -> Quantity:
-        """Returns the frequency scaling factors for a set of frequencies."""
+        """Computes and returns the frequency scaling factor.
+
+        Parameters
+        ----------
+        freqs
+            A frequency, or a list of frequencies for which to compute the
+            scaling factor.
+        **spectral_parameters
+            The (unpacked) spectral parameters contained in the
+            spectral_parameters dictionary for a given component.
+
+        Returns
+        -------
+        scaling_factor
+            The factor with which to scale the amplitude map for a set of
+            frequencies.
+        """
 
     @property
     def label(self) -> str:
-        """Component label."""
-
         return self._label
 
     @property
     def freq_ref(self) -> Quantity:
-        """Reference frequency of the amplitude map of the sky component."""
-
         return self._freq_ref
 
     @freq_ref.setter
     def freq_ref(self, value: Quantity) -> None:
-        """Validates the reference frequency data."""
-
         self._freq_ref = _validate_freq_ref(value)
 
     @property
     def amp(self) -> Quantity:
-        """Amplitude map of the sky component at some reference frequency."""
-
         return self._amp
 
     @amp.setter
     def amp(self, value: Quantity) -> None:
-        """Validates the amplitude data."""
-
         if not isinstance(value, Quantity):
             raise TypeError("ampltiude map must of type `astropy.units.Quantity`")
 
@@ -122,14 +131,10 @@ class DiffuseComponent(ABC):
 
     @property
     def spectral_parameters(self) -> Dict[str, Quantity]:
-        """Dictionary containing spectral parameters for sky component."""
-
         return self._spectral_param
 
     @spectral_parameters.setter
     def spectral_parameters(self, values: Dict[str, Quantity]) -> None:
-        """Validates the spectral parameter data."""
-
         spectral_parameters: Dict[str, Quantity] = {}
         for key, value in values.items():
             if not isinstance(value, Quantity):
@@ -157,13 +162,14 @@ class DiffuseComponent(ABC):
         self._spectral_param = spectral_parameters
 
     def __repr__(self) -> str:
-        """Representation of the component."""
-
         return _sky_component_repr(self)
 
 
 class PointSourceComponent(ABC):
-    """Base class for PointSource emission sky components."""
+    """Base class for PointSource emission sky components.
+
+    For a description of the class properties, see the SkyComponent protocol.
+    """
 
     def __init__(
         self,
@@ -173,7 +179,7 @@ class PointSourceComponent(ABC):
         freq_ref: Quantity,
         **spectral_parameters: Quantity,
     ) -> None:
-        """Initializing base sky component class."""
+        """Initializing and validating input."""
 
         self._label = label
         self._catalog = catalog
@@ -185,42 +191,46 @@ class PointSourceComponent(ABC):
     def _get_freq_scaling(
         self, freqs: Quantity, **spectral_parameters: Quantity
     ) -> Quantity:
-        """Returns the frequency scaling factors for a set of frequencies."""
+        """Computes and returns the frequency scaling factor.
+
+        Parameters
+        ----------
+        freqs
+            A frequency, or a list of frequencies for which to compute the
+            scaling factor.
+        **spectral_parameters
+            The (unpacked) spectral parameters contained in the
+            spectral_parameters dictionary for a given component.
+
+        Returns
+        -------
+        scaling_factor
+            The factor with which to scale the amplitude map for a set of
+            frequencies.
+        """
 
     @property
     def label(self) -> str:
-        """Component label."""
-
         return self._label
 
     @property
     def catalog(self) -> np.ndarray:
-        """Catalog specifiying the angular coordinates of the source points."""
-
         return self._catalog
 
     @property
     def freq_ref(self) -> Quantity:
-        """Reference frequency of the amplitude map of the sky component."""
-
         return self._freq_ref
 
     @freq_ref.setter
     def freq_ref(self, value: Quantity) -> None:
-        """Validates the reference frequency data."""
-
         self._freq_ref = _validate_freq_ref(value)
 
     @property
     def amp(self) -> Quantity:
-        """Amplitude map of the sky component at some reference frequency."""
-
         return self._amp
 
     @amp.setter
     def amp(self, value: Quantity) -> None:
-        """Validates the amplitude data."""
-
         if not isinstance(value, Quantity):
             raise TypeError("ampltiude map must of type `astropy.units.Quantity`")
 
@@ -252,14 +262,10 @@ class PointSourceComponent(ABC):
 
     @property
     def spectral_parameters(self) -> Dict[str, Quantity]:
-        """Dictionary containing spectral parameters for sky component."""
-
         return self._spectral_param
 
     @spectral_parameters.setter
     def spectral_parameters(self, values: Dict[str, Quantity]) -> None:
-        """Validates the spectral parameter data."""
-
         spectral_parameters: Dict[str, Quantity] = {}
         for key, value in values.items():
             if not isinstance(value, Quantity):
@@ -279,22 +285,26 @@ class PointSourceComponent(ABC):
         self._spectral_param = spectral_parameters
 
     def __repr__(self) -> str:
-        """Representation of the component."""
-
         return _sky_component_repr(self)
 
 
 class LineComponent(ABC):
-    """Base class for Line emission sky components."""
+    """Base class for Line emission sky components.
+
+    For a description of the class properties, see the SkyComponent protocol.
+
+    NOTE: This class is still in development, and no Line-emissino components
+    are currently implemented in Cosmoglobe.
+    """
 
     def __init__(
         self,
         label: str,
         amp: Quantity,
         freq_ref: Quantity,
-        **spectral_parameters: Quantity
+        **spectral_parameters: Quantity,
     ) -> None:
-        """Initializing base sky component class."""
+        """Initializing and validating input."""
 
         self._label = label
         self.freq_ref = freq_ref
@@ -303,32 +313,22 @@ class LineComponent(ABC):
 
     @property
     def label(self) -> str:
-        """Component label."""
-
         return self._label
 
     @property
     def freq_ref(self) -> Quantity:
-        """Reference frequency of the amplitude map of the sky component."""
-
         return self._freq_ref
 
     @freq_ref.setter
     def freq_ref(self, value: Quantity) -> None:
-        """Validates the reference frequency data."""
-
         self._freq_ref = _validate_freq_ref(value)
 
     @property
     def amp(self) -> Quantity:
-        """Amplitude map of the sky component at some reference frequency."""
-
         return self._amp
 
     @amp.setter
     def amp(self, value: Quantity) -> None:
-        """Validates the amplitude data."""
-
         if not isinstance(value, Quantity):
             raise TypeError("ampltiude map must of type `astropy.units.Quantity`")
 
@@ -353,7 +353,7 @@ class LineComponent(ABC):
 
 
 def _validate_freq_ref(value: Quantity):
-    """Validates the reference frequency data."""
+    """This function is used in the freq_ref property setter for validation."""
 
     if not isinstance(value, Quantity):
         raise TypeError("reference frequency must of type `astropy.units.Quantity`")

@@ -3,8 +3,8 @@ from functools import wraps
 import h5py
 
 from cosmoglobe.h5 import PARAMETER_GROUP_NAME
-from cosmoglobe.h5.alms import unpack_alms_from_chain
-from cosmoglobe.h5.exceptions import ChainKeyError, ChainSampleError
+from cosmoglobe.h5._alms import unpack_alms_from_chain
+from cosmoglobe.h5._exceptions import ChainKeyError, ChainSampleError
 
 
 def validate_key(func):

@@ -6,7 +6,7 @@ import healpy as hp
 
 from cosmoglobe.sky import DEFAULT_OUTPUT_UNIT, NO_SMOOTHING
 from cosmoglobe.sky.simulation_strategy import get_simulation_strategy
-from cosmoglobe.sky.basecomponent import SkyComponent, PointSourceComponent, DiffuseComponent
+from cosmoglobe.sky.base_components import SkyComponent, PointSourceComponent, DiffuseComponent
 from cosmoglobe.utils.utils import str_to_astropy_unit
 
 
@@ -15,7 +15,7 @@ class SkySimulator:
 
     @quantity_input(
         freqs=Unit("Hz"),
-        bandpass=[Unit("K"), Unit("Jy/sr")],
+        bandpass=[Unit("K"), Unit("Jy/sr"), Unit("1/Hz")],
         fwhm=[Unit("rad"), Unit("arcmin"), Unit("deg")],
     )
     def __call__(
