@@ -44,7 +44,7 @@ class Synchrotron(DiffuseComponent):
 
         super().__init__(self.label, amp, freq_ref, beta=beta)
 
-    def _get_freq_scaling(self, freqs: Quantity, beta: Quantity) -> Quantity:  # type: ignore
+    def get_freq_scaling(self, freqs: Quantity, beta: Quantity) -> Quantity:  # type: ignore
         """See base class."""
 
         return (freqs / self.freq_ref) ** beta
@@ -81,7 +81,7 @@ class Dust(DiffuseComponent):
 
         super().__init__(self.label, amp, freq_ref, beta=beta, T=T)
 
-    def _get_freq_scaling(  # type: ignore
+    def get_freq_scaling(  # type: ignore
         self, freqs: Quantity, beta: Quantity, T: Quantity
     ) -> Quantity:
         """See base class."""
@@ -120,7 +120,7 @@ class FreeFree(DiffuseComponent):
 
         super().__init__(self.label, amp, freq_ref, T_e=T_e)
 
-    def _get_freq_scaling(self, freqs: Quantity, T_e: Quantity) -> Quantity:  # type: ignore
+    def get_freq_scaling(self, freqs: Quantity, T_e: Quantity) -> Quantity:  # type: ignore
         """See base class."""
 
         gaunt_factor_ratio = gaunt_factor(freqs, T_e) / gaunt_factor(self.freq_ref, T_e)
@@ -158,7 +158,7 @@ class AME(DiffuseComponent):
 
         super().__init__(self.label, amp, freq_ref, freq_peak=freq_peak)
 
-    def _get_freq_scaling(self, freqs: Quantity, freq_peak: Quantity) -> Quantity:  # type: ignore
+    def get_freq_scaling(self, freqs: Quantity, freq_peak: Quantity) -> Quantity:  # type: ignore
         """See base class."""
 
         # Unpacking the template
@@ -223,7 +223,7 @@ class Radio(PointSourceComponent):
 
         super().__init__(self.label, self.catalog, amp, freq_ref, alpha=alpha)
 
-    def _get_freq_scaling(self, freqs: Quantity, alpha: Quantity) -> Quantity:  # type: ignore
+    def get_freq_scaling(self, freqs: Quantity, alpha: Quantity) -> Quantity:  # type: ignore
         """See base class."""
 
         scaling = (freqs / self.freq_ref) ** (alpha - 2)
@@ -258,7 +258,7 @@ class CMB(DiffuseComponent):
 
         super().__init__(self.label, amp, freq_ref)
 
-    def _get_freq_scaling(self, freqs: Quantity) -> Quantity:  # type: ignore
+    def get_freq_scaling(self, freqs: Quantity) -> Quantity:  # type: ignore
         """See base class."""
 
         return np.expand_dims(thermodynamical_to_brightness(freqs), axis=0)

@@ -60,7 +60,7 @@ class DiffuseComponent(ABC):
         self.spectral_parameters = spectral_parameters
 
     @abstractmethod
-    def _get_freq_scaling(
+    def get_freq_scaling(
         self, freqs: Quantity, **spectral_parameters: Quantity
     ) -> Quantity:
         """Computes and returns the frequency scaling factor.
@@ -188,7 +188,7 @@ class PointSourceComponent(ABC):
         self.spectral_parameters = spectral_parameters
 
     @abstractmethod
-    def _get_freq_scaling(
+    def get_freq_scaling(
         self, freqs: Quantity, **spectral_parameters: Quantity
     ) -> Quantity:
         """Computes and returns the frequency scaling factor.

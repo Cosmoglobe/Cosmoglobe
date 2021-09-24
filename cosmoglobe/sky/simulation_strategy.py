@@ -10,7 +10,7 @@ from cosmoglobe.utils.bandpass import (
     get_bandpass_scaling,
 )
 from cosmoglobe.utils.utils import to_unit, gaussian_beam_2D
-from cosmoglobe.sky._bandpass import normalize_bandpass, bandpass_coefficient
+from cosmoglobe.sky._bandpass import get_normalized_bandpass, get_bandpass_coefficient
 from cosmoglobe.sky import DEFAULT_OUTPUT_UNIT, NO_SMOOTHING
 from cosmoglobe.sky.base_components import (
     SkyComponent,
@@ -21,10 +21,7 @@ from cosmoglobe.sky.base_components import (
 
 
 class SimulationStrategy(Protocol):
-    """Abstract base class for simulations strategies.
-
-    Simulation strategies determine how a given type of component is
-    simulated in the Cosmoglobe Sky Model."""
+    """Protocol defining a simulation strategy."""
 
     def delta(
         self,
@@ -35,16 +32,24 @@ class SimulationStrategy(Protocol):
         fwhm: Quantity,
         output_unit: Union[str, Unit],
     ) -> Quantity:
-        """Method that computes and returns the delta emission.
+        """Computes and returns the emission for a delta frequency.
 
         Parameters
         ----------
+        component
+            A SkyComponent.
         freq
             Frequency for which to compute the delta emission.
+        nside
+            nside of the HEALPIX map.
+        fwhm
+            The full width half max parameter of the Gaussian.
+        output_unit
+            The requested output units of the simulated emission.
 
         Returns
         -------
-            Emission of the component at a given frequency.
+            Simulated delta frequency emission.
         """
 
     def bandpass(
@@ -57,16 +62,22 @@ class SimulationStrategy(Protocol):
         fwhm: Quantity,
         output_unit: Union[str, Unit],
     ) -> Quantity:
-        """Method that computes and returns the bandpass emission.
+        """Computes and returns the emission for a bandpass profile.
 
         Parameters
         ----------
-        frequencies
+        freqs
             An array of frequencies for which to compute the bandpass emission
             over.
         bandpass
-            An array of bandpass weights matching the frequencies in the
+            An array of bandpass weights corresponding the frequencies in the
             frequencies array.
+        nside
+            nside of the HEALPIX map.
+        fwhm
+            The full width half max parameter of the Gaussian.
+        output_unit
+            The requested output units of the simulated emission.
 
         Returns
         -------
@@ -86,7 +97,7 @@ class DiffuseSimulationStrategy:
     ) -> Quantity:
         """See base class."""
 
-        emission = component.amp * component._get_freq_scaling(
+        emission = component.amp * component.get_freq_scaling(
             freq, **component.spectral_parameters
         )
 
@@ -111,12 +122,12 @@ class DiffuseSimulationStrategy:
                 np.ones(freqs_len := len(freqs)) / freqs_len * DEFAULT_OUTPUT_UNIT
             )
 
-        bandpass = normalize_bandpass(freqs, bandpass)
+        bandpass = get_normalized_bandpass(freqs, bandpass)
 
         bandpass_scaling = get_bandpass_scaling(freqs, bandpass, component)
         emission = component.amp * bandpass_scaling
         input_unit = emission.unit
-        unit_coefficient = bandpass_coefficient(
+        unit_coefficient = get_bandpass_coefficient(
             freqs, bandpass, input_unit, output_unit
         )
 
@@ -136,7 +147,7 @@ class PointSourceSimulationStrategy:
     ) -> Quantity:
         """See base class."""
 
-        point_sources = component.amp * component._get_freq_scaling(
+        point_sources = component.amp * component.get_freq_scaling(
             freq, **component.spectral_parameters
         )
 
@@ -164,14 +175,14 @@ class PointSourceSimulationStrategy:
                 np.ones(freqs_len := len(freqs)) / freqs_len * DEFAULT_OUTPUT_UNIT
             )
 
-        bandpass = normalize_bandpass(freqs, bandpass)
+        bandpass = get_normalized_bandpass(freqs, bandpass)
         bandpass_scaling = get_bandpass_scaling(freqs, bandpass, component)
         point_sources = component.amp * bandpass_scaling
         emission = self.pointsources_to_healpix(
             point_sources, component.catalog, nside, fwhm
         )
         input_unit = emission.unit
-        unit_coefficient = bandpass_coefficient(
+        unit_coefficient = get_bandpass_coefficient(
             freqs, bandpass, input_unit, output_unit
         )
 
@@ -182,7 +193,7 @@ class PointSourceSimulationStrategy:
     ) -> Quantity:
         """Maps the point sources to a HEALPIX map.
 
-        For more information, ses `Mitra et al. (2010)
+        For more information on this calculation, please see `Mitra et al. (2010)
         <https://arxiv.org/pdf/1005.1929.pdf>`_.
         """
 
@@ -235,7 +246,7 @@ class PointSourceSimulationStrategy:
                 )
                 for col_idx, col in enumerate(point_sources):
                     healpix[col_idx, inds] += col[idx] * beam(r, sigma.value)
-                
+
                 # healpix[:, inds] *= beam(r, sigma.value)
 
             beam_area = 2 * pi * sigma ** 2
@@ -253,7 +264,6 @@ class LineSimulationStrategy:
         **_,
     ) -> Quantity:
         """See base class."""
-        ...
 
     def bandpass(
         self,
@@ -264,7 +274,6 @@ class LineSimulationStrategy:
         **_,
     ) -> Quantity:
         """See base class."""
-        ...
 
 
 def get_simulation_strategy(component: SkyComponent) -> SimulationStrategy:

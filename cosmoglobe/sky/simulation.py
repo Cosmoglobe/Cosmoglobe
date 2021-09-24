@@ -6,7 +6,11 @@ import healpy as hp
 
 from cosmoglobe.sky import DEFAULT_OUTPUT_UNIT, NO_SMOOTHING
 from cosmoglobe.sky.simulation_strategy import get_simulation_strategy
-from cosmoglobe.sky.base_components import SkyComponent, PointSourceComponent, DiffuseComponent
+from cosmoglobe.sky.base_components import (
+    SkyComponent,
+    PointSourceComponent,
+    DiffuseComponent,
+)
 from cosmoglobe.utils.utils import str_to_astropy_unit
 
 
@@ -60,7 +64,7 @@ class SkySimulator:
             for idx, row in enumerate(comp_emission):
                 emission[idx] += row
 
-        if fwhm.value != 0.0:
+        if fwhm.value != NO_SMOOTHING:
             fwhm_rad = fwhm.to("rad").value
             if shape[0] == 3:
                 emission = Quantity(

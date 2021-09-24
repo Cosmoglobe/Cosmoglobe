@@ -7,13 +7,13 @@ from cosmoglobe.utils.utils import str_to_astropy_unit
 from cosmoglobe.sky._intensity_derivatives import INTENSITY_DERIVATIVE_MAPPINGS
 
 
-def normalize_bandpass(freqs: Quantity, bandpass: Quantity) -> Quantity:
-    """Normalizes a bandpass to units of unity under np.trapz integration."""
+def get_normalized_bandpass(freqs: Quantity, bandpass: Quantity) -> Quantity:
+    """Normalizes a bandpass to units of unity under integration."""
 
     return bandpass / np.trapz(bandpass, freqs)
 
 
-def bandpass_coefficient(
+def get_bandpass_coefficient(
     freqs: Quantity,
     bandpass: Quantity,
     input_unit: Union[str, Unit],

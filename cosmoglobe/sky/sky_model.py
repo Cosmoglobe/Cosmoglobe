@@ -22,16 +22,15 @@ class SkyModel:
     The primary use case of this class is to call its ``__call__``
     method, which simulates the sky at a single frequency :math:`\nu`,
     or integrated over a bandpass :math:`\tau`.
-    
+
     Methods
     -------
     __call__
 
     Examples
     --------
-    Inspecting the model:
-
-    >>> model = skymodel(nside=256)
+    >>> import cosmoglobe
+    >>> model = cosmoglobe.model_from_chain("path/to/chain", nside=256)
     >>> print(model)
     Model(
       nside: 256
@@ -49,8 +48,7 @@ class SkyModel:
     FWHM:
 
     >>> import astropy.units as u
-    >>> emission = model(50*u.GHz, fwhm=30*u.arcmin)
-    >>> print(emission)
+    >>> model(50*u.GHz, fwhm=30*u.arcmin)
     Smoothing point sources...
     Smoothing diffuse emission...
     [[ 2.25809786e+03  2.24380103e+03  2.25659060e+03 ... -2.34783682e+03
@@ -135,9 +133,9 @@ class SkyModel:
         freqs
             A frequency, or a list of frequencies.
         bandpass
-            Bandpass profile corresponding to the frequencies in `freqs`. 
-            If `bandpass` is None and `freqs` is a single frequency, a 
-            delta peak is assumed. Defaults to None. 
+            Bandpass profile corresponding to the frequencies in `freqs`.
+            If `bandpass` is None and `freqs` is a single frequency, a
+            delta peak is assumed. Defaults to None.
         comps
             List of component labels. If None, all components in the sky
             model is included. Defaults to None.
