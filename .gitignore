@@ -55,7 +55,6 @@ distribute-*.tar.gz
 *.out
 
 # Ignore test files
-tests/
 test.py
 .pytest_cache
 
