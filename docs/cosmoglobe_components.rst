@@ -1,9 +1,9 @@
-.. cosmoglobe.sky:
+.. cosmoglobe.sky.components:
 
 Sky components
 ==============
 
-.. currentmodule:: cosmoglobe
+.. currentmodule:: cosmoglobe.sky.components
 
 Classes representing the components in the Cosmoglobe Sky Model. The
 ``__call__`` method of a component will return the sky emission of that
