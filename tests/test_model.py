@@ -7,7 +7,7 @@ import healpy as hp
 from cosmoglobe.sky import DEFAULT_OUTPUT_UNIT
 from cosmoglobe.sky.components import Synchrotron, Dust, AME, Radio
 from cosmoglobe.sky._exceptions import NsideError, SkyModelComponentError
-from cosmoglobe.sky.sky_model import SkyModel
+from cosmoglobe.sky.model import SkyModel
 
 
 def test_init_sky_model_nside(synch_3, dust_3):
@@ -23,6 +23,47 @@ def test_init_sky_model_nside(synch_3, dust_3):
 
     with pytest.raises(SkyModelComponentError):
         SkyModel(32, [1])
+
+    synch = Synchrotron(
+        Quantity(np.random.randint(10, 30, (3, hp.nside2npix(32))), unit="uK"),
+        Quantity([[40], [50], [50]], unit="GHz"),
+        beta=Quantity(np.random.randint(10, 30, (3, hp.nside2npix(32)))),
+    )
+    dust = Dust(
+        Quantity(np.random.randint(10, 30, (3, hp.nside2npix(128))), unit="uK"),
+        Quantity([[40], [50], [50]], unit="GHz"),
+        beta=Quantity([[1],[2],[2]]),
+        T=Quantity(np.random.randint(10, 30, (3, hp.nside2npix(128))),unit="K"),
+    )
+
+    with pytest.raises(NsideError):
+        sky_model = SkyModel(32, [synch, dust])
+
+
+def test_comp_arg(sky_model):
+    """Tests that all comps in the comp arg is present."""
+    synch = Synchrotron(
+        Quantity(np.random.randint(10, 30, (3, hp.nside2npix(32))), unit="uK"),
+        Quantity([[40], [50], [50]], unit="GHz"),
+        beta=Quantity(np.random.randint(10, 30, (3, hp.nside2npix(32)))),
+    )
+    dust = Dust(
+        Quantity(np.random.randint(10, 30, (3, hp.nside2npix(32))), unit="uK"),
+        Quantity([[40], [50], [50]], unit="GHz"),
+        beta=Quantity([[1],[2],[2]]),
+        T=Quantity(np.random.randint(10, 30, (3, hp.nside2npix(32))),unit="K"),
+    )
+    sky_model = SkyModel(32, [synch, dust])
+    sky_model(100*Unit("GHz"), fwhm=80*Unit("arcmin"), comps=["synch"])
+
+    with pytest.raises(ValueError):
+        sky_model(100*Unit("GHz"), fwhm=80*Unit("arcmin"), comps=["synch", "dust", "radio"])
+
+
+def test_repr(sky_model):
+    """Test that the repr is printed."""
+
+    print(sky_model)
 
 
 def test_iter_model(sky_model):
@@ -92,7 +133,24 @@ def test_radio():
         Quantity([[40]], unit="GHz"),
         alpha=Quantity(np.random.randint(10, 30, (1, 12192))),
     )
-    sky_model = SkyModel(128, [radio])
-    assert sky_model(100*Unit("GHz")).shape == (1, hp.nside2npix(128))
-    assert sky_model([100,101,102]*Unit("GHz")).shape == (1, hp.nside2npix(128))
-    assert sky_model([100,101]*Unit("GHz"), bandpass=[3,5]*Unit("uK")).shape == (1, hp.nside2npix(128))
+    sky_model = SkyModel(256, [radio])
+    assert sky_model(100*Unit("GHz"), fwhm=60*Unit("arcmin")).shape == (1, hp.nside2npix(256))
+    assert sky_model([100,101,102]*Unit("GHz")).shape == (1, hp.nside2npix(256))
+    assert sky_model([100,101]*Unit("GHz"), bandpass=[3,5]*Unit("uK"), fwhm=60*Unit("arcmin")).shape == (1, hp.nside2npix(256))
+
+    with pytest.raises(ValueError):
+        sky_model(100*Unit("GHz"), fwhm=10*Unit("arcmin")).shape == (1, hp.nside2npix(256))
+
+def test_ame():
+    """Tests a sim of ame."""
+
+    ame = AME(
+        Quantity(np.random.randint(10, 30, (3, hp.nside2npix(128))), unit="uK"),
+        Quantity([[40],[30],[30]], unit="GHz"),
+        freq_peak=Quantity([[100], [100], [100]], unit="GHz"),
+    )
+    sky_model = SkyModel(128, [ame])
+    assert sky_model(100*Unit("GHz")).shape == (3, hp.nside2npix(128))
+    assert (sky_model(0.001*Unit("GHz")) == 0).all()
+    assert sky_model([100,101,102]*Unit("GHz")).shape == (3, hp.nside2npix(128))
+    assert sky_model([100,101]*Unit("GHz"), bandpass=[3,5]*Unit("uK")).shape == (3, hp.nside2npix(128))

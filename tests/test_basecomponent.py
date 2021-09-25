@@ -4,7 +4,7 @@ from astropy.units import Quantity, UnitsError
 import numpy as np
 import healpy as hp
 
-from cosmoglobe.sky.components import Synchrotron, Dust
+from cosmoglobe.sky.components import Radio, Synchrotron, Dust, COSMOGLOBE_COMPS
 from cosmoglobe.sky._exceptions import NsideError
 
 amp_1 = Quantity(np.ones((1, hp.nside2npix(32))), unit="K")
@@ -15,6 +15,19 @@ beta_1 = Quantity(np.random.randint(-2, 3, (1, hp.nside2npix(32))))
 beta_3 = Quantity(np.random.randint(-2, 3, (3, hp.nside2npix(32))))
 T_1 = Quantity(np.random.randint(-2, 3, (1, hp.nside2npix(32))), unit="K")
 T_3 = Quantity(np.random.randint(-2, 3, (3, hp.nside2npix(32))), unit="K")
+
+
+def test_label(synch, radio):
+    """Tetss a comp label."""
+
+    assert synch.label in COSMOGLOBE_COMPS
+    assert radio.label in COSMOGLOBE_COMPS
+
+def test_radio_catalog(radio):
+    """Tests the radio catalog."""
+
+    assert radio.catalog.shape == (2, radio.amp.size)
+
 
 
 def test_freq_ref_type():
@@ -83,10 +96,14 @@ def test_amp_unit():
     """Tests that the unit of amp is compatible with uK."""
 
     Synchrotron(amp_1, freq_ref_1, beta=beta_1)
-    Synchrotron(Quantity(np.ones((1, hp.nside2npix(32))), unit="Jy/sr"), freq_ref_1, beta=beta_1)
+    Synchrotron(
+        Quantity(np.ones((1, hp.nside2npix(32))), unit="Jy/sr"), freq_ref_1, beta=beta_1
+    )
 
     with pytest.raises(UnitsError):
-        Synchrotron(Quantity(np.ones((1, hp.nside2npix(32))), unit="m"), freq_ref_1, beta=beta_1)
+        Synchrotron(
+            Quantity(np.ones((1, hp.nside2npix(32))), unit="m"), freq_ref_1, beta=beta_1
+        )
 
 
 def test_spectral_params_type():
@@ -99,15 +116,13 @@ def test_spectral_params_type():
         freq_ref_3,
         beta=beta_3,
     )
-    Dust(
-        amp_3,
-        freq_ref_3,
-        beta=beta_3,
-        T=T_3
-    )
+    Dust(amp_3, freq_ref_3, beta=beta_3, T=T_3)
 
     with pytest.raises(TypeError):
         Dust(amp_1, freq_ref_1, beta=beta_1, T=[[1]])
+
+    with pytest.raises(ValueError):
+        Dust(amp_1, freq_ref_1, beta=beta_1, T=Quantity(np.random.randint(-2, 3, (3, 12312)), unit="K"))
 
 
 def test_spectral_params_shape():

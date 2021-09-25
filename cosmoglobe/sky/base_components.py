@@ -242,7 +242,7 @@ class PointSourceComponent(ABC):
 
         if value.shape[1] != self.catalog.shape[1]:
             raise ValueError(
-                f"number of pointsources ({self.amp.shape[1]}) does not "
+                f"number of pointsources ({value.shape[1]}) does not "
                 f"match the number of cataloged points ({self.catalog.shape}). "
                 "catalog shape must be (3, `npointsources`)"
             )

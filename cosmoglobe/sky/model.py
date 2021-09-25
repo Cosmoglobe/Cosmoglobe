@@ -1,3 +1,4 @@
+from copy import copy
 from typing import Dict, Iterator, List, Optional, Union
 
 from astropy.units import Quantity, Unit
@@ -10,7 +11,11 @@ from cosmoglobe.sky.base_components import (
     DiffuseComponent,
     LineComponent,
 )
-from cosmoglobe.sky._exceptions import NsideError, SkyModelComponentError
+from cosmoglobe.sky._exceptions import (
+    NsideError,
+    SkyModelComponentError,
+    ModelComponentNotFoundError,
+)
 from cosmoglobe.sky.simulation import SkySimulator, simulator
 
 
@@ -166,6 +171,16 @@ class SkyModel:
         )
 
         return emission
+
+    def remove_dipole(self, gal_cut: Quantity = 10 * Unit("deg")) -> None:
+        """Removes the CMB dipole, from the CMB amp map."""
+
+        if "cmb" not in self.components:
+            raise ModelComponentNotFoundError("cmb component not present in model")
+
+        hp.remove_dipole(
+            self.components["cmb"].amp[0], gal_cut=gal_cut.to("deg").value, copy=False
+        )
 
     def __iter__(self) -> Iterator:
         """Returns an iterator with active model components"""

@@ -33,6 +33,7 @@ async_generator = "^1.10"
 jinja2= "<3.0.0"
 pytest = "^6.2.5"
 mypy = "^0.910"
+pytest-cov = "^2.12.1"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

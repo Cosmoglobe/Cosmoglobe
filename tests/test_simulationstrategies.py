@@ -4,10 +4,14 @@ from astropy.units import Unit
 
 from cosmoglobe.sky import DEFAULT_OUTPUT_UNIT
 from cosmoglobe.sky.components import Synchrotron
-from cosmoglobe.sky.simulation_strategy import DiffuseSimulationStrategy
+from cosmoglobe.sky.simulation_strategy import DiffuseSimulationStrategy, get_simulation_strategy
 
 fwhm = 30 * Unit("arcmin")
 
+def test_wrong_comp():
+    """tests that we raise error when a non sky comp is used."""
+    with pytest.raises(NotImplementedError):
+        get_simulation_strategy(1)
 
 def test_diffuse_delta(synch_1, synch_3):
     """Test delta simulation for diffuse comps."""

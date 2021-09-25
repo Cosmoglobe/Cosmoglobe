@@ -1,7 +1,7 @@
 from cosmoglobe.sky.components import FreeFree
 import pytest
 
-from astropy.units import Quantity, Unit
+from astropy.units import Quantity, Unit, UnitsError
 import numpy as np
 import healpy as hp
 
@@ -57,6 +57,25 @@ def test_init_radio():
     alpha = Quantity(np.ones((1, 12192)))
 
     Radio(amp, freq_ref, alpha=alpha)
+
+    with pytest.raises(TypeError):
+        Radio(amp.value, freq_ref, alpha=alpha)
+
+    with pytest.raises(ValueError):
+        Radio(Quantity(np.ones((3, 12192)), unit="mJy"), freq_ref, alpha=alpha)
+
+    with pytest.raises(ValueError):
+        Radio(Quantity(np.ones((1, 1210)), unit="mJy"), freq_ref, alpha=alpha)
+
+    with pytest.raises(UnitsError):
+        Radio(Quantity(np.ones((1, 12192)), unit="mJy/sr"), freq_ref, alpha=alpha)
+
+    with pytest.raises(TypeError):
+        Radio(amp, freq_ref, alpha=np.ones((1, 12192)))
+
+    with pytest.raises(ValueError):
+        Radio(amp, freq_ref, alpha=Quantity(np.ones((3, 12192))))
+
 
 def test_radio_unit(radio):
     """Tests the unit of radio."""
