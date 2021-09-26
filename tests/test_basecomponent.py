@@ -4,7 +4,8 @@ from astropy.units import Quantity, UnitsError
 import numpy as np
 import healpy as hp
 
-from cosmoglobe.sky.components import Radio, Synchrotron, Dust, COSMOGLOBE_COMPS
+from cosmoglobe.sky.components import COSMOGLOBE_COMPS
+from cosmoglobe.sky.components import Synchrotron, Dust
 from cosmoglobe.sky._exceptions import NsideError
 
 amp_1 = Quantity(np.ones((1, hp.nside2npix(32))), unit="K")
@@ -23,11 +24,11 @@ def test_label(synch, radio):
     assert synch.label in COSMOGLOBE_COMPS
     assert radio.label in COSMOGLOBE_COMPS
 
+
 def test_radio_catalog(radio):
     """Tests the radio catalog."""
 
     assert radio.catalog.shape == (2, radio.amp.size)
-
 
 
 def test_freq_ref_type():
@@ -122,7 +123,12 @@ def test_spectral_params_type():
         Dust(amp_1, freq_ref_1, beta=beta_1, T=[[1]])
 
     with pytest.raises(ValueError):
-        Dust(amp_1, freq_ref_1, beta=beta_1, T=Quantity(np.random.randint(-2, 3, (3, 12312)), unit="K"))
+        Dust(
+            amp_1,
+            freq_ref_1,
+            beta=beta_1,
+            T=Quantity(np.random.randint(-2, 3, (3, 12312)), unit="K"),
+        )
 
 
 def test_spectral_params_shape():

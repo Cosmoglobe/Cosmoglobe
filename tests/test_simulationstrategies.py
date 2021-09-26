@@ -2,23 +2,27 @@ import pytest
 
 from astropy.units import Unit
 
-from cosmoglobe.sky import DEFAULT_OUTPUT_UNIT
-from cosmoglobe.sky.components import Synchrotron
-from cosmoglobe.sky.simulation_strategy import DiffuseSimulationStrategy, get_simulation_strategy
+from cosmoglobe.sky._constants import DEFAULT_OUTPUT_UNIT
+from cosmoglobe.sky.simulation_strategy import (
+    DiffuseSimulation,
+    get_simulation_protocol,
+)
 
 fwhm = 30 * Unit("arcmin")
+
 
 def test_wrong_comp():
     """tests that we raise error when a non sky comp is used."""
     with pytest.raises(NotImplementedError):
-        get_simulation_strategy(1)
+        get_simulation_protocol(1)
+
 
 def test_diffuse_delta(synch_1, synch_3):
     """Test delta simulation for diffuse comps."""
     synchs = [synch_1, synch_3]
 
     for synch in synchs:
-        protocol = DiffuseSimulationStrategy()
+        protocol = DiffuseSimulation()
         protocol.delta(synch, 10 * Unit("GHz"), DEFAULT_OUTPUT_UNIT)
         protocol.delta(synch, 10 * Unit("GHz"), DEFAULT_OUTPUT_UNIT)
         protocol.delta(synch, 10 * Unit("GHz"), output_unit=Unit("MJy/sr"))
@@ -40,7 +44,7 @@ def test_diffuse_bandpass(synch_1, synch_3):
     synchs = [synch_1, synch_3]
 
     for synch in synchs:
-        protocol = DiffuseSimulationStrategy()
+        protocol = DiffuseSimulation()
         protocol.bandpass(synch, [10, 11, 12] * Unit("GHz"), None, DEFAULT_OUTPUT_UNIT)
         protocol.bandpass(synch, [10, 11, 12] * Unit("GHz"), None, DEFAULT_OUTPUT_UNIT)
         protocol.bandpass(
@@ -72,7 +76,9 @@ def test_diffuse_bandpass(synch_1, synch_3):
         )
 
         assert (
-            protocol.bandpass(synch, [10, 11] * Unit("GHz"), None, DEFAULT_OUTPUT_UNIT).shape
+            protocol.bandpass(
+                synch, [10, 11] * Unit("GHz"), None, DEFAULT_OUTPUT_UNIT
+            ).shape
             == synch.amp.shape
         )
         assert (

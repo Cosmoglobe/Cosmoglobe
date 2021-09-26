@@ -12,9 +12,9 @@ from cosmoglobe.h5._exceptions import (
     ChainKeyError,
     ChainFormatError,
 )
-from cosmoglobe.sky.model import SkyModel
-from cosmoglobe.sky.base_components import SkyComponent
 from cosmoglobe.sky.components import COSMOGLOBE_COMPS
+from cosmoglobe.sky.model import SkyModel
+from cosmoglobe.sky.basecomponents import SkyComponent
 
 
 DEFAULT_SAMPLE = -1

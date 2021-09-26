@@ -4,10 +4,10 @@ import astropy.units as u
 import numpy as np
 from scipy.interpolate import RectBivariateSpline
 
-import cosmoglobe.utils.constants as const
+import cosmoglobe.sky._constants as const
 
 if TYPE_CHECKING:
-    from cosmoglobe.sky.base_components import SkyComponent
+    from cosmoglobe.sky.basecomponents import SkyComponent
 
 
 def get_normalized_bandpass(

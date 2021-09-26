@@ -12,12 +12,17 @@ from astropy.units import (
 import healpy as hp
 import numpy as np
 
-from cosmoglobe.sky import DEFAULT_OUTPUT_UNIT, DEFAULT_FREQ_UNIT
+from cosmoglobe.sky._constants import DEFAULT_OUTPUT_UNIT, DEFAULT_FREQ_UNIT
 from cosmoglobe.sky._exceptions import NsideError
 
 
 class SkyComponent(Protocol):
     """Protocol for a Cosmoglobe sky component."""
+
+    def __init__(
+        self, label: str, amp: Quantity, freq_ref: Quantity, *args, **kwargs
+    ) -> None:
+        """Intializes the component."""
 
     @property
     def label(self) -> str:
@@ -52,8 +57,6 @@ class DiffuseComponent(ABC):
         freq_ref: Quantity,
         **spectral_parameters: Quantity,
     ) -> None:
-        """Initializing and validating input."""
-
         self._label = label
         self.freq_ref = freq_ref
         self.amp = amp
@@ -179,8 +182,6 @@ class PointSourceComponent(ABC):
         freq_ref: Quantity,
         **spectral_parameters: Quantity,
     ) -> None:
-        """Initializing and validating input."""
-
         self._label = label
         self._catalog = catalog
         self.freq_ref = freq_ref
@@ -304,8 +305,6 @@ class LineComponent(ABC):
         freq_ref: Quantity,
         **spectral_parameters: Quantity,
     ) -> None:
-        """Initializing and validating input."""
-
         self._label = label
         self.freq_ref = freq_ref
         self.amp = amp

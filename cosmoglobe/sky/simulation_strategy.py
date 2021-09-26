@@ -1,5 +1,5 @@
 from math import pi, log, sqrt
-from typing import Any, Protocol, Union
+from typing import Protocol, Union
 import warnings
 
 from astropy.units import Quantity, Unit
@@ -10,22 +10,22 @@ from cosmoglobe.utils.bandpass import (
     get_bandpass_scaling,
 )
 from cosmoglobe.utils.utils import to_unit, gaussian_beam_2D
-from cosmoglobe.sky._bandpass import get_normalized_bandpass, get_bandpass_coefficient
-from cosmoglobe.sky import DEFAULT_OUTPUT_UNIT, NO_SMOOTHING
-from cosmoglobe.sky.base_components import (
+from cosmoglobe.sky.basecomponents import (
     SkyComponent,
     DiffuseComponent,
     PointSourceComponent,
     LineComponent,
 )
+from cosmoglobe.sky._constants import DEFAULT_OUTPUT_UNIT, NO_SMOOTHING
+from cosmoglobe.sky._bandpass import get_normalized_bandpass, get_bandpass_coefficient
 
 
-class SimulationStrategy(Protocol):
-    """Protocol defining a simulation strategy."""
+class Simulation(Protocol):
+    """Protocol defining a simulation protocol."""
 
     def delta(
         self,
-        component: Any,
+        component: SkyComponent,
         freq: Quantity,
         *,
         nside: int,
@@ -54,7 +54,7 @@ class SimulationStrategy(Protocol):
 
     def bandpass(
         self,
-        component: Any,
+        component: SkyComponent,
         freqs: Quantity,
         bandpass: Quantity,
         *,
@@ -85,8 +85,8 @@ class SimulationStrategy(Protocol):
         """
 
 
-class DiffuseSimulationStrategy:
-    """Simulation strategy for diffuse components."""
+class DiffuseSimulation:
+    """Simulation protocol for diffuse components."""
 
     def delta(
         self,
@@ -134,8 +134,8 @@ class DiffuseSimulationStrategy:
         return emission * unit_coefficient
 
 
-class PointSourceSimulationStrategy:
-    """Simulation strategy for Point Source components."""
+class PointSourceSimulation:
+    """Simulation protocol for Point Source components."""
 
     def delta(
         self,
@@ -253,8 +253,8 @@ class PointSourceSimulationStrategy:
             return healpix / beam_area
 
 
-class LineSimulationStrategy:
-    """Simulation strategy for Line components."""
+class LineSimulation:
+    """Simulation protocol for Line components."""
 
     def delta(
         self,
@@ -276,14 +276,21 @@ class LineSimulationStrategy:
         """See base class."""
 
 
-def get_simulation_strategy(component: SkyComponent) -> SimulationStrategy:
-    """Returns a simulation strategy given a component."""
+SIMULATION_PROTOCOLS = {
+    DiffuseComponent: DiffuseSimulation(),
+    PointSourceComponent: PointSourceSimulation(),
+    LineComponent: LineSimulation(),
+}
 
-    if isinstance(component, DiffuseComponent):
-        return DiffuseSimulationStrategy()
-    elif isinstance(component, LineComponent):
-        return LineSimulationStrategy()
-    elif isinstance(component, PointSourceComponent):
-        return PointSourceSimulationStrategy()
+
+def get_simulation_protocol(component: SkyComponent) -> Simulation:
+    """Returns a simulation protocol given a component."""
+
+    for comp_type, protocol in SIMULATION_PROTOCOLS.items():
+        if isinstance(component, comp_type):
+            return protocol  # type: ignore
     else:
-        raise NotImplementedError
+        raise NotImplementedError(
+            "simulation protocol not implemented for comp of type "
+            f"{component.__class__.__name__}"
+        )

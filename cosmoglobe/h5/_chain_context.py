@@ -1,6 +1,6 @@
 from typing import Dict, Any, Protocol
 
-from astropy.units import Quantity, Unit, thermodynamic_temperature
+from astropy.units import Quantity, Unit
 import numpy as np
 
 from cosmoglobe.h5._chain_contextfactory import ChainContextFactory

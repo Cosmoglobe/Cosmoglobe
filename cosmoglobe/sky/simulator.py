@@ -4,13 +4,13 @@ from astropy.units import Quantity, Unit, quantity_input
 import numpy as np
 import healpy as hp
 
-from cosmoglobe.sky import DEFAULT_OUTPUT_UNIT, NO_SMOOTHING
-from cosmoglobe.sky.simulation_strategy import get_simulation_strategy
-from cosmoglobe.sky.base_components import (
+from cosmoglobe.sky.simulation_strategy import get_simulation_protocol
+from cosmoglobe.sky.basecomponents import (
     SkyComponent,
     PointSourceComponent,
     DiffuseComponent,
 )
+from cosmoglobe.sky._constants import DEFAULT_OUTPUT_UNIT, NO_SMOOTHING
 from cosmoglobe.utils.utils import str_to_astropy_unit
 
 
@@ -103,7 +103,7 @@ class SkySimulator:
     ) -> Quantity:
         """Returns the simulated sky emission for a component."""
 
-        simulation_strategy = get_simulation_strategy(component)
+        simulation_strategy = get_simulation_protocol(component)
 
         if freqs.size > 1:
             if bandpass is not None and freqs.shape != bandpass.shape:

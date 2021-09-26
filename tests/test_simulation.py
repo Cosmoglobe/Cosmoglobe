@@ -5,8 +5,8 @@ from astropy.units import Unit, Quantity, UnitsError
 import numpy as np
 import healpy as hp
 
-from cosmoglobe.sky import DEFAULT_OUTPUT_UNIT
-from cosmoglobe.sky.simulation import simulator
+from cosmoglobe.sky._constants import DEFAULT_OUTPUT_UNIT
+from cosmoglobe.sky.simulator import simulator
 
 
 def test_1_comp(synch_1):
@@ -20,14 +20,14 @@ def test_1_comp(synch_1):
         [synch_1],
         [100, 102, 104] * Unit("GHz"),
         [3, 10, 3] * Unit("uK"),
-        fwhm=30* Unit("arcmin"),
+        fwhm=30 * Unit("arcmin"),
     )
     simulator(
         32,
         [synch_1],
         [100, 102, 104] * Unit("GHz"),
         [3, 10, 3] * Unit("uK"),
-        fwhm=30* Unit("arcmin"),
+        fwhm=30 * Unit("arcmin"),
         output_unit="MJy/sr",
     )
 
@@ -46,14 +46,14 @@ def test_multi_comsp(synch_1, dust_3):
         [synch_1, dust_3],
         [100, 102, 104] * Unit("GHz"),
         [3, 10, 3] * Unit("uK"),
-        fwhm=30* Unit("arcmin"),
+        fwhm=30 * Unit("arcmin"),
     )
     simulator(
         32,
         [synch_1, dust_3],
         [100, 102, 104] * Unit("GHz"),
         [3, 10, 3] * Unit("uK"),
-        fwhm=30* Unit("arcmin"),
+        fwhm=30 * Unit("arcmin"),
         output_unit="MJy/sr",
     )
 
@@ -71,16 +71,20 @@ def test_pointsource(radio):
         [radio],
         [100, 102, 104] * Unit("GHz"),
         [3, 10, 3] * Unit("uK"),
-        fwhm=30* Unit("arcmin"),
+        fwhm=30 * Unit("arcmin"),
     )
-    assert simulator(
-        128,
-        [radio],
-        [100, 102, 104] * Unit("GHz"),
-        [3, 10, 3] * Unit("uK"),
-        fwhm=30* Unit("arcmin"),
-        output_unit="MJy/sr",
-    ).shape == (1, hp.nside2npix(128))
+    assert (
+        simulator(
+            128,
+            [radio],
+            [100, 102, 104] * Unit("GHz"),
+            [3, 10, 3] * Unit("uK"),
+            fwhm=30 * Unit("arcmin"),
+            output_unit="MJy/sr",
+        ).shape
+        == (1, hp.nside2npix(128))
+    )
+
 
 @pytest.mark.parametrize("nside", [16, 32, 64, 128, 256, 512, 1024, 2048])
 def test_nside(nside):
@@ -100,11 +104,18 @@ def test_bp_integ(dust0spec, dust1spec, dust2spec):
 
     comps = [dust0spec, dust1spec, dust2spec]
     for comp in comps:
-        emission1 = simulator(32, [comp], [100, 120] * Unit("GHz"), bandpass=[1, 3] * Unit("uK"))
-        emission2 = simulator(32, [comp], [100, 120] * Unit("GHz"), bandpass=[1, 3] * Unit("uK"), output_unit="MJy/sr")
+        emission1 = simulator(
+            32, [comp], [100, 120] * Unit("GHz"), bandpass=[1, 3] * Unit("uK")
+        )
+        emission2 = simulator(
+            32,
+            [comp],
+            [100, 120] * Unit("GHz"),
+            bandpass=[1, 3] * Unit("uK"),
+            output_unit="MJy/sr",
+        )
         assert emission1.shape == comp.amp.shape
         assert emission2.unit == Unit("MJy/sr")
-
 
 
 def test_inputs(synch_1, dust_3):
@@ -126,10 +137,16 @@ def test_inputs(synch_1, dust_3):
 
         with pytest.raises(UnitsError):
             simulator(
-                32, [comp], [10, 11, 12] * Unit("GHz"), bandpass=[10, 11, 12] * Unit("GHz")
+                32,
+                [comp],
+                [10, 11, 12] * Unit("GHz"),
+                bandpass=[10, 11, 12] * Unit("GHz"),
             )
 
         with pytest.raises(ValueError):
             simulator(
-                32, [comp], [10, 11] * Unit("GHz"), bandpass=[11, 12, 13] * DEFAULT_OUTPUT_UNIT
+                32,
+                [comp],
+                [10, 11] * Unit("GHz"),
+                bandpass=[11, 12, 13] * DEFAULT_OUTPUT_UNIT,
             )

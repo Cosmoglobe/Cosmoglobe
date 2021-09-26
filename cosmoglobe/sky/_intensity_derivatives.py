@@ -2,7 +2,7 @@ from typing import Callable, Dict
 from astropy.units import Quantity, Unit
 import numpy as np
 
-import cosmoglobe.utils.constants as const
+import cosmoglobe.sky._constants as const
 
 
 def b_rj(freq: Quantity) -> Quantity:

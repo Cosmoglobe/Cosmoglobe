@@ -101,7 +101,9 @@ def ame():
     return AME(
         Quantity(np.random.randint(10, 20, (3, hp.nside2npix(256))), unit="uK"),
         Quantity([[20], [50], [50]], unit="GHz"),
-        freq_peak=Quantity(np.random.randint(10, 100, (3, hp.nside2npix(256))), unit="GHz"),
+        freq_peak=Quantity(
+            np.random.randint(10, 100, (3, hp.nside2npix(256))), unit="GHz"
+        ),
     )
 
 
@@ -128,8 +130,9 @@ def dust():
 def cmb():
     return CMB(
         Quantity(np.random.randint(10, 20, (3, hp.nside2npix(256))), unit="uK"),
-        Quantity([[1],[1],[1]], unit="GHz"),
+        Quantity([[1], [1], [1]], unit="GHz"),
     )
+
 
 @pytest.fixture()
 def sky_model(synch, dust, ame, ff, radio, cmb):

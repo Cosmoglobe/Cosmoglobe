@@ -1,22 +1,21 @@
-from copy import copy
 from typing import Dict, Iterator, List, Optional, Union
 
 from astropy.units import Quantity, Unit
 import healpy as hp
 
-from cosmoglobe.sky import DEFAULT_OUTPUT_UNIT, NO_SMOOTHING
-from cosmoglobe.sky.base_components import (
+from cosmoglobe.sky.basecomponents import (
     SkyComponent,
     PointSourceComponent,
     DiffuseComponent,
     LineComponent,
 )
+from cosmoglobe.sky.simulator import SkySimulator, simulator
+from cosmoglobe.sky._constants import DEFAULT_OUTPUT_UNIT, NO_SMOOTHING
 from cosmoglobe.sky._exceptions import (
     NsideError,
-    SkyModelComponentError,
-    ModelComponentNotFoundError,
+    ComponentError,
+    ComponentNotFoundError,
 )
-from cosmoglobe.sky.simulation import SkySimulator, simulator
 
 
 class SkyModel:
@@ -37,7 +36,7 @@ class SkyModel:
     >>> import cosmoglobe
     >>> model = cosmoglobe.model_from_chain("path/to/chain", nside=256)
     >>> print(model)
-    Model(
+    SkyModel(
       nside: 256
       components(
         (ame): AME(nu_p)
@@ -84,9 +83,7 @@ class SkyModel:
             )
             for component in components
         ):
-            raise SkyModelComponentError(
-                "all components must be subclasses of SkyComponent"
-            )
+            raise ComponentError("all components must be subclasses of SkyComponent")
 
         if not all(
             self.nside == hp.get_nside(component.amp)
@@ -176,19 +173,19 @@ class SkyModel:
         """Removes the CMB dipole, from the CMB amp map."""
 
         if "cmb" not in self.components:
-            raise ModelComponentNotFoundError("cmb component not present in model")
+            raise ComponentNotFoundError("cmb component not present in model")
 
         hp.remove_dipole(
             self.components["cmb"].amp[0], gal_cut=gal_cut.to("deg").value, copy=False
         )
 
     def __iter__(self) -> Iterator:
-        """Returns an iterator with active model components"""
+        """Returns an iterator over the model components."""
 
         return iter(list(self.components.values()))
 
     def __repr__(self) -> str:
-        """Representation of the Model and all enabled components."""
+        """Representation of the SkyModel and all enabled components."""
 
         reprs = []
         for label, component in self.components.items():
