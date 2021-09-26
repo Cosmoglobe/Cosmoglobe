@@ -37,9 +37,9 @@ def get_bandpass_coefficient(
                 intensity_derivatives[key] = INTENSITY_DERIVATIVE_MAPPINGS[
                     intensity_deriv
                 ]
-
-    if len(intensity_derivatives) != 2:
-        raise UnitTypeError("unrecognized unit for intensity derivatives")
+                break
+        else:
+            raise UnitTypeError("unrecognized unit for intensity derivatives")
 
     coefficient = np.trapz(
         bandpass * intensity_derivatives["in"](freqs), freqs

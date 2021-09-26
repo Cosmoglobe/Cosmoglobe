@@ -14,7 +14,7 @@ from cosmoglobe.h5._exceptions import (
 )
 from cosmoglobe.sky.components import COSMOGLOBE_COMPS
 from cosmoglobe.sky.model import SkyModel
-from cosmoglobe.sky.basecomponents import SkyComponent
+from cosmoglobe.sky.base_components import SkyComponent
 
 
 DEFAULT_SAMPLE = -1

@@ -1,7 +1,7 @@
 from astropy.units import Quantity
 import numpy as np
 
-from cosmoglobe.sky.basecomponents import DiffuseComponent
+from cosmoglobe.sky.base_components import DiffuseComponent
 from cosmoglobe.utils.functions import thermodynamical_to_brightness
 
 

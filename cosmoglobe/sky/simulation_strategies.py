@@ -10,7 +10,7 @@ from cosmoglobe.utils.bandpass import (
     get_bandpass_scaling,
 )
 from cosmoglobe.utils.utils import to_unit, gaussian_beam_2D
-from cosmoglobe.sky.basecomponents import (
+from cosmoglobe.sky.base_components import (
     SkyComponent,
     DiffuseComponent,
     PointSourceComponent,
@@ -21,7 +21,7 @@ from cosmoglobe.sky._bandpass import get_normalized_bandpass, get_bandpass_coeff
 
 
 class Simulation(Protocol):
-    """Protocol defining a simulation protocol."""
+    """Protocol defining how a component behaves when used in simulations."""
 
     def delta(
         self,

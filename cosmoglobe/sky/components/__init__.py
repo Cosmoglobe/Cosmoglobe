@@ -1,6 +1,6 @@
 from typing import Dict, Type
 
-from cosmoglobe.sky.basecomponents import SkyComponent
+from cosmoglobe.sky.base_components import SkyComponent
 from cosmoglobe.sky.components.ame import AME
 from cosmoglobe.sky.components.synchrotron import Synchrotron
 from cosmoglobe.sky.components.dust import Dust

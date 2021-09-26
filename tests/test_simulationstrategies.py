@@ -3,7 +3,7 @@ import pytest
 from astropy.units import Unit
 
 from cosmoglobe.sky._constants import DEFAULT_OUTPUT_UNIT
-from cosmoglobe.sky.simulation_strategy import (
+from cosmoglobe.sky.simulation_strategies import (
     DiffuseSimulation,
     get_simulation_protocol,
 )

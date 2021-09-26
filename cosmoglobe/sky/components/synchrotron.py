@@ -1,6 +1,6 @@
 from astropy.units import Quantity
 
-from cosmoglobe.sky.basecomponents import DiffuseComponent
+from cosmoglobe.sky.base_components import DiffuseComponent
 
 
 class Synchrotron(DiffuseComponent):

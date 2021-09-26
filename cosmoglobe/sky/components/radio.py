@@ -2,7 +2,7 @@ from astropy.units import Quantity
 import numpy as np
 
 from cosmoglobe.data import DATA_DIR
-from cosmoglobe.sky.basecomponents import PointSourceComponent
+from cosmoglobe.sky.base_components import PointSourceComponent
 
 
 RADIO_CATALOG = DATA_DIR / "radio_catalog.dat"

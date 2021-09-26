@@ -3,7 +3,7 @@ from typing import Dict, Iterator, List, Optional, Union
 from astropy.units import Quantity, Unit
 import healpy as hp
 
-from cosmoglobe.sky.basecomponents import (
+from cosmoglobe.sky.base_components import (
     SkyComponent,
     PointSourceComponent,
     DiffuseComponent,
@@ -30,6 +30,7 @@ class SkyModel:
     Methods
     -------
     __call__
+    remove_dipole
 
     Examples
     --------

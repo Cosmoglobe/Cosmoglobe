@@ -4,8 +4,8 @@ from astropy.units import Quantity, Unit, quantity_input
 import numpy as np
 import healpy as hp
 
-from cosmoglobe.sky.simulation_strategy import get_simulation_protocol
-from cosmoglobe.sky.basecomponents import (
+from cosmoglobe.sky.simulation_strategies import get_simulation_protocol
+from cosmoglobe.sky.base_components import (
     SkyComponent,
     PointSourceComponent,
     DiffuseComponent,
@@ -103,13 +103,13 @@ class SkySimulator:
     ) -> Quantity:
         """Returns the simulated sky emission for a component."""
 
-        simulation_strategy = get_simulation_protocol(component)
+        simulation_strategies = get_simulation_protocol(component)
 
         if freqs.size > 1:
             if bandpass is not None and freqs.shape != bandpass.shape:
                 raise ValueError("freqs and bandpass must have the same shape")
 
-            return simulation_strategy.bandpass(
+            return simulation_strategies.bandpass(
                 component,
                 freqs,
                 bandpass,
@@ -118,7 +118,7 @@ class SkySimulator:
                 nside=nside,
             )
 
-        return simulation_strategy.delta(
+        return simulation_strategies.delta(
             component, freqs, output_unit=output_unit, fwhm=fwhm, nside=nside
         )
 

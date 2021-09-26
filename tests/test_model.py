@@ -6,7 +6,7 @@ import healpy as hp
 
 from cosmoglobe.sky._constants import DEFAULT_OUTPUT_UNIT
 from cosmoglobe.sky.components import Synchrotron, Dust, AME, Radio
-from cosmoglobe.sky._exceptions import NsideError, ComponentError
+from cosmoglobe.sky._exceptions import NsideError, ComponentError, ComponentNotFoundError
 from cosmoglobe.sky.model import SkyModel
 
 
@@ -101,6 +101,12 @@ def test_simulate(sky_model):
     )
     assert emission.unit == Unit("MJy/sr")
 
+    emission = sky_model(
+        np.arange(1, 10) * Unit("GHz"),
+        bandpass=np.arange(1, 10) * Unit("uK"),
+        output_unit="uK_RJ",
+    )
+    assert emission.unit == Unit("uK")
 
 def test_synch():
     """Tests a sim of synch."""
@@ -178,3 +184,18 @@ def test_ame():
         3,
         hp.nside2npix(128),
     )
+
+
+def test_remove_dipole(sky_model):
+    """Tests the remove_dipole function."""
+
+    sky_model.remove_dipole()
+
+    ame = AME(
+        Quantity(np.random.randint(10, 30, (3, hp.nside2npix(128))), unit="uK"),
+        Quantity([[40], [30], [30]], unit="GHz"),
+        freq_peak=Quantity([[100], [100], [100]], unit="GHz"),
+    )
+    model = SkyModel(128, [ame])
+    with pytest.raises(ComponentNotFoundError):
+        model.remove_dipole()

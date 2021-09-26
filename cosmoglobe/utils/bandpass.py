@@ -7,7 +7,7 @@ from scipy.interpolate import RectBivariateSpline
 import cosmoglobe.sky._constants as const
 
 if TYPE_CHECKING:
-    from cosmoglobe.sky.basecomponents import SkyComponent
+    from cosmoglobe.sky.base_components import SkyComponent
 
 
 def get_normalized_bandpass(
