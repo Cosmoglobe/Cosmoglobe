@@ -1,9 +1,9 @@
 from typing import Dict, List, Type, TYPE_CHECKING
 
-from cosmoglobe.sky import COSMOGLOBE_COMPS
+from cosmoglobe.sky.components import COSMOGLOBE_COMPS
 
 if TYPE_CHECKING:
-    from cosmoglobe.h5.chain_context import ChainContext
+    from cosmoglobe.h5._chain_context import ChainContext
 
 
 class ChainContextFactory:

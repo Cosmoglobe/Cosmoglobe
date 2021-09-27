@@ -6,15 +6,15 @@ import healpy as hp
 from tqdm import tqdm
 
 from cosmoglobe.h5.chain import Chain, ChainVersion
-from cosmoglobe.h5.chain_context import chain_context
-from cosmoglobe.h5.exceptions import (
+from cosmoglobe.h5._chain_context import chain_context
+from cosmoglobe.h5._exceptions import (
     ChainComponentNotFoundError,
     ChainKeyError,
     ChainFormatError,
 )
-from cosmoglobe.sky.model import Model
-from cosmoglobe.sky.base import SkyComponent
-from cosmoglobe.sky import COSMOGLOBE_COMPS
+from cosmoglobe.sky.components import COSMOGLOBE_COMPS
+from cosmoglobe.sky.model import SkyModel
+from cosmoglobe.sky.base_components import SkyComponent
 
 
 DEFAULT_SAMPLE = -1
@@ -22,11 +22,11 @@ DEFAULT_SAMPLE = -1
 
 def model_from_chain(
     chain: Union[str, Chain],
+    nside: int,
     components: Optional[List[str]] = None,
-    nside: Optional[int] = None,
     samples: Optional[Union[range, int, Literal["all"]]] = DEFAULT_SAMPLE,
     burn_in: Optional[int] = None,
-) -> Model:
+) -> SkyModel:
     """Initialize and return a cosmoglobe sky model from a chainfile.
 
     Parameters
@@ -76,17 +76,17 @@ def model_from_chain(
         for component in components:
             progress_bar.set_description(f"{component:<{padding}}")
             initialized_components.append(
-                _comp_from_chain(chain, component, nside, samples)
+                comp_from_chain(chain, nside, component, samples)
             )
             progress_bar.update()
 
-    return Model(nside=nside, components=initialized_components)
+    return SkyModel(nside=nside, components=initialized_components)
 
 
-def _comp_from_chain(
+def comp_from_chain(
     chain: Chain,
+    nside: int,
     component: str,
-    nside: Optional[int] = None,
     samples: Optional[Union[range, int]] = None,
 ) -> SkyComponent:
     """Initialize and return a sky component from a chainfile.
@@ -140,12 +140,13 @@ def _comp_from_chain(
 
             if is_alm:
                 pol = True if arg == "amp" and value.shape[0] == 3 else False
+                lmax = chain.get(f"{component}/{chain_arg}_lmax", samples=0)
                 value = hp.alm2map(
                     value,
                     nside=nside if nside is not None else chain_params["nside"],
+                    lmax=lmax,
                     fwhm=(chain_params["fwhm"] * u.arcmin).to("rad").value,
                     pol=pol,
-                    pixwin=True,
                 )
 
         args[arg] = u.Quantity(value, unit=units[arg] if arg in units else None)

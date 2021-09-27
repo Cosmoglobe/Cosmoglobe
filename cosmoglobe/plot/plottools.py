@@ -2,7 +2,7 @@
 from re import A, T
 import warnings
 from .. import data as data_dir
-from cosmoglobe.sky.model import Model
+from cosmoglobe.sky.model import SkyModel
 from cosmoglobe.h5.model import model_from_chain
 from cosmoglobe.h5.chain import Chain
 

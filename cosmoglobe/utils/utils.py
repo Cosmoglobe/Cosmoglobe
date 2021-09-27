@@ -61,7 +61,7 @@ def set_spectral_units(maps: Iterable[u.Quantity]) -> u.Quantity:
     return maps
 
 
-def str_to_astropy_unit(unit: str) -> u.UnitBase:
+def str_to_astropy_unit(unit: str) -> u.Unit:
     """Converts a K_RJ or a K_CMB string to `u.K` unit.
 
     This function preserves the prefix.
@@ -77,14 +77,12 @@ def str_to_astropy_unit(unit: str) -> u.UnitBase:
         Astropy unit.
     """
 
-    try:
+    if unit.lower().endswith("k_rj"):
+        output_unit = u.Unit(unit[:-3])
+    elif unit.lower().endswith("k_cmb"):
+        output_unit = u.Unit(unit[:-4])
+    else:
         output_unit = u.Unit(unit)
-    except ValueError:
-        if unit.lower().endswith("k_rj"):
-            output_unit = u.Unit(unit[:-3])
-
-        elif unit.lower().endswith("k_cmb"):
-            output_unit = u.Unit(unit[:-4])
 
     return output_unit
 
@@ -111,8 +109,10 @@ def to_unit(emission: u.Quantity, freqs: u.Quantity, unit: u.UnitBase) -> u.Quan
     try:
         unit = u.Unit(unit)
         emission = emission.to(unit, equivalencies=u.brightness_temperature(freqs))
-
+    except u.UnitConversionError:
+        raise u.UnitConversionError("unit must be compatible with K")
     except ValueError:
+
         if unit.lower().endswith("k_rj"):
             unit = u.Unit(unit[:-3])
         elif unit.lower().endswith("k_cmb"):

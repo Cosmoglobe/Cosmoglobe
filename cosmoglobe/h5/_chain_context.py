@@ -1,9 +1,9 @@
 from typing import Dict, Any, Protocol
 
-import astropy.units as u
+from astropy.units import Quantity, Unit
 import numpy as np
 
-from cosmoglobe.h5.chain_contextfactory import ChainContextFactory
+from cosmoglobe.h5._chain_contextfactory import ChainContextFactory
 
 
 class ChainContext(Protocol):
@@ -26,9 +26,12 @@ class FreqRefContext:
     def __call__(self, args: Dict[str, Any]) -> Dict[str, Any]:
         if "freq_ref" in args:
             args["freq_ref"] = args["freq_ref"].to("GHz")
-            if args["amp"].shape[0] != 3:
-                args["freq_ref"] = args["freq_ref"][0]
-
+            if (amp_dim := args["amp"].shape[0]) == 1:
+                args["freq_ref"] = args["freq_ref"][0].reshape((1, 1))
+            elif amp_dim == 3:
+                args["freq_ref"] = args["freq_ref"].reshape((3, 1))
+            else:
+                raise ValueError("cannot reshape freq_ref into shape (3,1) or (1,1")
         return args
 
 
@@ -45,9 +48,6 @@ class RadioContext:
 
     def __call__(self, args: Dict[str, Any]) -> Dict[str, Any]:
         args["alpha"] = args["alpha"][0]
-        args["amp"] = u.Quantity(args["amp"].value, unit="mJy/sr").to(
-            u.uK, equivalencies=u.thermodynamic_temperature(args["freq_ref"])
-        )
 
         return args
 
@@ -61,8 +61,9 @@ class MapToScalarContext:
     """
 
     def __call__(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        IGNORED_ARGS = ["amp", "freq_ref"]
         for key, value in args.items():
-            if np.size(value) > 1:
+            if key not in IGNORED_ARGS and np.size(value) > 1:
                 if np.ndim(value) > 1:
                     uniques = [np.unique(col) for col in value]
                     all_cols_are_unique = all([len(col) == 1 for col in uniques])
@@ -71,7 +72,7 @@ class MapToScalarContext:
                     all_cols_are_unique = len(uniques) == 1
 
                 if all_cols_are_unique:
-                    args[key] = u.Quantity(uniques, unit=value.unit)
+                    args[key] = Quantity(uniques, unit=value.unit)
 
         return args
 
@@ -87,7 +88,9 @@ chain_context.register_mapping(["radio"], {"alpha": "specind"})
 chain_context.register_mapping(["ame"], {"freq_peak": "nu_p"})
 chain_context.register_mapping(["ff"], {"T_e": "Te"})
 
-chain_context.register_units([], {"amp": u.uK, "freq_ref": u.Hz})
-chain_context.register_units(["ame"], {"nu_p": u.GHz})
-chain_context.register_units(["dust"], {"T": u.K})
-chain_context.register_units(["ff"], {"T_e": u.K})
+chain_context.register_units([], {"freq_ref": Unit("Hz")})
+chain_context.register_units(["cmb", "ame", "dust", "synch", "ff"], {"amp": Unit("uK")})
+chain_context.register_units(["radio"], {"amp": Unit("mJy")})
+chain_context.register_units(["ame"], {"nu_p": Unit("GHz")})
+chain_context.register_units(["dust"], {"T": Unit("K")})
+chain_context.register_units(["ff"], {"T_e": Unit("K")})

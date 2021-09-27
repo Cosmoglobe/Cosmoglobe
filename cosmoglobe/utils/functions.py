@@ -1,7 +1,7 @@
 import astropy.units as u
 import numpy as np
 
-import cosmoglobe.utils.constants as const
+import cosmoglobe.sky._constants as const
 
 
 @u.quantity_input(freq=u.Hz, T=u.K)

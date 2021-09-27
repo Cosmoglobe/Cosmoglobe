@@ -13,5 +13,5 @@ detail. For learning how to use *cosmoglobe*, see our
 .. toctree::
    :maxdepth: 2
 
-   Model <cosmoglobe_model>
-   Components <cosmoglobe_components>
+   SkyModel <cosmoglobe_model>
+   SkyComponents <cosmoglobe_components>
