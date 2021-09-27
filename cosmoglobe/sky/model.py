@@ -125,7 +125,7 @@ class SkyModel:
         freqs: Quantity,
         bandpass: Optional[Quantity] = None,
         *,
-        comps: Optional[List[str]] = None,
+        components: Optional[List[str]] = None,
         fwhm: Quantity = NO_SMOOTHING,
         output_unit: Union[str, Unit] = DEFAULT_OUTPUT_UNIT,
     ) -> Quantity:
@@ -139,7 +139,7 @@ class SkyModel:
             Bandpass profile corresponding to the frequencies in `freqs`.
             If `bandpass` is None and `freqs` is a single frequency, a
             delta peak is assumed. Defaults to None.
-        comps
+        components
             List of component labels. If None, all components in the sky
             model is included. Defaults to None.
         fwhm
@@ -155,11 +155,11 @@ class SkyModel:
             The simulated emission given the Cosmoglobe Sky Model.
         """
 
-        if comps is not None:
-            if not all(component in self.components for component in comps):
+        if components is not None:
+            if not all(component in self.components for component in components):
                 raise ValueError("all component must be present in the model")
             components = [
-                value for key, value in self.components.items() if key in comps
+                value for key, value in self.components.items() if key in components
             ]
         else:
             components = list(self.components.values())

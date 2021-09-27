@@ -54,13 +54,13 @@ def test_comp_arg(sky_model):
         T=Quantity(np.random.randint(10, 30, (3, hp.nside2npix(32))), unit="K"),
     )
     sky_model = SkyModel(32, [synch, dust])
-    sky_model(100 * Unit("GHz"), fwhm=80 * Unit("arcmin"), comps=["synch"])
+    sky_model(100 * Unit("GHz"), fwhm=80 * Unit("arcmin"), components=["synch"])
 
     with pytest.raises(ValueError):
         sky_model(
             100 * Unit("GHz"),
             fwhm=80 * Unit("arcmin"),
-            comps=["synch", "dust", "radio"],
+            components=["synch", "dust", "radio"],
         )
 
 
