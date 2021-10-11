@@ -9,208 +9,49 @@ import matplotlib.pyplot as plt
 
 from .plottools import *
 
-pol=False
-long=True
-if pol:
-    # 15, 120, 40, (0,4, 12), (1.2,50)
-    p = 0.6 if long else 15
-    sd = 2 if long else 70
-    foregrounds = {
-        "synch" : {         "label"   : "Synchrotron",
-                            "params"  : [],
-                            "position": 20,
-                            "color"   : "C2",
-                            "sum"     : True,
-                            "linestyle": "solid",
-                            "gradient": False,
-                            "spectrum": None,
-                        },
-        "dust": {           "label" : "Thermal Dust",
-                            "params": [],
-                            "position": 250,
-                            "color":    "C1",
-                            "sum"     : True,
-                            "linestyle": "solid",
-                            "gradient": False,
-                            "spectrum": None,
-                        }, 
-        "sumfg"      : {    "label"   : "Sum fg.",
-                            "params"  : [],
-                            "position": 70,
-                            "color"   : "grey",
-                            "sum"     : False,
-                            "linestyle": "--",
-                            "gradient": False,
-                            "spectrum": None,
-                        },
-        r"bb-2"   :  {"label"   : "BB $r=10^{-2}$", 
-                            "params"  : [0.01, "BB",],
-                            "position": p,
-                            "color"   : "grey",
-                            "sum"     : False,
-                            "linestyle": "dotted",
-                            "gradient": True,
-                            "spectrum": None,
-                        },
-        r"bb-4$"   :  {"label"   : "BB $r=10^{-4}$", 
-                            "params"  : [1e-4, "BB",],
-                            "position": p,
-                            "color"   : "grey",
-                            "sum"     : False,
-                            "linestyle": "dotted",
-                            "gradient": True,
-                            "spectrum": None,
-                        },
-        "cmb":       {"label"     : "CMB EE", 
-                            "params"  : [1, "EE"],
-                            "position": p,
-                            "color"   : "C5",
-                            "sum"     : False,
-                            "linestyle": "solid",
-                            "gradient": False,
-                            "spectrum": None,
-                        },
-        "ame" : {"label"    : "Spinning Dust", 
-                            "params"  : [],
-                            "position": sd,
-                            "color"   : "C4",
-                            "sum"     : True,
-                            "linestyle": "solid",
-                            "gradient": True,
-                            "spectrum": None,
-                        },
 
-        }
-else:
-    #120, 12, 40, (2,57), 20, 70
-    p = 3 if long else 65
-    td = 10 if long else 17
-    foregrounds = {
-        "synch" : {"label"      : "Synchrotron", 
-                            "params"  : [],
-                            "position": 170,
-                            "color"   : "C2",
-                            "sum"     : True,
-                            "linestyle": "solid",
-                            "gradient": False,
-                            "spectrum": None,
-                        },
-        "dust": {"label"      : "Thermal Dust", 
-                            "params"  : [],
-                            "position": td,
-                            "color"   :  "C1",
-                            "sum"     : True,
-                            "linestyle": "solid",
-                            "gradient": False,
-                            "spectrum": None,
-                        }, 
-        "ff"  : {"label"       : "Free-Free", 
-                            "params"  : [],
-                            "position": 50,
-                            "color"   : "C0",
-                            "sum"     : True,
-                            "linestyle": "solid",
-                            "gradient": False,
-                            "spectrum": None,
-                        },
-        "ame" : {"label"     : "Spinning Dust", 
-                            "params"   : [],
-                            "position" : p,
-                            "color"    : "C4",
-                            "sum"      : True,
-                            "linestyle": "solid",
-                            "gradient" : False,
-                            "spectrum": None,
-                        },
-        r"co10": {"label"    : "CO$_{1\rightarrow 0}$", 
-                                    "params"  : [50, 115, 11.06],
-                                    "position": p,
-                                    "color"   : "C9",
-                                    "sum"     : True,
-                                    "linestyle": "solid",
-                                    "gradient": False,
-                                    "spectrum": None,
-                        },
-        r"co21": {"label"    : "CO$_{2\rightarrow 1}$", 
-                                    "params"  : [25, 230., 14.01],
-                                    "position": p,
-                                    "color"   : "C9",
-                                    "sum"     : True,
-                                    "linestyle": "solid",
-                                    "gradient": False,
-                                    "spectrum": None,
-                        },
-        r"co32":      {"label"     : "CO$_{3\rightarrow 2}$", 
-                                        "params"  : [10, 345., 12.24],
-                                        "position": p,
-                                        "color"   : "C9",
-                                        "sum"     : True,
-                                        "linestyle": "solid",
-                                        "gradient": False,
-                                        "spectrum": None,
-                        },
-        "sumfg"      : {"label"     : "Sum fg.", 
-                            "params"  : [],
-                            "position": 25,
-                            "color"   : "grey",
-                            "sum"     : False,
-                            "linestyle": "--",
-                            "gradient": False,
-                            "spectrum": None,
-                        },
-        "cmb":          {"label"     : "CMB", 
-                            "params"  : [1., "TT"],
-                            "position": 70,
-                            "color"   : "C5",
-                            "sum"     : False,
-                            "linestyle": "solid",
-                            "gradient": False,
-                            "spectrum": None,
-                        },
-
-        }
-
-"""
-    Spectrum(pol, long, darkmode, png, foregrounds, [mask1,mask2], nside)
-
-        # ---- Figure parameters ----
-    if not small:
-        xmin, xmax = (0.25, 4000)
-    if pol:
-        ymin, ymax = (1.001e-3, 2e2)
-        if not small:
-            #xmin, xmax = (1, 3000)
-            ymin2, ymax2 = (ymax+100, 1e7)
-        else:
-            xmin, xmax = (9, 1500)
-    else:
-        ymin, ymax = (0.05, 7e2)
-        if not small:
-            #xmin, xmax = (0.3, 4000)
-            ymin2, ymax2 = (ymax+500, 1e7)
-        else:
-            xmin, xmax = (9, 1500)
-"""
-
-def spec(model, pol=False, nside=64, sky_fractions=(25,85), darkmode=False):
+def spec(model, pol=False, nside=64, sky_fractions=(25,85), darkmode=False,):
     # TODO, they need to be smoothed to common res!
-
-    rcParams['mathtext.fontset'] = 'dejavusans'
+    set_style(darkmode, font="dejavusans")
+    params={
+        'xtick.top'          : False,
+        'ytick.right'        : True, #Set to false
+        'axes.spines.top'    : True, #Set to false
+        'axes.spines.bottom' : True,
+        'axes.spines.left'   : True,
+        'axes.spines.right'  : True, #Set to false@
+        'axes.grid.axis'     : 'y',
+        'axes.grid'          : False,
+        'ytick.major.size'   : 5,
+        'ytick.minor.size'   : 2.6,
+        'xtick.major.size'   : 5,
+        'xtick.minor.size'   : 2.5,
+        'xtick.major.pad'    : 8, 
+        'ytick.major.width'   : 1.5,
+        'ytick.minor.width'   : 1.5,
+        'xtick.major.width'   : 1.5,
+        'xtick.minor.width'   : 1.5,
+        'axes.linewidth'      : 1.5,}
+    rcParams.update(params)
     colors=['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A', '#19D3F3', '#FF6692', '#B6E880', '#FF97FF', '#FECB52']
     rcParams['axes.prop_cycle'] = cycler(color=colors)
     blue, red, green, purple, orange, teal, lightred, lightgreen, pink, yellow = ("C0","C1","C2","C3","C4","C5","C6","C7","C8","C9",)
     black = 'k'
     #plt.rcParams.update(plt.rcParamsDefault)
-    #set_style(darkmode)
 
-    pol = False
-    small = False
+    pol = True
+    long = True
+    ame_polfrac = 0.1
     pol = 1 if pol else 0
-    xmin, xmax = (0.25, 4000) if not small else (9, 1500)
+    xmin, xmax = (0.25, 4000) if long else (9, 1500)
     ymin, ymax = (0.05, 7e2) if not pol else (1.001e-3, 2e2)
     ymin2, ymax2 = (ymax+100, 1e7)
+    # textsize
+    freqtext = 12
+    fgtext = 16
+    lsize=16
 
-    if not small:    
+    if long:    
         # Figure
         ratio = 5
         w, h = (16,8)
@@ -231,9 +72,6 @@ def spec(model, pol=False, nside=64, sky_fractions=(25,85), darkmode=False):
         ax.plot((-d, +d), (1 - d, 1 + d), **kwargs)  # bottom-left diagonal
         ax.plot((1 - d, 1 + d), (1 - d, 1 + d), **kwargs)  # bottom-right diagonal
     
-        # textsize
-        freqtext = 16
-        fgtext = 18
 
     else:
         ymax2=ymax
@@ -241,25 +79,28 @@ def spec(model, pol=False, nside=64, sky_fractions=(25,85), darkmode=False):
         w, h = (12,8)
         fig, ax = plt.subplots(1,1,figsize=(w,h))
         aspect_ratio = w/h
-        
-        freqtext = 20
-        fgtext = 20
+
 
     
     # Spectrum parameters
-    nu  = np.logspace(np.log10(0.1),np.log10(5000),1000)
-    #nside=model.nside
-    npix = hp.nside2npix(nside)
-    sky_fractions=(25,85,100)
+    N=1000
+    nu  = np.logspace(np.log10(0.1),np.log10(5000),N)
     seds = seds_from_model(nu, model, pol=True, sky_fractions=sky_fractions)
 
-
+    foregrounds=get_foregrounds(pol,long)
     # Looping over foregrounds and calculating spectra
     i = 0
     add_error = True
     for comp in foregrounds.keys():
         if comp in seds.keys():
             foregrounds[comp]["spectrum"] = seds[comp]
+        if comp.startswith("bb"):
+            a=0.67*1e-1 if comp.endswith("2") else 0.67*1e-2
+            sed = np.zeros((2,len(sky_fractions),N))
+            sed[1]=a*model.components["cmb"].get_freq_scaling(nu*u.GHz,)
+            foregrounds[comp]["spectrum"] = sed
+        if pol and comp=="ame":
+            foregrounds[comp]["spectrum"][1] = ame_polfrac*foregrounds[comp]["spectrum"][0]
 
         # TODO Fix errorextension
         """
@@ -276,7 +117,7 @@ def spec(model, pol=False, nside=64, sky_fractions=(25,85), darkmode=False):
 
         if foregrounds[comp]["sum"] and foregrounds[comp]["spectrum"] is not None:
             if i==0:
-                foregrounds["sumfg"]["spectrum"] = foregrounds[comp]["spectrum"]
+                foregrounds["sumfg"]["spectrum"] = foregrounds[comp]["spectrum"].copy()
             else:
                 foregrounds["sumfg"]["spectrum"] += foregrounds[comp]["spectrum"]
             i+=1
@@ -287,22 +128,21 @@ def spec(model, pol=False, nside=64, sky_fractions=(25,85), darkmode=False):
         if params["spectrum"] is None: continue
         if params["gradient"]:
             k = 1
-            gradient_fill_between(ax, nu, params["spectrum"][pol][0], params["spectrum"][pol][1], color=params["color"])
+            gradient_fill_between(ax, nu, params["spectrum"][pol][1]*1e-2, params["spectrum"][pol][1], color=params["color"])
         else:
             if comp == "sumfg":
-                ax.loglog(nu,params["spectrum"][pol][0], linestyle=params["linestyle"], linewidth=2, color=params["color"])
-                if not small:
-                    ax2.loglog(nu,params["spectrum"][pol][0], linestyle=params["linestyle"], linewidth=2, color=params["color"])
-                k = 0
-                """
+                ax.loglog(nu,params["spectrum"][pol][1], linestyle=params["linestyle"], linewidth=2, color=params["color"])
+                if long:
+                    ax2.loglog(nu,params["spectrum"][pol][1], linestyle=params["linestyle"], linewidth=2, color=params["color"])
+                k = 1
                 try:
-                    ax.loglog(nu,params["spectrum"][pol][1], linestyle=params["linestyle"], linewidth=2, color=params["color"])
-                    if not small:
-                        ax2.loglog(nu,params["spectrum"][pol][1], linestyle=params["linestyle"], linewidth=2, color=params["color"])
+                    ax.loglog(nu,params["spectrum"][pol][0], linestyle=params["linestyle"], linewidth=2, color=params["color"])
+                    if long:
+                        ax2.loglog(nu,params["spectrum"][pol][0], linestyle=params["linestyle"], linewidth=2, color=params["color"])
                     k=1
                 except:
                     pass
-                """
+
             elif comp.startswith("co"):
                 lfreq = nu[np.argmax(params["spectrum"][pol][0])]
                 if params["spectrum"][pol].shape[0] > 1:
@@ -314,19 +154,19 @@ def spec(model, pol=False, nside=64, sky_fractions=(25,85), darkmode=False):
             else:
                 if comp == "cmb":
                     ax.loglog(nu,params["spectrum"][pol][0], linestyle=params["linestyle"], linewidth=4, color=params["color"])
-                    if not small:
+                    if long:
                         ax2.loglog(nu,params["spectrum"][pol][0], linestyle=params["linestyle"], linewidth=4, color=params["color"])
                     k = 0
                 else:
-                    ax.fill_between(nu,params["spectrum"][pol][0],params["spectrum"][pol][1], color=params["color"],alpha=0.5)
-                    if not small:
-                        ax2.fill_between(nu,params["spectrum"][pol][0],params["spectrum"][pol][1], color=params["color"], alpha=0.5)
+                    ax.fill_between(nu,params["spectrum"][pol][1],params["spectrum"][pol][0], color=params["color"],alpha=0.8)
+                    if long:
+                        ax2.fill_between(nu,params["spectrum"][pol][1],params["spectrum"][pol][0], color=params["color"], alpha=0.8)
                     k = 1
 
         if comp == "dust":
             _, fsky_idx = find_nearest(nu, 900)
-            ax.annotate(r"$f_{sky}=$"+"{:d}%".format(int(sky_fractions[1])), xy=(nu[fsky_idx], params["spectrum"][pol][1][fsky_idx]), ha="center", va="bottom", fontsize=fgtext, color="grey", xytext=(0,5), textcoords="offset pixels",)
-            ax.annotate(r"$f_{sky}=$"+"{:d}%".format(int(sky_fractions[0])), xy=(nu[fsky_idx], params["spectrum"][pol][0][fsky_idx]), ha="center", va="top", fontsize=fgtext, color="grey", xytext=(0,-15), textcoords="offset pixels",)
+            ax.annotate(r"$f_{sky}=$"+"{:d}%".format(int(sky_fractions[1])), xy=(nu[fsky_idx], params["spectrum"][pol][1][fsky_idx]), ha="center", va="bottom", fontsize=fgtext, color="grey", xytext=(0,5), textcoords="offset pixels",path_effects=[path_effects.withSimplePatchShadow(alpha=0.8,offset=(0.5, -0.5)),])
+            ax.annotate(r"$f_{sky}=$"+"{:d}%".format(int(sky_fractions[0])), xy=(nu[fsky_idx], params["spectrum"][pol][0][fsky_idx]), ha="center", va="top", fontsize=fgtext, color="grey", xytext=(0,-15), textcoords="offset pixels",path_effects=[path_effects.withSimplePatchShadow(alpha=0.8,offset=(0.5, -0.5)),])
        
         if comp.startswith("co"):
             ax.text(lfreq, np.max(params["spectrum"][pol][k])*0.5, params["label"], color=params["color"], alpha=0.7, ha='right',va='center',rotation=90,fontsize=fgtext, path_effects=[path_effects.withSimplePatchShadow(alpha=0.8, offset=(1, -1))], zorder=1000)
@@ -342,11 +182,11 @@ def spec(model, pol=False, nside=64, sky_fractions=(25,85), darkmode=False):
             alpha = np.arctan(np.log(y1/y0)/np.log(x1/x0)*rotator)
             rotation =  np.rad2deg(alpha)#*rotator
             ax.annotate(params["label"], xy=(x0,y0), xytext=(0,7), textcoords="offset pixels",  rotation=rotation, rotation_mode='anchor', fontsize=fgtext, color=params["color"], path_effects=[path_effects.withSimplePatchShadow(alpha=0.8,offset=(1, -1)),], horizontalalignment="center")
-    
+
         
     
     # ---- Data band ranges ----
-    if not small:
+    if long:
         yscaletext = 0.70
         yscaletextup = 1.2
     else:
@@ -401,9 +241,9 @@ def spec(model, pol=False, nside=64, sky_fractions=(25,85), darkmode=False):
                     continue # Skip databands outside range
                 va = "bottom" if experiment in ["WMAP", "CHI-PASS", "DIRBE", "Haslam"] else "top" # VA for WMAP on bottom
                 ha = "left" if experiment in ["Planck", "WMAP", "DIRBE",] else "center"
-                ax.axvspan(*band["range"], color=band["color"], alpha=0.3, zorder=0, label=experiment)
-                if not small:
-                    ax2.axvspan(*band["range"], color=band["color"], alpha=0.3, zorder=0, label=experiment)
+                ax.axvspan(*band["range"], color=band["color"], alpha=0.3, zorder=-20, label=experiment)
+                if long:
+                    ax2.axvspan(*band["range"], color=band["color"], alpha=0.3, zorder=-20, label=experiment)
                     if experiment in  ["WMAP", "CHI-PASS", "DIRBE", "Haslam"]:
                         ax.text(*band["position"], label, color=band["color"], va=va, ha=ha, size=freqtext, path_effects=[path_effects.withSimplePatchShadow(alpha=0.8, offset=(1,-1))])
                     else:
@@ -412,7 +252,7 @@ def spec(model, pol=False, nside=64, sky_fractions=(25,85), darkmode=False):
                     ax.text(*band["position"], label, color=band["color"], va=va, ha=ha, size=freqtext, path_effects=[path_effects.withSimplePatchShadow(alpha=0.8, offset=(1,-1))])
 
     # ---- Axis stuff ----
-    lsize=20
+
 
     ticks = []
     ticks_ = [0.3,1,3,10,30,100,300,1000,3000]
@@ -426,7 +266,7 @@ def spec(model, pol=False, nside=64, sky_fractions=(25,85), darkmode=False):
     ax.tick_params(which="both",direction="in")
     ax.tick_params(axis='y', labelrotation=90) 
     ax.set_yticklabels([fmt(x,1) for x in ax.get_yticks()], va="center")
-    if not small:
+    if long:
         ax2.set(xscale='log', yscale='log', ylim=(ymin2, ymax2), xlim=(xmin,xmax), yticks=[1e4,1e6,], xticks=ticks, xticklabels=ticks)
         ax2.tick_params(axis='both', which='major', labelsize=lsize, direction='in')
         ax2.tick_params(which="both",direction="in")
@@ -434,9 +274,179 @@ def spec(model, pol=False, nside=64, sky_fractions=(25,85), darkmode=False):
         ax2.set_yticklabels([fmt(x,1) for x in ax2.get_yticks()], va="center")
 
     # Axis labels
+    sax = fig.add_subplot(111, frameon=False)
+    plt.tick_params(
+        labelcolor="none",
+        top=False,
+        bottom=False,
+        left=True,
+        right=False,
+        width=0.0,
+    )
     if pol:
-        plt.ylabel(r"RMS polarization amplitude [$\mu\mathrm{K}_{\mathrm{RJ}}$]",fontsize=lsize)
+        sax.set_ylabel(r"RMS polarization amplitude [$\mu\mathrm{K}_{\mathrm{RJ}}$]",fontsize=lsize)
     else:
-        plt.ylabel(r"RMS brightness temperature [$\mu\mathrm{K}_{\mathrm{RJ}}$]",fontsize=lsize)
-    plt.xlabel(r"Frequency [GHz]",fontsize=lsize)
+        sax.set_ylabel(r"RMS brightness temperature [$\mu\mathrm{K}_{\mathrm{RJ}}$]",fontsize=lsize)
+    sax.set_xlabel(r"Frequency [GHz]",fontsize=lsize)
+    plt.subplots_adjust(wspace=0.0, hspace=0.02)
 
+
+def get_foregrounds(pol,long):
+    if pol:
+        # 15, 120, 40, (0,4, 12), (1.2,50)
+        p = 0.6 if long else 15
+        sd = 2 if long else 70
+        return {
+            "synch" : {         "label"   : "Synchrotron",
+                                "params"  : [],
+                                "position": 20,
+                                "color"   : "C2",
+                                "sum"     : True,
+                                "linestyle": "solid",
+                                "gradient": False,
+                                "spectrum": None,
+                            },
+            "dust": {           "label" : "Thermal Dust",
+                                "params": [],
+                                "position": 250,
+                                "color":    "C1",
+                                "sum"     : True,
+                                "linestyle": "solid",
+                                "gradient": False,
+                                "spectrum": None,
+                            }, 
+            "sumfg"      : {    "label"   : "Sum fg.",
+                                "params"  : [],
+                                "position": 70,
+                                "color"   : "grey",
+                                "sum"     : False,
+                                "linestyle": "--",
+                                "gradient": False,
+                                "spectrum": None,
+                            },
+            "bb-2"   :  {"label"   : r"BB $r=10^{-2}$", 
+                                "params"  : [0.01, "BB",],
+                                "position": p,
+                                "color"   : "grey",
+                                "sum"     : False,
+                                "linestyle": "dotted",
+                                "gradient": True,
+                                "spectrum": None,
+                            },
+            "bb-4"   :  {"label"   : r"BB $r=10^{-4}$", 
+                                "params"  : [1e-4, "BB",],
+                                "position": p,
+                                "color"   : "grey",
+                                "sum"     : False,
+                                "linestyle": "dotted",
+                                "gradient": True,
+                                "spectrum": None,
+                            },
+            "cmb":       {"label"     : "CMB EE", 
+                                "params"  : [1, "EE"],
+                                "position": p,
+                                "color"   : "C5",
+                                "sum"     : False,
+                                "linestyle": "solid",
+                                "gradient": False,
+                                "spectrum": None,
+                            },
+            "ame" : {"label"    : "Spinning Dust", 
+                                "params"  : [],
+                                "position": sd,
+                                "color"   : "C4",
+                                "sum"     : True,
+                                "linestyle": "solid",
+                                "gradient": True,
+                                "spectrum": None,
+                            },
+            }
+    else:
+        #120, 12, 40, (2,57), 20, 70
+        p = 3 if long else 65
+        td = 10 if long else 17
+        return {
+
+            "dust": {"label"      : "Thermal Dust", 
+                                "params"  : [],
+                                "position": td,
+                                "color"   :  "C1",
+                                "sum"     : True,
+                                "linestyle": "solid",
+                                "gradient": False,
+                                "spectrum": None,
+                            }, 
+            "ff"  : {"label"       : "Free-Free", 
+                                "params"  : [],
+                                "position": 50,
+                                "color"   : "C0",
+                                "sum"     : True,
+                                "linestyle": "solid",
+                                "gradient": False,
+                                "spectrum": None,
+                            },
+            "ame" : {"label"     : "Spinning Dust", 
+                                "params"   : [],
+                                "position" : p,
+                                "color"    : "C4",
+                                "sum"      : True,
+                                "linestyle": "solid",
+                                "gradient" : False,
+                                "spectrum": None,
+                            },        
+            "synch" : {"label"      : "Synchrotron", 
+                                "params"  : [],
+                                "position": 170,
+                                "color"   : "C2",
+                                "sum"     : True,
+                                "linestyle": "solid",
+                                "gradient": False,
+                                "spectrum": None,
+                            },
+            r"co10": {"label"    : "CO$_{1\rightarrow 0}$", 
+                                        "params"  : [50, 115, 11.06],
+                                        "position": p,
+                                        "color"   : "C9",
+                                        "sum"     : True,
+                                        "linestyle": "solid",
+                                        "gradient": False,
+                                        "spectrum": None,
+                            },
+            r"co21": {"label"    : "CO$_{2\rightarrow 1}$", 
+                                        "params"  : [25, 230., 14.01],
+                                        "position": p,
+                                        "color"   : "C9",
+                                        "sum"     : True,
+                                        "linestyle": "solid",
+                                        "gradient": False,
+                                        "spectrum": None,
+                            },
+            r"co32":      {"label"     : "CO$_{3\rightarrow 2}$", 
+                                            "params"  : [10, 345., 12.24],
+                                            "position": p,
+                                            "color"   : "C9",
+                                            "sum"     : True,
+                                            "linestyle": "solid",
+                                            "gradient": False,
+                                            "spectrum": None,
+                            },
+            "sumfg"      : {"label"     : "Sum fg.", 
+                                "params"  : [],
+                                "position": 25,
+                                "color"   : "grey",
+                                "sum"     : False,
+                                "linestyle": "--",
+                                "gradient": False,
+                                "spectrum": None,
+                            },
+            "cmb":          {"label"     : "CMB", 
+                                "params"  : [1., "TT"],
+                                "position": 70,
+                                "color"   : "C5",
+                                "sum"     : False,
+                                "linestyle": "solid",
+                                "gradient": False,
+                                "spectrum": None,
+                            },
+
+            }
