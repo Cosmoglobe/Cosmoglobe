@@ -1,6 +1,8 @@
 # This file contains useful functions used across different plotting scripts.
 from re import A, T
 import warnings
+
+from numpy.core.numeric import NaN
 from .. import data as data_dir
 from cosmoglobe.sky.model import SkyModel
 from cosmoglobe.h5.model import model_from_chain
@@ -163,7 +165,7 @@ def fmt(x, pos):
     """
     Format color bar labels
     """
-    if abs(x) > 1e4 or (abs(x) <= 1e-3 and abs(x) > 0):
+    if abs(x) >= 1e4 or (abs(x) <= 1e-3 and abs(x) > 0):
         a, b = f"{x:.2e}".split("e")
         b = int(b)
         if float(a) == 1.00:
@@ -774,3 +776,134 @@ def get_params(**params):
     params["ticklabels"] = format_list(params["ticks"])
 
     return params
+
+def mask_map(m, mask):
+    """
+    Apply a mask to a map
+    """
+    
+    m = hp.ma(m)
+    m.mask = mask
+    #Alternative
+        
+    #mask = mask*np.NaN
+    #m *= mask
+    return m
+
+
+def create_70GHz_mask(sky_frac, nside=256, pol=False):
+    """
+    Creates a mask from the 70GHz BP7 frequency map at nside=256 for a 
+    threshold corresponding to a given sky fraction (in %). The 70GGz
+    map is chosen due to it containing a large portion of all low-frequency
+    sky components.
+    Parameters
+    ----------
+    sky_frac : float
+        Sky fraction in percentage.
+    Returns
+    -------
+    mask : numpy.ndarray
+        Mask covering the sky for a given sky fraction.
+    """
+    # Read amplitude map to use for thresholding
+    field=(1,2) if pol else 0    
+    template = hp.read_map(Path(data_dir.__path__[0]) / 'BP7_70GHz_nocmb_n0256.fits', dtype=np.float64, field=field)
+    if pol: template = np.sqrt(template[0]**2+template[1]**2)
+    template = hp.ma(template)
+    if nside!=256:
+        template = hp.ud_grade(template, nside)
+
+    # Masking based on sky fraction is not trivial. Here we manually compute
+    # the sky fraction by masking all pixels with amplitudes larger than a 
+    # given percentage of the maximum map amplitude. The pixels masks then 
+    # correspond to a sky fraction. We tabulate the amplitude percentage and
+    # sky fraction for a range, and interpolate from this table.
+    amp_percentages = np.flip(np.arange(1,101))
+    fracs = []
+    mask = np.zeros(len(template), dtype=np.bool)
+    for i in range(len(amp_percentages)):
+        mask = np.zeros(len(template), dtype=np.bool)
+        masked_template = hp.ma(template)
+        mask[np.where(np.log(masked_template) <= 
+            (amp_percentages[i]/100)*np.nanmax(np.log(masked_template)))] = 1
+        masked_template.mask = mask
+
+        frac = ((len(masked_template)-masked_template.count())
+                /len(masked_template))*100
+        fracs.append(100-frac)
+
+    amp_percentage = np.interp(sky_frac, fracs, amp_percentages, left=0.0, right=100)
+    mask = np.zeros(len(template), dtype=np.bool)
+    masked_template = np.abs(hp.ma(template))
+    mask[np.where(np.log(masked_template) <= 
+        (amp_percentage/100)*np.nanmax(np.log(masked_template)))] = 1
+    return mask
+
+
+def seds_from_model(nu, model, nside=None, pol=True, sky_fractions=(25,85,100)):
+    comps = model.components
+    if nside is None or nside==model.nside:
+        nside = model.nside
+        udgrade=False
+    else:
+        udgrade=True
+
+    masks = np.zeros((len(sky_fractions), hp.nside2npix(nside)))
+
+    for i, sky_frac in enumerate(sky_fractions):
+        masks[i] = create_70GHz_mask(sky_frac, nside)
+
+    # SED dictionary with T and P, skyfractions and the value per nu
+    seds = {comp: np.zeros((2, len(sky_fractions), len(nu))) for comp in model.components}
+    for key, value in comps.items():
+        for i, mask in enumerate(masks):
+            specinds = {}
+            for specind, m in value.spectral_parameters.items():
+                if m.shape[-1]!=1: 
+                    m = mask_map(m,mask)*value.spectral_parameters[specind].unit
+                specinds[specind] = m
+            
+            amp = hp.ud_grade(value.amp, nside) if udgrade else value.amp
+            amp = mask_map(amp, mask)
+            if pol:
+                amp_pol = np.mean(np.sqrt(amp[1]**2+amp[2]**2))
+
+            amp = np.mean(amp[0])
+            seds[key][0,i,:] = amp*value.get_freq_scaling(nu*u.GHz,**specinds)[0]
+            seds[key][1,i,:] = amp_pol*value.get_freq_scaling(nu*u.GHz,**specinds)[1]
+    return seds
+
+def rspectrum(nu, r, sig, scaling=1.0):
+    """
+    Calculates the CMB amplituded given a value of r and requested modes
+    """
+    import camb
+    import healpy as hp
+    #Set up a new set of parameters for CAMB
+    pars = camb.CAMBparams()
+    #This function sets up CosmoMC-like settings, with one massive neutrino and helium set using BBN consistency
+    pars.set_cosmology(H0=67.5, ombh2=0.022, omch2=0.122, mnu=0.06, omk=0, tau=0.06)
+    pars.InitPower.set_params(As=2e-9, ns=0.965, r=r)
+    lmax=6000
+    pars.set_for_lmax(lmax,  lens_potential_accuracy=0)
+    pars.WantTensors = True
+    results = camb.get_results(pars)
+    powers = results.get_cmb_power_spectra(params=pars, lmax=lmax, CMB_unit='muK', raw_cl=True,)
+
+
+    l = np.arange(2,lmax+1)
+
+    if sig == "TT":
+        cl = powers['unlensed_scalar']
+        signal = 0
+    elif sig == "EE":
+        cl = powers['unlensed_scalar']
+        signal = 1
+    elif sig == "BB":
+        cl = powers['tensor']
+        signal = 2
+
+    bl = hp.gauss_beam(40/(180/np.pi*60), lmax,pol=True)
+    A = np.sqrt(sum( 4*np.pi * cl[2:,signal]*bl[2:,signal]**2/(2*l+1) ))
+    return cmb(nu, A*scaling)
