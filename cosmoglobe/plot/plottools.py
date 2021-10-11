@@ -550,7 +550,7 @@ def get_data(input, sig, comp, freq, fwhm, nside=None, sample=-1):
     else:
         data = input
 
-    if isinstance(data, Model):
+    if isinstance(data, SkyModel):
         """
         Get data from model object with frequency scaling
         """
