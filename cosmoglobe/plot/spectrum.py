@@ -124,8 +124,13 @@ def spec(model,
             foregrounds[comp]["spectrum"] = sed
         if pol and comp=="ame":
             foregrounds[comp]["spectrum"][1] = ame_polfrac*foregrounds[comp]["spectrum"][0]
-
     
+        if comp.startswith("co") and include_co: # get closest thing to ref freq
+            foregrounds[comp]["params"][2], line_idx = find_nearest(nu, foregrounds[comp]["params"][2])
+            foregrounds[comp]["spectrum"] = np.zeros((2,len(sky_fractions),N))
+            foregrounds[comp]["spectrum"][sig][0][line_idx] = foregrounds[comp]["params"][0]
+            foregrounds[comp]["spectrum"][sig][1][line_idx] = foregrounds[comp]["params"][1]
+
         if foregrounds[comp]["sum"] and foregrounds[comp]["spectrum"] is not None:
             if i==0:
                 foregrounds["sumfg"]["spectrum"] = foregrounds[comp]["spectrum"].copy()
@@ -139,11 +144,6 @@ def spec(model,
             foregrounds[comp]["spectrum"][sig][0] = foregrounds[comp]["spectrum"][sig][0]*(1-np.exp(-(abs(foregrounds[comp]["spectrum"][sig][0]/thresh)**alpha)))
             foregrounds[comp]["spectrum"][sig][1] = foregrounds[comp]["spectrum"][sig][1]/(1-np.exp(-(abs(foregrounds[comp]["spectrum"][sig][1]/thresh)**alpha)))
 
-        if comp.startswith("co") and include_co: # get closest thing to ref freq
-            foregrounds[comp]["params"][2], line_idx = find_nearest(nu, foregrounds[comp]["params"][2])
-            foregrounds[comp]["spectrum"] = np.zeros((2,len(sky_fractions),N))
-            foregrounds[comp]["spectrum"][sig][0][line_idx] = foregrounds[comp]["params"][0]
-            foregrounds[comp]["spectrum"][sig][1][line_idx] = foregrounds[comp]["params"][1]
     # ---- Plotting foregrounds and labels ----
     j=0
     for comp, params in foregrounds.items(): # Plot all fgs except sumf
