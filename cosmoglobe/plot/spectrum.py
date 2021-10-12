@@ -39,7 +39,6 @@ def spec(model, pol=False, nside=64, sky_fractions=(25,85), darkmode=False,):
     black = 'k'
     #plt.rcParams.update(plt.rcParamsDefault)
 
-    pol = True
     long = True
     ame_polfrac = 0.1
     pol = 1 if pol else 0
