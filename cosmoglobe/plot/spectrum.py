@@ -25,7 +25,8 @@ def spec(model,
         wmap = True,
         planck = True,
         dirbe = True,
-        include_co=True):
+        include_co=True,
+        add_error = True):
     # TODO, they need to be smoothed to common res!
     set_style(darkmode, font="dejavusans")
     params={
@@ -63,7 +64,7 @@ def spec(model,
     #plt.rcParams.update(plt.rcParamsDefault)
 
     long = True
-    pol = 1 if pol else 0
+    sig = 1 if pol else 0
     xmin, xmax = (0.25, 4000) if long else (9, 1500)
     ymin, ymax = (0.05, 7e2) if not pol else (1.001e-3, 2e2)
     ymin2, ymax2 = (ymax+100, 1e7)
@@ -107,12 +108,12 @@ def spec(model,
     # Spectrum parameters
     N=1000
     nu  = np.logspace(np.log10(0.1),np.log10(5000),N)
-    seds = seds_from_model(nu, model, pol=True, sky_fractions=sky_fractions)
+    seds = seds_from_model(nu, model, pol=pol, sky_fractions=sky_fractions)
 
     foregrounds=get_foregrounds(pol,long)
     # Looping over foregrounds and calculating spectra
     i = 0
-    add_error = True
+    
     for comp in foregrounds.keys():
         if comp in seds.keys():
             foregrounds[comp]["spectrum"] = seds[comp]
@@ -131,70 +132,70 @@ def spec(model,
             else:
                 foregrounds["sumfg"]["spectrum"] += foregrounds[comp]["spectrum"]
             i+=1
-        """
+
         if add_error and not comp.startswith("co"):
             thresh=0.1                    
             alpha=0.5
-            foregrounds[comp]["spectrum"][pol][0] = foregrounds[comp]["spectrum"][pol][0]*(1-np.exp(-(abs(foregrounds[comp]["spectrum"][pol][0]/thresh)**alpha)))
-            foregrounds[comp]["spectrum"][pol][1] = foregrounds[comp]["spectrum"][pol][1]/(1-np.exp(-(abs(foregrounds[comp]["spectrum"][pol][1]/thresh)**alpha)))
-        """
+            foregrounds[comp]["spectrum"][sig][0] = foregrounds[comp]["spectrum"][sig][0]*(1-np.exp(-(abs(foregrounds[comp]["spectrum"][sig][0]/thresh)**alpha)))
+            foregrounds[comp]["spectrum"][sig][1] = foregrounds[comp]["spectrum"][sig][1]/(1-np.exp(-(abs(foregrounds[comp]["spectrum"][sig][1]/thresh)**alpha)))
+
         if comp.startswith("co") and include_co: # get closest thing to ref freq
             foregrounds[comp]["params"][2], line_idx = find_nearest(nu, foregrounds[comp]["params"][2])
             foregrounds[comp]["spectrum"] = np.zeros((2,len(sky_fractions),N))
-            foregrounds[comp]["spectrum"][pol][0][line_idx] = foregrounds[comp]["params"][0]
-            foregrounds[comp]["spectrum"][pol][1][line_idx] = foregrounds[comp]["params"][1]
+            foregrounds[comp]["spectrum"][sig][0][line_idx] = foregrounds[comp]["params"][0]
+            foregrounds[comp]["spectrum"][sig][1][line_idx] = foregrounds[comp]["params"][1]
     # ---- Plotting foregrounds and labels ----
     j=0
     for comp, params in foregrounds.items(): # Plot all fgs except sumf
         if params["spectrum"] is None and not comp.startswith("co"): continue
         if params["gradient"]:
             k = 1
-            gradient_fill_between(ax, nu, params["spectrum"][pol][1]*1e-2, params["spectrum"][pol][1], color=params["color"])
+            gradient_fill_between(ax, nu, params["spectrum"][sig][1]*1e-2, params["spectrum"][sig][1], color=params["color"])
         else:
             if comp == "sumfg":
-                ax.loglog(nu,params["spectrum"][pol][1], linestyle=params["linestyle"], linewidth=2, color=params["color"])
+                ax.loglog(nu,params["spectrum"][sig][1], linestyle=params["linestyle"], linewidth=2, color=params["color"])
                 if long:
-                    ax2.loglog(nu,params["spectrum"][pol][1], linestyle=params["linestyle"], linewidth=2, color=params["color"])
+                    ax2.loglog(nu,params["spectrum"][sig][1], linestyle=params["linestyle"], linewidth=2, color=params["color"])
                 k = 1
                 try:
-                    ax.loglog(nu,params["spectrum"][pol][0], linestyle=params["linestyle"], linewidth=2, color=params["color"])
+                    ax.loglog(nu,params["spectrum"][sig][0], linestyle=params["linestyle"], linewidth=2, color=params["color"])
                     if long:
-                        ax2.loglog(nu,params["spectrum"][pol][0], linestyle=params["linestyle"], linewidth=2, color=params["color"])
+                        ax2.loglog(nu,params["spectrum"][sig][0], linestyle=params["linestyle"], linewidth=2, color=params["color"])
                     k=1
                 except:
                     pass
             elif comp.startswith("co"):
                 if include_co:
-                    ax.loglog([params["params"][2], params["params"][2]],[max(params["spectrum"][pol][0]), max(params["spectrum"][pol][1])], linestyle=params["linestyle"], linewidth=4, color=params["color"],zorder=1000)
+                    ax.loglog([params["params"][2], params["params"][2]],[max(params["spectrum"][sig][0]), max(params["spectrum"][sig][1])], linestyle=params["linestyle"], linewidth=4, color=params["color"],zorder=1000)
                     k=1
                 else:
                     continue
             else:
                 if comp == "cmb":
-                    ax.loglog(nu,params["spectrum"][pol][0], linestyle=params["linestyle"], linewidth=4, color=params["color"])
+                    ax.loglog(nu,params["spectrum"][sig][0], linestyle=params["linestyle"], linewidth=4, color=params["color"])
                     if long:
-                        ax2.loglog(nu,params["spectrum"][pol][0], linestyle=params["linestyle"], linewidth=4, color=params["color"])
+                        ax2.loglog(nu,params["spectrum"][sig][0], linestyle=params["linestyle"], linewidth=4, color=params["color"])
                     k = 0
                 else:
-                    ax.fill_between(nu,params["spectrum"][pol][1],params["spectrum"][pol][0], color=params["color"],alpha=0.8)
+                    ax.fill_between(nu,params["spectrum"][sig][1],params["spectrum"][sig][0], color=params["color"],alpha=0.8)
                     if long:
-                        ax2.fill_between(nu,params["spectrum"][pol][1],params["spectrum"][pol][0], color=params["color"], alpha=0.8)
+                        ax2.fill_between(nu,params["spectrum"][sig][1],params["spectrum"][sig][0], color=params["color"], alpha=0.8)
                     k = 1
 
         if comp == "dust":
             _, fsky_idx = find_nearest(nu, 900)
-            ax.annotate(r"$f_{sky}=$"+"{:d}%".format(int(sky_fractions[1])), xy=(nu[fsky_idx], params["spectrum"][pol][1][fsky_idx]), ha="center", va="bottom", fontsize=fgtext, color=grey, xytext=(0,5), textcoords="offset pixels",path_effects=[path_effects.withSimplePatchShadow(alpha=0.8,offset=(0.5, -0.5)),])
-            ax.annotate(r"$f_{sky}=$"+"{:d}%".format(int(sky_fractions[0])), xy=(nu[fsky_idx], params["spectrum"][pol][0][fsky_idx]), ha="center", va="top", fontsize=fgtext, color=grey, xytext=(0,-15), textcoords="offset pixels",path_effects=[path_effects.withSimplePatchShadow(alpha=0.8,offset=(0.5, -0.5)),])
+            ax.annotate(r"$f_{sky}=$"+"{:d}%".format(int(sky_fractions[1])), xy=(nu[fsky_idx], params["spectrum"][sig][1][fsky_idx]), ha="center", va="bottom", fontsize=fgtext, color=grey, xytext=(0,5), textcoords="offset pixels",path_effects=[path_effects.withSimplePatchShadow(alpha=0.8,offset=(0.5, -0.5)),])
+            ax.annotate(r"$f_{sky}=$"+"{:d}%".format(int(sky_fractions[0])), xy=(nu[fsky_idx], params["spectrum"][sig][0][fsky_idx]), ha="center", va="top", fontsize=fgtext, color=grey, xytext=(0,-15), textcoords="offset pixels",path_effects=[path_effects.withSimplePatchShadow(alpha=0.8,offset=(0.5, -0.5)),])
        
         if comp.startswith("co") and include_co:
-            ax.text(foregrounds[comp]["params"][2], np.max(params["spectrum"][pol][k])*0.5, params["label"], color=params["color"], alpha=0.7, ha='right',va='center',rotation=90,fontsize=fgtext, path_effects=[path_effects.withSimplePatchShadow(alpha=0.8, offset=(1, -1))], zorder=1000)
+            ax.text(foregrounds[comp]["params"][2], np.max(params["spectrum"][sig][k])*0.5, params["label"], color=params["color"], alpha=0.7, ha='right',va='center',rotation=90,fontsize=fgtext, path_effects=[path_effects.withSimplePatchShadow(alpha=0.8, offset=(1, -1))], zorder=1000)
         else:
             x0, idx1 = find_nearest(nu, params["position"])
             idx2 = idx1+2
             x1 = nu[idx2] 
             # idx2 = find_nearest(nu, params["position"]**1.05)
-            y0 = params["spectrum"][pol][k][idx1]
-            y1 = params["spectrum"][pol][k][idx2]
+            y0 = params["spectrum"][sig][k][idx1]
+            y1 = params["spectrum"][sig][k][idx2]
             datascaling  = np.log(xmin/xmax)/np.log(ymin/ymax)
             rotator = (datascaling/aspect_ratio)
             alpha = np.arctan(np.log(y1/y0)/np.log(x1/x0)*rotator)

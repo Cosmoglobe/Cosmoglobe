@@ -794,7 +794,7 @@ def mask_map(m, mask):
 
 def create_70GHz_mask(sky_frac, nside=256, pol=False):
     """
-    Creates a mask from the 70GHz BP7 frequency map at nside=256 for a 
+    Creates a mask from a 70GHz frequency map at nside=256 for a 
     threshold corresponding to a given sky fraction (in %). The 70GGz
     map is chosen due to it containing a large portion of all low-frequency
     sky components.
@@ -809,9 +809,11 @@ def create_70GHz_mask(sky_frac, nside=256, pol=False):
     """
     # Read amplitude map to use for thresholding
     field=(1,2) if pol else 0    
-    template = hp.read_map(Path(data_dir.__path__[0]) / 'BP7_70GHz_nocmb_n0256.fits', dtype=np.float64, field=field)
-    if pol: template = np.sqrt(template[0]**2+template[1]**2)
+    template = hp.read_map(Path(data_dir.__path__[0]) / 'mask_template_n256.fits', dtype=np.float64, field=field)
+    if pol: 
+        template = np.sqrt(template[0]**2+template[1]**2)
     template = hp.ma(template)
+
     if nside!=256:
         template = hp.ud_grade(template, nside)
 
@@ -846,7 +848,7 @@ def create_70GHz_mask(sky_frac, nside=256, pol=False):
     return mask
 
 
-def seds_from_model(nu, model, nside=None, pol=True, sky_fractions=(25,85)):
+def seds_from_model(nu, model, nside=None, pol=False, sky_fractions=(25,85)):
     ignore_comps=["radio"]
     comps = model.components
     if nside is None or nside==model.nside:
@@ -858,7 +860,7 @@ def seds_from_model(nu, model, nside=None, pol=True, sky_fractions=(25,85)):
     masks = np.zeros((len(sky_fractions), hp.nside2npix(nside)))
 
     for i, sky_frac in enumerate(sky_fractions):
-        masks[i] = create_70GHz_mask(sky_frac, nside)
+        masks[i] = create_70GHz_mask(sky_frac, nside, pol=pol)
 
     # SED dictionary with T and P, skyfractions and the value per nu
     seds = {comp: np.zeros((2, len(sky_fractions), len(nu))) for comp in model.components}
@@ -875,13 +877,13 @@ def seds_from_model(nu, model, nside=None, pol=True, sky_fractions=(25,85)):
             amp = hp.ud_grade(value.amp, nside) if udgrade else value.amp
             amp[0,amp[0]<0.0]=0.0 #abs(amp)
             amp = mask_map(amp, mask)
-            #hp.mollview(amp[0],title=key,norm="hist")
-            #plt.show()
+
             amp_pol=0
             if pol:
                 if amp.shape[0]>1:
-                    amp_pol = np.mean(np.sqrt(amp[1]**2+amp[2]**2))
-            amp = np.mean(amp[0])
+                    amp_pol = rms_amp(np.sqrt(amp[1]**2+amp[2]**2))
+            amp = rms_amp(amp[0])
+
             freq_scaling=value.get_freq_scaling(nu*u.GHz,**specinds)
             k = 1 if freq_scaling.shape[0]>1 else 0
 
@@ -892,3 +894,8 @@ def seds_from_model(nu, model, nside=None, pol=True, sky_fractions=(25,85)):
             seds[key][1,i,:] = amp_pol*freq_scaling[k]
 
     return seds
+
+def rms_amp(m):
+    n = len(m)-np.sum(m.mask)
+    m -= np.mean(m)
+    return np.sqrt(np.sum(m**2)/n)
