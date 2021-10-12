@@ -1,6 +1,8 @@
 # This file contains useful functions used across different plotting scripts.
 from re import A, T
 import warnings
+
+from numpy.core.numeric import NaN
 from .. import data as data_dir
 from cosmoglobe.sky.model import SkyModel
 from cosmoglobe.h5.model import model_from_chain
@@ -42,15 +44,16 @@ STOKES = [
 ]
 
 
-def set_style(darkmode=False):
+def set_style(darkmode=False, font="stix"):
     """
     This function sets the color parameter and text style
     """
-    plt.rc(
-        "font",
-        family="serif",
-    )
-    plt.rcParams["mathtext.fontset"] = "stix"
+    if font=="serif":
+        plt.rc(
+            "font",
+            family="serif",
+        )
+        plt.rcParams["mathtext.fontset"] = "stix"
     plt.rc(
         "text.latex",
         preamble=r"\usepackage{sfmath}",
@@ -163,7 +166,7 @@ def fmt(x, pos):
     """
     Format color bar labels
     """
-    if abs(x) > 1e4 or (abs(x) <= 1e-3 and abs(x) > 0):
+    if abs(x) >= 1e4 or (abs(x) <= 1e-3 and abs(x) > 0):
         a, b = f"{x:.2e}".split("e")
         b = int(b)
         if float(a) == 1.00:
@@ -291,7 +294,7 @@ def gradient_fill(x, y, fill_color=None, ax=None, alpha=1.0, invert=False, **kwa
     return line, im
 
 
-def gradient_fill_between(ax, x, y1, y2, color="#ffa15a", alpha=0.5):
+def gradient_fill_between(ax, x, y1, y2, color="#ffa15a", alpha=0.8):
     N = 100
     y = np.zeros((N, len(y1)))
     for i in range(len(y1)):
@@ -774,3 +777,118 @@ def get_params(**params):
     params["ticklabels"] = format_list(params["ticks"])
 
     return params
+
+def mask_map(m, mask):
+    """
+    Apply a mask to a map
+    """
+    
+    m = hp.ma(m)
+    m.mask = mask
+    #Alternative
+        
+    #mask = mask*np.NaN
+    #m *= mask
+    return m
+
+
+def create_70GHz_mask(sky_frac, nside=256, pol=False):
+    """
+    Creates a mask from the 70GHz BP7 frequency map at nside=256 for a 
+    threshold corresponding to a given sky fraction (in %). The 70GGz
+    map is chosen due to it containing a large portion of all low-frequency
+    sky components.
+    Parameters
+    ----------
+    sky_frac : float
+        Sky fraction in percentage.
+    Returns
+    -------
+    mask : numpy.ndarray
+        Mask covering the sky for a given sky fraction.
+    """
+    # Read amplitude map to use for thresholding
+    field=(1,2) if pol else 0    
+    template = hp.read_map(Path(data_dir.__path__[0]) / 'BP7_70GHz_nocmb_n0256.fits', dtype=np.float64, field=field)
+    if pol: template = np.sqrt(template[0]**2+template[1]**2)
+    template = hp.ma(template)
+    if nside!=256:
+        template = hp.ud_grade(template, nside)
+
+
+    # Masking based on sky fraction is not trivial. Here we manually compute
+    # the sky fraction by masking all pixels with amplitudes larger than a 
+    # given percentage of the maximum map amplitude. The pixels masks then 
+    # correspond to a sky fraction. We tabulate the amplitude percentage and
+    # sky fraction for a range, and interpolate from this table.
+    amp_percentages = np.flip(np.arange(1,101))
+    fracs = []
+    mask = np.zeros(len(template), dtype=np.bool)
+
+    for i in range(len(amp_percentages)):
+        mask = np.zeros(len(template), dtype=np.bool)
+        masked_template = np.abs(hp.ma(template))
+        mask[np.where(np.log(masked_template) > 
+            (amp_percentages[i]/100)*np.nanmax(np.log(masked_template)))] = 1
+        masked_template.mask = mask
+
+        frac = ((len(masked_template)-masked_template.count())
+                /len(masked_template))*100
+        fracs.append(frac)
+
+    amp_percentage = np.interp(100-sky_frac, fracs, amp_percentages)
+
+    mask = np.zeros(len(template), dtype=np.bool)
+    masked_template = np.abs(hp.ma(template))
+    mask[np.where(np.log(masked_template) > 
+        (amp_percentage/100)*np.nanmax(np.log(masked_template)))] = 1
+
+    return mask
+
+
+def seds_from_model(nu, model, nside=None, pol=True, sky_fractions=(25,85)):
+    ignore_comps=["radio"]
+    comps = model.components
+    if nside is None or nside==model.nside:
+        nside = model.nside
+        udgrade=False
+    else:
+        udgrade=True
+
+    masks = np.zeros((len(sky_fractions), hp.nside2npix(nside)))
+
+    for i, sky_frac in enumerate(sky_fractions):
+        masks[i] = create_70GHz_mask(sky_frac, nside)
+
+    # SED dictionary with T and P, skyfractions and the value per nu
+    seds = {comp: np.zeros((2, len(sky_fractions), len(nu))) for comp in model.components}
+    for key, value in comps.items():
+        if key in ignore_comps: continue
+
+        for i, mask in enumerate(masks):
+            specinds = {}
+            for specind, m in value.spectral_parameters.items():
+                if m.shape[-1]!=1: 
+                    m = np.mean(mask_map(m,mask), axis=1).reshape(-1,1)*value.spectral_parameters[specind].unit
+                specinds[specind] = m
+
+            amp = hp.ud_grade(value.amp, nside) if udgrade else value.amp
+            amp[0,amp[0]<0.0]=0.0 #abs(amp)
+            amp = mask_map(amp, mask)
+            #hp.mollview(amp[0],title=key,norm="hist")
+            #plt.show()
+            amp_pol=0
+            if pol:
+                if amp.shape[0]>1:
+                    amp_pol = np.mean(np.sqrt(amp[1]**2+amp[2]**2))
+            amp = np.mean(amp[0])
+            freq_scaling=value.get_freq_scaling(nu*u.GHz,**specinds)
+            k = 1 if freq_scaling.shape[0]>1 else 0
+
+            if key == "cmb": 
+                amp_pol=0.67
+                amp=45
+            seds[key][0,i,:] = amp*freq_scaling[0]
+            seds[key][1,i,:] = amp_pol*freq_scaling[k]
+
+    return seds
