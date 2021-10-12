@@ -138,7 +138,7 @@ def spec(model,
                 foregrounds["sumfg"]["spectrum"] += foregrounds[comp]["spectrum"]
             i+=1
 
-        if add_error and not comp.startswith("co"):
+        if add_error and not comp.startswith("co") and not comp.startswith("bb"):
             thresh=0.1                    
             alpha=0.5
             foregrounds[comp]["spectrum"][sig][0] = foregrounds[comp]["spectrum"][sig][0]*(1-np.exp(-(abs(foregrounds[comp]["spectrum"][sig][0]/thresh)**alpha)))
