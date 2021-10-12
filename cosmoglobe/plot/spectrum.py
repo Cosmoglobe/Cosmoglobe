@@ -15,6 +15,7 @@ def spec(model,
         pol=False, 
         nside=64, 
         sky_fractions=(25,85), 
+        xlim=(0.25, 4000),
         darkmode=False, 
         ame_polfrac=0.02,
         haslam = True,
@@ -25,6 +26,7 @@ def spec(model,
         wmap = True,
         planck = True,
         dirbe = True,
+        litebird = False,
         include_co=True,
         add_error = True):
     # TODO, they need to be smoothed to common res!
@@ -65,7 +67,8 @@ def spec(model,
 
     long = True
     sig = 1 if pol else 0
-    xmin, xmax = (0.25, 4000) if long else (9, 1500)
+    xmin, xmax = xlim
+    #xmin, xmax = (0.25, 4000) if long else (9, 1500)
     ymin, ymax = (0.05, 7e2) if not pol else (1.001e-3, 2e2)
     ymin2, ymax2 = (ymax+100, 1e7)
     # textsize
@@ -240,6 +243,21 @@ def spec(model,
                              "Q":       {"pol": True, "show": wmap, "position": [39.,  ymin*yscaletextup], "range": [38,45], "color": teal,}, 
                              "V":       {"pol": True, "show": wmap, "position": [58.,  ymin*yscaletextup], "range": [54,68], "color": teal,}, 
                              "W":       {"pol": True, "show": wmap, "position": [90.,  ymin*yscaletextup], "range": [84,106], "color": teal,}}, 
+                 "LiteBIRD":  {"40":          {"pol": True, "show": litebird, "position": [40,  ymax2*yscaletext], "range": [34,46],"color": red,}, 
+                            "50":          {"pol": True, "show": litebird, "position": [50,  ymax2*yscaletext], "range": [43,57]    ,"color": red,},
+                            "60":          {"pol": True, "show": litebird, "position": [60,  ymax2*yscaletext], "range": [53,67]    ,"color": red,},
+                            "68":          {"pol": True, "show": litebird, "position": [68,  ymax2*yscaletext], "range": [60,76]   ,"color": red,},
+                            "78":          {"pol": True, "show": litebird, "position": [78, ymax2*yscaletext], "range": [69,87]  ,"color": red,},
+                            "89":          {"pol": True, "show": litebird, "position": [89, ymax2*yscaletext], "range": [79,99]  ,"color": red,},
+                            "100":         {"pol": True, "show": litebird, "position": [100, ymax2*yscaletext], "range": [89,111]  ,"color": red,},
+                            "119":         {"pol": True, "show": litebird, "position": [119, ymax2*yscaletext], "range": [101,137]  ,"color": red,},
+                            "140":         {"pol": True, "show": litebird, "position": [140, ymax2*yscaletext], "range": [119,161] ,"color": red,},
+                            "166":         {"pol": True, "show": litebird, "position": [166, ymax2*yscaletext], "range": [141,191] ,"color": red,},
+                            "195":         {"pol": True, "show": litebird, "position": [195, ymax2*yscaletext], "range": [165,225] ,"color": red,},
+                            "235":         {"pol": True, "show": litebird, "position": [235, ymax2*yscaletext], "range": [200,270] ,"color": red,},
+                            "280":         {"pol": True, "show": litebird, "position": [280, ymax2*yscaletext], "range": [238,322] ,"color": red,},
+                            "337":         {"pol": True, "show": litebird, "position": [337, ymax2*yscaletext], "range": [287,387] ,"color": red,},
+                            "402\nLiteBIRD":         {"pol": True, "show": litebird, "position": [402, ymax2*yscaletext], "range": [356,458] ,"color": red,}}, 
     }
     # Set databands from dictonary
     for experiment, bands in databands.items():
