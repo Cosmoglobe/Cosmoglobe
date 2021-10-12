@@ -9,8 +9,24 @@ import matplotlib.pyplot as plt
 
 from .plottools import *
 
+#TODO: CO is currently hardcoded
 
-def spec(model, pol=False, nside=64, sky_fractions=(25,85), darkmode=False,):
+def spec(model, 
+        pol=False, 
+        nside=64, 
+        sky_fractions=(25,85), 
+        darkmode=False, 
+        ame_polfrac=0.02,
+        haslam = True,
+        chipass = True,
+        spass = True,
+        cbass = True,
+        quijote = False,
+        wmap = True,
+        planck = True,
+        dirbe = True,
+        include_co=True,
+        add_error = True):
     # TODO, they need to be smoothed to common res!
     set_style(darkmode, font="dejavusans")
     params={
@@ -33,15 +49,22 @@ def spec(model, pol=False, nside=64, sky_fractions=(25,85), darkmode=False,):
         'xtick.minor.width'   : 1.5,
         'axes.linewidth'      : 1.5,}
     rcParams.update(params)
-    colors=['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A', '#19D3F3', '#FF6692', '#B6E880', '#FF97FF', '#FECB52']
-    rcParams['axes.prop_cycle'] = cycler(color=colors)
-    blue, red, green, purple, orange, teal, lightred, lightgreen, pink, yellow = ("C0","C1","C2","C3","C4","C5","C6","C7","C8","C9",)
     black = 'k'
+    if darkmode:
+        brokecol="white"
+        grey="#C0C0C0"
+    else:
+        brokecol=black
+        grey="grey"
+
+    colors=['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A', '#19D3F3', '#FF6692', '#B6E880', '#FF97FF', '#FECB52', grey,]
+    rcParams['axes.prop_cycle'] = cycler(color=colors)
+    blue, red, green, purple, orange, teal, lightred, lightgreen, pink, yellow, grey = ("C0","C1","C2","C3","C4","C5","C6","C7","C8","C9","C10")
+ 
     #plt.rcParams.update(plt.rcParamsDefault)
 
     long = True
-    ame_polfrac = 0.1
-    pol = 1 if pol else 0
+    sig = 1 if pol else 0
     xmin, xmax = (0.25, 4000) if long else (9, 1500)
     ymin, ymax = (0.05, 7e2) if not pol else (1.001e-3, 2e2)
     ymin2, ymax2 = (ymax+100, 1e7)
@@ -64,7 +87,8 @@ def spec(model, pol=False, nside=64, sky_fractions=(25,85), darkmode=False,):
 
         # ---- Adding broken axis lines ----
         d = .005  # how big to make the diagonal lines in axes coordinates
-        kwargs = dict(transform=ax2.transAxes, color=black, clip_on=False)
+
+        kwargs = dict(transform=ax2.transAxes, color=brokecol, clip_on=False)
         ax2.plot((-d, +d), (-d*ratio, + d*ratio), **kwargs)        # top-left diagonal
         ax2.plot((1 - d, 1 + d), (-d*ratio, +d*ratio), **kwargs)  # top-right diagonal
         kwargs.update(transform=ax.transAxes)  # switch to the bottom axes
@@ -84,12 +108,12 @@ def spec(model, pol=False, nside=64, sky_fractions=(25,85), darkmode=False,):
     # Spectrum parameters
     N=1000
     nu  = np.logspace(np.log10(0.1),np.log10(5000),N)
-    seds = seds_from_model(nu, model, pol=True, sky_fractions=sky_fractions)
+    seds = seds_from_model(nu, model, pol=pol, sky_fractions=sky_fractions)
 
     foregrounds=get_foregrounds(pol,long)
     # Looping over foregrounds and calculating spectra
     i = 0
-    add_error = True
+    
     for comp in foregrounds.keys():
         if comp in seds.keys():
             foregrounds[comp]["spectrum"] = seds[comp]
@@ -101,19 +125,7 @@ def spec(model, pol=False, nside=64, sky_fractions=(25,85), darkmode=False,):
         if pol and comp=="ame":
             foregrounds[comp]["spectrum"][1] = ame_polfrac*foregrounds[comp]["spectrum"][0]
 
-        # TODO Fix errorextension
-        """
-        if add_error and not comp.startswith("CO"):
-            thresh=0.1                    
-            alpha=0.5
-            foregrounds[comp]["spectrum"][0] = foregrounds[comp]["spectrum"][0]*(1-np.exp(-(abs(foregrounds[comp]["spectrum"][0]/thresh)**alpha)))
-            foregrounds[comp]["spectrum"][1] = foregrounds[comp]["spectrum"][1]/(1-np.exp(-(abs(foregrounds[comp]["spectrum"][1]/thresh)**alpha)))
-        """
-
-        if comp.startswith("co"): # get closest thing to ref freq
-            foregrounds[comp]["params"][-2], _ = find_nearest(nu, foregrounds[comp]["params"][-2])
-
-
+    
         if foregrounds[comp]["sum"] and foregrounds[comp]["spectrum"] is not None:
             if i==0:
                 foregrounds["sumfg"]["spectrum"] = foregrounds[comp]["spectrum"].copy()
@@ -121,61 +133,69 @@ def spec(model, pol=False, nside=64, sky_fractions=(25,85), darkmode=False,):
                 foregrounds["sumfg"]["spectrum"] += foregrounds[comp]["spectrum"]
             i+=1
 
+        if add_error and not comp.startswith("co"):
+            thresh=0.1                    
+            alpha=0.5
+            foregrounds[comp]["spectrum"][sig][0] = foregrounds[comp]["spectrum"][sig][0]*(1-np.exp(-(abs(foregrounds[comp]["spectrum"][sig][0]/thresh)**alpha)))
+            foregrounds[comp]["spectrum"][sig][1] = foregrounds[comp]["spectrum"][sig][1]/(1-np.exp(-(abs(foregrounds[comp]["spectrum"][sig][1]/thresh)**alpha)))
+
+        if comp.startswith("co") and include_co: # get closest thing to ref freq
+            foregrounds[comp]["params"][2], line_idx = find_nearest(nu, foregrounds[comp]["params"][2])
+            foregrounds[comp]["spectrum"] = np.zeros((2,len(sky_fractions),N))
+            foregrounds[comp]["spectrum"][sig][0][line_idx] = foregrounds[comp]["params"][0]
+            foregrounds[comp]["spectrum"][sig][1][line_idx] = foregrounds[comp]["params"][1]
     # ---- Plotting foregrounds and labels ----
     j=0
     for comp, params in foregrounds.items(): # Plot all fgs except sumf
-        if params["spectrum"] is None: continue
+        if params["spectrum"] is None and not comp.startswith("co"): continue
         if params["gradient"]:
             k = 1
-            gradient_fill_between(ax, nu, params["spectrum"][pol][1]*1e-2, params["spectrum"][pol][1], color=params["color"])
+            gradient_fill_between(ax, nu, params["spectrum"][sig][1]*1e-2, params["spectrum"][sig][1], color=params["color"])
         else:
             if comp == "sumfg":
-                ax.loglog(nu,params["spectrum"][pol][1], linestyle=params["linestyle"], linewidth=2, color=params["color"])
+                ax.loglog(nu,params["spectrum"][sig][1], linestyle=params["linestyle"], linewidth=2, color=params["color"])
                 if long:
-                    ax2.loglog(nu,params["spectrum"][pol][1], linestyle=params["linestyle"], linewidth=2, color=params["color"])
+                    ax2.loglog(nu,params["spectrum"][sig][1], linestyle=params["linestyle"], linewidth=2, color=params["color"])
                 k = 1
                 try:
-                    ax.loglog(nu,params["spectrum"][pol][0], linestyle=params["linestyle"], linewidth=2, color=params["color"])
+                    ax.loglog(nu,params["spectrum"][sig][0], linestyle=params["linestyle"], linewidth=2, color=params["color"])
                     if long:
-                        ax2.loglog(nu,params["spectrum"][pol][0], linestyle=params["linestyle"], linewidth=2, color=params["color"])
+                        ax2.loglog(nu,params["spectrum"][sig][0], linestyle=params["linestyle"], linewidth=2, color=params["color"])
                     k=1
                 except:
                     pass
-
             elif comp.startswith("co"):
-                lfreq = nu[np.argmax(params["spectrum"][pol][0])]
-                if params["spectrum"][pol].shape[0] > 1:
-                    ax.loglog([lfreq,lfreq],[max(params["spectrum"][pol][0]), max(params["spectrum"][pol][1])], linestyle=params["linestyle"], linewidth=4, color=params["color"],zorder=1000)
+                if include_co:
+                    ax.loglog([params["params"][2], params["params"][2]],[max(params["spectrum"][sig][0]), max(params["spectrum"][sig][1])], linestyle=params["linestyle"], linewidth=4, color=params["color"],zorder=1000)
                     k=1
                 else:
-                    k=0
-                    ax.bar(lfreq, params["spectrum"][pol][0], color=black,)
+                    continue
             else:
                 if comp == "cmb":
-                    ax.loglog(nu,params["spectrum"][pol][0], linestyle=params["linestyle"], linewidth=4, color=params["color"])
+                    ax.loglog(nu,params["spectrum"][sig][0], linestyle=params["linestyle"], linewidth=4, color=params["color"])
                     if long:
-                        ax2.loglog(nu,params["spectrum"][pol][0], linestyle=params["linestyle"], linewidth=4, color=params["color"])
+                        ax2.loglog(nu,params["spectrum"][sig][0], linestyle=params["linestyle"], linewidth=4, color=params["color"])
                     k = 0
                 else:
-                    ax.fill_between(nu,params["spectrum"][pol][1],params["spectrum"][pol][0], color=params["color"],alpha=0.8)
+                    ax.fill_between(nu,params["spectrum"][sig][1],params["spectrum"][sig][0], color=params["color"],alpha=0.8)
                     if long:
-                        ax2.fill_between(nu,params["spectrum"][pol][1],params["spectrum"][pol][0], color=params["color"], alpha=0.8)
+                        ax2.fill_between(nu,params["spectrum"][sig][1],params["spectrum"][sig][0], color=params["color"], alpha=0.8)
                     k = 1
 
         if comp == "dust":
             _, fsky_idx = find_nearest(nu, 900)
-            ax.annotate(r"$f_{sky}=$"+"{:d}%".format(int(sky_fractions[1])), xy=(nu[fsky_idx], params["spectrum"][pol][1][fsky_idx]), ha="center", va="bottom", fontsize=fgtext, color="grey", xytext=(0,5), textcoords="offset pixels",path_effects=[path_effects.withSimplePatchShadow(alpha=0.8,offset=(0.5, -0.5)),])
-            ax.annotate(r"$f_{sky}=$"+"{:d}%".format(int(sky_fractions[0])), xy=(nu[fsky_idx], params["spectrum"][pol][0][fsky_idx]), ha="center", va="top", fontsize=fgtext, color="grey", xytext=(0,-15), textcoords="offset pixels",path_effects=[path_effects.withSimplePatchShadow(alpha=0.8,offset=(0.5, -0.5)),])
+            ax.annotate(r"$f_{sky}=$"+"{:d}%".format(int(sky_fractions[1])), xy=(nu[fsky_idx], params["spectrum"][sig][1][fsky_idx]), ha="center", va="bottom", fontsize=fgtext, color=grey, xytext=(0,5), textcoords="offset pixels",path_effects=[path_effects.withSimplePatchShadow(alpha=0.8,offset=(0.5, -0.5)),])
+            ax.annotate(r"$f_{sky}=$"+"{:d}%".format(int(sky_fractions[0])), xy=(nu[fsky_idx], params["spectrum"][sig][0][fsky_idx]), ha="center", va="top", fontsize=fgtext, color=grey, xytext=(0,-15), textcoords="offset pixels",path_effects=[path_effects.withSimplePatchShadow(alpha=0.8,offset=(0.5, -0.5)),])
        
-        if comp.startswith("co"):
-            ax.text(lfreq, np.max(params["spectrum"][pol][k])*0.5, params["label"], color=params["color"], alpha=0.7, ha='right',va='center',rotation=90,fontsize=fgtext, path_effects=[path_effects.withSimplePatchShadow(alpha=0.8, offset=(1, -1))], zorder=1000)
+        if comp.startswith("co") and include_co:
+            ax.text(foregrounds[comp]["params"][2], np.max(params["spectrum"][sig][k])*0.5, params["label"], color=params["color"], alpha=0.7, ha='right',va='center',rotation=90,fontsize=fgtext, path_effects=[path_effects.withSimplePatchShadow(alpha=0.8, offset=(1, -1))], zorder=1000)
         else:
             x0, idx1 = find_nearest(nu, params["position"])
             idx2 = idx1+2
             x1 = nu[idx2] 
             # idx2 = find_nearest(nu, params["position"]**1.05)
-            y0 = params["spectrum"][pol][k][idx1]
-            y1 = params["spectrum"][pol][k][idx2]
+            y0 = params["spectrum"][sig][k][idx1]
+            y1 = params["spectrum"][sig][k][idx2]
             datascaling  = np.log(xmin/xmax)/np.log(ymin/ymax)
             rotator = (datascaling/aspect_ratio)
             alpha = np.arctan(np.log(y1/y0)/np.log(x1/x0)*rotator)
@@ -193,14 +213,6 @@ def spec(model, pol=False, nside=64, sky_fractions=(25,85), darkmode=False,):
         yscaletext = 0.90
 
     # TODO add these as args?
-    haslam = True
-    chipass = True
-    spass = True
-    cbass = True
-    quijote = True
-    wmap = True
-    planck = True
-    dirbe = True
     databands = {"Haslam":  {"0.408\nHaslam": {"pol": False, "show": haslam, "position": [.408, ymin*yscaletextup],  "range": [.406,.410], "color": purple,}},
                  "S-PASS":  {"2.303\nS-PASS":  {"pol": True, "show": spass,  "position": [2.35, ymax2*yscaletext],  "range": [2.1,2.4], "color": green,}},
                  "C-BASS":  {"5.0\nC-BASS":   {"pol": True, "show": cbass,  "position": [5., ymax2*yscaletext],    "range": [4.,6.], "color": blue,}},
@@ -317,7 +329,7 @@ def get_foregrounds(pol,long):
             "sumfg"      : {    "label"   : "Sum fg.",
                                 "params"  : [],
                                 "position": 70,
-                                "color"   : "grey",
+                                "color"   : "C10",
                                 "sum"     : False,
                                 "linestyle": "--",
                                 "gradient": False,
@@ -326,7 +338,7 @@ def get_foregrounds(pol,long):
             "bb-2"   :  {"label"   : r"BB $r=10^{-2}$", 
                                 "params"  : [0.01, "BB",],
                                 "position": p,
-                                "color"   : "grey",
+                                "color"   : "C10",
                                 "sum"     : False,
                                 "linestyle": "dotted",
                                 "gradient": True,
@@ -335,7 +347,7 @@ def get_foregrounds(pol,long):
             "bb-4"   :  {"label"   : r"BB $r=10^{-4}$", 
                                 "params"  : [1e-4, "BB",],
                                 "position": p,
-                                "color"   : "grey",
+                                "color"   : "C10",
                                 "sum"     : False,
                                 "linestyle": "dotted",
                                 "gradient": True,
@@ -402,8 +414,8 @@ def get_foregrounds(pol,long):
                                 "gradient": False,
                                 "spectrum": None,
                             },
-            r"co10": {"label"    : "CO$_{1\rightarrow 0}$", 
-                                        "params"  : [50, 115, 11.06],
+            "co10": {"label"    : r"CO$_{1\rightarrow 0}$", 
+                                        "params"  : [0.5, 8, 115, 11.06],
                                         "position": p,
                                         "color"   : "C9",
                                         "sum"     : True,
@@ -411,8 +423,8 @@ def get_foregrounds(pol,long):
                                         "gradient": False,
                                         "spectrum": None,
                             },
-            r"co21": {"label"    : "CO$_{2\rightarrow 1}$", 
-                                        "params"  : [25, 230., 14.01],
+            "co21": {"label"    : r"CO$_{2\rightarrow 1}$", 
+                                        "params"  : [0.3, 5, 230., 14.01],
                                         "position": p,
                                         "color"   : "C9",
                                         "sum"     : True,
@@ -420,8 +432,8 @@ def get_foregrounds(pol,long):
                                         "gradient": False,
                                         "spectrum": None,
                             },
-            r"co32":      {"label"     : "CO$_{3\rightarrow 2}$", 
-                                            "params"  : [10, 345., 12.24],
+            "co32":      {"label"     : r"CO$_{3\rightarrow 2}$", 
+                                            "params"  : [0.3, 1, 345., 12.24],
                                             "position": p,
                                             "color"   : "C9",
                                             "sum"     : True,
@@ -432,7 +444,7 @@ def get_foregrounds(pol,long):
             "sumfg"      : {"label"     : "Sum fg.", 
                                 "params"  : [],
                                 "position": 25,
-                                "color"   : "grey",
+                                "color"   : "C10",
                                 "sum"     : False,
                                 "linestyle": "--",
                                 "gradient": False,
