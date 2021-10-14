@@ -16,6 +16,7 @@ def spec(model,
         nside=64, 
         sky_fractions=(25,85), 
         xlim=(0.25, 4000),
+        long=True,
         darkmode=False, 
         ame_polfrac=0.02,
         haslam = True,
@@ -65,10 +66,11 @@ def spec(model,
  
     #plt.rcParams.update(plt.rcParamsDefault)
 
-    long = True
     sig = 1 if pol else 0
+    if xlim==(0.25, 4000):
+        if not long:
+            xlim=(9, 1500)
     xmin, xmax = xlim
-    #xmin, xmax = (0.25, 4000) if long else (9, 1500)
     ymin, ymax = (0.05, 7e2) if not pol else (1.001e-3, 2e2)
     ymin2, ymax2 = (ymax+100, 1e7)
     # textsize
@@ -118,21 +120,25 @@ def spec(model,
     i = 0
     
     for comp in foregrounds.keys():
-        if comp in seds.keys():
-            foregrounds[comp]["spectrum"] = seds[comp]
-        if comp.startswith("bb"):
-            a=0.67*1e-1 if comp.endswith("2") else 0.67*1e-2
-            sed = np.zeros((2,len(sky_fractions),N))
-            sed[1]=a*model.components["cmb"].get_freq_scaling(nu*u.GHz,)
-            foregrounds[comp]["spectrum"] = sed
-        if pol and comp=="ame":
-            foregrounds[comp]["spectrum"][1] = ame_polfrac*foregrounds[comp]["spectrum"][0]
-    
         if comp.startswith("co") and include_co: # get closest thing to ref freq
             foregrounds[comp]["params"][2], line_idx = find_nearest(nu, foregrounds[comp]["params"][2])
             foregrounds[comp]["spectrum"] = np.zeros((2,len(sky_fractions),N))
             foregrounds[comp]["spectrum"][sig][0][line_idx] = foregrounds[comp]["params"][0]
             foregrounds[comp]["spectrum"][sig][1][line_idx] = foregrounds[comp]["params"][1]
+
+        if comp.startswith("bb"):
+            a=0.67*1e-1 if comp.endswith("2") else 0.67*1e-2
+            sed = np.zeros((2,len(sky_fractions),N))
+            sed[1]=a*model.components["cmb"].get_freq_scaling(nu*u.GHz,)
+            foregrounds[comp]["spectrum"] = sed
+
+        if comp in seds.keys():
+            foregrounds[comp]["spectrum"] = seds[comp]
+        else:
+            continue
+
+        if pol and comp=="ame":
+            foregrounds[comp]["spectrum"][1] = ame_polfrac*foregrounds[comp]["spectrum"][0]
 
         if foregrounds[comp]["sum"] and foregrounds[comp]["spectrum"] is not None:
             if i==0:
