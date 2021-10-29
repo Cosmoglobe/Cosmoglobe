@@ -87,7 +87,7 @@ def str_to_astropy_unit(unit: str) -> u.Unit:
     return output_unit
 
 
-def to_unit(emission: u.Quantity, freqs: u.Quantity, unit: u.UnitBase) -> u.Quantity:
+def to_unit(emission: u.Quantity, freqs: u.Quantity, unit: u.Unit) -> u.Quantity:
     """Converts the unit of the emission.
 
     Parameters

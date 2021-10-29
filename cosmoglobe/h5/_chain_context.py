@@ -41,13 +41,15 @@ class RadioContext:
     In the chain, the amp of radio is stored in units of 'mJy'. Here we
     manually set convert it to 'uK' through astropy.
 
+    We also subtract 2 from the alpha index to convert it to KRJ units.
+
     NOTE: we pretend that amp has units of 'mJy/sr' to be able convert
     the units properly. This is fine since we always end dividing by
     the beam_area when converting the amplitudes to HEALPIX maps.
     """
 
     def __call__(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        args["alpha"] = args["alpha"][0]
+        args["alpha"] = args["alpha"][0] - 2
 
         return args
 

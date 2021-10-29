@@ -7,7 +7,7 @@ from scipy.interpolate import RectBivariateSpline
 import cosmoglobe.sky._constants as const
 
 if TYPE_CHECKING:
-    from cosmoglobe.sky.base_components import SkyComponent
+    from cosmoglobe.refactored_sky.protocols import SkyComponent
 
 
 def get_normalized_bandpass(
@@ -109,7 +109,7 @@ def get_bandpass_scaling(
         # Component does not have any spatially varying spectral parameters.
         # In this case we simply integrate the emission at each frequency
         # weighted by the bandpass.
-        freq_scaling = comp.get_freq_scaling(freqs, **comp.spectral_parameters)
+        freq_scaling = comp.SED.get_freq_scaling(freqs, comp.freq_ref, **comp.spectral_parameters)
         integral = np.trapz(freq_scaling * bandpass, freqs)
         if np.ndim(integral) > 0:
             return np.expand_dims(integral, axis=1)
@@ -210,7 +210,7 @@ def interp1d(
             for param, value in comp.spectral_parameters.items()
             if param != key
         }
-        freq_scaling = comp.get_freq_scaling(
+        freq_scaling = comp.SED.get_freq_scaling(
             freqs, **{key: grid_point}, **scalar_params
         )
         integrals[idx] = np.trapz(freq_scaling * bandpass, freqs)
@@ -269,7 +269,7 @@ def interp2d(
     for i in range(n):
         for j in range(n):
             grid_spectrals = {key: value[i, j] for key, value in mesh_grid.items()}
-            freq_scaling = comp.get_freq_scaling(freqs, **grid_spectrals)
+            freq_scaling = comp.SED.get_freq_scaling(freqs, **grid_spectrals)
             integrals[i, j] = np.trapz(freq_scaling * bandpass, freqs)
     integrals = np.transpose(integrals)
 
