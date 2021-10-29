@@ -9,7 +9,8 @@ from cosmoglobe.sky.base_components import (
     DiffuseComponent,
     LineComponent,
 )
-from cosmoglobe.sky.simulator import SkySimulator, simulator
+from cosmoglobe.sky.simulator import SkySimulator
+from cosmoglobe.sky.simulator import simulator as simulator_class
 from cosmoglobe.sky._constants import DEFAULT_OUTPUT_UNIT, NO_SMOOTHING
 from cosmoglobe.sky._exceptions import (
     NsideError,
@@ -64,7 +65,7 @@ class SkyModel:
       -4.71776995e+00  4.39850830e+00]] uK
     """
 
-    simulator: SkySimulator = simulator
+    simulator: SkySimulator = simulator_class
 
     def __init__(self, nside: int, components: List[SkyComponent]) -> None:
         """Initializes an instance of the Cosmoglobe Sky Model.
@@ -158,14 +159,14 @@ class SkyModel:
         if components is not None:
             if not all(component in self.components for component in components):
                 raise ValueError("all component must be present in the model")
-            components = [
+            components_classes = [
                 value for key, value in self.components.items() if key in components
             ]
         else:
-            components = list(self.components.values())
+            components_classes = list(self.components.values())
 
         emission = self.simulator(
-            self.nside, components, freqs, bandpass, fwhm, output_unit
+            self.nside, components_classes, freqs, bandpass, fwhm, output_unit
         )
 
         return emission
@@ -193,11 +194,11 @@ class SkyModel:
             component_repr = repr(component) + "\n"
             reprs.append(f"({label}): {component_repr}")
 
-        main_repr = f"SkyModel("
+        main_repr = "SkyModel("
         main_repr += f"\n  nside: {self._nside}"
         main_repr += "\n  components( "
         main_repr += "\n    " + "    ".join(reprs)
-        main_repr += f"  )"
-        main_repr += f"\n)"
+        main_repr += "  )"
+        main_repr += "\n)"
 
         return main_repr

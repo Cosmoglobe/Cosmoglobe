@@ -54,13 +54,13 @@ class AME(DiffuseComponent):
             template_freq.si.value,
             template_amp.si.value,
             left=0.0,
-            right=0.0
+            right=0.0,
         )
         interp_ref = np.interp(
             (self.freq_ref * peak_scale).si.value,
             template_freq.si.value,
             template_amp.si.value,
         )
-    
+
         scaling = interp / interp_ref
         return scaling

@@ -61,8 +61,8 @@ class SkySimulator:
                 output_unit=output_unit,
                 fwhm=fwhm,
             )
-            for idx, row in enumerate(comp_emission):
-                emission[idx] += row
+            for IQU, emission in enumerate(comp_emission):
+                emission[IQU] += emission
 
         if fwhm.value != NO_SMOOTHING:
             fwhm_rad = fwhm.to("rad").value
@@ -87,8 +87,8 @@ class SkySimulator:
                 output_unit=output_unit,
                 fwhm=fwhm,
             )
-            for idx, row in enumerate(comp_emission):
-                emission[idx] += row
+            for IQU, emission in enumerate(comp_emission):
+                emission[IQU] += emission
 
         return emission
 
