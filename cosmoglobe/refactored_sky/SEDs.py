@@ -1,3 +1,4 @@
+from typing import Protocol
 import astropy.units as u
 from astropy.units import Quantity
 import numpy as np
@@ -9,14 +10,36 @@ import cosmoglobe.refactored_sky.constants as const
 SPDUST2_FILE = DATA_DIR / "spdust2_cnm.dat"
 
 
+class SpectralEnergyDistribution(Protocol):
+    """Interface for SEDs."""
+
+    def get_freq_scaling(
+        self,
+        freqs: Quantity,
+        *,
+        freq_ref: Quantity,
+        **spectral_parameters: Quantity,
+    ) -> Quantity:
+        """Returns the scale factor for a given SED
+
+        Parameters
+        ----------
+        freqs
+            Frequencies for which to evaluate the SED.
+        spectral_parameters
+            Parameters describing the SED.
+
+        Returns
+        -------
+            Frequency scaling factor.
+        """
+
+
 class PowerLaw:
     """SED for Synchrotron and Radio emission."""
 
     def get_freq_scaling(
-        self,
-        freqs: u.GHz,
-        freq_ref: u.GHz,
-        index: Quantity,
+        self, freqs: Quantity, *, freq_ref: Quantity, index: Quantity, **_
     ) -> Quantity:
         """See base class."""
 
@@ -28,10 +51,12 @@ class ModifiedBlackBody:
 
     def get_freq_scaling(
         self,
-        freqs: u.GHz,
-        freq_ref: u.GHz,
+        freqs: Quantity,
+        *,
+        freq_ref: Quantity,
         beta: Quantity,
-        T: u.K,
+        T: Quantity,
+        **_,
     ) -> Quantity:
         """See base class."""
 
@@ -46,8 +71,10 @@ class ThermodynamicToBrightness:
 
     def get_freq_scaling(
         self,
-        freqs: u.GHz,
-        T: u.K = const.T_0,
+        freqs: Quantity,
+        *,
+        T: Quantity = const.T_0,
+        **_,
     ) -> Quantity:
         """See base class."""
 
@@ -60,7 +87,14 @@ class ThermodynamicToBrightness:
 class GauntFactor:
     """SED for Free-free emission."""
 
-    def get_freq_scaling(self, freqs: u.GHz, freq_ref: u.GHz, T_e: u.K) -> Quantity:
+    def get_freq_scaling(
+        self,
+        freqs: Quantity,
+        *,
+        freq_ref: Quantity,
+        T_e: Quantity,
+        **_,
+    ) -> Quantity:
         """See base class."""
 
         gaunt_factor_ratio = gaunt_factor(freqs, T_e) / gaunt_factor(freq_ref, T_e)
@@ -81,13 +115,15 @@ class SPDust2:
 
     def get_freq_scaling(
         self,
-        freqs: u.GHz,
-        freq_ref: u.GHz,
-        freq_peak: u.GHz,
+        freqs: Quantity,
+        *,
+        freq_ref: Quantity,
+        freq_peak: Quantity,
+        **_,
     ) -> Quantity:
         """See base class."""
 
-        peak_scale = 30 * u.GHz / freq_peak
+        peak_scale = 30 * Quantity / freq_peak
 
         interp = np.interp(
             (freqs * peak_scale).si.value,
@@ -104,4 +140,3 @@ class SPDust2:
 
         scaling = interp / interp_ref
         return scaling
-

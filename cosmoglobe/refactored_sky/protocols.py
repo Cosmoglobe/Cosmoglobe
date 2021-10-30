@@ -6,40 +6,6 @@ from astropy.units import Quantity, Unit
 from cosmoglobe.refactored_sky.enums import SkyComponentLabel, SkyComponentType
 
 
-class SpectralEnergyDistribution(Protocol):
-    """Interface for SEDs."""
-
-    def get_freq_scaling(
-        self,
-        freqs: u.GHz,
-        freq_ref: u.GHz,
-        **spectral_parameters: Quantity,
-    ) -> Quantity:
-        """Returns the scale factor for a given SED
-
-        Parameters
-        ----------
-        freqs
-            Frequencies for which to evaluate the SED.
-        spectral_parameters
-            Parameters describing the SED.
-
-        Returns
-        -------
-            Frequency scaling factor.
-        """
-
-
-class SkyComponent(Protocol):
-    """Interface for a sky component."""
-
-    label: SkyComponentLabel
-    component_type: SkyComponentType
-    amp: u.uK
-    freq_ref: u.GHz
-    SED: SpectralEnergyDistribution
-    spectral_parameters: Dict[str, Quantity]
-
 
 class SkySimulation(Protocol):
     """Protocol defining how a component behaves when used in simulations."""
