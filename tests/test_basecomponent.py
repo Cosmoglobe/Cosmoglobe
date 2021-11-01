@@ -4,8 +4,9 @@ from astropy.units import Quantity, UnitsError
 import numpy as np
 import healpy as hp
 
-from cosmoglobe.sky.components import COSMOGLOBE_COMPS
-from cosmoglobe.sky.components import Synchrotron, Dust
+from cosmoglobe.sky.csm import cosmoglobe_sky_model
+from cosmoglobe.sky.components.synchrotron import Synchrotron
+from cosmoglobe.sky.components.dust import Dust
 from cosmoglobe.sky._exceptions import NsideError
 
 amp_1 = Quantity(np.ones((1, hp.nside2npix(32))), unit="K")
@@ -16,13 +17,6 @@ beta_1 = Quantity(np.random.randint(-2, 3, (1, hp.nside2npix(32))))
 beta_3 = Quantity(np.random.randint(-2, 3, (3, hp.nside2npix(32))))
 T_1 = Quantity(np.random.randint(-2, 3, (1, hp.nside2npix(32))), unit="K")
 T_3 = Quantity(np.random.randint(-2, 3, (3, hp.nside2npix(32))), unit="K")
-
-
-def test_label(synch, radio):
-    """Tetss a comp label."""
-
-    assert synch.label in COSMOGLOBE_COMPS
-    assert radio.label in COSMOGLOBE_COMPS
 
 
 def test_radio_catalog(radio):

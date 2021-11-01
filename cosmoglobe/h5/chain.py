@@ -9,7 +9,7 @@ from cosmoglobe.h5 import ChainVersion, PARAMETER_GROUP_NAME
 from cosmoglobe.h5._alms import unpack_alms_from_chain
 from cosmoglobe.h5._decorators import validate_key, validate_samples, unpack_alms
 from cosmoglobe.h5._exceptions import ChainFormatError, ChainSampleError
-from cosmoglobe.sky.components import COSMOGLOBE_COMPS
+from cosmoglobe.sky.csm import cosmoglobe_sky_model
 
 
 class Chain:
@@ -21,13 +21,13 @@ class Chain:
 
     def __init__(self, path: Union[str, Path], burn_in: Optional[int] = None) -> None:
         """Validate and initialize the Chain object.
-        
+
         Parameters
         ----------
         path
             Path to the chainfile.
         burn_in
-            Burn in sample. All samples prior to (and including) the burn 
+            Burn in sample. All samples prior to (and including) the burn
             in sample is discarded.
         """
 
@@ -51,7 +51,9 @@ class Chain:
 
             sampled_groups = list(file[samples[0]].keys())
             components = [
-                group for group in sampled_groups if group in COSMOGLOBE_COMPS
+                group
+                for group in sampled_groups
+                if group in cosmoglobe_sky_model.components
             ]
 
             parameters: Dict[str, Dict[str, Any]] = {}

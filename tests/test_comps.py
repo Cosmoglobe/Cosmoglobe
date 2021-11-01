@@ -1,11 +1,15 @@
-from cosmoglobe.sky.components import FreeFree
 import pytest
 
 from astropy.units import Quantity, Unit, UnitsError
 import numpy as np
 import healpy as hp
 
-from cosmoglobe.sky.components import CMB, Dust, Synchrotron, Radio, AME
+from cosmoglobe.sky.components.ame import AME
+from cosmoglobe.sky.components.cmb import CMB
+from cosmoglobe.sky.components.dust import Dust
+from cosmoglobe.sky.components.freefree import FreeFree
+from cosmoglobe.sky.components.synchrotron import Synchrotron
+from cosmoglobe.sky.components.radio import Radio
 
 
 def test_init_synch():

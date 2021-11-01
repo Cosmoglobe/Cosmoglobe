@@ -28,18 +28,9 @@ class Radio(PointSourceComponent):
     sky emission.
     """
 
-    label = "radio"
+    catalog = np.loadtxt(RADIO_CATALOG, usecols=(0, 1)).transpose()
 
-    # The radio catalog must have shape (2, `npointsources`), where
-    # `npointsources` must match the number of poitns in `amp`
-    catalog: np.ndarray = np.loadtxt(RADIO_CATALOG, usecols=(0, 1)).transpose()
-
-    def __init__(self, amp: Quantity, freq_ref: Quantity, alpha: Quantity) -> None:
-        """Initializing base class."""
-
-        super().__init__(self.label, self.catalog, amp, freq_ref, alpha=alpha)
-
-    def get_freq_scaling(self, freqs: Quantity, alpha: Quantity) -> Quantity:  # type: ignore
+    def get_freq_scaling(self, freqs: Quantity, alpha: Quantity) -> Quantity:
         """See base class."""
 
         scaling = (freqs / self.freq_ref) ** (alpha - 2)

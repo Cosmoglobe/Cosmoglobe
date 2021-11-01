@@ -1,9 +1,11 @@
-from typing import Dict, List, Type, TYPE_CHECKING
+from typing import Dict, List, Type, TYPE_CHECKING, Union
 
-from cosmoglobe.sky.components import COSMOGLOBE_COMPS
+from astropy.units import Unit
+
+from cosmoglobe.sky.csm import cosmoglobe_sky_model
 
 if TYPE_CHECKING:
-    from cosmoglobe.h5._chain_context import ChainContext
+    from cosmoglobe.sky.chain.context import ChainContext
 
 
 class ChainContextFactory:
@@ -11,13 +13,13 @@ class ChainContextFactory:
 
     def __init__(self):
         self._context: Dict[str, List["ChainContext"]] = {
-            component: [] for component in COSMOGLOBE_COMPS
+            component: [] for component in cosmoglobe_sky_model.components
         }
         self._mappings: Dict[str, Dict[str, str]] = {
-            component: {} for component in COSMOGLOBE_COMPS
+            component: {} for component in cosmoglobe_sky_model.components
         }
         self._units: Dict[str, Dict[str, str]] = {
-            component: {} for component in COSMOGLOBE_COMPS
+            component: {} for component in cosmoglobe_sky_model.components
         }
 
     def register_context(
@@ -52,7 +54,7 @@ class ChainContextFactory:
                 )
             self._mappings[component].update(mapping)
 
-    def register_units(self, components: List[str], units: Dict[str, str]) -> None:
+    def register_units(self, components: List[str], units: Dict[str, Union[str, Unit]]) -> None:
         """Registers a units for values from the chain."""
 
         if not components:

@@ -16,7 +16,7 @@ from cosmoglobe.sky.base_components import (
 )
 from cosmoglobe.sky._constants import DEFAULT_OUTPUT_UNIT
 from cosmoglobe.sky._bandpass import get_normalized_bandpass, get_bandpass_coefficient
-from cosmoglobe.sky._pointsources import pointsources_to_healpix
+from cosmoglobe.sky._beam import pointsources_to_healpix
 
 
 class Simulation(Protocol):
@@ -223,7 +223,7 @@ def get_simulation_protocol(component: SkyComponent) -> Simulation:
 
     for comp_type, protocol in SIMULATION_PROTOCOLS.items():
         if isinstance(component, comp_type):
-            return protocol  # type: ignore
+            return protocol
     else:
         raise NotImplementedError(
             "simulation protocol not implemented for comp of type "

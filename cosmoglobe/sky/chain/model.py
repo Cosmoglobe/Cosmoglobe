@@ -1,21 +1,24 @@
 import inspect
-from typing import List, Union, Optional, Literal
+from typing import Dict, List, Type, Union, Optional, Literal
 
 import astropy.units as u
 import healpy as hp
 from tqdm import tqdm
 
 from cosmoglobe.h5.chain import Chain, ChainVersion
-from cosmoglobe.h5._chain_context import chain_context
 from cosmoglobe.h5._exceptions import (
     ChainComponentNotFoundError,
     ChainKeyError,
     ChainFormatError,
 )
-from cosmoglobe.sky.components import COSMOGLOBE_COMPS
+from cosmoglobe.sky.base_components import (
+    SkyComponent,
+    DiffuseComponent,
+    PointSourceComponent,
+)
+from cosmoglobe.sky.chain.context import chain_context
+from cosmoglobe.sky.csm import cosmoglobe_sky_model
 from cosmoglobe.sky.model import SkyModel
-from cosmoglobe.sky.base_components import SkyComponent
-
 
 DEFAULT_SAMPLE = -1
 
@@ -70,13 +73,13 @@ def model_from_chain(
     elif any(component not in chain.components for component in components):
         raise ChainComponentNotFoundError(f"component was not found in chain")
 
-    initialized_components: List[SkyComponent] = []
+    initialized_components: Dict[str, SkyComponent] = {}
     with tqdm(total=len(components), ncols=75) as progress_bar:
         padding = len(max(chain.components, key=len))
         for component in components:
             progress_bar.set_description(f"{component:<{padding}}")
-            initialized_components.append(
-                comp_from_chain(chain, nside, component, samples)
+            initialized_components[component] = comp_from_chain(
+                chain, nside, component, samples
             )
             progress_bar.update()
 
@@ -105,22 +108,19 @@ def comp_from_chain(
         Initialized sky component object.
     """
     try:
-        comp_class = COSMOGLOBE_COMPS[component]
+        comp_class = cosmoglobe_sky_model.components[component]
     except KeyError:
         raise ChainComponentNotFoundError(
             f"{component=!r} is not part in the Cosmoglobe Sky Model"
         )
 
-    signature = inspect.signature(comp_class)
-    class_args = list(signature.parameters.keys())
-
+    class_args = get_comp_signature(comp_class)
     args = {}
 
     # Contexts are operations that needs to be done to the data in the
     # chain before it can be used in the sky model.
     mappings = chain_context.get_mappings(component)
     units = chain_context.get_units(component)
-
     for arg in class_args:
         chain_arg = mappings.get(arg, arg)
         chain_params = chain.parameters[component]
@@ -156,3 +156,19 @@ def comp_from_chain(
         args.update(context(args))
 
     return comp_class(**args)
+
+
+def get_comp_signature(comp_class: Type[SkyComponent]) -> List[str]:
+    """Extracts and returns the parameters to extract from the chain."""
+
+    EXCLUDE = ["self", "spectral_parameters", "freqs"]
+    arguments: List[str] = []
+    class_signature = inspect.signature(comp_class)
+    arguments.extend(list(class_signature.parameters.keys()))
+    if issubclass(comp_class, (DiffuseComponent, PointSourceComponent)):
+        SED_signature = inspect.signature((comp_class.get_freq_scaling))
+        arguments.extend(list(SED_signature.parameters.keys()))
+
+    arguments = [arg for arg in arguments if arg not in EXCLUDE]
+
+    return arguments

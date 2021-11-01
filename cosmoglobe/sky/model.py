@@ -3,12 +3,7 @@ from typing import Dict, Iterator, List, Optional, Union
 from astropy.units import Quantity, Unit
 import healpy as hp
 
-from cosmoglobe.sky.base_components import (
-    SkyComponent,
-    PointSourceComponent,
-    DiffuseComponent,
-    LineComponent,
-)
+from cosmoglobe.sky.base_components import SkyComponent, PointSourceComponent
 from cosmoglobe.sky.simulator import SkySimulator
 from cosmoglobe.sky.simulator import simulator as simulator_class
 from cosmoglobe.sky._constants import DEFAULT_OUTPUT_UNIT, NO_SMOOTHING
@@ -67,7 +62,7 @@ class SkyModel:
 
     simulator: SkySimulator = simulator_class
 
-    def __init__(self, nside: int, components: List[SkyComponent]) -> None:
+    def __init__(self, nside: int, components: Dict[str, SkyComponent]) -> None:
         """Initializes an instance of the Cosmoglobe Sky Model.
 
         Parameters
@@ -80,22 +75,19 @@ class SkyModel:
 
         self.nside = nside
         if not all(
-            isinstance(
-                component, (PointSourceComponent, DiffuseComponent, LineComponent)
-            )
-            for component in components
+            isinstance(component, SkyComponent) for component in components.values()
         ):
             raise ComponentError("all components must be subclasses of SkyComponent")
 
         if not all(
             self.nside == hp.get_nside(component.amp)
-            for component in components
+            for component in components.values()
             if not isinstance(component, PointSourceComponent)
         ):
             raise NsideError(
                 "all diffuse maps in the sky model needs to be at a common nside"
             )
-        self._components = {component.label: component for component in components}
+        self.components = components
 
     @property
     def nside(self) -> int:
@@ -114,12 +106,6 @@ class SkyModel:
             raise TypeError("nside must be an integer")
 
         self._nside = int(value)
-
-    @property
-    def components(self) -> Dict[str, SkyComponent]:
-        """Sky Components in the model."""
-
-        return self._components
 
     def __call__(
         self,

@@ -26,17 +26,11 @@ class Dust(DiffuseComponent):
     Boltzmann constant.
     """
 
-    label = "dust"
-
-    def __init__(
-        self, amp: Quantity, freq_ref: Quantity, beta: Quantity, T: Quantity
-    ) -> None:
-        """Initializing base class."""
-
-        super().__init__(self.label, amp, freq_ref, beta=beta, T=T)
-
-    def get_freq_scaling(  # type: ignore
-        self, freqs: Quantity, beta: Quantity, T: Quantity
+    def get_freq_scaling(
+        self,
+        freqs: Quantity,
+        beta: Quantity,
+        T: Quantity,
     ) -> Quantity:
         """See base class."""
 

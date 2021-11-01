@@ -25,14 +25,7 @@ class CMB(DiffuseComponent):
     :math:`T_0 = 2.7255 \mathrm{K}` as of BP9.
     """
 
-    label = "cmb"
-
-    def __init__(self, amp: Quantity, freq_ref: Quantity) -> None:
-        """Initializing base class."""
-
-        super().__init__(self.label, amp, freq_ref)
-
-    def get_freq_scaling(self, freqs: Quantity) -> Quantity:  # type: ignore
+    def get_freq_scaling(self, freqs: Quantity) -> Quantity:
         """See base class."""
 
         return np.expand_dims(thermodynamical_to_brightness(freqs), axis=0)

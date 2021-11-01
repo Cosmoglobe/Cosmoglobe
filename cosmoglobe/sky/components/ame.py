@@ -4,7 +4,6 @@ import numpy as np
 from cosmoglobe.data import DATA_DIR
 from cosmoglobe.sky.base_components import DiffuseComponent
 
-
 SPDUST2_FILE = DATA_DIR / "spdust2_cnm.dat"
 
 
@@ -28,16 +27,9 @@ class AME(DiffuseComponent):
     template, and :math:`\nu_p` the peak frequency.
     """
 
-    label = "ame"
-
     SPINNING_DUST_TEMPLATE = np.loadtxt(SPDUST2_FILE).transpose()
 
-    def __init__(self, amp: Quantity, freq_ref: Quantity, freq_peak: Quantity) -> None:
-        """Initializing base class."""
-
-        super().__init__(self.label, amp, freq_ref, freq_peak=freq_peak)
-
-    def get_freq_scaling(self, freqs: Quantity, freq_peak: Quantity) -> Quantity:  # type: ignore
+    def get_freq_scaling(self, freqs: Quantity, freq_peak: Quantity) -> Quantity:
         """See base class."""
 
         # Unpacking the template

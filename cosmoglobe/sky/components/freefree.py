@@ -3,7 +3,6 @@ from astropy.units import Quantity
 from cosmoglobe.sky.base_components import DiffuseComponent
 from cosmoglobe.utils.functions import gaunt_factor
 
-
 class FreeFree(DiffuseComponent):
     r"""Class representing the free-free component in the sky model.
 
@@ -23,14 +22,7 @@ class FreeFree(DiffuseComponent):
     :math:`T_\mathrm{e}` is the electron temperature.
     """
 
-    label = "ff"
-
-    def __init__(self, amp: Quantity, freq_ref: Quantity, T_e: Quantity) -> None:
-        """Initializing base class."""
-
-        super().__init__(self.label, amp, freq_ref, T_e=T_e)
-
-    def get_freq_scaling(self, freqs: Quantity, T_e: Quantity) -> Quantity:  # type: ignore
+    def get_freq_scaling(self, freqs: Quantity, T_e: Quantity) -> Quantity:
         """See base class."""
 
         gaunt_factor_ratio = gaunt_factor(freqs, T_e) / gaunt_factor(self.freq_ref, T_e)

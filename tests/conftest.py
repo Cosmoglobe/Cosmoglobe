@@ -4,7 +4,13 @@ from astropy.units import Quantity
 import healpy as hp
 import numpy as np
 
-from cosmoglobe.sky.components import AME, CMB, Dust, FreeFree, Radio, Synchrotron
+from cosmoglobe.sky.components.ame import AME
+from cosmoglobe.sky.components.cmb import CMB
+from cosmoglobe.sky.components.dust import Dust
+from cosmoglobe.sky.components.freefree import FreeFree
+from cosmoglobe.sky.components.synchrotron import Synchrotron
+from cosmoglobe.sky.components.radio import Radio
+
 from cosmoglobe.sky.model import SkyModel
 
 
@@ -136,4 +142,4 @@ def cmb():
 
 @pytest.fixture()
 def sky_model(synch, dust, ame, ff, radio, cmb):
-    return SkyModel(256, [synch, dust, ame, ff, radio, cmb])
+    return SkyModel(256, {"synch":synch, "dust":dust, "ame":ame, "ff":ff, "radio":radio, "cmb":cmb})

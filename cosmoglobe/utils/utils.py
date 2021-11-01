@@ -1,4 +1,4 @@
-from typing import Dict, Iterable
+from typing import Dict, Iterable, Union
 
 import astropy.units as u
 import numpy as np
@@ -87,7 +87,7 @@ def str_to_astropy_unit(unit: str) -> u.Unit:
     return output_unit
 
 
-def to_unit(emission: u.Quantity, freqs: u.Quantity, unit: u.UnitBase) -> u.Quantity:
+def to_unit(emission: u.Quantity, freqs: u.Quantity, unit: Union[str, u.UnitBase]) -> u.Quantity:
     """Converts the unit of the emission.
 
     Parameters

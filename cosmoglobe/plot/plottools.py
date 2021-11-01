@@ -5,7 +5,7 @@ import warnings
 from numpy.core.numeric import NaN
 from .. import data as data_dir
 from cosmoglobe.sky.model import SkyModel
-from cosmoglobe.h5.model import model_from_chain
+from cosmoglobe.sky.chain.model import model_from_chain
 from cosmoglobe.h5.chain import Chain
 
 import cmasher

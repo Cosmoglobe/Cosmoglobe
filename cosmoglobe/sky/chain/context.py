@@ -3,7 +3,7 @@ from typing import Dict, Any, Protocol
 from astropy.units import Quantity, Unit
 import numpy as np
 
-from cosmoglobe.h5._chain_contextfactory import ChainContextFactory
+from cosmoglobe.sky.chain.factory import ChainContextFactory
 
 
 class ChainContext(Protocol):
@@ -44,13 +44,27 @@ class RadioContext:
     NOTE: we pretend that amp has units of 'mJy/sr' to be able convert
     the units properly. This is fine since we always end dividing by
     the beam_area when converting the amplitudes to HEALPIX maps.
+
+    We subtract 2 from the alpha map / scalar to convert to units of K_RJ.
+
     """
 
     def __call__(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        args["alpha"] = args["alpha"][0]
+        args["alpha"] = args["alpha"][0] - 2
 
         return args
 
+
+class DustContext:
+    """Context for the Dust component in the chain.
+
+    We subtract 2 from the beta map / scalar to convert to units of K_RJ.
+    """
+
+    def __call__(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        args["beta"] = args["beta"] - 2
+
+        return args
 
 class MapToScalarContext:
     """Extract and returns a scalar.
@@ -82,6 +96,7 @@ chain_context = ChainContextFactory()
 chain_context.register_context([], FreqRefContext)
 chain_context.register_context([], MapToScalarContext)
 chain_context.register_context(["radio"], RadioContext)
+chain_context.register_context(["dust"], DustContext)
 
 chain_context.register_mapping([], {"freq_ref": "nu_ref"})
 chain_context.register_mapping(["radio"], {"alpha": "specind"})

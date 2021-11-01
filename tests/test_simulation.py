@@ -1,4 +1,4 @@
-from cosmoglobe.sky.components import Dust
+from cosmoglobe.sky.components.dust import Dust
 import pytest
 
 from astropy.units import Unit, Quantity, UnitsError

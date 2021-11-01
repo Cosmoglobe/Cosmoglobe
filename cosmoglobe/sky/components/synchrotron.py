@@ -25,14 +25,7 @@ class Synchrotron(DiffuseComponent):
     as of BP9.
     """
 
-    label = "synch"
-
-    def __init__(self, amp: Quantity, freq_ref: Quantity, beta: Quantity) -> None:
-        """Initializing base class."""
-
-        super().__init__(self.label, amp, freq_ref, beta=beta)
-
-    def get_freq_scaling(self, freqs: Quantity, beta: Quantity) -> Quantity:  # type: ignore
+    def get_freq_scaling(self, freqs: Quantity, beta: Quantity) -> Quantity:
         """See base class."""
 
         return (freqs / self.freq_ref) ** beta

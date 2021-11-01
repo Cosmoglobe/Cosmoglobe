@@ -5,24 +5,31 @@ import numpy as np
 import healpy as hp
 
 from cosmoglobe.sky._constants import DEFAULT_OUTPUT_UNIT
-from cosmoglobe.sky.components import Synchrotron, Dust, AME, Radio
-from cosmoglobe.sky._exceptions import NsideError, ComponentError, ComponentNotFoundError
+from cosmoglobe.sky.components.ame import AME
+from cosmoglobe.sky.components.dust import Dust
+from cosmoglobe.sky.components.synchrotron import Synchrotron
+from cosmoglobe.sky.components.radio import Radio
+from cosmoglobe.sky._exceptions import (
+    NsideError,
+    ComponentError,
+    ComponentNotFoundError,
+)
 from cosmoglobe.sky.model import SkyModel
 
 
 def test_init_sky_model_nside(synch_3, dust_3):
-    sky_model = SkyModel(32, [synch_3, dust_3])
+    sky_model = SkyModel(32, {"synch": synch_3, "dust": dust_3})
     assert isinstance(sky_model.nside, int)
     assert isinstance(sky_model.components, dict)
 
     with pytest.raises(NsideError):
-        SkyModel(66, [synch_3])
+        SkyModel(66, {"synch": synch_3})
 
     with pytest.raises(TypeError):
-        SkyModel("sdf", [synch_3])
+        SkyModel("sdf", {"synch": synch_3})
 
     with pytest.raises(ComponentError):
-        SkyModel(32, [1])
+        SkyModel(32, {"s": 1})
 
     synch = Synchrotron(
         Quantity(np.random.randint(10, 30, (3, hp.nside2npix(32))), unit="uK"),
@@ -37,7 +44,7 @@ def test_init_sky_model_nside(synch_3, dust_3):
     )
 
     with pytest.raises(NsideError):
-        sky_model = SkyModel(32, [synch, dust])
+        sky_model = SkyModel(32, {"synch": synch, "dust": dust})
 
 
 def test_comp_arg(sky_model):
@@ -53,7 +60,7 @@ def test_comp_arg(sky_model):
         beta=Quantity([[1], [2], [2]]),
         T=Quantity(np.random.randint(10, 30, (3, hp.nside2npix(32))), unit="K"),
     )
-    sky_model = SkyModel(32, [synch, dust])
+    sky_model = SkyModel(32, {"synch": synch, "dust": dust})
     sky_model(100 * Unit("GHz"), fwhm=80 * Unit("arcmin"), components=["synch"])
 
     with pytest.raises(ValueError):
@@ -108,6 +115,7 @@ def test_simulate(sky_model):
     )
     assert emission.unit == Unit("uK")
 
+
 def test_synch():
     """Tests a sim of synch."""
 
@@ -116,7 +124,7 @@ def test_synch():
         Quantity([[40], [50], [50]], unit="GHz"),
         beta=Quantity(np.random.randint(10, 30, (3, hp.nside2npix(128)))),
     )
-    sky_model = SkyModel(128, [synch])
+    sky_model = SkyModel(128, {"synch": synch})
     assert sky_model(100 * Unit("GHz")).shape == synch.amp.shape
     assert sky_model([100, 101, 102] * Unit("GHz")).shape == synch.amp.shape
     assert (
@@ -134,7 +142,7 @@ def test_dust():
         beta=Quantity([[1], [2], [2]]),
         T=Quantity(np.random.randint(10, 30, (3, hp.nside2npix(128))), unit="K"),
     )
-    sky_model = SkyModel(128, [dust])
+    sky_model = SkyModel(128, {"dust": dust})
     assert sky_model(100 * Unit("GHz")).shape == dust.amp.shape
     assert sky_model([100, 101, 102] * Unit("GHz")).shape == dust.amp.shape
     assert (
@@ -151,7 +159,7 @@ def test_radio():
         Quantity([[40]], unit="GHz"),
         alpha=Quantity(np.random.randint(10, 30, (1, 12192))),
     )
-    sky_model = SkyModel(256, [radio])
+    sky_model = SkyModel(256, {"radio": radio})
     assert sky_model(100 * Unit("GHz"), fwhm=60 * Unit("arcmin")).shape == (
         1,
         hp.nside2npix(256),
@@ -176,7 +184,7 @@ def test_ame():
         Quantity([[40], [30], [30]], unit="GHz"),
         freq_peak=Quantity([[100], [100], [100]], unit="GHz"),
     )
-    sky_model = SkyModel(128, [ame])
+    sky_model = SkyModel(128, {"ame": ame})
     assert sky_model(100 * Unit("GHz")).shape == (3, hp.nside2npix(128))
     assert (sky_model(0.001 * Unit("GHz")) == 0).all()
     assert sky_model([100, 101, 102] * Unit("GHz")).shape == (3, hp.nside2npix(128))
@@ -196,6 +204,6 @@ def test_remove_dipole(sky_model):
         Quantity([[40], [30], [30]], unit="GHz"),
         freq_peak=Quantity([[100], [100], [100]], unit="GHz"),
     )
-    model = SkyModel(128, [ame])
+    model = SkyModel(128, {"ame": ame})
     with pytest.raises(ComponentNotFoundError):
         model.remove_dipole()

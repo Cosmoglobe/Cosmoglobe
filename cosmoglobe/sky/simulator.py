@@ -45,6 +45,7 @@ class SkySimulator:
             if any(comp.amp.shape[0] == 3 for comp in components)
             else (1, hp.nside2npix(nside))
         )
+
         emission = Quantity(
             np.zeros(shape),
             unit=output_unit
@@ -61,8 +62,9 @@ class SkySimulator:
                 output_unit=output_unit,
                 fwhm=fwhm,
             )
-            for IQU, emission in enumerate(comp_emission):
-                emission[IQU] += emission
+
+            for IQU, diffuse_emission in enumerate(comp_emission):
+                emission[IQU] += diffuse_emission
 
         if fwhm.value != NO_SMOOTHING:
             fwhm_rad = fwhm.to("rad").value
@@ -87,8 +89,8 @@ class SkySimulator:
                 output_unit=output_unit,
                 fwhm=fwhm,
             )
-            for IQU, emission in enumerate(comp_emission):
-                emission[IQU] += emission
+            for IQU, pointsource_emission in enumerate(comp_emission):
+                emission[IQU] += pointsource_emission
 
         return emission
 
@@ -99,7 +101,7 @@ class SkySimulator:
         freqs: Quantity,
         bandpass: Optional[Quantity],
         output_unit: Union[str, Unit],
-        fwhm: Optional[Quantity],
+        fwhm: Quantity,
     ) -> Quantity:
         """Returns the simulated sky emission for a component."""
 
