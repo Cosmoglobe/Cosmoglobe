@@ -5,8 +5,8 @@ import healpy as hp
 
 from cosmoglobe.sky.base_components import SkyComponent, PointSourceComponent
 from cosmoglobe.sky.simulator import SkySimulator
-from cosmoglobe.sky.csm import ModelInfo
-from cosmoglobe.sky.simulator import simulator as simulator_class
+from cosmoglobe.sky.csm import SkyModelInfo
+from cosmoglobe.sky.simulator import DEFAULT_SIMULATOR
 from cosmoglobe.sky._constants import DEFAULT_OUTPUT_UNIT, NO_SMOOTHING
 from cosmoglobe.sky._exceptions import (
     NsideError,
@@ -61,13 +61,12 @@ class SkyModel:
       -4.71776995e+00  4.39850830e+00]] uK
     """
 
-    simulator: SkySimulator = simulator_class
-
     def __init__(
         self,
         nside: int,
         components: Dict[str, SkyComponent],
-        info: Optional[ModelInfo] = None,
+        info: Optional[SkyModelInfo] = None,
+        simulator: SkySimulator = DEFAULT_SIMULATOR,
     ) -> None:
         """Initializes an instance of the Cosmoglobe Sky Model.
 
@@ -82,7 +81,6 @@ class SkyModel:
         """
 
         self.nside = nside
-        self.info = info
         if not all(
             isinstance(component, SkyComponent) for component in components.values()
         ):
@@ -97,6 +95,8 @@ class SkyModel:
                 "all diffuse maps in the sky model needs to be at a common nside"
             )
         self.components = components
+        self.info = info
+        self._simulator = simulator
 
     @property
     def nside(self) -> int:
@@ -160,7 +160,7 @@ class SkyModel:
         else:
             components_classes = list(self.components.values())
 
-        emission = self.simulator(
+        emission = self._simulator(
             self.nside, components_classes, freqs, bandpass, fwhm, output_unit
         )
 

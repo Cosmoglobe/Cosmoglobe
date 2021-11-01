@@ -1,6 +1,7 @@
 from astropy.units import Quantity
 
 from cosmoglobe.sky.base_components import DiffuseComponent
+from cosmoglobe.sky.components import SkyComponentLabel
 
 
 class Synchrotron(DiffuseComponent):
@@ -24,6 +25,8 @@ class Synchrotron(DiffuseComponent):
     sky emission. :math:`C` is set to 0 for all current implementations
     as of BP9.
     """
+
+    label = SkyComponentLabel.SYNCH
 
     def get_freq_scaling(self, freqs: Quantity, beta: Quantity) -> Quantity:
         """See base class."""

@@ -125,4 +125,4 @@ class SkySimulator:
         )
 
 
-simulator = SkySimulator()
+DEFAULT_SIMULATOR = SkySimulator()

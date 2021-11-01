@@ -3,6 +3,7 @@ import numpy as np
 
 from cosmoglobe.data import DATA_DIR
 from cosmoglobe.sky.base_components import PointSourceComponent
+from cosmoglobe.sky.components import SkyComponentLabel
 
 
 RADIO_CATALOG = DATA_DIR / "radio_catalog.dat"
@@ -28,6 +29,7 @@ class Radio(PointSourceComponent):
     sky emission.
     """
 
+    label = SkyComponentLabel.RADIO
     catalog = np.loadtxt(RADIO_CATALOG, usecols=(0, 1)).transpose()
 
     def get_freq_scaling(self, freqs: Quantity, alpha: Quantity) -> Quantity:

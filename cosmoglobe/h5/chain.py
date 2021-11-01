@@ -9,7 +9,7 @@ from cosmoglobe.h5 import ChainVersion, PARAMETER_GROUP_NAME
 from cosmoglobe.h5._alms import unpack_alms_from_chain
 from cosmoglobe.h5._decorators import validate_key, validate_samples, unpack_alms
 from cosmoglobe.h5._exceptions import ChainFormatError, ChainSampleError
-from cosmoglobe.sky.csm import SkyComponentLabel
+from cosmoglobe.sky.components import SkyComponentLabel
 
 
 class Chain:

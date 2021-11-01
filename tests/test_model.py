@@ -6,7 +6,7 @@ import healpy as hp
 
 from cosmoglobe.sky._constants import DEFAULT_OUTPUT_UNIT
 from cosmoglobe.sky.components.ame import AME
-from cosmoglobe.sky.components.dust import Dust
+from cosmoglobe.sky.components.dust import ThermalDust
 from cosmoglobe.sky.components.synchrotron import Synchrotron
 from cosmoglobe.sky.components.radio import Radio
 from cosmoglobe.sky._exceptions import (
@@ -36,7 +36,7 @@ def test_init_sky_model_nside(synch_3, dust_3):
         Quantity([[40], [50], [50]], unit="GHz"),
         beta=Quantity(np.random.randint(10, 30, (3, hp.nside2npix(32)))),
     )
-    dust = Dust(
+    dust = ThermalDust(
         Quantity(np.random.randint(10, 30, (3, hp.nside2npix(128))), unit="uK"),
         Quantity([[40], [50], [50]], unit="GHz"),
         beta=Quantity([[1], [2], [2]]),
@@ -54,7 +54,7 @@ def test_comp_arg(sky_model):
         Quantity([[40], [50], [50]], unit="GHz"),
         beta=Quantity(np.random.randint(10, 30, (3, hp.nside2npix(32)))),
     )
-    dust = Dust(
+    dust = ThermalDust(
         Quantity(np.random.randint(10, 30, (3, hp.nside2npix(32))), unit="uK"),
         Quantity([[40], [50], [50]], unit="GHz"),
         beta=Quantity([[1], [2], [2]]),
@@ -136,7 +136,7 @@ def test_synch():
 def test_dust():
     """Tests a sim of dust."""
 
-    dust = Dust(
+    dust = ThermalDust(
         Quantity(np.random.randint(10, 30, (3, hp.nside2npix(128))), unit="uK"),
         Quantity([[40], [50], [50]], unit="GHz"),
         beta=Quantity([[1], [2], [2]]),

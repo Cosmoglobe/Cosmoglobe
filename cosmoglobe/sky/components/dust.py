@@ -1,10 +1,12 @@
-from astropy.units import Quantity
+from astropy.units import Quantity, Unit, quantity_input
+import numpy as np
 
 from cosmoglobe.sky.base_components import DiffuseComponent
-from cosmoglobe.utils.functions import blackbody_emission
+from cosmoglobe.sky.components import SkyComponentLabel
+import cosmoglobe.sky._constants as const
 
 
-class Dust(DiffuseComponent):
+class ThermalDust(DiffuseComponent):
     r"""Class representing the thermal dust component in the sky model.
 
     Notes
@@ -26,6 +28,8 @@ class Dust(DiffuseComponent):
     Boltzmann constant.
     """
 
+    label = SkyComponentLabel.DUST
+
     def get_freq_scaling(
         self,
         freqs: Quantity,
@@ -40,3 +44,34 @@ class Dust(DiffuseComponent):
         scaling = (freqs / self.freq_ref) ** beta * blackbody_ratio
 
         return scaling
+
+
+@quantity_input(freq=Unit("Hz"), T=Unit("K"))
+def blackbody_emission(freq: Quantity, T: Quantity) -> Quantity:
+    """Returns the blackbody emission.
+
+    Computes the emission emitted by a blackbody with with temperature
+    T at a frequency freq in SI units [W / m^2 Hz sr].
+
+    Parameters
+    ----------
+    freq
+        Frequency [Hz].
+    T
+        Temperature of the blackbody [K].
+
+    Returns
+    -------
+    emission
+        Blackbody emission [W / m^2 Hz sr].
+    """
+
+    # Avoiding overflow and underflow.
+    T = T.astype(np.float64)
+
+    term1 = (2 * const.h * freq ** 3) / const.c ** 2
+    term2 = np.expm1((const.h * freq) / (const.k_B * T))
+
+    emission = term1 / term2 / Unit("sr")
+
+    return emission.to("W / m^2 Hz sr")

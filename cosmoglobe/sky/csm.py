@@ -1,68 +1,47 @@
-from enum import Enum
 from typing import Dict, List, Type
 from dataclasses import dataclass
 
 from cosmoglobe.sky.base_components import SkyComponent
-
 from cosmoglobe.sky.components.ame import AME
 from cosmoglobe.sky.components.synchrotron import Synchrotron
-from cosmoglobe.sky.components.dust import Dust
+from cosmoglobe.sky.components.dust import ThermalDust
 from cosmoglobe.sky.components.freefree import FreeFree
 from cosmoglobe.sky.components.cmb import CMB
 from cosmoglobe.sky.components.radio import Radio
 
 
-class SkyComponentLabel(Enum):
-    """Enums representing unique sky component labels."""
-
-    AME = "ame"
-    CMB = "cmb"
-    CIB = "cib"
-    DUST = "dust"
-    FF = "ff"
-    RADIO = "radio"
-    SYNCH = "synch"
-    SZ = "sz"
-    ZODI = "zodi"
-
-
-class DataRelease(Enum):
-    """Enums representing a data Cosmoglobe data release."""
-
-    BP10 = LATEST = "http://cosmoglobe.uio.no/data_releases/BeyondPlanck/BP10/"
-
-
 @dataclass
-class ModelInfo:
+class SkyModelInfo:
     """Information object for the Cosmoglobe Sky Model.
 
     The Cosmoglobe Sky Model will dynamically evolve with the inclusion
     of new datasets.
     """
 
-    version: DataRelease
+    version: str
+    data_url: str
 
 
 @dataclass
 class CosmoglobeSkyModel:
     """The sky components making up Cosmoglobe Sky Model."""
 
-    components: Dict[SkyComponentLabel, Type[SkyComponent]]
-    info: ModelInfo
+    components: List[Type[SkyComponent]]
+    info: SkyModelInfo
 
     @property
-    def comp_labels(self) -> List[str]:
-        return [comp.value for comp in self.components.keys()]
-        
+    def labels(self) -> List[str]:
+        return [comp.label.value for comp in self.components]
+
     def __str__(self) -> str:
         repr = "========Cosmoglobe Sky Model========\n"
         repr += f"version: {self.info.version}\n"
-        repr += f"components: {', '.join(self.comp_labels)}"
+        repr += f"components: {', '.join(self.labels)}"
 
         return repr
 
 
-class RegisteredSkyModels:
+class SkyModelRegistry:
     """Container for registered sky models."""
 
     def __init__(self) -> None:
@@ -82,20 +61,16 @@ class RegisteredSkyModels:
         return self.models[name]
 
 
-REGISTERED_SKY_MODELS = RegisteredSkyModels()
-REGISTERED_SKY_MODELS.register_model(
+skymodel_registry = SkyModelRegistry()
+skymodel_registry.register_model(
     name="BeyondPlanck",
     model=CosmoglobeSkyModel(
-        components={
-            SkyComponentLabel.AME: AME,
-            SkyComponentLabel.CMB: CMB,
-            SkyComponentLabel.DUST: Dust,
-            SkyComponentLabel.FF: FreeFree,
-            SkyComponentLabel.RADIO: Radio,
-            SkyComponentLabel.SYNCH: Synchrotron,
-        },
-        info=ModelInfo(version=DataRelease.LATEST),
+        components=[AME, CMB, ThermalDust, FreeFree, Radio, Synchrotron],
+        info=SkyModelInfo(
+            version="BeyondPlanck",
+            data_url="http://cosmoglobe.uio.no/data_releases/BeyondPlanck/BP10/",
+        ),
     ),
 )
 
-DEFUALT_SKY_MODEL = REGISTERED_SKY_MODELS.get_model("BeyondPlanck")
+DEFUALT_SKY_MODEL = skymodel_registry.get_model("BeyondPlanck")

@@ -1,4 +1,4 @@
-from cosmoglobe.sky.components.dust import Dust
+from cosmoglobe.sky.components.dust import ThermalDust
 import pytest
 
 from astropy.units import Unit, Quantity, UnitsError
@@ -6,7 +6,7 @@ import numpy as np
 import healpy as hp
 
 from cosmoglobe.sky._constants import DEFAULT_OUTPUT_UNIT
-from cosmoglobe.sky.simulator import simulator
+from cosmoglobe.sky.simulator import DEFAULT_SIMULATOR as simulator
 
 
 def test_1_comp(synch_1):
@@ -89,7 +89,7 @@ def test_pointsource(radio):
 @pytest.mark.parametrize("nside", [16, 32, 64, 128, 256, 512, 1024, 2048])
 def test_nside(nside):
     """Tests a set of nsides."""
-    comp = Dust(
+    comp = ThermalDust(
         Quantity(np.ones((1, hp.nside2npix(nside))), unit="K"),
         Quantity([[40]], unit="GHz"),
         beta=Quantity(np.random.randint(10, 100, (1, hp.nside2npix(nside)))),

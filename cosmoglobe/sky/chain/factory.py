@@ -14,13 +14,13 @@ class ChainContextFactory:
 
     def __init__(self):
         self._context: Dict[Type[SkyComponent], List["ChainContext"]] = {
-            component: [] for component in DEFUALT_SKY_MODEL.components.values()
+            component: [] for component in DEFUALT_SKY_MODEL.components
         }
         self._mappings: Dict[Type[SkyComponent], Dict[str, str]] = {
-            component: {} for component in DEFUALT_SKY_MODEL.components.values()
+            component: {} for component in DEFUALT_SKY_MODEL.components
         }
         self._units: Dict[Type[SkyComponent], Dict[str, str]] = {
-            component: {} for component in DEFUALT_SKY_MODEL.components.values()
+            component: {} for component in DEFUALT_SKY_MODEL.components
         }
 
     def register_context(

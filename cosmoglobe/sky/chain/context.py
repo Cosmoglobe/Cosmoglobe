@@ -4,12 +4,11 @@ from astropy.units import Quantity, Unit
 import numpy as np
 from cosmoglobe.sky.components.ame import AME
 from cosmoglobe.sky.components.cmb import CMB
-from cosmoglobe.sky.components.dust import Dust
+from cosmoglobe.sky.components.dust import ThermalDust
 from cosmoglobe.sky.components.freefree import FreeFree
 from cosmoglobe.sky.components.radio import Radio
 from cosmoglobe.sky.components.synchrotron import Synchrotron
 
-from cosmoglobe.sky.csm import SkyComponentLabel
 from cosmoglobe.sky.chain.factory import ChainContextFactory
 
 
@@ -103,7 +102,7 @@ chain_context = ChainContextFactory()
 chain_context.register_context([], FreqRefContext)
 chain_context.register_context([], MapToScalarContext)
 chain_context.register_context([Radio], RadioContext)
-chain_context.register_context([Dust], DustContext)
+chain_context.register_context([ThermalDust], DustContext)
 
 chain_context.register_mapping([], {"freq_ref": "nu_ref"})
 chain_context.register_mapping([Radio], {"alpha": "specind"})
@@ -111,8 +110,8 @@ chain_context.register_mapping([AME], {"freq_peak": "nu_p"})
 chain_context.register_mapping([FreeFree], {"T_e": "Te"})
 
 chain_context.register_units([], {"freq_ref": Unit("Hz")})
-chain_context.register_units([CMB, AME, Dust, Synchrotron, FreeFree], {"amp": Unit("uK")})
+chain_context.register_units([CMB, AME, ThermalDust, Synchrotron, FreeFree], {"amp": Unit("uK")})
 chain_context.register_units([Radio], {"amp": Unit("mJy")})
 chain_context.register_units([AME], {"freq_peak": Unit("GHz")})
-chain_context.register_units([Dust], {"T": Unit("K")})
+chain_context.register_units([ThermalDust], {"T": Unit("K")})
 chain_context.register_units([FreeFree], {"T_e": Unit("K")})

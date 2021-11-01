@@ -17,10 +17,12 @@ from cosmoglobe.sky.base_components import (
     PointSourceComponent,
 )
 from cosmoglobe.sky.chain.context import chain_context
-from cosmoglobe.sky.csm import REGISTERED_SKY_MODELS, SkyComponentLabel
+from cosmoglobe.sky.csm import skymodel_registry
+from cosmoglobe.sky.components import SkyComponentLabel
 from cosmoglobe.sky.model import SkyModel
 
 DEFAULT_SAMPLE = -1
+
 
 def model_from_chain(
     chain: Union[str, Chain],
@@ -67,8 +69,10 @@ def model_from_chain(
             "cannot initialize a sky model from a chain without a " "parameter group"
         )
 
-    sky_model = REGISTERED_SKY_MODELS.get_model(model)
-
+    sky_model = skymodel_registry.get_model(model)
+    labeled_classes: Dict[str, SkyComponent] = {
+        component.label.value: component for component in sky_model.components
+    }
     print(f"Initializing model from {chain.path.name}")
     if components is None:
         components = chain.components
@@ -81,7 +85,7 @@ def model_from_chain(
         for component in components:
             progress_bar.set_description(f"{component:<{padding}}")
             try:
-                component_class = sky_model.components[SkyComponentLabel(component)]
+                component_class = labeled_classes[component]
             except KeyError:
                 raise ChainComponentNotFoundError(
                     f"{component=!r} is not part in the Cosmoglobe Sky Model"
@@ -132,13 +136,19 @@ def comp_from_chain(
             value = chain_params[chain_arg]
         else:
             try:
-                value = chain.mean(f"{component_label}/{chain_arg}_alm", samples=samples)
+                value = chain.mean(
+                    f"{component_label}/{chain_arg}_alm", samples=samples
+                )
                 is_alm = True
             except ChainKeyError:
                 try:
-                    value = chain.mean(f"{component_label}/{chain_arg}", samples=samples)
+                    value = chain.mean(
+                        f"{component_label}/{chain_arg}", samples=samples
+                    )
                 except ChainKeyError:
-                    value = chain.mean(f"{component_label}/{chain_arg}_map", samples=samples)
+                    value = chain.mean(
+                        f"{component_label}/{chain_arg}_map", samples=samples
+                    )
                 is_alm = False
 
             if is_alm:

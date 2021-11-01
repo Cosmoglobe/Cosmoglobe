@@ -5,7 +5,7 @@ import numpy as np
 import healpy as hp
 
 from cosmoglobe.sky.components.synchrotron import Synchrotron
-from cosmoglobe.sky.components.dust import Dust
+from cosmoglobe.sky.components.dust import ThermalDust
 from cosmoglobe.sky._exceptions import NsideError
 
 amp_1 = Quantity(np.ones((1, hp.nside2npix(32))), unit="K")
@@ -110,13 +110,13 @@ def test_spectral_params_type():
         freq_ref_3,
         beta=beta_3,
     )
-    Dust(amp_3, freq_ref_3, beta=beta_3, T=T_3)
+    ThermalDust(amp_3, freq_ref_3, beta=beta_3, T=T_3)
 
     with pytest.raises(TypeError):
-        Dust(amp_1, freq_ref_1, beta=beta_1, T=[[1]])
+        ThermalDust(amp_1, freq_ref_1, beta=beta_1, T=[[1]])
 
     with pytest.raises(ValueError):
-        Dust(
+        ThermalDust(
             amp_1,
             freq_ref_1,
             beta=beta_1,
@@ -128,13 +128,13 @@ def test_spectral_params_shape():
     """Tests the shape of spectral_params."""
 
     Synchrotron(amp_1, freq_ref_1, beta=beta_1)
-    Dust(
+    ThermalDust(
         amp_3,
         freq_ref_3,
         beta=Quantity([[10], [40], [20]]),
         T=Quantity([[10], [1], [1]], unit="K"),
     )
-    Dust(
+    ThermalDust(
         amp_3,
         freq_ref_3,
         beta=Quantity([[10], [40], [20]]),
@@ -155,7 +155,7 @@ def test_spectral_params_shape():
         Synchrotron(amp_1, freq_ref_1, beta=Quantity(np.zeros((hp.nside2npix(32)))))
 
     with pytest.raises(ValueError):
-        Dust(
+        ThermalDust(
             amp_1,
             freq_ref_1,
             beta=Quantity(np.zeros(3)),

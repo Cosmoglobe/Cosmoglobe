@@ -3,6 +3,7 @@ import numpy as np
 
 from cosmoglobe.data import DATA_DIR
 from cosmoglobe.sky.base_components import DiffuseComponent
+from cosmoglobe.sky.components import SkyComponentLabel
 
 SPDUST2_FILE = DATA_DIR / "spdust2_cnm.dat"
 
@@ -27,6 +28,7 @@ class AME(DiffuseComponent):
     template, and :math:`\nu_p` the peak frequency.
     """
 
+    label = SkyComponentLabel.AME
     SPINNING_DUST_TEMPLATE = np.loadtxt(SPDUST2_FILE).transpose()
 
     def get_freq_scaling(self, freqs: Quantity, freq_peak: Quantity) -> Quantity:

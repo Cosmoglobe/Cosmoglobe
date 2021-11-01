@@ -14,10 +14,13 @@ import numpy as np
 
 from cosmoglobe.sky._constants import DEFAULT_OUTPUT_UNIT, DEFAULT_FREQ_UNIT
 from cosmoglobe.sky._exceptions import NsideError
+from cosmoglobe.sky.components import SkyComponentLabel
 
 
 class SkyComponent(ABC):
     """Minimum base interface for a sky component."""
+
+    label: SkyComponentLabel
 
     def __init__(
         self,
