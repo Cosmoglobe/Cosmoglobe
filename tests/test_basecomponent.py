@@ -4,7 +4,6 @@ from astropy.units import Quantity, UnitsError
 import numpy as np
 import healpy as hp
 
-from cosmoglobe.sky.csm import cosmoglobe_sky_model
 from cosmoglobe.sky.components.synchrotron import Synchrotron
 from cosmoglobe.sky.components.dust import Dust
 from cosmoglobe.sky._exceptions import NsideError

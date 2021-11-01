@@ -2,7 +2,14 @@ from typing import Dict, Any, Protocol
 
 from astropy.units import Quantity, Unit
 import numpy as np
+from cosmoglobe.sky.components.ame import AME
+from cosmoglobe.sky.components.cmb import CMB
+from cosmoglobe.sky.components.dust import Dust
+from cosmoglobe.sky.components.freefree import FreeFree
+from cosmoglobe.sky.components.radio import Radio
+from cosmoglobe.sky.components.synchrotron import Synchrotron
 
+from cosmoglobe.sky.csm import SkyComponentLabel
 from cosmoglobe.sky.chain.factory import ChainContextFactory
 
 
@@ -95,17 +102,17 @@ chain_context = ChainContextFactory()
 
 chain_context.register_context([], FreqRefContext)
 chain_context.register_context([], MapToScalarContext)
-chain_context.register_context(["radio"], RadioContext)
-chain_context.register_context(["dust"], DustContext)
+chain_context.register_context([Radio], RadioContext)
+chain_context.register_context([Dust], DustContext)
 
 chain_context.register_mapping([], {"freq_ref": "nu_ref"})
-chain_context.register_mapping(["radio"], {"alpha": "specind"})
-chain_context.register_mapping(["ame"], {"freq_peak": "nu_p"})
-chain_context.register_mapping(["ff"], {"T_e": "Te"})
+chain_context.register_mapping([Radio], {"alpha": "specind"})
+chain_context.register_mapping([AME], {"freq_peak": "nu_p"})
+chain_context.register_mapping([FreeFree], {"T_e": "Te"})
 
 chain_context.register_units([], {"freq_ref": Unit("Hz")})
-chain_context.register_units(["cmb", "ame", "dust", "synch", "ff"], {"amp": Unit("uK")})
-chain_context.register_units(["radio"], {"amp": Unit("mJy")})
-chain_context.register_units(["ame"], {"freq_peak": Unit("GHz")})
-chain_context.register_units(["dust"], {"T": Unit("K")})
-chain_context.register_units(["ff"], {"T_e": Unit("K")})
+chain_context.register_units([CMB, AME, Dust, Synchrotron, FreeFree], {"amp": Unit("uK")})
+chain_context.register_units([Radio], {"amp": Unit("mJy")})
+chain_context.register_units([AME], {"freq_peak": Unit("GHz")})
+chain_context.register_units([Dust], {"T": Unit("K")})
+chain_context.register_units([FreeFree], {"T_e": Unit("K")})

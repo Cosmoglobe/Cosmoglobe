@@ -33,6 +33,6 @@ class Radio(PointSourceComponent):
     def get_freq_scaling(self, freqs: Quantity, alpha: Quantity) -> Quantity:
         """See base class."""
 
-        scaling = (freqs / self.freq_ref) ** (alpha - 2)
+        scaling = (freqs / self.freq_ref) ** alpha
 
         return scaling

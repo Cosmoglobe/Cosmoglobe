@@ -37,6 +37,6 @@ class Dust(DiffuseComponent):
         blackbody_ratio = blackbody_emission(freqs, T) / blackbody_emission(
             self.freq_ref, T
         )
-        scaling = (freqs / self.freq_ref) ** (beta - 2) * blackbody_ratio
+        scaling = (freqs / self.freq_ref) ** beta * blackbody_ratio
 
         return scaling

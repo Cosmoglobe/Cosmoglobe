@@ -9,7 +9,7 @@ from cosmoglobe.h5 import ChainVersion, PARAMETER_GROUP_NAME
 from cosmoglobe.h5._alms import unpack_alms_from_chain
 from cosmoglobe.h5._decorators import validate_key, validate_samples, unpack_alms
 from cosmoglobe.h5._exceptions import ChainFormatError, ChainSampleError
-from cosmoglobe.sky.csm import cosmoglobe_sky_model
+from cosmoglobe.sky.csm import SkyComponentLabel
 
 
 class Chain:
@@ -53,7 +53,7 @@ class Chain:
             components = [
                 group
                 for group in sampled_groups
-                if group in cosmoglobe_sky_model.components
+                if group in [label.value for label in SkyComponentLabel]
             ]
 
             parameters: Dict[str, Dict[str, Any]] = {}

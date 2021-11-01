@@ -5,6 +5,7 @@ import healpy as hp
 
 from cosmoglobe.sky.base_components import SkyComponent, PointSourceComponent
 from cosmoglobe.sky.simulator import SkySimulator
+from cosmoglobe.sky.csm import ModelInfo
 from cosmoglobe.sky.simulator import simulator as simulator_class
 from cosmoglobe.sky._constants import DEFAULT_OUTPUT_UNIT, NO_SMOOTHING
 from cosmoglobe.sky._exceptions import (
@@ -15,7 +16,7 @@ from cosmoglobe.sky._exceptions import (
 
 
 class SkyModel:
-    r"""Sky model object representing the Cosmoglobe Sky Model.
+    r"""Sky model object representing an initialized Cosmoglobe Sky Model.
 
     This class acts as a container for the various components making up
     the Cosmoglobe Sky Model, and provides methods to simulate the sky.
@@ -62,7 +63,12 @@ class SkyModel:
 
     simulator: SkySimulator = simulator_class
 
-    def __init__(self, nside: int, components: Dict[str, SkyComponent]) -> None:
+    def __init__(
+        self,
+        nside: int,
+        components: Dict[str, SkyComponent],
+        info: Optional[ModelInfo] = None,
+    ) -> None:
         """Initializes an instance of the Cosmoglobe Sky Model.
 
         Parameters
@@ -70,10 +76,13 @@ class SkyModel:
         nside
             Healpix resolution of the maps in sky model.
         components
-            A list of `SkyComponent`to include in the model.
+            A list of pre-initialized `SkyComponent`to include in the model.
+        info
+            A ModelInfo object containing the info related to the current sky model.
         """
 
         self.nside = nside
+        self.info = info
         if not all(
             isinstance(component, SkyComponent) for component in components.values()
         ):
