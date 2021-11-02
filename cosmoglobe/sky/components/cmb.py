@@ -2,7 +2,8 @@ from astropy.units import Quantity
 import numpy as np
 
 from cosmoglobe.sky.base_components import DiffuseComponent
-from cosmoglobe.utils.functions import thermodynamical_to_brightness
+from cosmoglobe.sky.components import SkyComponentLabel
+import cosmoglobe.sky._constants as const
 
 
 class CMB(DiffuseComponent):
@@ -25,14 +26,12 @@ class CMB(DiffuseComponent):
     :math:`T_0 = 2.7255 \mathrm{K}` as of BP9.
     """
 
-    label = "cmb"
+    label = SkyComponentLabel.CMB
 
-    def __init__(self, amp: Quantity, freq_ref: Quantity) -> None:
-        """Initializing base class."""
-
-        super().__init__(self.label, amp, freq_ref)
-
-    def get_freq_scaling(self, freqs: Quantity) -> Quantity:  # type: ignore
+    def get_freq_scaling(self, freqs: Quantity) -> Quantity:
         """See base class."""
 
-        return np.expand_dims(thermodynamical_to_brightness(freqs), axis=0)
+        x = (const.h * freqs) / (const.k_B * const.T_0)
+        scaling = ((x ** 2 * np.exp(x)) / (np.expm1(x) ** 2)).si
+
+        return np.expand_dims(scaling, axis=0)

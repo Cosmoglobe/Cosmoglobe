@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "cosmoglobe"
-version = "0.9.41"
+version = "0.9.42"
 description = "cosmoglobe is a python package that interfaces the Cosmoglobe Sky Model with commander3 outputs for the purpose of producing astrophysical sky maps."
 authors = ["Metin San <metinisan@gmail.com>", "Trygve Leithe Svalheim <t.l.svalheim@astro.uio.no>"]
 license = "GNU GPLv3"
@@ -34,6 +34,7 @@ jinja2= "<3.0.0"
 pytest = "^6.2.5"
 mypy = "^0.910"
 pytest-cov = "^2.12.1"
+flake8 = "^4.0.1"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -41,3 +42,28 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 cosmoglobe = 'cosmoglobe.__main__:cli'
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "pragma: unreachable",
+    "def __repr__",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+
+[tool.coverage.run]
+branch = true
+include = [
+    "ward/*",
+]
+
+
+[tool.mypy]
+overrides = [
+    { module = "h5py.*", ignore_missing_imports = true},
+    { module = "numba.*", ignore_missing_imports = true},
+    { module = "healpy.*", ignore_missing_imports = true},
+    { module = "astropy.*", ignore_missing_imports = true},
+    { module = "tqdm.*", ignore_missing_imports = true},
+]

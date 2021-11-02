@@ -1,11 +1,15 @@
-from cosmoglobe.sky.components import FreeFree
 import pytest
 
 from astropy.units import Quantity, Unit, UnitsError
 import numpy as np
 import healpy as hp
 
-from cosmoglobe.sky.components import CMB, Dust, Synchrotron, Radio, AME
+from cosmoglobe.sky.components.ame import AME
+from cosmoglobe.sky.components.cmb import CMB
+from cosmoglobe.sky.components.dust import ThermalDust
+from cosmoglobe.sky.components.freefree import FreeFree
+from cosmoglobe.sky.components.synchrotron import Synchrotron
+from cosmoglobe.sky.components.radio import Radio
 
 
 def test_init_synch():
@@ -32,8 +36,8 @@ def test_init_dust():
     T_1 = Quantity([[1]])
     T_3 = Quantity([[3], [2], [2]])
 
-    Dust(amp_1, freq_ref_1, beta=beta_1, T=T_1)
-    Dust(amp_3, freq_ref_3, beta=beta_3, T=T_3)
+    ThermalDust(amp_1, freq_ref_1, beta=beta_1, T=T_1)
+    ThermalDust(amp_3, freq_ref_3, beta=beta_3, T=T_3)
 
 
 def test_init_ff():

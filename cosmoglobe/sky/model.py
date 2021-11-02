@@ -3,13 +3,10 @@ from typing import Dict, Iterator, List, Optional, Union
 from astropy.units import Quantity, Unit
 import healpy as hp
 
-from cosmoglobe.sky.base_components import (
-    SkyComponent,
-    PointSourceComponent,
-    DiffuseComponent,
-    LineComponent,
-)
-from cosmoglobe.sky.simulator import SkySimulator, simulator
+from cosmoglobe.sky.base_components import SkyComponent, PointSourceComponent
+from cosmoglobe.sky.simulator import SkySimulator
+from cosmoglobe.sky.csm import SkyModelInfo
+from cosmoglobe.sky.simulator import DEFAULT_SIMULATOR
 from cosmoglobe.sky._constants import DEFAULT_OUTPUT_UNIT, NO_SMOOTHING
 from cosmoglobe.sky._exceptions import (
     NsideError,
@@ -19,7 +16,7 @@ from cosmoglobe.sky._exceptions import (
 
 
 class SkyModel:
-    r"""Sky model object representing the Cosmoglobe Sky Model.
+    r"""Sky model object representing an initialized Cosmoglobe Sky Model.
 
     This class acts as a container for the various components making up
     the Cosmoglobe Sky Model, and provides methods to simulate the sky.
@@ -64,9 +61,13 @@ class SkyModel:
       -4.71776995e+00  4.39850830e+00]] uK
     """
 
-    simulator: SkySimulator = simulator
-
-    def __init__(self, nside: int, components: List[SkyComponent]) -> None:
+    def __init__(
+        self,
+        nside: int,
+        components: Dict[str, SkyComponent],
+        info: Optional[SkyModelInfo] = None,
+        simulator: SkySimulator = DEFAULT_SIMULATOR,
+    ) -> None:
         """Initializes an instance of the Cosmoglobe Sky Model.
 
         Parameters
@@ -74,27 +75,28 @@ class SkyModel:
         nside
             Healpix resolution of the maps in sky model.
         components
-            A list of `SkyComponent`to include in the model.
+            A list of pre-initialized `SkyComponent`to include in the model.
+        info
+            A ModelInfo object containing the info related to the current sky model.
         """
 
         self.nside = nside
         if not all(
-            isinstance(
-                component, (PointSourceComponent, DiffuseComponent, LineComponent)
-            )
-            for component in components
+            isinstance(component, SkyComponent) for component in components.values()
         ):
             raise ComponentError("all components must be subclasses of SkyComponent")
 
         if not all(
             self.nside == hp.get_nside(component.amp)
-            for component in components
+            for component in components.values()
             if not isinstance(component, PointSourceComponent)
         ):
             raise NsideError(
                 "all diffuse maps in the sky model needs to be at a common nside"
             )
-        self._components = {component.label: component for component in components}
+        self.components = components
+        self.info = info
+        self._simulator = simulator
 
     @property
     def nside(self) -> int:
@@ -113,12 +115,6 @@ class SkyModel:
             raise TypeError("nside must be an integer")
 
         self._nside = int(value)
-
-    @property
-    def components(self) -> Dict[str, SkyComponent]:
-        """Sky Components in the model."""
-
-        return self._components
 
     def __call__(
         self,
@@ -158,14 +154,14 @@ class SkyModel:
         if components is not None:
             if not all(component in self.components for component in components):
                 raise ValueError("all component must be present in the model")
-            components = [
+            components_classes = [
                 value for key, value in self.components.items() if key in components
             ]
         else:
-            components = list(self.components.values())
+            components_classes = list(self.components.values())
 
-        emission = self.simulator(
-            self.nside, components, freqs, bandpass, fwhm, output_unit
+        emission = self._simulator(
+            self.nside, components_classes, freqs, bandpass, fwhm, output_unit
         )
 
         return emission
@@ -193,11 +189,11 @@ class SkyModel:
             component_repr = repr(component) + "\n"
             reprs.append(f"({label}): {component_repr}")
 
-        main_repr = f"SkyModel("
+        main_repr = "SkyModel("
         main_repr += f"\n  nside: {self._nside}"
         main_repr += "\n  components( "
         main_repr += "\n    " + "    ".join(reprs)
-        main_repr += f"  )"
-        main_repr += f"\n)"
+        main_repr += "  )"
+        main_repr += "\n)"
 
         return main_repr

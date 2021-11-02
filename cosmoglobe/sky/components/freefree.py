@@ -1,7 +1,8 @@
-from astropy.units import Quantity
+from astropy.units import Quantity, Unit, quantity_input
+import numpy as np
 
 from cosmoglobe.sky.base_components import DiffuseComponent
-from cosmoglobe.utils.functions import gaunt_factor
+from cosmoglobe.sky.components import SkyComponentLabel
 
 
 class FreeFree(DiffuseComponent):
@@ -23,17 +24,44 @@ class FreeFree(DiffuseComponent):
     :math:`T_\mathrm{e}` is the electron temperature.
     """
 
-    label = "ff"
+    label = SkyComponentLabel.FF
 
-    def __init__(self, amp: Quantity, freq_ref: Quantity, T_e: Quantity) -> None:
-        """Initializing base class."""
-
-        super().__init__(self.label, amp, freq_ref, T_e=T_e)
-
-    def get_freq_scaling(self, freqs: Quantity, T_e: Quantity) -> Quantity:  # type: ignore
+    def get_freq_scaling(self, freqs: Quantity, T_e: Quantity) -> Quantity:
         """See base class."""
 
         gaunt_factor_ratio = gaunt_factor(freqs, T_e) / gaunt_factor(self.freq_ref, T_e)
         scaling = (self.freq_ref / freqs) ** 2 * gaunt_factor_ratio
 
         return scaling
+
+
+@quantity_input(freq=Unit("Hz"), T_e=Unit("K"))
+def gaunt_factor(freq: Quantity, T_e: Quantity) -> Quantity:
+    """Returns the Gaunt factor.
+
+    Computes the gaunt factor for a given frequency and electron
+    temperaturein SI units.
+
+    Parameters
+    ----------
+    freq
+        Frequency [Hz].
+    T_e
+        Electron temperature [K].
+
+    Returns
+    -------
+    gaunt_factor
+        Gaunt Factor.
+    """
+
+    # Avoiding overflow and underflow.
+    T_e = T_e.astype(np.float64)
+    T_e = (T_e.to("kK")).value / 10
+    freq = (freq.to("GHz")).value
+
+    gaunt_factor = np.log(
+        np.exp(5.96 - (np.sqrt(3) / np.pi) * np.log(freq * T_e ** -1.5)) + np.e
+    )
+
+    return Quantity(gaunt_factor)

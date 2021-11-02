@@ -4,7 +4,13 @@ from astropy.units import Quantity
 import healpy as hp
 import numpy as np
 
-from cosmoglobe.sky.components import AME, CMB, Dust, FreeFree, Radio, Synchrotron
+from cosmoglobe.sky.components.ame import AME
+from cosmoglobe.sky.components.cmb import CMB
+from cosmoglobe.sky.components.dust import ThermalDust
+from cosmoglobe.sky.components.freefree import FreeFree
+from cosmoglobe.sky.components.synchrotron import Synchrotron
+from cosmoglobe.sky.components.radio import Radio
+
 from cosmoglobe.sky.model import SkyModel
 
 
@@ -30,7 +36,7 @@ def synch_3():
 @pytest.fixture()
 def dust_1():
 
-    return Dust(
+    return ThermalDust(
         Quantity(np.random.randint(10, 20, (1, hp.nside2npix(32))), unit="K"),
         Quantity([[40]], unit="GHz"),
         beta=Quantity(np.random.randint(10, 100, (1, hp.nside2npix(32)))),
@@ -40,7 +46,7 @@ def dust_1():
 
 @pytest.fixture()
 def dust_3():
-    return Dust(
+    return ThermalDust(
         Quantity(np.random.randint(10, 20, (3, hp.nside2npix(32))), unit="K"),
         Quantity([[20], [50], [50]], unit="GHz"),
         beta=Quantity([[0.3], [0.4], [0.4]]),
@@ -50,7 +56,7 @@ def dust_3():
 
 @pytest.fixture()
 def dust0spec():
-    return Dust(
+    return ThermalDust(
         Quantity(np.random.randint(10, 20, (3, hp.nside2npix(32))), unit="K"),
         Quantity([[20], [50], [50]], unit="GHz"),
         beta=Quantity([[10], [11], [11]]),
@@ -60,7 +66,7 @@ def dust0spec():
 
 @pytest.fixture()
 def dust1spec():
-    return Dust(
+    return ThermalDust(
         Quantity(np.random.randint(10, 20, (3, hp.nside2npix(32))), unit="K"),
         Quantity([[20], [50], [50]], unit="GHz"),
         beta=Quantity([[10], [11], [11]]),
@@ -70,7 +76,7 @@ def dust1spec():
 
 @pytest.fixture()
 def dust2spec():
-    return Dust(
+    return ThermalDust(
         Quantity(np.random.randint(10, 20, (3, hp.nside2npix(32))), unit="K"),
         Quantity([[20], [50], [50]], unit="GHz"),
         beta=Quantity(np.random.randint(10, 100, (3, hp.nside2npix(32)))),
@@ -118,7 +124,7 @@ def synch():
 
 @pytest.fixture()
 def dust():
-    return Dust(
+    return ThermalDust(
         Quantity(np.random.randint(10, 20, (3, hp.nside2npix(256))), unit="uK"),
         Quantity([[20], [50], [50]], unit="GHz"),
         beta=Quantity([[0.3], [0.4], [0.4]]),
@@ -136,4 +142,4 @@ def cmb():
 
 @pytest.fixture()
 def sky_model(synch, dust, ame, ff, radio, cmb):
-    return SkyModel(256, [synch, dust, ame, ff, radio, cmb])
+    return SkyModel(256, {"synch":synch, "dust":dust, "ame":ame, "ff":ff, "radio":radio, "cmb":cmb})
