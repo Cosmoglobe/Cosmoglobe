@@ -12,11 +12,13 @@ import cmasher
 from rich import print
 import numpy as np
 import healpy as hp
-import matplotlib.pyplot as plt
 import astropy.units as u
+import matplotlib.pyplot as plt
+import matplotlib as mpl
 from matplotlib.colors import colorConverter, LinearSegmentedColormap, ListedColormap
 from matplotlib.patches import Polygon
 from matplotlib import _pylab_helpers
+from matplotlib.ticker import FuncFormatter
 from pathlib import Path
 import json
 
@@ -44,7 +46,7 @@ STOKES = [
 ]
 
 
-def set_style(darkmode=False, font="stix"):
+def set_style(darkmode=False, font="serif"):
     """
     This function sets the color parameter and text style
     """
@@ -310,41 +312,7 @@ def find_nearest(array, value):
     array = np.asarray(array)
     idx = (np.abs(array - value)).argmin()
     return array[idx], idx
-
-
-def standalone_colorbar(
-    cmap,
-    ticks,
-    ticklabels=None,
-    unit=None,
-    fontsize=None,
-    norm=None,
-    shrink=0.3,
-    darkmode=False,
-    width=10,
-):
-
-    set_style(darkmode)
-    if fontsize is None:
-        fontsize = DEFAULT_FONTSIZES
-    plt.figure(figsize=(width, 2))
-    img = plt.imshow(np.array([[ticks[0], ticks[-1]]]), load_cmap(cmap))
-    plt.gca().set_visible(False)
-    if ticklabels is None:
-        ticklabels = format_list(ticks)
-    apply_colorbar(
-        plt.gcf(),
-        plt.gca(),
-        img,
-        ticks,
-        ticklabels,
-        unit,
-        fontsize=fontsize,
-        norm=norm,
-        cbar_shrink=shrink,
-        cbar_pad=0.0
-    )
-
+    
 
 def apply_logscale(m, ticks, linthresh=1):
     """
@@ -362,6 +330,44 @@ def apply_logscale(m, ticks, linthresh=1):
     m = np.maximum(np.minimum(m, new_ticks[-1]), new_ticks[0])
     return m, new_ticks
 
+def standalone_colorbar(
+    cmap,
+    ticks,
+    ticklabels=None,
+    unit=None,
+    fontsize=None,
+    norm=None,
+    shrink=0.3,
+    darkmode=False,
+    width=2,
+):
+
+    fig = plt.figure(figsize=(width, width/4))
+    set_style(darkmode)
+    cmap=load_cmap(cmap)
+    img = plt.imshow(np.array([[0,1]]), cmap=cmap)
+    plt.gca().set_visible(False)
+    ax = plt.axes([0.1, 0.7, 0.8, 0.2]) #LBWH
+
+    if fontsize is None:
+        fontsize = DEFAULT_FONTSIZES
+
+    if ticklabels is None:
+        ticklabels = format_list(ticks)
+    
+    apply_colorbar(
+        fig,
+        ax,
+        None,
+        ticks,
+        ticklabels,
+        unit,
+        fontsize=fontsize,
+        norm=norm,
+        cbar_shrink=shrink,
+        cbar_pad=0.0,
+        cmap=cmap
+    )
 
 def apply_colorbar(
     fig,
@@ -375,26 +381,36 @@ def apply_colorbar(
     norm=None,
     cbar_pad=0.04,
     cbar_shrink=0.3,
+    cmap=None
 ):
     """
     This function applies a colorbar to the figure and formats the ticks.
     """
-    from matplotlib.ticker import FuncFormatter
 
+    if image is None and cmap is not None:
+        norm = mpl.colors.Normalize(vmin=ticks[0], vmax=ticks[-1])
+        cb = mpl.colorbar.ColorbarBase(ax, cmap=cmap,
+                                        norm=norm,
+                                        orientation="horizontal",
+                                        ticks=ticks,
+                                        format=FuncFormatter(fmt))
+    else:
+        cb = fig.colorbar(
+            image,
+            ax=ax,
+            orientation="horizontal",
+            shrink=cbar_shrink,
+            pad=cbar_pad,
+            ticks=ticks,
+            format=FuncFormatter(fmt),
+        )
+    
     if fontsize is None:
         fontsize = DEFAULT_FONTSIZES
-    cb = fig.colorbar(
-        image,
-        ax=ax,
-        orientation="horizontal",
-        shrink=cbar_shrink,
-        pad=cbar_pad,
-        ticks=ticks,
-        format=FuncFormatter(fmt),
-    )
-    cb.ax.set_xticklabels(ticklabels, size=fontsize["cbar_tick_label"])
     if isinstance(unit, u.UnitBase):
         unit = unit.to_string("latex")
+
+    cb.ax.set_xticklabels(ticklabels, size=fontsize["cbar_tick_label"])
     cb.ax.xaxis.set_label_text(unit, size=fontsize["cbar_label"])
     if norm == "log":
         linticks = np.linspace(-1, 1, 3) * linthresh
@@ -431,6 +447,7 @@ def apply_colorbar(
     cb.ax.xaxis.labelpad = 0
     # workaround for issue with viewers, see colorbar docstring
     cb.solids.set_edgecolor("face")
+
     return cb
 
 
