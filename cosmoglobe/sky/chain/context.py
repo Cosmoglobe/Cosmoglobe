@@ -51,24 +51,10 @@ class RadioContext:
     the units properly. This is fine since we always end dividing by
     the beam_area when converting the amplitudes to HEALPIX maps.
 
-    We subtract 2 from the alpha map / scalar to convert to units of K_RJ.
-
     """
 
     def __call__(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        args["alpha"] = args["alpha"][0] - 2
-
-        return args
-
-
-class DustContext:
-    """Context for the Dust component in the chain.
-
-    We subtract 2 from the beta map / scalar to convert to units of K_RJ.
-    """
-
-    def __call__(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        args["beta"] = args["beta"] - 2
+        args["alpha"] = args["alpha"][0]
 
         return args
 
@@ -102,7 +88,6 @@ chain_context = ChainContextFactory()
 chain_context.register_context([], FreqRefContext)
 chain_context.register_context([], MapToScalarContext)
 chain_context.register_context([Radio], RadioContext)
-chain_context.register_context([ThermalDust], DustContext)
 
 chain_context.register_mapping([], {"freq_ref": "nu_ref"})
 chain_context.register_mapping([Radio], {"alpha": "specind"})

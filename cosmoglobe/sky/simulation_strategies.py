@@ -18,6 +18,8 @@ from cosmoglobe.sky._constants import DEFAULT_OUTPUT_UNIT
 from cosmoglobe.sky._bandpass import get_normalized_bandpass, get_bandpass_coefficient
 from cosmoglobe.sky._beam import pointsources_to_healpix
 
+SkyComponent = Union[DiffuseComponent, PointSourceComponent, LineComponent]
+
 
 class Simulation(Protocol):
     """Protocol defining how a component behaves when used in simulations."""

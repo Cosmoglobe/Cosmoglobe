@@ -1,6 +1,8 @@
 from typing import Dict, List, Type
 from dataclasses import dataclass
 
+from cosmoglobe.sky._exceptions import ModelNotFoundError
+
 from cosmoglobe.sky.base_components import SkyComponent
 from cosmoglobe.sky.components.ame import AME
 from cosmoglobe.sky.components.synchrotron import Synchrotron
@@ -57,8 +59,13 @@ class SkyModelRegistry:
 
     def get_model(self, name: str) -> CosmoglobeSkyModel:
         """Returns a registered sky model."""
-
-        return self.models[name]
+        try:
+            return self.models[name]
+        except KeyError:
+            raise ModelNotFoundError(
+                f"model {name} was not found in the registry. "
+                f"Available models are: {list(self.models.keys())}"
+            )
 
 
 skymodel_registry = SkyModelRegistry()
@@ -73,4 +80,4 @@ skymodel_registry.register_model(
     ),
 )
 
-DEFUALT_SKY_MODEL = skymodel_registry.get_model("BeyondPlanck")
+DEFAULT_SKY_MODEL = skymodel_registry.get_model("BeyondPlanck")

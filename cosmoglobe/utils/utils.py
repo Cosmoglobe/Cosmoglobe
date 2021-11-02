@@ -6,6 +6,7 @@ import numpy as np
 import cosmoglobe.utils.functions as F
 
 
+
 def extract_scalars(spectral_parameters: Dict[str, u.Quantity]):
     """Extracts scalars from a spectral_parameter dict.
 

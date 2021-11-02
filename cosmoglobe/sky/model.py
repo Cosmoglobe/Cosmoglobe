@@ -190,6 +190,8 @@ class SkyModel:
             reprs.append(f"({label}): {component_repr}")
 
         main_repr = "SkyModel("
+        if self.info is not None:
+            main_repr += f"\n  version: {self.info.version}"
         main_repr += f"\n  nside: {self._nside}"
         main_repr += "\n  components( "
         main_repr += "\n    " + "    ".join(reprs)

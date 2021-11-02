@@ -18,7 +18,6 @@ from cosmoglobe.sky.base_components import (
 )
 from cosmoglobe.sky.chain.context import chain_context
 from cosmoglobe.sky.csm import skymodel_registry
-from cosmoglobe.sky.components import SkyComponentLabel
 from cosmoglobe.sky.model import SkyModel
 
 DEFAULT_SAMPLE = -1
@@ -28,9 +27,9 @@ def model_from_chain(
     chain: Union[str, Chain],
     nside: int,
     components: Optional[List[str]] = None,
+    model: str = "BeyondPlanck",
     samples: Optional[Union[range, int, Literal["all"]]] = DEFAULT_SAMPLE,
     burn_in: Optional[int] = None,
-    model: str = "BeyondPlanck",
 ) -> SkyModel:
     """Initialize and return a cosmoglobe sky model from a chainfile.
 
@@ -38,10 +37,12 @@ def model_from_chain(
     ----------
     chain
         Path to a Cosmoglobe chainfile or a Chain object.
-    components
-        List of components to include in the model.
     nside
         Model HEALPIX map resolution parameter.
+    components
+        List of components to include in the model.
+    model
+        String representing which sky model to use. Defaults to BeyondPlanck.
     samples
         The sample number for which to extract the model. If the input
         is 'all', then the model will an average of all samples in the chain.
@@ -52,7 +53,7 @@ def model_from_chain(
     Returns
     -------
     model
-        Initialized sky mode object.
+        Initialized sky model.
     """
 
     if not isinstance(chain, Chain):
@@ -70,9 +71,10 @@ def model_from_chain(
         )
 
     sky_model = skymodel_registry.get_model(model)
-    labeled_classes: Dict[str, SkyComponent] = {
+    labeled_classes: Dict[str, Type[SkyComponent]] = {
         component.label.value: component for component in sky_model.components
     }
+
     print(f"Initializing model from {chain.path.name}")
     if components is None:
         components = chain.components
@@ -109,12 +111,17 @@ def comp_from_chain(
 
     Parameters
     ----------
-    component
-        Name of the component in the chain.
     chain
         Chain object.
     nside
         Model HEALPIX map resolution parameter.
+    component_label
+        Name of the component.
+    component_class
+        Class representing the sky component.
+    samples
+        A range object, or an int representing the samples to use from the 
+        chain.
 
     Returns
     -------
@@ -124,8 +131,10 @@ def comp_from_chain(
     class_args = get_comp_signature(component_class)
     args = {}
 
-    # Contexts are operations that needs to be done to the data in the
-    # chain before it can be used in the sky model.
+    # Chain contexts are operations that we perform on the data in the chain
+    # to fit it to the format required in the Cosmoglobe Sky Model. This includes,
+    # renaming of variables (mappings), specifying astropy units, and reshaping
+    # and/or converting maps constant over the sky to scalars.
     mappings = chain_context.get_mappings(component_class)
     units = chain_context.get_units(component_class)
     for arg in class_args:

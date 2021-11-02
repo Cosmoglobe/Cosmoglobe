@@ -18,7 +18,19 @@ from cosmoglobe.sky.components import SkyComponentLabel
 
 
 class SkyComponent(ABC):
-    """Minimum base interface for a sky component."""
+    """Abstract base class for sky components.
+
+    Attributes
+    ----------
+    label
+        Name of the sky component.
+    amp
+        Amplitude map.
+    freq_ref
+        Reference frequency of the amplitude map.
+    spectral_parameters
+        Dictionary containing the spectral parameters for the component.
+    """
 
     label: SkyComponentLabel
 
@@ -32,16 +44,58 @@ class SkyComponent(ABC):
         self.freq_ref = freq_ref
         self.spectral_parameters = spectral_parameters
 
+        self._validate_freq_ref(freq_ref)
+
+    @staticmethod
+    def _validate_freq_ref(freq_ref: Quantity):
+        """Validates the type and shape of a reference frequency attribute."""
+
+        if not isinstance(freq_ref, Quantity):
+            raise TypeError("reference frequency must of type `astropy.units.Quantity`")
+
+        if freq_ref.shape not in ((1, 1), (3, 1)):
+            raise ValueError(
+                "shape of reference frequency must be either (1, 1) or "
+                "(3, 1) depending on if the component is polarized."
+            )
+
+        try:
+            freq_ref.to(DEFAULT_FREQ_UNIT, equivalencies=spectral())
+        except UnitConversionError:
+            raise UnitsError(
+                f"reference frequency must have units compatible with {DEFAULT_FREQ_UNIT}"
+            )
+
+    def __repr__(self) -> str:
+        """Representation of the sky component."""
+
+        main_repr = f"{self.__class__.__name__}"
+        main_repr += "("
+        extra_repr = ""
+        for key in self.spectral_parameters.keys():
+            extra_repr += f"{key}, "
+        if extra_repr:
+            extra_repr = extra_repr[:-2]
+        main_repr += extra_repr
+        main_repr += ")"
+
+        return main_repr
+
 
 class DiffuseComponent(SkyComponent):
-    """Base class for diffuse sky components."""
+    """Base class for diffuse sky components.
+
+    A diffuse sky component must implement the `get_freq_scaling` method
+    which computes the unscaled component SED.
+    """
 
     def __init__(self, amp, freq_ref, **spectral_parameters):
         super().__init__(amp, freq_ref, **spectral_parameters)
 
-        validate_freq_ref(freq_ref)
-        self.validate_amp(amp)
-        self.validate_spectral_parameters(spectral_parameters)
+        # The shapes of the attributes are critical to the sky simulation
+        # which relies on broadcasting these quantities.
+        self._validate_amp(amp)
+        self._validate_spectral_parameters(spectral_parameters)
 
     @abstractmethod
     def get_freq_scaling(
@@ -65,7 +119,7 @@ class DiffuseComponent(SkyComponent):
             frequencies.
         """
 
-    def validate_amp(self, amp: Quantity) -> None:
+    def _validate_amp(self, amp: Quantity) -> None:
         if not isinstance(amp, Quantity):
             raise TypeError("ampltiude map must of type `astropy.units.Quantity`")
 
@@ -94,7 +148,7 @@ class DiffuseComponent(SkyComponent):
                     f"amplitude map must have units compatible with {DEFAULT_OUTPUT_UNIT}"
                 )
 
-    def validate_spectral_parameters(
+    def _validate_spectral_parameters(
         self, spectral_parameters: Dict[str, Quantity]
     ) -> None:
         for name, parameter in spectral_parameters.items():
@@ -119,29 +173,33 @@ class DiffuseComponent(SkyComponent):
                         "HEALPIX nside"
                     )
 
-    def __repr__(self) -> str:
-        return sky_component_repr(self)
-
 
 class PointSourceComponent(SkyComponent):
-    """Base class for PointSource sky components."""
+    """Base class for PointSource sky components.
 
-    # A radio catalog must have shape (2, `npointsources`), where
-    # `npointsources` must match the number of points in `amp`
+    A pointsource sky component must implement the `get_freq_scaling` method
+    which computes the unscaled component SED.
+
+    Additionally, a catalog mapping each source to a coordinate given by
+    latitude and longitude must be specificed as a class/instance attribute.
+    """
+
     catalog: np.ndarray
 
     def __init__(self, amp, freq_ref, **spectral_parameters):
         super().__init__(amp, freq_ref, **spectral_parameters)
 
-        validate_freq_ref(freq_ref)
-        self.validate_amp(amp)
+        # We validate the shape and type of the various class attributes.
+        # The shapes of the attributes are critical to the sky simulation
+        # which relies on broadcasting these quantities.
+        self._validate_amp(amp)
         try:
-            self.validate_catalog((self.catalog))
+            self._validate_catalog((self.catalog))
         except AttributeError:
             raise AttributeError(
                 "a point source catalog must be specified as a class attribute."
             )
-        self.validate_spectral_parameters(spectral_parameters)
+        self._validate_spectral_parameters(spectral_parameters)
 
     @abstractmethod
     def get_freq_scaling(
@@ -165,7 +223,7 @@ class PointSourceComponent(SkyComponent):
             frequencies.
         """
 
-    def validate_amp(self, amp: Quantity) -> None:
+    def _validate_amp(self, amp: Quantity) -> None:
         if not isinstance(amp, Quantity):
             raise TypeError("ampltiude map must of type `astropy.units.Quantity`")
 
@@ -185,7 +243,7 @@ class PointSourceComponent(SkyComponent):
                 f"{DEFAULT_OUTPUT_UNIT / Unit('sr')}"
             )
 
-    def validate_spectral_parameters(
+    def _validate_spectral_parameters(
         self, spectral_parameters: Dict[str, Quantity]
     ) -> None:
         for parameter in spectral_parameters.values():
@@ -201,16 +259,13 @@ class PointSourceComponent(SkyComponent):
                     "if the parameter is a scalar"
                 )
 
-    def validate_catalog(self, catalog: np.ndarray):
+    def _validate_catalog(self, catalog: np.ndarray):
         if catalog.shape[1] != self.amp.shape[1]:
             raise ValueError(
                 f"number of pointsources ({self.amp.shape[1]}) does not "
                 f"match the number of cataloged points ({self.catalog.shape}). "
                 "catalog shape must be (3, `npointsources`)"
             )
-
-    def __repr__(self) -> str:
-        return sky_component_repr(self)
 
 
 class LineComponent(SkyComponent):
@@ -223,10 +278,9 @@ class LineComponent(SkyComponent):
     def __init__(self, amp, freq_ref, **spectral_parameters):
         super().__init__(amp, freq_ref, **spectral_parameters)
 
-        validate_freq_ref(freq_ref)
-        self.validate_amp(amp)
+        self._validate_amp(amp)
 
-    def validate_amp(self, value: Quantity) -> None:
+    def _validate_amp(self, value: Quantity) -> None:
         if not isinstance(value, Quantity):
             raise TypeError("ampltiude map must of type `astropy.units.Quantity`")
 
@@ -246,37 +300,3 @@ class LineComponent(SkyComponent):
                 "amplitude map must have units compatible with "
                 f"{DEFAULT_OUTPUT_UNIT / Unit('km/s')}"
             )
-
-
-def validate_freq_ref(freq_ref: Quantity):
-    """Validates the type and shape of a reference frequency attribute."""
-
-    if not isinstance(freq_ref, Quantity):
-        raise TypeError("reference frequency must of type `astropy.units.Quantity`")
-
-    if freq_ref.shape not in ((1, 1), (3, 1)):
-        raise ValueError(
-            "shape of reference frequency must be either (1, 1) or "
-            "(3, 1) depending on if the component is polarized."
-        )
-
-    try:
-        freq_ref.to(DEFAULT_FREQ_UNIT, equivalencies=spectral())
-    except UnitConversionError:
-        raise UnitsError(
-            f"reference frequency must have units compatible with {DEFAULT_FREQ_UNIT}"
-        )
-
-
-def sky_component_repr(component):
-    main_repr = f"{component.__class__.__name__}"
-    main_repr += "("
-    extra_repr = ""
-    for key in component.spectral_parameters.keys():
-        extra_repr += f"{key}, "
-    if extra_repr:
-        extra_repr = extra_repr[:-2]
-    main_repr += extra_repr
-    main_repr += ")"
-
-    return main_repr
