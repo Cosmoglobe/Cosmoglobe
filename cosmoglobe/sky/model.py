@@ -2,17 +2,22 @@ from typing import Dict, Iterator, List, Optional, Union
 
 from astropy.units import Quantity, Unit
 import healpy as hp
+import numpy as np
 
-from cosmoglobe.sky.base_components import SkyComponent, PointSourceComponent
-from cosmoglobe.sky.simulator import SkySimulator
+from cosmoglobe.sky.base_components import (
+    DiffuseComponent,
+    LineComponent,
+    SkyComponent,
+    PointSourceComponent,
+)
 from cosmoglobe.sky.csm import SkyModelInfo
-from cosmoglobe.sky.simulator import DEFAULT_SIMULATOR
-from cosmoglobe.sky._constants import DEFAULT_OUTPUT_UNIT, NO_SMOOTHING
+from cosmoglobe.sky._constants import DEFAULT_OUTPUT_UNIT, DEFAULT_BEAM_FWHM
 from cosmoglobe.sky._exceptions import (
     NsideError,
     ComponentError,
     ComponentNotFoundError,
 )
+from cosmoglobe.utils.utils import str_to_astropy_unit
 
 
 class SkyModel:
@@ -66,7 +71,6 @@ class SkyModel:
         nside: int,
         components: Dict[str, SkyComponent],
         info: Optional[SkyModelInfo] = None,
-        simulator: SkySimulator = DEFAULT_SIMULATOR,
     ) -> None:
         """Initializes an instance of the Cosmoglobe Sky Model.
 
@@ -96,7 +100,6 @@ class SkyModel:
             )
         self.components = components
         self.info = info
-        self._simulator = simulator
 
     @property
     def nside(self) -> int:
@@ -122,7 +125,7 @@ class SkyModel:
         bandpass: Optional[Quantity] = None,
         *,
         components: Optional[List[str]] = None,
-        fwhm: Quantity = NO_SMOOTHING,
+        fwhm: Quantity = DEFAULT_BEAM_FWHM,
         output_unit: Union[str, Unit] = DEFAULT_OUTPUT_UNIT,
     ) -> Quantity:
         r"""Simulates and returns the full sky model emission.
@@ -151,18 +154,74 @@ class SkyModel:
             The simulated emission given the Cosmoglobe Sky Model.
         """
 
-        if components is not None:
+        if components is None:
+            included_components = list(self.components.values())
+        else:
             if not all(component in self.components for component in components):
                 raise ValueError("all component must be present in the model")
-            components_classes = [
-                value for key, value in self.components.items() if key in components
+            included_components = [
+                component
+                for label, component in self.components.items()
+                if label in components
             ]
-        else:
-            components_classes = list(self.components.values())
 
-        emission = self._simulator(
-            self.nside, components_classes, freqs, bandpass, fwhm, output_unit
+        diffuse_components: List[Union[DiffuseComponent, LineComponent]] = []
+        pointsource_components: List[PointSourceComponent] = []
+        for component_class in included_components:
+            if isinstance(component_class, (DiffuseComponent, LineComponent)):
+                diffuse_components.append(component_class)
+            elif isinstance(component_class, PointSourceComponent):
+                pointsource_components.append(component_class)
+
+        shape = (
+            (3, hp.nside2npix(self.nside))
+            if any(component.amp.shape[0] == 3 for component in included_components)
+            else (1, hp.nside2npix(self.nside))
         )
+
+        emission = Quantity(
+            np.zeros(shape),
+            unit=output_unit
+            if isinstance(output_unit, Unit)
+            else str_to_astropy_unit(output_unit),
+        )
+
+        for diffuse_component in diffuse_components:
+            component_emission = diffuse_component.simulate_emission(
+                freqs,
+                bandpass=bandpass,
+                nside=self.nside,
+                fwhm=fwhm,
+                output_unit=output_unit,
+            )
+
+            for IQU, diffuse_emission in enumerate(component_emission):
+                emission[IQU] += diffuse_emission
+
+        if fwhm.value != DEFAULT_BEAM_FWHM:
+            fwhm_rad = fwhm.to("rad").value
+            if shape[0] == 3:
+                emission = Quantity(
+                    hp.smoothing(emission, fwhm=fwhm_rad), unit=emission.unit
+                )
+            else:
+                emission = Quantity(
+                    np.expand_dims(
+                        hp.smoothing(np.squeeze(emission), fwhm=fwhm_rad), axis=0
+                    ),
+                    unit=emission.unit,
+                )
+
+        for pointsource_component in pointsource_components:
+            component_emission = pointsource_component.simulate_emission(
+                freqs,
+                bandpass=bandpass,
+                nside=self.nside,
+                fwhm=fwhm,
+                output_unit=output_unit,
+            )
+            for IQU, pointsource_emission in enumerate(component_emission):
+                emission[IQU] += pointsource_emission
 
         return emission
 

@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Dict
+from typing import Dict, Optional, Union
+import warnings
 
 from astropy.units import (
     Quantity,
@@ -8,13 +9,18 @@ from astropy.units import (
     UnitsError,
     brightness_temperature,
     spectral,
+    quantity_input,
 )
 import healpy as hp
 import numpy as np
 
-from cosmoglobe.sky._constants import DEFAULT_OUTPUT_UNIT, DEFAULT_FREQ_UNIT
+from cosmoglobe.sky._constants import DEFAULT_OUTPUT_UNIT, DEFAULT_BEAM_FWHM
 from cosmoglobe.sky._exceptions import NsideError
 from cosmoglobe.sky.components import SkyComponentLabel
+from cosmoglobe.utils.utils import to_unit
+from cosmoglobe.utils.bandpass import get_bandpass_scaling
+from cosmoglobe.sky._bandpass import get_normalized_bandpass, get_bandpass_coefficient
+from cosmoglobe.sky._beam import pointsources_to_healpix
 
 
 class SkyComponent(ABC):
@@ -46,6 +52,118 @@ class SkyComponent(ABC):
 
         self._validate_freq_ref(freq_ref)
 
+    @abstractmethod
+    def get_delta_emission(
+        self,
+        freq: Quantity,
+        *,
+        nside: Optional[int],
+        fwhm: Quantity,
+        output_unit: Union[str, Unit],
+    ) -> Quantity:
+        """Computes and returns the emission for a delta frequency.
+
+        Parameters
+        ----------
+        freq
+            Frequency for which to compute the delta emission.
+        nside
+            nside of the HEALPIX map.
+        fwhm
+            The full width half max parameter of the Gaussian.
+        output_unit
+            The requested output units of the simulated emission.
+
+        Returns
+        -------
+            Simulated delta frequency emission.
+        """
+
+    @abstractmethod
+    def get_bandpass_emission(
+        self,
+        freqs: Quantity,
+        bandpass: Optional[Quantity],
+        *,
+        nside: Optional[int],
+        fwhm: Quantity,
+        output_unit: Union[str, Unit],
+    ) -> Quantity:
+        """Computes and returns the emission for a bandpass profile.
+
+        Parameters
+        ----------
+        freqs
+            An array of frequencies for which to compute the bandpass emission
+            over.
+        bandpass
+            An array of bandpass weights corresponding the frequencies in the
+            frequencies array.
+        nside
+            nside of the HEALPIX map.
+        fwhm
+            The full width half max parameter of the Gaussian.
+        output_unit
+            The requested output units of the simulated emission.
+
+        Returns
+        -------
+            Integrated bandpass emission.
+        """
+
+    @quantity_input(
+        freqs="Hz", bandpass=("1/Hz", "K", "Jy/sr", None), fwhm=("deg", "arcmin", "rad")
+    )
+    def simulate_emission(
+        self,
+        freqs: Quantity,
+        bandpass: Optional[Quantity] = None,
+        nside: Optional[int] = None,
+        fwhm: Quantity = DEFAULT_BEAM_FWHM,
+        output_unit: Union[str, Unit] = DEFAULT_OUTPUT_UNIT,
+    ) -> Quantity:
+        """Returns the simulated emission for a sky component.
+
+        Parameters
+        ----------
+        freqs
+            An array of frequencies for which to compute the bandpass emission
+            over.
+        bandpass
+            An array of bandpass weights corresponding the frequencies in the
+            frequencies array.
+        nside
+            nside of the HEALPIX map.
+        fwhm
+            The full width half max parameter of the Gaussian.
+        output_unit
+            The requested output units of the simulated emission.
+
+        Returns
+        -------
+            Integrated bandpass emission.
+        """
+
+        if freqs.size > 1:
+            if bandpass is not None and freqs.shape != bandpass.shape:
+                raise ValueError("freqs and bandpass must have the same shape")
+
+            if bandpass is None:
+                warnings.warn("bandpass is None. Defaulting to top-hat bandpass")
+                bandpass = np.ones(freqs_len := len(freqs)) / freqs_len * Unit("1/GHz")
+
+            return self.get_bandpass_emission(
+                freqs,
+                bandpass,
+                output_unit=output_unit,
+                fwhm=fwhm,
+                nside=nside,
+            )
+
+        return self.get_delta_emission(
+            freqs, output_unit=output_unit, fwhm=fwhm, nside=nside
+        )
+
     @staticmethod
     def _validate_freq_ref(freq_ref: Quantity):
         """Validates the type and shape of a reference frequency attribute."""
@@ -60,11 +178,9 @@ class SkyComponent(ABC):
             )
 
         try:
-            freq_ref.to(DEFAULT_FREQ_UNIT, equivalencies=spectral())
+            freq_ref.to("Hz", equivalencies=spectral())
         except UnitConversionError:
-            raise UnitsError(
-                f"reference frequency must have units compatible with {DEFAULT_FREQ_UNIT}"
-            )
+            raise UnitsError("reference frequency must have units compatible with Hz")
 
     def __repr__(self) -> str:
         """Representation of the sky component."""
@@ -92,8 +208,8 @@ class DiffuseComponent(SkyComponent):
     def __init__(self, amp, freq_ref, **spectral_parameters):
         super().__init__(amp, freq_ref, **spectral_parameters)
 
-        # The shapes of the attributes are critical to the sky simulation
-        # which relies on broadcasting these quantities.
+        # All input quantities are validated to make sure they can be
+        # properly broadcasted under the sky simulation.
         self._validate_amp(amp)
         self._validate_spectral_parameters(spectral_parameters)
 
@@ -118,6 +234,34 @@ class DiffuseComponent(SkyComponent):
             The factor with which to scale the amplitude map for a set of
             frequencies.
         """
+
+    def get_delta_emission(
+        self, freq: Quantity, output_unit: Union[str, Unit], **_
+    ) -> Quantity:
+        """See base class."""
+
+        emission = self.amp * self.get_freq_scaling(freq, **self.spectral_parameters)
+
+        if output_unit != DEFAULT_OUTPUT_UNIT:
+            emission = to_unit(emission, freq, output_unit)
+
+        return emission
+
+    def get_bandpass_emission(
+        self, freqs: Quantity, bandpass: Quantity, output_unit: Union[str, Unit], **_
+    ) -> Quantity:
+        """See base class."""
+
+        bandpass = get_normalized_bandpass(freqs, bandpass)
+
+        bandpass_scaling = get_bandpass_scaling(freqs, bandpass, self)
+        emission = self.amp * bandpass_scaling
+        input_unit = emission.unit
+        unit_coefficient = get_bandpass_coefficient(
+            freqs, bandpass, input_unit, output_unit
+        )
+
+        return emission * unit_coefficient
 
     def _validate_amp(self, amp: Quantity) -> None:
         if not isinstance(amp, Quantity):
@@ -189,9 +333,8 @@ class PointSourceComponent(SkyComponent):
     def __init__(self, amp, freq_ref, **spectral_parameters):
         super().__init__(amp, freq_ref, **spectral_parameters)
 
-        # We validate the shape and type of the various class attributes.
-        # The shapes of the attributes are critical to the sky simulation
-        # which relies on broadcasting these quantities.
+        # All input quantities are validated to make sure they can be
+        # properly broadcasted under the sky simulation.
         self._validate_amp(amp)
         try:
             self._validate_catalog((self.catalog))
@@ -222,6 +365,41 @@ class PointSourceComponent(SkyComponent):
             The factor with which to scale the amplitude map for a set of
             frequencies.
         """
+
+    def get_delta_emission(
+        self, freq: Quantity, nside: int, fwhm: Quantity, output_unit: Union[str, Unit]
+    ) -> Quantity:
+        """See base class."""
+
+        point_sources = self.amp * self.get_freq_scaling(
+            freq, **self.spectral_parameters
+        )
+
+        emission = pointsources_to_healpix(point_sources, self.catalog, nside, fwhm)
+        emission = to_unit(emission, freq, output_unit)
+
+        return emission
+
+    def get_bandpass_emission(
+        self,
+        freqs: Quantity,
+        bandpass: Quantity,
+        nside: int,
+        fwhm: Quantity,
+        output_unit: Union[str, Unit],
+    ) -> Quantity:
+        """See base class."""
+
+        bandpass = get_normalized_bandpass(freqs, bandpass)
+        bandpass_scaling = get_bandpass_scaling(freqs, bandpass, self)
+        point_sources = self.amp * bandpass_scaling
+        emission = pointsources_to_healpix(point_sources, self.catalog, nside, fwhm)
+        input_unit = emission.unit
+        unit_coefficient = get_bandpass_coefficient(
+            freqs, bandpass, input_unit, output_unit
+        )
+
+        return emission * unit_coefficient
 
     def _validate_amp(self, amp: Quantity) -> None:
         if not isinstance(amp, Quantity):
@@ -279,6 +457,23 @@ class LineComponent(SkyComponent):
         super().__init__(amp, freq_ref, **spectral_parameters)
 
         self._validate_amp(amp)
+
+    def get_delta_emission(
+        self,
+        freq: Quantity,
+        output_unit: Union[str, Unit],
+        **_,
+    ) -> Quantity:
+        """See base class."""
+
+    def get_bandpass_emission(
+        self,
+        freqs: Quantity,
+        bandpass: Quantity,
+        output_unit: Union[str, Unit],
+        **_,
+    ) -> Quantity:
+        """See base class."""
 
     def _validate_amp(self, value: Quantity) -> None:
         if not isinstance(value, Quantity):

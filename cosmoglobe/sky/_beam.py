@@ -6,7 +6,7 @@ import numpy as np
 import healpy as hp
 
 from cosmoglobe.utils.utils import gaussian_beam_2D
-from cosmoglobe.sky._constants import NO_SMOOTHING
+from cosmoglobe.sky._constants import DEFAULT_BEAM_FWHM
 
 TEST_BEAM_BL = "/Users/metinsan/Documents/doktor/Cosmoglobe_test_data/wmap_beam.txt"
 
@@ -51,7 +51,7 @@ def pointsources_to_healpix(
 
     fwhm = fwhm.to("rad")
     # Directly map to pixels without any smoothing
-    if fwhm.value == NO_SMOOTHING:
+    if fwhm.value == DEFAULT_BEAM_FWHM:
         warnings.warn(
             "fwhm not specified. Mapping point sources to pixels "
             "without beam smoothing"
