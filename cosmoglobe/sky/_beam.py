@@ -5,11 +5,9 @@ from astropy.units import Quantity, Unit, quantity_input
 import numpy as np
 import healpy as hp
 
-from cosmoglobe.utils.utils import gaussian_beam_2D
 from cosmoglobe.sky._constants import DEFAULT_BEAM_FWHM
 
 TEST_BEAM_BL = "/Users/metinsan/Documents/doktor/Cosmoglobe_test_data/wmap_beam.txt"
-
 
 
 @quantity_input(fwhm=Unit("rad"))
@@ -29,6 +27,24 @@ def get_sigma(fwhm: Quantity) -> Quantity:
     return fwhm / (2 * sqrt(2 * log(2)))
 
 
+def gaussian_beam_2D(r: np.ndarray, sigma: float) -> np.ndarray:
+    """Returns the Gaussian beam in 2D in polar coordinates.
+
+    Parameters
+    ----------
+    r
+        Angular distance.
+    sigma
+        The sigma of the Gaussian (beam radius).
+
+    Returns
+    -------
+        Gaussian beam.
+    """
+
+    return r * np.exp(-(r ** 2) / (2 * sigma ** 2)) / (sigma * np.sqrt(2 * np.pi))
+
+
 def pointsources_to_healpix(
     point_sources: Quantity,
     catalog: np.ndarray,
@@ -43,7 +59,7 @@ def pointsources_to_healpix(
 
     N_FWHM = 2  # FWHM cutoff for the truncated beam
 
-    healpix = Quantity(
+    healpix_map = Quantity(
         np.zeros((point_sources.shape[0], hp.nside2npix(nside))),
         unit=point_sources.unit,
     )
@@ -56,14 +72,14 @@ def pointsources_to_healpix(
             "fwhm not specified. Mapping point sources to pixels "
             "without beam smoothing"
         )
-        point_source_pixels = hp.ang2pix(nside, *catalog, lonlat=True)
+        pixels = hp.ang2pix(nside, *catalog, lonlat=True)
         for IQU, emission in enumerate(point_sources):
-            healpix[IQU, point_source_pixels] = emission
+            healpix_map[IQU, pixels] = emission
 
         pixel_area = hp.nside2pixarea(nside) * Unit("sr")
-        return healpix / pixel_area
+        return healpix_map / pixel_area
 
-    # Applying a truncated beam to each point source
+    # Applying a truncated Gaussian beam to each point source
     else:
         sigma = get_sigma(fwhm)
         pixel_resolution = hp.nside2resol(nside)
@@ -87,10 +103,10 @@ def pointsources_to_healpix(
             )
             beam = gaussian_beam_2D(angular_distance, sigma.value)
             for IQU, emission in enumerate(point_sources):
-                healpix[IQU, pixels] += emission[idx] * beam
+                healpix_map[IQU, pixels] += emission[idx] * beam
 
         beam_area = 2 * pi * sigma ** 2
-        return healpix / beam_area
+        return healpix_map / beam_area
 
 
 if __name__ == "__main__":
@@ -98,5 +114,5 @@ if __name__ == "__main__":
 
     b_l = np.loadtxt(TEST_BEAM_BL, skiprows=10)
     beam = hp.bl2beam(b_l[:, 1], b_l[:, 0])
-    plt.plot(b_l[:, 0 ], beam)
+    plt.plot(b_l[:, 0], beam)
     plt.show()

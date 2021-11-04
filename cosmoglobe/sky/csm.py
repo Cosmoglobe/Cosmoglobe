@@ -1,7 +1,7 @@
 from typing import Dict, List, Type
 from dataclasses import dataclass
 
-from cosmoglobe.sky._exceptions import ModelNotFoundError
+from cosmoglobe.sky._exceptions import ModelNotFoundError, ComponentNotFoundError
 
 from cosmoglobe.sky.base_components import SkyComponent
 from cosmoglobe.sky.components.ame import AME
@@ -31,14 +31,21 @@ class CosmoglobeSkyModel:
     components: List[Type[SkyComponent]]
     info: SkyModelInfo
 
-    @property
-    def labels(self) -> List[str]:
-        return [comp.label.value for comp in self.components]
+    def __getitem__(self, key: str) -> Type[SkyComponent]:
+        """Returns a SkyComponent class."""
+        for component in self.components:
+            if component.label.value == key:
+                return component
+        else:
+            raise ComponentNotFoundError(f"component {key} not found in sky model.")
 
     def __str__(self) -> str:
-        repr = "========Cosmoglobe Sky Model========\n"
+        repr = "Cosmoglobe Sky Model\n"
+        repr += f"--------------------\n"
         repr += f"version: {self.info.version}\n"
-        repr += f"components: {', '.join(self.labels)}"
+        repr += (
+            f"components: {', '.join([comp.label.value for comp in self.components])}\n"
+        )
 
         return repr
 
@@ -48,6 +55,7 @@ class SkyModelRegistry:
 
     def __init__(self) -> None:
         self.models: Dict[str, CosmoglobeSkyModel] = {}
+        self.default_model: CosmoglobeSkyModel
 
     def register_model(self, name: str, model: CosmoglobeSkyModel) -> None:
         """Adds a new sky model to the registry."""
@@ -67,6 +75,11 @@ class SkyModelRegistry:
                 f"Available models are: {list(self.models.keys())}"
             )
 
+    def set_default_model(self, name: str) -> None:
+        """Sets the default sky model."""
+
+        self.default_model = self.models[name]
+
 
 skymodel_registry = SkyModelRegistry()
 skymodel_registry.register_model(
@@ -75,9 +88,10 @@ skymodel_registry.register_model(
         components=[AME, CMB, ThermalDust, FreeFree, Radio, Synchrotron],
         info=SkyModelInfo(
             version="BeyondPlanck",
-            data_url="http://cosmoglobe.uio.no/data_releases/BeyondPlanck/BP10/",
+            data_url="http://cosmoglobe.uio.no/BeyondPlanck/",
         ),
     ),
 )
 
-DEFAULT_SKY_MODEL = skymodel_registry.get_model("BeyondPlanck")
+skymodel_registry.set_default_model("BeyondPlanck")
+DEFAULT_SKY_MODEL = skymodel_registry.default_model

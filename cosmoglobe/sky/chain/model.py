@@ -1,7 +1,7 @@
 import inspect
 from typing import Dict, List, Type, Union, Optional, Literal
 
-import astropy.units as u
+from astropy.units import Quantity, Unit
 import healpy as hp
 from tqdm import tqdm
 
@@ -71,9 +71,6 @@ def model_from_chain(
         )
 
     sky_model = skymodel_registry.get_model(model)
-    labeled_classes: Dict[str, Type[SkyComponent]] = {
-        component.label.value: component for component in sky_model.components
-    }
 
     print(f"Initializing model from {chain.path.name}")
     if components is None:
@@ -87,7 +84,7 @@ def model_from_chain(
         for component in components:
             progress_bar.set_description(f"{component:<{padding}}")
             try:
-                component_class = labeled_classes[component]
+                component_class = sky_model[component]
             except KeyError:
                 raise ChainComponentNotFoundError(
                     f"{component=!r} is not part in the Cosmoglobe Sky Model"
@@ -167,11 +164,11 @@ def comp_from_chain(
                     value,
                     nside=nside if nside is not None else chain_params["nside"],
                     lmax=lmax,
-                    fwhm=(chain_params["fwhm"] * u.arcmin).to("rad").value,
+                    fwhm=(chain_params["fwhm"] * Unit("arcmin")).to("rad").value,
                     pol=pol,
                 )
 
-        args[arg] = u.Quantity(value, unit=units[arg] if arg in units else None)
+        args[arg] = Quantity(value, unit=units[arg] if arg in units else None)
 
     contexts = chain_context.get_context(component_class)
     for context in contexts:

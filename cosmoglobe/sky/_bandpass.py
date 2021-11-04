@@ -1,14 +1,25 @@
-from typing import Callable, Dict, Union
+from typing import Union
 
-from astropy.units import Quantity, Unit, UnitTypeError
+from astropy.units import Quantity, Unit
 import numpy as np
 
-from cosmoglobe.utils.utils import str_to_astropy_unit
-from cosmoglobe.sky._intensity_derivatives import INTENSITY_DERIVATIVE_MAPPINGS
+from cosmoglobe.sky._intensity_derivative import get_intensity_derivative
 
 
 def get_normalized_bandpass(freqs: Quantity, bandpass: Quantity) -> Quantity:
-    """Normalizes a bandpass to units of unity under integration."""
+    """Normalizes a bandpass to units of unity under integration.
+
+    Parameters
+    ----------
+    freqs
+        Frequencies corresponding to bandpass weights.
+    bandpass
+        The bandpass profile.
+
+    Returns
+    -------
+        Bandpass with unit integral over np.trapz.
+    """
 
     return bandpass / np.trapz(bandpass, freqs)
 
@@ -19,30 +30,40 @@ def get_bandpass_coefficient(
     input_unit: Union[str, Unit],
     output_unit: Union[str, Unit],
 ) -> Quantity:
-    """Returns the bandpass coefficient."""
+    """Returns the bandpass coefficient.
+
+    Parameters
+    ----------
+    freqs
+        Frequencies corresponding to bandpass weights.
+    bandpass
+        The bandpass profile.
+    input_unit
+        The unit of the cosmoglobe data.
+    ouput_unit
+        The requested output unit of the simulated emission
+
+    Returns
+    -------
+    coefficient
+        Bandpass coefficient representing the unitconversion between the
+        input/ouput unit over the bandpass.
+    """
 
     if isinstance(input_unit, str):
-        input_unit = str_to_astropy_unit(input_unit)
+        in_unit = input_unit
+    else:
+        in_unit = input_unit.to_string().replace(" ", "")
     if isinstance(output_unit, str):
-        output_unit = str_to_astropy_unit(output_unit)
+        out_unit = output_unit
+    else:
+        out_unit = output_unit.to_string().replace(" ", "")
 
-    units = {"in": input_unit, "out": output_unit}
+    in_intensity_derivative = get_intensity_derivative(in_unit)
+    out_intensity_derivative = get_intensity_derivative(out_unit)
 
-    intensity_derivatives: Dict[str, Callable[[Quantity], Quantity]] = {}
-
-    for key, unit in units.items():
-        for intensity_deriv in INTENSITY_DERIVATIVE_MAPPINGS:
-            intensity_unit = str_to_astropy_unit(intensity_deriv)
-            if intensity_unit._is_equivalent(unit):
-                intensity_derivatives[key] = INTENSITY_DERIVATIVE_MAPPINGS[
-                    intensity_deriv
-                ]
-                break
-        else:
-            raise UnitTypeError("unrecognized unit for intensity derivatives")
-
-    coefficient = np.trapz(
-        bandpass * intensity_derivatives["in"](freqs), freqs
-    ) / np.trapz(bandpass * intensity_derivatives["out"](freqs), freqs)
+    coefficient = np.trapz(bandpass * in_intensity_derivative(freqs), freqs) / np.trapz(
+        bandpass * out_intensity_derivative(freqs), freqs
+    )
 
     return coefficient

@@ -240,6 +240,15 @@ class SkyModel:
 
         return iter(list(self.components.values()))
 
+    def __getitem__(self, key: str) -> SkyComponent:
+        """Returns a SkyComponent class."""
+
+        try:
+            return self.components[key]
+        except KeyError:
+            raise ComponentNotFoundError(f"component {key} not found in sky model.")
+
+
     def __repr__(self) -> str:
         """Representation of the SkyModel and all enabled components."""
 

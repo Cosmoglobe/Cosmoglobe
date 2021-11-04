@@ -122,21 +122,3 @@ def to_unit(emission: u.Quantity, freqs: u.Quantity, unit: Union[str, u.UnitBase
         emission.to(unit)
 
     return emission
-
-
-def gaussian_beam_2D(r: np.ndarray, sigma: float) -> np.ndarray:
-    """Returns the Gaussian beam in 2D in polar coordinates.
-
-    Parameters
-    ----------
-    r
-        Angular distance.
-    sigma
-        The sigma of the Gaussian (beam radius).
-
-    Returns
-    -------
-        Gaussian beam.
-    """
-
-    return r * np.exp(-(r ** 2) / (2 * sigma ** 2)) / (sigma * np.sqrt(2 * np.pi))
