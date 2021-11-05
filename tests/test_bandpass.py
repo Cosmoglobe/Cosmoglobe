@@ -24,5 +24,5 @@ def test_coeff():
     bandpass = [0.5, 0.5] * Unit("1/GHz")
     get_bandpass_coefficient(freqs, bandpass, Unit("uK"), Unit("MJy/sr"))
     get_bandpass_coefficient(freqs, bandpass, "uK", "MJy/sr")
-    with pytest.raises(UnitTypeError):
+    with pytest.raises(KeyError):
         get_bandpass_coefficient(freqs, bandpass, Unit("GHz"), Unit("MJy/sr"))

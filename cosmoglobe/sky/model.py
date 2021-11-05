@@ -1,6 +1,6 @@
 from typing import Dict, Iterator, List, Optional, Union
 
-from astropy.units import Quantity, Unit
+from astropy.units import Quantity, Unit, UnitBase
 import healpy as hp
 import numpy as np
 
@@ -10,7 +10,7 @@ from cosmoglobe.sky.base_components import (
     SkyComponent,
     PointSourceComponent,
 )
-from cosmoglobe.sky.csm import SkyModelInfo
+from cosmoglobe.sky.cosmoglobe import SkyModelInfo
 from cosmoglobe.sky._constants import DEFAULT_OUTPUT_UNIT, DEFAULT_BEAM_FWHM
 from cosmoglobe.sky._exceptions import (
     NsideError,
@@ -182,7 +182,7 @@ class SkyModel:
         emission = Quantity(
             np.zeros(shape),
             unit=output_unit
-            if isinstance(output_unit, Unit)
+            if isinstance(output_unit, UnitBase)
             else str_to_astropy_unit(output_unit),
         )
 

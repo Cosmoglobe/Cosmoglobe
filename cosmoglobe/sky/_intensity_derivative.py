@@ -1,6 +1,6 @@
 from typing import Protocol, Dict, Union
 
-from astropy.units import Quantity, Unit
+from astropy.units import Quantity, Unit, UnitBase
 import numpy as np
 
 import cosmoglobe.sky._constants as const
@@ -10,20 +10,16 @@ class IntensityDerivative(Protocol):
     """Interface for an intensity derivate."""
 
     def __call__(self, freqs: Quantity) -> Quantity:
-        """Returns the intensity derivative given a frequency and spectral parameters.
+        """Returns the intensity derivative given some frequencies.
 
         Parameters
         ----------
         freqs
             Frequencies for which to compute the intensity derivative.
-        **spectral_parameters
-            Other optional parameters required to compute the intensity
-            derivative.
 
         Returns
         -------
-        intensity_derivative
-            The intensity derivative for a given a given input and output unit.
+            The intensity derivative given input and output units.
         """
 
 
@@ -46,7 +42,7 @@ class CMBIntensityDerivative:
         return term1 * term2 * term3 / Unit("sr")
 
 
-class IrasIntensityDerivative:
+class IRASIntensityDerivative:
     """Intensity derivative for MJY/sr."""
 
     def __call__(self, freqs: Quantity) -> Quantity:
@@ -56,14 +52,25 @@ class IrasIntensityDerivative:
 INTENSITY_DERIVATIVES: Dict[str, IntensityDerivative] = {
     "rj": RayleighJeansIntensityDerivative(),
     "cmb": CMBIntensityDerivative(),
-    "jy": IrasIntensityDerivative(),
+    "jy": IRASIntensityDerivative(),
 }
 
 
-def get_intensity_derivative(unit: str) -> IntensityDerivative:
+def get_intensity_derivative(
+    unit: Union[str, UnitBase]
+) -> IntensityDerivative:
     """Returns the related intensity derivative for a given unit."""
 
-    unit = unit.lower()
+    if isinstance(unit, str):
+        unit = unit.lower()
+        if unit in ("k", "uk", "mk"):
+            unit = "rj"
+    else:
+        if unit.is_equivalent(Unit("K")):
+            unit = "rj"
+        else:
+            unit = unit.to_string().replace(" ", "").lower()
+
     for intensity_derivative in INTENSITY_DERIVATIVES:
         if intensity_derivative in unit:
             return INTENSITY_DERIVATIVES[intensity_derivative]

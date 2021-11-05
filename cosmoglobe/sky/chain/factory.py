@@ -2,7 +2,7 @@ from typing import Dict, List, Type, TYPE_CHECKING, Union
 
 from astropy.units import Unit
 
-from cosmoglobe.sky.csm import DEFAULT_SKY_MODEL
+from cosmoglobe.sky.cosmoglobe import DEFAULT_SKY_MODEL
 from cosmoglobe.sky.base_components import SkyComponent
 
 if TYPE_CHECKING:

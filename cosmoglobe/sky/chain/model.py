@@ -17,7 +17,7 @@ from cosmoglobe.sky.base_components import (
     PointSourceComponent,
 )
 from cosmoglobe.sky.chain.context import chain_context
-from cosmoglobe.sky.csm import skymodel_registry
+from cosmoglobe.sky.cosmoglobe import skymodel_registry
 from cosmoglobe.sky.model import SkyModel
 
 DEFAULT_SAMPLE = -1

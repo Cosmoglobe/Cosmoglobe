@@ -18,8 +18,11 @@ from cosmoglobe.sky._constants import DEFAULT_OUTPUT_UNIT, DEFAULT_BEAM_FWHM
 from cosmoglobe.sky._exceptions import NsideError
 from cosmoglobe.sky.components import SkyComponentLabel
 from cosmoglobe.utils.utils import to_unit
-from cosmoglobe.utils.bandpass import get_bandpass_scaling
-from cosmoglobe.sky._bandpass import get_normalized_bandpass, get_bandpass_coefficient
+from cosmoglobe.sky._bandpass import (
+    get_normalized_bandpass,
+    get_bandpass_coefficient,
+    get_bandpass_scaling,
+)
 from cosmoglobe.sky._beam import pointsources_to_healpix
 
 
@@ -254,7 +257,9 @@ class DiffuseComponent(SkyComponent):
 
         bandpass = get_normalized_bandpass(freqs, bandpass)
 
-        bandpass_scaling = get_bandpass_scaling(freqs, bandpass, self)
+        bandpass_scaling = get_bandpass_scaling(
+            freqs, bandpass, self.get_freq_scaling, self.spectral_parameters
+        )
         emission = self.amp * bandpass_scaling
         input_unit = emission.unit
         unit_coefficient = get_bandpass_coefficient(
@@ -391,7 +396,9 @@ class PointSourceComponent(SkyComponent):
         """See base class."""
 
         bandpass = get_normalized_bandpass(freqs, bandpass)
-        bandpass_scaling = get_bandpass_scaling(freqs, bandpass, self)
+        bandpass_scaling = get_bandpass_scaling(
+            freqs, bandpass, self.get_freq_scaling, self.spectral_parameters
+        )
         point_sources = self.amp * bandpass_scaling
         emission = pointsources_to_healpix(point_sources, self.catalog, nside, fwhm)
         input_unit = emission.unit
