@@ -96,24 +96,24 @@ def test_simulate(sky_model):
     assert emission.shape == sky_model.components["dust"].amp.shape
 
     emission = sky_model(
-        np.arange(1, 10) * Unit("GHz"), bandpass=np.arange(1, 10) * Unit("uK")
+        np.arange(1, 10) * Unit("GHz"), bandpass=np.arange(1, 10) * Unit("uK_RJ")
     )
     assert emission.unit == DEFAULT_OUTPUT_UNIT
     assert emission.shape == sky_model.components["dust"].amp.shape
 
     emission = sky_model(
         np.arange(1, 10) * Unit("GHz"),
-        bandpass=np.arange(1, 10) * Unit("uK"),
+        bandpass=np.arange(1, 10) * Unit("uK_RJ"),
         output_unit="MJy/sr",
     )
     assert emission.unit == Unit("MJy/sr")
 
     emission = sky_model(
         np.arange(1, 10) * Unit("GHz"),
-        bandpass=np.arange(1, 10) * Unit("uK"),
+        bandpass=np.arange(1, 10) * Unit("uK_RJ"),
         output_unit="uK_RJ",
     )
-    assert emission.unit == Unit("uK")
+    assert emission.unit == Unit("uK_RJ")
 
 
 def test_synch():
@@ -128,7 +128,7 @@ def test_synch():
     assert sky_model(100 * Unit("GHz")).shape == synch.amp.shape
     assert sky_model([100, 101, 102] * Unit("GHz")).shape == synch.amp.shape
     assert (
-        sky_model([100, 101] * Unit("GHz"), bandpass=[3, 5] * Unit("uK")).shape
+        sky_model([100, 101] * Unit("GHz"), bandpass=[3, 5] * Unit("uK_RJ")).shape
         == synch.amp.shape
     )
 
@@ -146,7 +146,7 @@ def test_dust():
     assert sky_model(100 * Unit("GHz")).shape == dust.amp.shape
     assert sky_model([100, 101, 102] * Unit("GHz")).shape == dust.amp.shape
     assert (
-        sky_model([100, 101] * Unit("GHz"), bandpass=[3, 5] * Unit("uK")).shape
+        sky_model([100, 101] * Unit("GHz"), bandpass=[3, 5] * Unit("uK_RJ")).shape
         == dust.amp.shape
     )
 
@@ -166,7 +166,7 @@ def test_radio():
     )
     assert sky_model([100, 101, 102] * Unit("GHz")).shape == (1, hp.nside2npix(256))
     assert sky_model(
-        [100, 101] * Unit("GHz"), bandpass=[3, 5] * Unit("uK"), fwhm=60 * Unit("arcmin")
+        [100, 101] * Unit("GHz"), bandpass=[3, 5] * Unit("uK_RJ"), fwhm=60 * Unit("arcmin")
     ).shape == (1, hp.nside2npix(256))
 
     with pytest.raises(ValueError):
@@ -188,7 +188,7 @@ def test_ame():
     assert sky_model(100 * Unit("GHz")).shape == (3, hp.nside2npix(128))
     assert (sky_model(0.001 * Unit("GHz")) == 0).all()
     assert sky_model([100, 101, 102] * Unit("GHz")).shape == (3, hp.nside2npix(128))
-    assert sky_model([100, 101] * Unit("GHz"), bandpass=[3, 5] * Unit("uK")).shape == (
+    assert sky_model([100, 101] * Unit("GHz"), bandpass=[3, 5] * Unit("uK_RJ")).shape == (
         3,
         hp.nside2npix(128),
     )

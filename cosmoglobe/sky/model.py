@@ -1,6 +1,6 @@
 from typing import Dict, Iterator, List, Optional, Union
 
-from astropy.units import Quantity, Unit, UnitBase
+from astropy.units import Quantity, Unit
 import healpy as hp
 import numpy as np
 
@@ -11,13 +11,13 @@ from cosmoglobe.sky.base_components import (
     PointSourceComponent,
 )
 from cosmoglobe.sky.cosmoglobe import SkyModelInfo
+from cosmoglobe.sky._units import cmb_equivalencies
 from cosmoglobe.sky._constants import DEFAULT_OUTPUT_UNIT, DEFAULT_BEAM_FWHM
 from cosmoglobe.sky._exceptions import (
     NsideError,
     ComponentError,
     ComponentNotFoundError,
 )
-from cosmoglobe.utils.utils import str_to_astropy_unit
 
 
 class SkyModel:
@@ -179,12 +179,8 @@ class SkyModel:
             else (1, hp.nside2npix(self.nside))
         )
 
-        emission = Quantity(
-            np.zeros(shape),
-            unit=output_unit
-            if isinstance(output_unit, UnitBase)
-            else str_to_astropy_unit(output_unit),
-        )
+        output_unit = Unit(output_unit)
+        emission = Quantity(np.zeros(shape), unit=output_unit)
 
         for diffuse_component in diffuse_components:
             component_emission = diffuse_component.simulate_emission(
@@ -194,7 +190,10 @@ class SkyModel:
                 fwhm=fwhm,
                 output_unit=output_unit,
             )
-
+            if component_emission != output_unit:
+                component_emission = component_emission.to(
+                    output_unit, equivalencies=cmb_equivalencies(freqs)
+                )
             for IQU, diffuse_emission in enumerate(component_emission):
                 emission[IQU] += diffuse_emission
 
@@ -247,7 +246,6 @@ class SkyModel:
             return self.components[key]
         except KeyError:
             raise ComponentNotFoundError(f"component {key} not found in sky model.")
-
 
     def __repr__(self) -> str:
         """Representation of the SkyModel and all enabled components."""

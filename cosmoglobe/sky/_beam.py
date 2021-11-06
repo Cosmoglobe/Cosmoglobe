@@ -63,6 +63,7 @@ def pointsources_to_healpix(
         np.zeros((point_sources.shape[0], hp.nside2npix(nside))),
         unit=point_sources.unit,
     )
+
     # Getting the longitude and latitude for each pixel on the healpix map
 
     fwhm = fwhm.to("rad")
@@ -106,13 +107,5 @@ def pointsources_to_healpix(
                 healpix_map[IQU, pixels] += emission[idx] * beam
 
         beam_area = 2 * pi * sigma ** 2
+
         return healpix_map / beam_area
-
-
-if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-
-    b_l = np.loadtxt(TEST_BEAM_BL, skiprows=10)
-    beam = hp.bl2beam(b_l[:, 1], b_l[:, 0])
-    plt.plot(b_l[:, 0], beam)
-    plt.show()

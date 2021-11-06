@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Optional, Union
+from typing import Dict, Optional
 import warnings
 
 from astropy.units import (
@@ -7,23 +7,26 @@ from astropy.units import (
     Unit,
     UnitConversionError,
     UnitsError,
-    brightness_temperature,
     spectral,
     quantity_input,
 )
 import healpy as hp
 import numpy as np
 
-from cosmoglobe.sky._constants import DEFAULT_OUTPUT_UNIT, DEFAULT_BEAM_FWHM
+from cosmoglobe.sky._constants import (
+    DEFAULT_OUTPUT_UNIT,
+    DEFAULT_BEAM_FWHM,
+    VALID_OUTPUT_UNITS,
+)
 from cosmoglobe.sky._exceptions import NsideError
 from cosmoglobe.sky.components import SkyComponentLabel
-from cosmoglobe.utils.utils import to_unit
 from cosmoglobe.sky._bandpass import (
     get_normalized_bandpass,
     get_bandpass_coefficient,
     get_bandpass_scaling,
 )
 from cosmoglobe.sky._beam import pointsources_to_healpix
+from cosmoglobe.sky._units import cmb_equivalencies
 
 
 class SkyComponent(ABC):
@@ -62,7 +65,7 @@ class SkyComponent(ABC):
         *,
         nside: Optional[int],
         fwhm: Quantity,
-        output_unit: Union[str, Unit],
+        output_unit: Unit,
     ) -> Quantity:
         """Computes and returns the emission for a delta frequency.
 
@@ -90,7 +93,7 @@ class SkyComponent(ABC):
         *,
         nside: Optional[int],
         fwhm: Quantity,
-        output_unit: Union[str, Unit],
+        output_unit: Unit,
     ) -> Quantity:
         """Computes and returns the emission for a bandpass profile.
 
@@ -115,7 +118,9 @@ class SkyComponent(ABC):
         """
 
     @quantity_input(
-        freqs="Hz", bandpass=("1/Hz", "K", "Jy/sr", None), fwhm=("deg", "arcmin", "rad")
+        freqs="Hz",
+        bandpass=("1/Hz", "K_RJ", "K_CMB", "Jy/sr", None),
+        fwhm=("deg", "arcmin", "rad"),
     )
     def simulate_emission(
         self,
@@ -123,7 +128,7 @@ class SkyComponent(ABC):
         bandpass: Optional[Quantity] = None,
         nside: Optional[int] = None,
         fwhm: Quantity = DEFAULT_BEAM_FWHM,
-        output_unit: Union[str, Unit] = DEFAULT_OUTPUT_UNIT,
+        output_unit: Unit = DEFAULT_OUTPUT_UNIT,
     ) -> Quantity:
         """Returns the simulated emission for a sky component.
 
@@ -147,6 +152,11 @@ class SkyComponent(ABC):
             Integrated bandpass emission.
         """
 
+        if not any(unit.is_equivalent(output_unit) for unit in VALID_OUTPUT_UNITS):
+            raise UnitsError(
+                "output unit must be one of "
+                f"{', '.join(unit.to_string() for unit in VALID_OUTPUT_UNITS)}"
+            )
         if freqs.size > 1:
             if bandpass is not None and freqs.shape != bandpass.shape:
                 raise ValueError("freqs and bandpass must have the same shape")
@@ -238,20 +248,15 @@ class DiffuseComponent(SkyComponent):
             frequencies.
         """
 
-    def get_delta_emission(
-        self, freq: Quantity, output_unit: Union[str, Unit], **_
-    ) -> Quantity:
+    def get_delta_emission(self, freq: Quantity, output_unit: Unit, **_) -> Quantity:
         """See base class."""
 
         emission = self.amp * self.get_freq_scaling(freq, **self.spectral_parameters)
 
-        if output_unit != DEFAULT_OUTPUT_UNIT:
-            emission = to_unit(emission, freq, output_unit)
-
-        return emission
+        return emission.to(output_unit, equivalencies=cmb_equivalencies(freq))
 
     def get_bandpass_emission(
-        self, freqs: Quantity, bandpass: Quantity, output_unit: Union[str, Unit], **_
+        self, freqs: Quantity, bandpass: Quantity, output_unit: Unit, **_
     ) -> Quantity:
         """See base class."""
 
@@ -290,7 +295,7 @@ class DiffuseComponent(SkyComponent):
             try:
                 amp.to(
                     DEFAULT_OUTPUT_UNIT,
-                    equivalencies=brightness_temperature(self.freq_ref),
+                    equivalencies=cmb_equivalencies(self.freq_ref),
                 )
             except UnitConversionError:
                 raise UnitsError(
@@ -372,18 +377,16 @@ class PointSourceComponent(SkyComponent):
         """
 
     def get_delta_emission(
-        self, freq: Quantity, nside: int, fwhm: Quantity, output_unit: Union[str, Unit]
+        self, freq: Quantity, nside: int, fwhm: Quantity, output_unit: Unit
     ) -> Quantity:
         """See base class."""
 
         point_sources = self.amp * self.get_freq_scaling(
             freq, **self.spectral_parameters
         )
-
         emission = pointsources_to_healpix(point_sources, self.catalog, nside, fwhm)
-        emission = to_unit(emission, freq, output_unit)
 
-        return emission
+        return emission.to(output_unit, equivalencies=cmb_equivalencies(freq))
 
     def get_bandpass_emission(
         self,
@@ -391,7 +394,7 @@ class PointSourceComponent(SkyComponent):
         bandpass: Quantity,
         nside: int,
         fwhm: Quantity,
-        output_unit: Union[str, Unit],
+        output_unit: Unit,
     ) -> Quantity:
         """See base class."""
 
@@ -420,7 +423,7 @@ class PointSourceComponent(SkyComponent):
         try:
             (amp / Unit("sr")).to(
                 DEFAULT_OUTPUT_UNIT,
-                equivalencies=brightness_temperature(self.freq_ref),
+                equivalencies=cmb_equivalencies(self.freq_ref),
             )
         except UnitConversionError:
             raise UnitsError(
@@ -468,7 +471,7 @@ class LineComponent(SkyComponent):
     def get_delta_emission(
         self,
         freq: Quantity,
-        output_unit: Union[str, Unit],
+        output_unit: Unit,
         **_,
     ) -> Quantity:
         """See base class."""
@@ -477,7 +480,7 @@ class LineComponent(SkyComponent):
         self,
         freqs: Quantity,
         bandpass: Quantity,
-        output_unit: Union[str, Unit],
+        output_unit: Unit,
         **_,
     ) -> Quantity:
         """See base class."""
@@ -495,7 +498,7 @@ class LineComponent(SkyComponent):
         try:
             (value / Unit("km/s")).to(
                 DEFAULT_OUTPUT_UNIT,
-                equivalencies=brightness_temperature(self.freq_ref),
+                equivalencies=cmb_equivalencies(self.freq_ref),
             )
         except UnitConversionError:
             raise UnitsError(

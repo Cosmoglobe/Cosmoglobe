@@ -29,9 +29,15 @@ class CMB(DiffuseComponent):
     label = SkyComponentLabel.CMB
 
     def get_freq_scaling(self, freqs: Quantity) -> Quantity:
-        """See base class."""
+        """See base class.
+        
+        NOTE: The CMB amplitude is commonly stored in K_CMB, in which it is
+        constant over the sky (Hence, we return 1).
+        """
 
-        x = (const.h * freqs) / (const.k_B * const.T_0)
-        scaling = ((x ** 2 * np.exp(x)) / (np.expm1(x) ** 2)).si
+        if self.amp.unit.is_equivalent("K_RJ"):
+            x = (const.h * freqs) / (const.k_B * const.T_0)
+            scaling = ((x ** 2 * np.exp(x)) / (np.expm1(x) ** 2)).si
+            return scaling
 
-        return np.expand_dims(scaling, axis=0)
+        return Quantity(1)

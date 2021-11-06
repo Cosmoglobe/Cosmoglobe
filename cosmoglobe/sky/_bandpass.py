@@ -31,8 +31,8 @@ def get_normalized_bandpass(freqs: Quantity, bandpass: Quantity) -> Quantity:
 def get_bandpass_coefficient(
     freqs: Quantity,
     bandpass: Quantity,
-    input_unit: Union[str, Unit],
-    output_unit: Union[str, Unit],
+    input_unit: Unit,
+    output_unit: Unit,
 ) -> Quantity:
     """Returns the bandpass coefficient.
 
@@ -56,7 +56,6 @@ def get_bandpass_coefficient(
 
     in_intensity_derivative = get_intensity_derivative(input_unit)
     out_intensity_derivative = get_intensity_derivative(output_unit)
-
     coefficient = np.trapz(bandpass * in_intensity_derivative(freqs), freqs) / np.trapz(
         bandpass * out_intensity_derivative(freqs), freqs
     )

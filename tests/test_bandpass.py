@@ -11,7 +11,7 @@ def test_normalized():
     """Test normalized bandpass."""
 
     freqs = np.arange(1, 101) * Unit("GHz")
-    bandpass = np.random.randint(10, 100, (100,)) * Unit("uK")
+    bandpass = np.random.randint(10, 100, (100,)) * Unit("uK_RJ")
 
     assert get_normalized_bandpass(freqs, bandpass).unit == Unit("1/GHz")
     assert np.trapz(get_normalized_bandpass(freqs, bandpass), freqs).value == pytest.approx(1)
@@ -22,7 +22,7 @@ def test_coeff():
 
     freqs = [30, 40] * Unit("GHz")
     bandpass = [0.5, 0.5] * Unit("1/GHz")
-    get_bandpass_coefficient(freqs, bandpass, Unit("uK"), Unit("MJy/sr"))
+    get_bandpass_coefficient(freqs, bandpass, Unit("uK_RJ"), Unit("MJy/sr"))
     get_bandpass_coefficient(freqs, bandpass, "uK", "MJy/sr")
     with pytest.raises(KeyError):
         get_bandpass_coefficient(freqs, bandpass, Unit("GHz"), Unit("MJy/sr"))

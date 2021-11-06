@@ -14,15 +14,15 @@ def test_skymodel(sky_model):
     sky_model(100 * Unit("GHz"))
     sky_model([100, 102, 104] * Unit("GHz"))
     sky_model([100, 102, 104] * Unit("GHz"))
-    sky_model([100, 102, 104] * Unit("GHz"), [3, 10, 3] * Unit("uK"))
+    sky_model([100, 102, 104] * Unit("GHz"), [3, 10, 3] * Unit("uK_RJ"))
     sky_model(
         [100, 102, 104] * Unit("GHz"),
-        [3, 10, 3] * Unit("uK"),
+        [3, 10, 3] * Unit("uK_RJ"),
         fwhm=30 * Unit("arcmin"),
     )
     sky_model(
         [100, 102, 104] * Unit("GHz"),
-        [3, 10, 3] * Unit("uK"),
+        [3, 10, 3] * Unit("uK_RJ"),
         fwhm=30 * Unit("arcmin"),
         output_unit="MJy/sr",
     )
@@ -37,19 +37,19 @@ def test_pointsource(sky_model):
     sky_model([100, 102, 104] * Unit("GHz"), components=["radio"])
     sky_model(
         [100, 102, 104] * Unit("GHz"),
-        [3, 10, 3] * Unit("uK"),
+        [3, 10, 3] * Unit("uK_RJ"),
         components=["radio"],
     )
     sky_model(
         [100, 102, 104] * Unit("GHz"),
-        [3, 10, 3] * Unit("uK"),
+        [3, 10, 3] * Unit("uK_RJ"),
         fwhm=30 * Unit("arcmin"),
         components=["radio"],
     )
     assert (
         sky_model(
             [100, 102, 104] * Unit("GHz"),
-            [3, 10, 3] * Unit("uK"),
+            [3, 10, 3] * Unit("uK_RJ"),
             fwhm=30 * Unit("arcmin"),
             output_unit="MJy/sr",
             components=["radio"],
@@ -78,10 +78,10 @@ def test_bp_integ(dust0spec, dust1spec, dust2spec):
 
     comps = {"d1": dust0spec, "d2": dust1spec, "d3": dust2spec}
     sky_model = SkyModel(32, comps)
-    emission1 = sky_model([100, 120] * Unit("GHz"), bandpass=[1, 3] * Unit("uK"))
+    emission1 = sky_model([100, 120] * Unit("GHz"), bandpass=[1, 3] * Unit("uK_RJ"))
     emission2 = sky_model(
         freqs=[100, 120] * Unit("GHz"),
-        bandpass=[1, 3] * Unit("uK"),
+        bandpass=[1, 3] * Unit("uK_RJ"),
         output_unit="MJy/sr",
     )
     for comp in comps.values():

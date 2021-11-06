@@ -1,6 +1,6 @@
-from typing import Protocol, Dict, Union
+from typing import Protocol, Dict
 
-from astropy.units import Quantity, Unit, UnitBase
+from astropy.units import Quantity, Unit
 import numpy as np
 
 import cosmoglobe.sky._constants as const
@@ -27,7 +27,14 @@ class RayleighJeansIntensityDerivative:
     """Intensity derivative for K_RJ."""
 
     def __call__(self, freqs: Quantity) -> Quantity:
-        return (2 * const.k_B * freqs ** 2) / (const.c ** 2 * Unit("sr"))
+        factor = (2 * const.k_B * freqs ** 2) / const.c ** 2
+        # We specify that that the kelvin in this expression refers to K_CMB
+        # and divide by sr to make this quantity compatible with the emission
+        # amplitudes
+        factor *= Unit("K") / Unit("K_RJ")
+        factor /= Unit("sr")
+
+        return factor
 
 
 class CMBIntensityDerivative:
@@ -39,7 +46,13 @@ class CMBIntensityDerivative:
         term2 = np.exp(x) / np.expm1(x)
         term3 = (const.h * freqs) / (const.k_B * const.T_0 ** 2)
 
-        return term1 * term2 * term3 / Unit("sr")
+        factor = term1 * term2 * term3
+        # We specify that that the kelvin in this expression refers to K_CMB
+        # and divide by sr to make this quantity compatible with the emission
+        # amplitudes
+        factor *= Unit("K") / Unit("K_CMB")
+        factor /= Unit("sr")
+        return factor
 
 
 class IRASIntensityDerivative:
@@ -49,30 +62,18 @@ class IRASIntensityDerivative:
         return np.mean(freqs) / freqs
 
 
-INTENSITY_DERIVATIVES: Dict[str, IntensityDerivative] = {
-    "rj": RayleighJeansIntensityDerivative(),
-    "cmb": CMBIntensityDerivative(),
-    "jy": IRASIntensityDerivative(),
+INTENSITY_DERIVATIVES: Dict[Unit, IntensityDerivative] = {
+    Unit("K_RJ"): RayleighJeansIntensityDerivative(),
+    Unit("K_CMB"): CMBIntensityDerivative(),
+    Unit("Jy/sr"): IRASIntensityDerivative(),
 }
 
 
-def get_intensity_derivative(
-    unit: Union[str, UnitBase]
-) -> IntensityDerivative:
+def get_intensity_derivative(unit: Unit) -> IntensityDerivative:
     """Returns the related intensity derivative for a given unit."""
 
-    if isinstance(unit, str):
-        unit = unit.lower()
-        if unit in ("k", "uk", "mk"):
-            unit = "rj"
-    else:
-        if unit.is_equivalent(Unit("K")):
-            unit = "rj"
-        else:
-            unit = unit.to_string().replace(" ", "").lower()
-
     for intensity_derivative in INTENSITY_DERIVATIVES:
-        if intensity_derivative in unit:
+        if intensity_derivative.is_equivalent(unit):
             return INTENSITY_DERIVATIVES[intensity_derivative]
     else:
         raise KeyError("unit does not match any known intensity derivatives.")
