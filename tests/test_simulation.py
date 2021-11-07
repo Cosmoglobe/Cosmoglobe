@@ -63,7 +63,7 @@ def test_nside(nside):
     """Tests a set of nsides."""
 
     dust = ThermalDust(
-        Quantity(np.random.randint(10, 20, (3, hp.nside2npix(nside))), unit="K"),
+        Quantity(np.random.randint(10, 20, (3, hp.nside2npix(nside))), unit="K_RJ"),
         Quantity([[20], [50], [50]], unit="GHz"),
         beta=Quantity(np.random.randint(10, 100, (3, hp.nside2npix(nside)))),
         T=Quantity(np.random.randint(10, 100, (3, hp.nside2npix(nside))), unit="K"),

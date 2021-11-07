@@ -14,8 +14,8 @@ from cosmoglobe.sky.components.radio import Radio
 
 def test_init_synch():
     """Test the initialization of Synchrotron."""
-    amp_1 = Quantity(np.ones((1, hp.nside2npix(32))), unit="K")
-    amp_3 = Quantity(np.ones((3, hp.nside2npix(32))), unit="K")
+    amp_1 = Quantity(np.ones((1, hp.nside2npix(32))), unit="K_RJ")
+    amp_3 = Quantity(np.ones((3, hp.nside2npix(32))), unit="K_RJ")
     freq_ref_1 = Quantity([[40]], unit="GHz")
     freq_ref_3 = Quantity([[40], [40], [40]], unit="GHz")
     beta_1 = Quantity(np.ones((1, hp.nside2npix(32))))
@@ -27,8 +27,8 @@ def test_init_synch():
 
 def test_init_dust():
     """Test the initialization of Dust."""
-    amp_1 = Quantity(np.ones((1, hp.nside2npix(32))), unit="K")
-    amp_3 = Quantity(np.ones((3, hp.nside2npix(32))), unit="K")
+    amp_1 = Quantity(np.ones((1, hp.nside2npix(32))), unit="K_RJ")
+    amp_3 = Quantity(np.ones((3, hp.nside2npix(32))), unit="K_RJ")
     freq_ref_1 = Quantity([[40]], unit="GHz")
     freq_ref_3 = Quantity([[40], [40], [40]], unit="GHz")
     beta_1 = Quantity(np.ones((1, hp.nside2npix(32))))
@@ -42,8 +42,8 @@ def test_init_dust():
 
 def test_init_ff():
     """Test the initialization of ff."""
-    amp_1 = Quantity(np.ones((1, hp.nside2npix(32))), unit="K")
-    amp_3 = Quantity(np.ones((3, hp.nside2npix(32))), unit="K")
+    amp_1 = Quantity(np.ones((1, hp.nside2npix(32))), unit="K_RJ")
+    amp_3 = Quantity(np.ones((3, hp.nside2npix(32))), unit="K_RJ")
     freq_ref_1 = Quantity([[40]], unit="GHz")
     freq_ref_3 = Quantity([[40], [40], [40]], unit="GHz")
     T_e_1 = Quantity(np.ones((1, hp.nside2npix(32))))
@@ -86,15 +86,9 @@ def test_radio_unit(radio):
     assert radio.amp.unit == Unit("mJy")
 
 
-def test_radio_unit(radio):
-    """Tests the unit of radio."""
-
-    assert radio.amp.unit == Unit("mJy")
-
-
 def test_init_ame():
     """Test the initialization of Radio."""
-    amp = Quantity(np.random.randint(10, 20, (3, hp.nside2npix(32))), unit="uK")
+    amp = Quantity(np.random.randint(10, 20, (3, hp.nside2npix(32))), unit="uK_RJ")
     freq_ref = Quantity([[40], [40], [40]], unit="GHz")
     freq_peak = Quantity(np.random.randint(10, 20, (3, hp.nside2npix(32))), unit="GHz")
 
@@ -103,7 +97,7 @@ def test_init_ame():
 
 def test_init_cmb():
     """Test the initialization of Radio."""
-    amp = Quantity(np.random.randint(10, 20, (3, hp.nside2npix(32))), unit="uK")
+    amp = Quantity(np.random.randint(10, 20, (3, hp.nside2npix(32))), unit="uK_CMB")
     freq_ref = Quantity([[40], [40], [40]], unit="GHz")
 
     CMB(amp, freq_ref)

@@ -8,8 +8,8 @@ from cosmoglobe.sky.components.synchrotron import Synchrotron
 from cosmoglobe.sky.components.dust import ThermalDust
 from cosmoglobe.sky._exceptions import NsideError
 
-amp_1 = Quantity(np.ones((1, hp.nside2npix(32))), unit="K")
-amp_3 = Quantity(np.ones((3, hp.nside2npix(32))), unit="K")
+amp_1 = Quantity(np.ones((1, hp.nside2npix(32))), unit="K_RJ")
+amp_3 = Quantity(np.ones((3, hp.nside2npix(32))), unit="K_RJ")
 freq_ref_1 = Quantity([[40]], unit="GHz")
 freq_ref_3 = Quantity([[40], [50], [50]], unit="GHz")
 beta_1 = Quantity(np.random.randint(-2, 3, (1, hp.nside2npix(32))))
@@ -51,7 +51,6 @@ def test_freq_ref_unit():
     """Tests that the unit of freq_ref is compatible with GHz."""
 
     Synchrotron(amp_1, freq_ref_1, beta=beta_1)
-    Synchrotron(amp_1, Quantity([[30]], unit="nm"), beta=beta_1)
 
     with pytest.raises(UnitsError):
         Synchrotron(amp_1, Quantity([[30]], unit="s"), beta=beta_1)
@@ -73,16 +72,16 @@ def test_amp_shape():
     Synchrotron(amp_3, freq_ref_3, beta=beta_3)
 
     with pytest.raises(NsideError):
-        Synchrotron(Quantity(np.ones((1, 23423)), unit="K"), freq_ref_1, beta=beta_1)
+        Synchrotron(Quantity(np.ones((1, 23423)), unit="K_RJ"), freq_ref_1, beta=beta_1)
 
     with pytest.raises(ValueError):
         Synchrotron(
-            Quantity(np.ones((2, hp.nside2npix(32))), unit="K"), freq_ref_1, beta=beta_1
+            Quantity(np.ones((2, hp.nside2npix(32))), unit="K_RJ"), freq_ref_1, beta=beta_1
         )
 
     with pytest.raises(ValueError):
         Synchrotron(
-            Quantity(np.ones((hp.nside2npix(32))), unit="K"), freq_ref_1, beta=beta_1
+            Quantity(np.ones((hp.nside2npix(32))), unit="K_RJ"), freq_ref_1, beta=beta_1
         )
 
 

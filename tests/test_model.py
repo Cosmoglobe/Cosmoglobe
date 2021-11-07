@@ -32,12 +32,12 @@ def test_init_sky_model_nside(synch_3, dust_3):
         SkyModel(32, {"s": 1})
 
     synch = Synchrotron(
-        Quantity(np.random.randint(10, 30, (3, hp.nside2npix(32))), unit="uK"),
+        Quantity(np.random.randint(10, 30, (3, hp.nside2npix(32))), unit="uK_RJ"),
         Quantity([[40], [50], [50]], unit="GHz"),
         beta=Quantity(np.random.randint(10, 30, (3, hp.nside2npix(32)))),
     )
     dust = ThermalDust(
-        Quantity(np.random.randint(10, 30, (3, hp.nside2npix(128))), unit="uK"),
+        Quantity(np.random.randint(10, 30, (3, hp.nside2npix(128))), unit="uK_RJ"),
         Quantity([[40], [50], [50]], unit="GHz"),
         beta=Quantity([[1], [2], [2]]),
         T=Quantity(np.random.randint(10, 30, (3, hp.nside2npix(128))), unit="K"),
@@ -50,12 +50,12 @@ def test_init_sky_model_nside(synch_3, dust_3):
 def test_comp_arg(sky_model):
     """Tests that all comps in the comp arg is present."""
     synch = Synchrotron(
-        Quantity(np.random.randint(10, 30, (3, hp.nside2npix(32))), unit="uK"),
+        Quantity(np.random.randint(10, 30, (3, hp.nside2npix(32))), unit="uK_RJ"),
         Quantity([[40], [50], [50]], unit="GHz"),
         beta=Quantity(np.random.randint(10, 30, (3, hp.nside2npix(32)))),
     )
     dust = ThermalDust(
-        Quantity(np.random.randint(10, 30, (3, hp.nside2npix(32))), unit="uK"),
+        Quantity(np.random.randint(10, 30, (3, hp.nside2npix(32))), unit="uK_RJ"),
         Quantity([[40], [50], [50]], unit="GHz"),
         beta=Quantity([[1], [2], [2]]),
         T=Quantity(np.random.randint(10, 30, (3, hp.nside2npix(32))), unit="K"),
@@ -120,7 +120,7 @@ def test_synch():
     """Tests a sim of synch."""
 
     synch = Synchrotron(
-        Quantity(np.random.randint(10, 30, (3, hp.nside2npix(128))), unit="uK"),
+        Quantity(np.random.randint(10, 30, (3, hp.nside2npix(128))), unit="uK_RJ"),
         Quantity([[40], [50], [50]], unit="GHz"),
         beta=Quantity(np.random.randint(10, 30, (3, hp.nside2npix(128)))),
     )
@@ -137,7 +137,7 @@ def test_dust():
     """Tests a sim of dust."""
 
     dust = ThermalDust(
-        Quantity(np.random.randint(10, 30, (3, hp.nside2npix(128))), unit="uK"),
+        Quantity(np.random.randint(10, 30, (3, hp.nside2npix(128))), unit="uK_RJ"),
         Quantity([[40], [50], [50]], unit="GHz"),
         beta=Quantity([[1], [2], [2]]),
         T=Quantity(np.random.randint(10, 30, (3, hp.nside2npix(128))), unit="K"),
@@ -180,7 +180,7 @@ def test_ame():
     """Tests a sim of ame."""
 
     ame = AME(
-        Quantity(np.random.randint(10, 30, (3, hp.nside2npix(128))), unit="uK"),
+        Quantity(np.random.randint(10, 30, (3, hp.nside2npix(128))), unit="uK_RJ"),
         Quantity([[40], [30], [30]], unit="GHz"),
         freq_peak=Quantity([[100], [100], [100]], unit="GHz"),
     )
@@ -200,7 +200,7 @@ def test_remove_dipole(sky_model):
     sky_model.remove_dipole()
 
     ame = AME(
-        Quantity(np.random.randint(10, 30, (3, hp.nside2npix(128))), unit="uK"),
+        Quantity(np.random.randint(10, 30, (3, hp.nside2npix(128))), unit="uK_RJ"),
         Quantity([[40], [30], [30]], unit="GHz"),
         freq_peak=Quantity([[100], [100], [100]], unit="GHz"),
     )

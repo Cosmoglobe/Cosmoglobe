@@ -18,7 +18,7 @@ from cosmoglobe.sky.model import SkyModel
 def synch_1():
 
     return Synchrotron(
-        Quantity(np.random.randint(10, 20, (1, hp.nside2npix(32))), unit="K"),
+        Quantity(np.random.randint(10, 20, (1, hp.nside2npix(32))), unit="K_RJ"),
         Quantity([[40]], unit="GHz"),
         beta=Quantity([[1]]),
     )
@@ -27,7 +27,7 @@ def synch_1():
 @pytest.fixture()
 def synch_3():
     return Synchrotron(
-        Quantity(np.random.randint(10, 20, (3, hp.nside2npix(32))), unit="K"),
+        Quantity(np.random.randint(10, 20, (3, hp.nside2npix(32))), unit="K_RJ"),
         Quantity([[40], [40], [40]], unit="GHz"),
         beta=Quantity([[1], [1], [1]]),
     )
@@ -37,7 +37,7 @@ def synch_3():
 def dust_1():
 
     return ThermalDust(
-        Quantity(np.random.randint(10, 20, (1, hp.nside2npix(32))), unit="K"),
+        Quantity(np.random.randint(10, 20, (1, hp.nside2npix(32))), unit="K_RJ"),
         Quantity([[40]], unit="GHz"),
         beta=Quantity(np.random.randint(10, 100, (1, hp.nside2npix(32)))),
         T=Quantity([[1000]], unit="K"),
@@ -47,7 +47,7 @@ def dust_1():
 @pytest.fixture()
 def dust_3():
     return ThermalDust(
-        Quantity(np.random.randint(10, 20, (3, hp.nside2npix(32))), unit="K"),
+        Quantity(np.random.randint(10, 20, (3, hp.nside2npix(32))), unit="K_RJ"),
         Quantity([[20], [50], [50]], unit="GHz"),
         beta=Quantity([[0.3], [0.4], [0.4]]),
         T=Quantity(np.random.randint(10, 100, (3, hp.nside2npix(32))), unit="K"),
@@ -57,7 +57,7 @@ def dust_3():
 @pytest.fixture()
 def dust0spec():
     return ThermalDust(
-        Quantity(np.random.randint(10, 20, (3, hp.nside2npix(32))), unit="K"),
+        Quantity(np.random.randint(10, 20, (3, hp.nside2npix(32))), unit="K_RJ"),
         Quantity([[20], [50], [50]], unit="GHz"),
         beta=Quantity([[10], [11], [11]]),
         T=Quantity([[5], [6], [6]], unit="K"),
@@ -67,7 +67,7 @@ def dust0spec():
 @pytest.fixture()
 def dust1spec():
     return ThermalDust(
-        Quantity(np.random.randint(10, 20, (3, hp.nside2npix(32))), unit="K"),
+        Quantity(np.random.randint(10, 20, (3, hp.nside2npix(32))), unit="K_RJ"),
         Quantity([[20], [50], [50]], unit="GHz"),
         beta=Quantity([[10], [11], [11]]),
         T=Quantity(np.random.randint(10, 100, (3, hp.nside2npix(32))), unit="K"),
@@ -77,7 +77,7 @@ def dust1spec():
 @pytest.fixture()
 def dust2spec():
     return ThermalDust(
-        Quantity(np.random.randint(10, 20, (3, hp.nside2npix(32))), unit="K"),
+        Quantity(np.random.randint(10, 20, (3, hp.nside2npix(32))), unit="K_RJ"),
         Quantity([[20], [50], [50]], unit="GHz"),
         beta=Quantity(np.random.randint(10, 100, (3, hp.nside2npix(32)))),
         T=Quantity(np.random.randint(10, 100, (3, hp.nside2npix(32))), unit="K"),
@@ -95,7 +95,7 @@ def radio():
 
 @pytest.fixture()
 def ff():
-    amp = Quantity(np.random.randint(10, 20, (1, hp.nside2npix(256))), unit="uK")
+    amp = Quantity(np.random.randint(10, 20, (1, hp.nside2npix(256))), unit="uK_RJ")
     freq_ref = Quantity([[40]], unit="GHz")
     T_e = Quantity(np.random.randint(10, 20, (1, hp.nside2npix(256))), unit="K")
 
@@ -105,7 +105,7 @@ def ff():
 @pytest.fixture()
 def ame():
     return AME(
-        Quantity(np.random.randint(10, 20, (3, hp.nside2npix(256))), unit="uK"),
+        Quantity(np.random.randint(10, 20, (3, hp.nside2npix(256))), unit="uK_RJ"),
         Quantity([[20], [50], [50]], unit="GHz"),
         freq_peak=Quantity(
             np.random.randint(10, 100, (3, hp.nside2npix(256))), unit="GHz"
@@ -116,7 +116,7 @@ def ame():
 @pytest.fixture()
 def synch():
     return Synchrotron(
-        Quantity(np.random.randint(10, 20, (1, hp.nside2npix(256))), unit="uK"),
+        Quantity(np.random.randint(10, 20, (1, hp.nside2npix(256))), unit="uK_RJ"),
         Quantity([[40]], unit="GHz"),
         beta=Quantity([[1]]),
     )
@@ -125,7 +125,7 @@ def synch():
 @pytest.fixture()
 def dust():
     return ThermalDust(
-        Quantity(np.random.randint(10, 20, (3, hp.nside2npix(256))), unit="uK"),
+        Quantity(np.random.randint(10, 20, (3, hp.nside2npix(256))), unit="uK_RJ"),
         Quantity([[20], [50], [50]], unit="GHz"),
         beta=Quantity([[0.3], [0.4], [0.4]]),
         T=Quantity(np.random.randint(10, 100, (3, hp.nside2npix(256))), unit="uK"),
@@ -135,7 +135,7 @@ def dust():
 @pytest.fixture()
 def cmb():
     return CMB(
-        Quantity(np.random.randint(10, 20, (3, hp.nside2npix(256))), unit="uK"),
+        Quantity(np.random.randint(10, 20, (3, hp.nside2npix(256))), unit="uK_CMB"),
         Quantity([[1], [1], [1]], unit="GHz"),
     )
 
