@@ -1,7 +1,7 @@
 from astropy.units import Quantity, Unit, quantity_input
 import numpy as np
 
-from cosmoglobe.sky.base_components import DiffuseComponent
+from cosmoglobe.sky._base_components import DiffuseComponent
 from cosmoglobe.sky.components import SkyComponentLabel
 import cosmoglobe.sky._constants as const
 

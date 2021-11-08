@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 from cosmoglobe.sky._exceptions import ModelNotFoundError, ComponentNotFoundError
 
-from cosmoglobe.sky.base_components import SkyComponent
+from cosmoglobe.sky._base_components import SkyComponent
 from cosmoglobe.sky.components.ame import AME
 from cosmoglobe.sky.components.synchrotron import Synchrotron
 from cosmoglobe.sky.components.dust import ThermalDust
@@ -41,23 +41,24 @@ class CosmoglobeModel:
         else:
             raise ComponentNotFoundError(f"component {key} not found in sky model.")
 
-    def __str__(self) -> str:
-        repr = "Cosmoglobe Sky Model\n"
-        repr += f"--------------------\n"
-        repr += f"version: {self.info.version}\n"
-        repr += (
-            f"components: {', '.join([comp.label.value for comp in self.components])}\n"
-        )
-
-        return repr
-
 
 class CosmoglobeRegistry:
     """Container for registered sky models."""
 
     def __init__(self) -> None:
         self.models: Dict[str, CosmoglobeModel] = {}
-        self.default_model: Optional[CosmoglobeModel] = None
+        self._default_model: Optional[CosmoglobeModel] = None
+
+    @property
+    def default_model(self) -> CosmoglobeModel:
+        """The default cosmoglobe model."""
+
+        if self._default_model is None:
+            raise ValueError(
+                "default model has not yet been set. A default can be set "
+                "using `set_default_model`"
+            )
+        return self._default_model
 
     def register_model(self, name: str, model: CosmoglobeModel) -> None:
         """Adds a new sky model to the registry."""
@@ -80,7 +81,7 @@ class CosmoglobeRegistry:
     def set_default_model(self, name: str) -> None:
         """Sets the default sky model."""
 
-        self.default_model = self.models[name]
+        self._default_model = self.models[name]
 
 
 cosmoglobe_registry = CosmoglobeRegistry()

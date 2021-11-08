@@ -2,7 +2,7 @@ from astropy.units import Quantity
 import numpy as np
 
 import cosmoglobe.sky._constants as const
-from cosmoglobe.sky.base_components import DiffuseComponent
+from cosmoglobe.sky._base_components import DiffuseComponent
 from cosmoglobe.sky.components import SkyComponentLabel
 
 

@@ -5,7 +5,7 @@ from astropy.units import Quantity, Unit
 import healpy as hp
 import numpy as np
 
-from cosmoglobe.sky.base_components import (
+from cosmoglobe.sky._base_components import (
     DiffuseComponent,
     LineComponent,
     SkyComponent,
@@ -66,7 +66,7 @@ class SkyModel:
      [-1.64627550e+00  2.93583564e-01 -1.06788937e+00 ... -1.64354585e+01
        1.60621841e+01 -1.05506092e+01]
      [-4.15682825e+00  3.08881971e-01 -1.02012415e+00 ...  5.44745701e+00
-      -4.71776995e+00  4.39850830e+00]] uK
+      -4.71776995e+00  4.39850830e+00]] uK_RJ
     """
 
     def __init__(
@@ -231,14 +231,8 @@ class SkyModel:
             elif isinstance(component_class, PointSourceComponent):
                 pointsource_components.append(component_class)
 
-        shape = (
-            (3, hp.nside2npix(self.nside))
-            if any(component.is_polarized for component in included_components)
-            else (1, hp.nside2npix(self.nside))
-        )
-
         output_unit = Unit(output_unit)
-        emission = Quantity(np.zeros(shape), unit=output_unit)
+        emission = Quantity(np.zeros((3, hp.nside2npix(self.nside))), unit=output_unit)
 
         for diffuse_component in diffuse_components:
             component_emission = diffuse_component.simulate_emission(
@@ -256,15 +250,9 @@ class SkyModel:
                 emission[IQU] += diffuse_emission
 
         if fwhm != DEFAULT_BEAM_FWHM:
-            fwhm_rad = fwhm.to("rad").value
-            smoothed_emission = (
-                hp.smoothing(emission, fwhm=fwhm_rad)
-                if shape[0] == 3
-                else np.expand_dims(
-                    hp.smoothing(np.squeeze(emission), fwhm=fwhm_rad), axis=0
-                )
+            emission = Quantity(
+                hp.smoothing(emission, fwhm=fwhm.to("rad").value), unit=emission.unit
             )
-            emission = Quantity(smoothed_emission, unit=emission.unit)
 
         for pointsource_component in pointsource_components:
             component_emission = pointsource_component.simulate_emission(

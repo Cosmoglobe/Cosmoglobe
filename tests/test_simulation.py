@@ -32,7 +32,7 @@ def test_pointsource(sky_model):
     """Tests the sky sky_model."""
 
     emission = sky_model(100 * Unit("GHz"), components=["radio"])
-    assert emission.shape == (1, hp.nside2npix(sky_model.nside))
+    assert emission.shape == (3, hp.nside2npix(sky_model.nside))
 
     sky_model([100, 102, 104] * Unit("GHz"), components=["radio"])
     sky_model(
@@ -54,7 +54,7 @@ def test_pointsource(sky_model):
             output_unit="MJy/sr",
             components=["radio"],
         ).shape
-        == (1, hp.nside2npix(sky_model.nside))
+        == (3, hp.nside2npix(sky_model.nside))
     )
 
 

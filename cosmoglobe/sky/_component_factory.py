@@ -11,7 +11,7 @@ from cosmoglobe.h5._exceptions import (
     ChainKeyError,
     ChainFormatError,
 )
-from cosmoglobe.sky.base_components import (
+from cosmoglobe.sky._base_components import (
     SkyComponent,
     DiffuseComponent,
     PointSourceComponent,

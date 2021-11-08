@@ -2,7 +2,7 @@ from astropy.units import Quantity, Unit, brightness_temperature
 import numpy as np
 
 from cosmoglobe.data import DATA_DIR
-from cosmoglobe.sky.base_components import DiffuseComponent
+from cosmoglobe.sky._base_components import DiffuseComponent
 from cosmoglobe.sky.components import SkyComponentLabel
 
 SPDUST2_FILE = DATA_DIR / "spdust2_cnm.dat"

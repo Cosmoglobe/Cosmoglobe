@@ -3,7 +3,7 @@ from typing import Dict, List, Type, TYPE_CHECKING, Union
 from astropy.units import Unit
 
 from cosmoglobe.sky.cosmoglobe import DEFAULT_COSMOGLOBE_MODEL
-from cosmoglobe.sky.base_components import SkyComponent
+from cosmoglobe.sky._base_components import SkyComponent
 
 if TYPE_CHECKING:
     from cosmoglobe.sky._chain_context import ChainContext

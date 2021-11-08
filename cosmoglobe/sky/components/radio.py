@@ -2,7 +2,7 @@ from astropy.units import Quantity
 import numpy as np
 
 from cosmoglobe.data import DATA_DIR
-from cosmoglobe.sky.base_components import PointSourceComponent
+from cosmoglobe.sky._base_components import PointSourceComponent
 from cosmoglobe.sky.components import SkyComponentLabel
 
 

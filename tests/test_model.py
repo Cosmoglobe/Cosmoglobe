@@ -161,13 +161,13 @@ def test_radio():
     )
     sky_model = SkyModel(256, {"radio": radio})
     assert sky_model(100 * Unit("GHz"), fwhm=60 * Unit("arcmin")).shape == (
-        1,
+        3,
         hp.nside2npix(256),
     )
-    assert sky_model([100, 101, 102] * Unit("GHz")).shape == (1, hp.nside2npix(256))
+    assert sky_model([100, 101, 102] * Unit("GHz")).shape == (3, hp.nside2npix(256))
     assert sky_model(
         [100, 101] * Unit("GHz"), bandpass=[3, 5] * Unit("uK_RJ"), fwhm=60 * Unit("arcmin")
-    ).shape == (1, hp.nside2npix(256))
+    ).shape == (3, hp.nside2npix(256))
 
     with pytest.raises(ValueError):
         sky_model(100 * Unit("GHz"), fwhm=10 * Unit("arcmin")).shape == (

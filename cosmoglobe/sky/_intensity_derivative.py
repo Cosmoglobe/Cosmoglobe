@@ -52,6 +52,7 @@ class CMBIntensityDerivative:
         # amplitudes
         factor *= Unit("K") / Unit("K_CMB")
         factor /= Unit("sr")
+
         return factor
 
 
@@ -59,6 +60,7 @@ class IRASIntensityDerivative:
     """Intensity derivative for MJY/sr."""
 
     def __call__(self, freqs: Quantity) -> Quantity:
+
         return np.mean(freqs) / freqs
 
 
