@@ -16,7 +16,7 @@ import numpy as np
 from cosmoglobe.sky._constants import (
     DEFAULT_OUTPUT_UNIT,
     DEFAULT_BEAM_FWHM,
-    VALID_OUTPUT_UNITS,
+    SIGNAL_UNITS,
 )
 from cosmoglobe.sky._exceptions import NsideError
 from cosmoglobe.sky.components import SkyComponentLabel
@@ -152,10 +152,10 @@ class SkyComponent(ABC):
             Integrated bandpass emission.
         """
 
-        if not any(unit.is_equivalent(output_unit) for unit in VALID_OUTPUT_UNITS):
+        if not any(unit.is_equivalent(output_unit) for unit in SIGNAL_UNITS):
             raise UnitsError(
                 "output unit must be one of "
-                f"{', '.join(unit.to_string() for unit in VALID_OUTPUT_UNITS)}"
+                f"{', '.join(unit.to_string() for unit in SIGNAL_UNITS)}"
             )
         if freqs.size > 1:
             if bandpass is not None and freqs.shape != bandpass.shape:
@@ -166,16 +166,25 @@ class SkyComponent(ABC):
                 bandpass = np.ones(freqs_len := len(freqs)) / freqs_len * Unit("1/GHz")
 
             return self.get_bandpass_emission(
-                freqs,
-                bandpass,
+                freqs=freqs,
+                bandpass=bandpass,
                 output_unit=output_unit,
                 fwhm=fwhm,
                 nside=nside,
             )
 
         return self.get_delta_emission(
-            freqs, output_unit=output_unit, fwhm=fwhm, nside=nside
+            freq=freqs,
+            output_unit=output_unit,
+            fwhm=fwhm,
+            nside=nside,
         )
+
+    @property
+    def is_polarized(self) -> bool:
+        """Returns True if component emits polarized signal and False otherwise."""
+
+        return self.amp.shape[0] == 3
 
     @staticmethod
     def _validate_freq_ref(freq_ref: Quantity):
@@ -263,12 +272,17 @@ class DiffuseComponent(SkyComponent):
         bandpass = get_normalized_bandpass(freqs, bandpass)
 
         bandpass_scaling = get_bandpass_scaling(
-            freqs, bandpass, self.get_freq_scaling, self.spectral_parameters
+            freqs=freqs,
+            bandpass=bandpass,
+            freq_scaling_func=self.get_freq_scaling,
+            spectral_parameters=self.spectral_parameters,
         )
         emission = self.amp * bandpass_scaling
-        input_unit = emission.unit
         unit_coefficient = get_bandpass_coefficient(
-            freqs, bandpass, input_unit, output_unit
+            freqs=freqs,
+            bandpass=bandpass,
+            input_unit=emission.unit,
+            output_unit=output_unit,
         )
 
         return emission * unit_coefficient
@@ -381,10 +395,15 @@ class PointSourceComponent(SkyComponent):
     ) -> Quantity:
         """See base class."""
 
-        point_sources = self.amp * self.get_freq_scaling(
+        scaled_point_sources = self.amp * self.get_freq_scaling(
             freq, **self.spectral_parameters
         )
-        emission = pointsources_to_healpix(point_sources, self.catalog, nside, fwhm)
+        emission = pointsources_to_healpix(
+            point_sources=scaled_point_sources,
+            catalog=self.catalog,
+            nside=nside,
+            fwhm=fwhm,
+        )
 
         return emission.to(output_unit, equivalencies=cmb_equivalencies(freq))
 
@@ -400,13 +419,25 @@ class PointSourceComponent(SkyComponent):
 
         bandpass = get_normalized_bandpass(freqs, bandpass)
         bandpass_scaling = get_bandpass_scaling(
-            freqs, bandpass, self.get_freq_scaling, self.spectral_parameters
+            freqs=freqs,
+            bandpass=bandpass,
+            freq_scaling_func=self.get_freq_scaling,
+            spectral_parameters=self.spectral_parameters,
         )
-        point_sources = self.amp * bandpass_scaling
-        emission = pointsources_to_healpix(point_sources, self.catalog, nside, fwhm)
+
+        scaled_point_sources = self.amp * bandpass_scaling
+        emission = pointsources_to_healpix(
+            point_sources=scaled_point_sources,
+            catalog=self.catalog,
+            nside=nside,
+            fwhm=fwhm,
+        )
         input_unit = emission.unit
         unit_coefficient = get_bandpass_coefficient(
-            freqs, bandpass, input_unit, output_unit
+            freqs=freqs,
+            bandpass=bandpass,
+            input_unit=input_unit,
+            output_unit=output_unit,
         )
 
         return emission * unit_coefficient

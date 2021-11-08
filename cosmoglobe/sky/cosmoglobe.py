@@ -1,4 +1,4 @@
-from typing import Dict, List, Type
+from typing import Dict, List, Optional, Type
 from dataclasses import dataclass
 
 from cosmoglobe.sky._exceptions import ModelNotFoundError, ComponentNotFoundError
@@ -13,11 +13,13 @@ from cosmoglobe.sky.components.radio import Radio
 
 
 @dataclass
-class SkyModelInfo:
+class CosmoglobeModelInfo:
     """Information object for the Cosmoglobe Sky Model.
 
     The Cosmoglobe Sky Model will dynamically evolve with the inclusion
     of new datasets.
+
+    TODO: Expand the information contained.
     """
 
     version: str
@@ -25,11 +27,11 @@ class SkyModelInfo:
 
 
 @dataclass
-class CosmoglobeSkyModel:
+class CosmoglobeModel:
     """The sky components making up Cosmoglobe Sky Model."""
 
     components: List[Type[SkyComponent]]
-    info: SkyModelInfo
+    info: CosmoglobeModelInfo
 
     def __getitem__(self, key: str) -> Type[SkyComponent]:
         """Returns a SkyComponent class."""
@@ -50,14 +52,14 @@ class CosmoglobeSkyModel:
         return repr
 
 
-class SkyModelRegistry:
+class CosmoglobeRegistry:
     """Container for registered sky models."""
 
     def __init__(self) -> None:
-        self.models: Dict[str, CosmoglobeSkyModel] = {}
-        self.default_model: CosmoglobeSkyModel
+        self.models: Dict[str, CosmoglobeModel] = {}
+        self.default_model: Optional[CosmoglobeModel] = None
 
-    def register_model(self, name: str, model: CosmoglobeSkyModel) -> None:
+    def register_model(self, name: str, model: CosmoglobeModel) -> None:
         """Adds a new sky model to the registry."""
 
         if name in self.models:
@@ -65,7 +67,7 @@ class SkyModelRegistry:
 
         self.models[name] = model
 
-    def get_model(self, name: str) -> CosmoglobeSkyModel:
+    def get_model(self, name: str) -> CosmoglobeModel:
         """Returns a registered sky model."""
         try:
             return self.models[name]
@@ -81,17 +83,17 @@ class SkyModelRegistry:
         self.default_model = self.models[name]
 
 
-skymodel_registry = SkyModelRegistry()
-skymodel_registry.register_model(
+cosmoglobe_registry = CosmoglobeRegistry()
+cosmoglobe_registry.register_model(
     name="BeyondPlanck",
-    model=CosmoglobeSkyModel(
+    model=CosmoglobeModel(
         components=[AME, CMB, ThermalDust, FreeFree, Radio, Synchrotron],
-        info=SkyModelInfo(
+        info=CosmoglobeModelInfo(
             version="BeyondPlanck",
             data_url="http://cosmoglobe.uio.no/BeyondPlanck/",
         ),
     ),
 )
 
-skymodel_registry.set_default_model("BeyondPlanck")
-DEFAULT_SKY_MODEL = skymodel_registry.default_model
+cosmoglobe_registry.set_default_model("BeyondPlanck")
+DEFAULT_COSMOGLOBE_MODEL = cosmoglobe_registry.default_model

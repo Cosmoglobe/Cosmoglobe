@@ -16,21 +16,20 @@ from cosmoglobe.sky.base_components import (
     DiffuseComponent,
     PointSourceComponent,
 )
-from cosmoglobe.sky.chain.context import chain_context
-from cosmoglobe.sky.cosmoglobe import skymodel_registry
-from cosmoglobe.sky.model import SkyModel
+from cosmoglobe.sky._chain_context import chain_context
+from cosmoglobe.sky.cosmoglobe import CosmoglobeModel, DEFAULT_COSMOGLOBE_MODEL
 
 DEFAULT_SAMPLE = -1
 
 
-def model_from_chain(
+def get_components_from_chain(
     chain: Union[str, Chain],
     nside: int,
     components: Optional[List[str]] = None,
-    model: str = "BeyondPlanck",
+    model: CosmoglobeModel = DEFAULT_COSMOGLOBE_MODEL,
     samples: Optional[Union[range, int, Literal["all"]]] = DEFAULT_SAMPLE,
     burn_in: Optional[int] = None,
-) -> SkyModel:
+) -> Dict[str, SkyComponent]:
     """Initialize and return a cosmoglobe sky model from a chainfile.
 
     Parameters
@@ -52,8 +51,9 @@ def model_from_chain(
 
     Returns
     -------
-    model
-        Initialized sky model.
+    initialized_components
+        List containing initialized sky components
+
     """
 
     if not isinstance(chain, Chain):
@@ -70,7 +70,6 @@ def model_from_chain(
             "cannot initialize a sky model from a chain without a " "parameter group"
         )
 
-    sky_model = skymodel_registry.get_model(model)
 
     print(f"Initializing model from {chain.path.name}")
     if components is None:
@@ -84,20 +83,20 @@ def model_from_chain(
         for component in components:
             progress_bar.set_description(f"{component:<{padding}}")
             try:
-                component_class = sky_model[component]
+                component_class = model[component]
             except KeyError:
                 raise ChainComponentNotFoundError(
                     f"{component=!r} is not part in the Cosmoglobe Sky Model"
                 )
-            initialized_components[component] = comp_from_chain(
+            initialized_components[component] = get_comp_from_chain(
                 chain, nside, component, component_class, samples
             )
             progress_bar.update()
 
-    return SkyModel(nside=nside, components=initialized_components, info=sky_model.info)
+    return initialized_components
 
 
-def comp_from_chain(
+def get_comp_from_chain(
     chain: Chain,
     nside: int,
     component_label: str,

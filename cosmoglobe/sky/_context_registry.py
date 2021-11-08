@@ -2,25 +2,25 @@ from typing import Dict, List, Type, TYPE_CHECKING, Union
 
 from astropy.units import Unit
 
-from cosmoglobe.sky.cosmoglobe import DEFAULT_SKY_MODEL
+from cosmoglobe.sky.cosmoglobe import DEFAULT_COSMOGLOBE_MODEL
 from cosmoglobe.sky.base_components import SkyComponent
 
 if TYPE_CHECKING:
-    from cosmoglobe.sky.chain.context import ChainContext
+    from cosmoglobe.sky._chain_context import ChainContext
 
 
-class ChainContextFactory:
-    """Factory that book-keeps and registeres contexts for components."""
+class ChainContextRegistry:
+    """Class that book-keeps and registeres contexts for components."""
 
     def __init__(self):
         self._context: Dict[Type[SkyComponent], List["ChainContext"]] = {
-            component: [] for component in DEFAULT_SKY_MODEL.components
+            component: [] for component in DEFAULT_COSMOGLOBE_MODEL.components
         }
         self._mappings: Dict[Type[SkyComponent], Dict[str, str]] = {
-            component: {} for component in DEFAULT_SKY_MODEL.components
+            component: {} for component in DEFAULT_COSMOGLOBE_MODEL.components
         }
         self._units: Dict[Type[SkyComponent], Dict[str, str]] = {
-            component: {} for component in DEFAULT_SKY_MODEL.components
+            component: {} for component in DEFAULT_COSMOGLOBE_MODEL.components
         }
 
     def register_context(

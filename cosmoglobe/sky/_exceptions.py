@@ -11,3 +11,4 @@ class ComponentError(Exception):
 
 class NsideError(Exception):
     """Raised if there is an issue with the nside of a map."""
+

@@ -1,4 +1,5 @@
-from typing import Dict, Iterator, List, Optional, Union
+from __future__ import annotations
+from typing import Dict, Iterator, List, Literal, Optional, Union
 
 from astropy.units import Quantity, Unit
 import healpy as hp
@@ -10,14 +11,16 @@ from cosmoglobe.sky.base_components import (
     SkyComponent,
     PointSourceComponent,
 )
-from cosmoglobe.sky.cosmoglobe import SkyModelInfo
-from cosmoglobe.sky._units import cmb_equivalencies
 from cosmoglobe.sky._constants import DEFAULT_OUTPUT_UNIT, DEFAULT_BEAM_FWHM
 from cosmoglobe.sky._exceptions import (
     NsideError,
     ComponentError,
     ComponentNotFoundError,
 )
+from cosmoglobe.sky._units import cmb_equivalencies
+from cosmoglobe.h5.chain import Chain
+from cosmoglobe.sky._component_factory import get_components_from_chain
+from cosmoglobe.sky.cosmoglobe import CosmoglobeModelInfo, cosmoglobe_registry
 
 
 class SkyModel:
@@ -37,7 +40,7 @@ class SkyModel:
     Examples
     --------
     >>> import cosmoglobe
-    >>> model = cosmoglobe.model_from_chain("path/to/chain", nside=256)
+    >>> model = cosmoglobe.SkyModel.from_chain("path/to/chain", nside=256)
     >>> print(model)
     SkyModel(
       nside: 256
@@ -70,7 +73,7 @@ class SkyModel:
         self,
         nside: int,
         components: Dict[str, SkyComponent],
-        info: Optional[SkyModelInfo] = None,
+        info: Optional[CosmoglobeModelInfo] = None,
     ) -> None:
         """Initializes an instance of the Cosmoglobe Sky Model.
 
@@ -100,6 +103,61 @@ class SkyModel:
             )
         self.components = components
         self.info = info
+
+    @classmethod
+    def from_chain(
+        cls,
+        chain: Union[str, Chain],
+        nside: int,
+        components: Optional[List[str]] = None,
+        model: str = "BeyondPlanck",
+        samples: Optional[Union[range, int, Literal["all"]]] = -1,
+        burn_in: Optional[int] = None,
+    ) -> SkyModel:
+        """Initializes the SkyModel from a Cosmoglobe chain.
+
+        Parameters
+        ----------
+        chain
+            Path to a Cosmoglobe chainfile or a Chain object.
+        nside
+            Model HEALPIX map resolution parameter.
+        components
+            List of components to include in the model.
+        model
+            String representing which sky model to use. Defaults to BeyondPlanck.
+        samples
+            The sample number for which to extract the model. If the input
+            is 'all', then the model will an average of all samples in the chain.
+            Defaults to the last sample in the chain.
+        burn_in
+            Burn in sample for which all previous samples are disregarded.
+
+        Returns
+        -------
+        sky_model
+            Initialized sky model.
+        """
+
+        cosmoglobe_model = cosmoglobe_registry.get_model(model)
+        initialized_components = get_components_from_chain(
+            chain=chain,
+            nside=nside,
+            components=components,
+            model=cosmoglobe_model,
+            samples=samples,
+            burn_in=burn_in,
+        )
+
+        return cls(
+            nside=nside, components=initialized_components, info=cosmoglobe_model.info
+        )
+
+    @classmethod
+    def from_hub(cls) -> SkyModel:
+        """Initializes the SkyModel from a public cosmoglobe data release."""
+
+        raise NotImplementedError
 
     @property
     def nside(self) -> int:
@@ -175,7 +233,7 @@ class SkyModel:
 
         shape = (
             (3, hp.nside2npix(self.nside))
-            if any(component.amp.shape[0] == 3 for component in included_components)
+            if any(component.is_polarized for component in included_components)
             else (1, hp.nside2npix(self.nside))
         )
 
@@ -197,19 +255,16 @@ class SkyModel:
             for IQU, diffuse_emission in enumerate(component_emission):
                 emission[IQU] += diffuse_emission
 
-        if fwhm.value != DEFAULT_BEAM_FWHM:
+        if fwhm != DEFAULT_BEAM_FWHM:
             fwhm_rad = fwhm.to("rad").value
-            if shape[0] == 3:
-                emission = Quantity(
-                    hp.smoothing(emission, fwhm=fwhm_rad), unit=emission.unit
+            smoothed_emission = (
+                hp.smoothing(emission, fwhm=fwhm_rad)
+                if shape[0] == 3
+                else np.expand_dims(
+                    hp.smoothing(np.squeeze(emission), fwhm=fwhm_rad), axis=0
                 )
-            else:
-                emission = Quantity(
-                    np.expand_dims(
-                        hp.smoothing(np.squeeze(emission), fwhm=fwhm_rad), axis=0
-                    ),
-                    unit=emission.unit,
-                )
+            )
+            emission = Quantity(smoothed_emission, unit=emission.unit)
 
         for pointsource_component in pointsource_components:
             component_emission = pointsource_component.simulate_emission(

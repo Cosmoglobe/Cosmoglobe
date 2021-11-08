@@ -9,7 +9,7 @@ from cosmoglobe.sky.components.freefree import FreeFree
 from cosmoglobe.sky.components.radio import Radio
 from cosmoglobe.sky.components.synchrotron import Synchrotron
 
-from cosmoglobe.sky.chain.factory import ChainContextFactory
+from cosmoglobe.sky._context_registry import ChainContextRegistry
 
 
 class ChainContext(Protocol):
@@ -83,7 +83,7 @@ class MapToScalarContext:
         return args
 
 
-chain_context = ChainContextFactory()
+chain_context = ChainContextRegistry()
 
 chain_context.register_context([], FreqRefContext)
 chain_context.register_context([], MapToScalarContext)

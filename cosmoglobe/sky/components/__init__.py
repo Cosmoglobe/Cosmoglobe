@@ -13,3 +13,4 @@ class SkyComponentLabel(Enum):
     SYNCH = "synch"
     SZ = "sz"
     ZODI = "zodi"
+

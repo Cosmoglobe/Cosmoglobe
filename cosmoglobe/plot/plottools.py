@@ -5,7 +5,6 @@ import warnings
 from numpy.core.numeric import NaN
 from .. import data as data_dir
 from cosmoglobe.sky.model import SkyModel
-from cosmoglobe.sky.chain.model import model_from_chain
 from cosmoglobe.h5.chain import Chain
 
 import cmasher
@@ -535,13 +534,13 @@ def get_data(input, sig, comp, freq, fwhm, nside=None, sample=-1):
                     print(
                         "[bold magenta]Warning! Neither frequency nor component selected. Plotting sky at 70GHz[/bold magenta]"
                     )
-                data = model_from_chain(
+                data = SkyModel.from_chain(
                     input, components=comp, nside=nside, samples=sample
                 )
             else:
                 if freq is not None:
                     # If frequency is specified, simulate sky with model.
-                    data = model_from_chain(
+                    data = SkyModel.from_chain(
                         input, components=comp, nside=nside, samples=sample
                     )
                 else:

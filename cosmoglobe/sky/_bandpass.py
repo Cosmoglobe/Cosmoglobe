@@ -7,7 +7,10 @@ from scipy.interpolate import RectBivariateSpline
 from cosmoglobe.sky._intensity_derivative import get_intensity_derivative
 
 # key: interpolation dimensions, value: number of points in the interpolate
-N_INTERPOLATION_GRID = {1: 1000, 2: 100}
+N_INTERPOLATION_GRID = {
+    1: 1000,
+    2: 100,
+}
 
 
 def get_normalized_bandpass(freqs: Quantity, bandpass: Quantity) -> Quantity:
@@ -34,7 +37,7 @@ def get_bandpass_coefficient(
     input_unit: Unit,
     output_unit: Unit,
 ) -> Quantity:
-    """Returns the bandpass coefficient.
+    """Returns the bandpass coefficient (Unit conversion factor for bandpass integrations).
 
     Parameters
     ----------
@@ -45,7 +48,7 @@ def get_bandpass_coefficient(
     input_unit
         The unit of the cosmoglobe data.
     ouput_unit
-        The requested output unit of the simulated emission
+        The requested output unit of the simulated emission.
 
     Returns
     -------
@@ -79,17 +82,17 @@ class BandpassIntegration(Protocol):
         bandpass: Quantity,
         freq_scaling_func: FreqScalingFunction,
         spectral_parameters: Dict[str, Quantity],
-        interpolation_grid: Dict[str, Union[np.ndarray, Quantity]],
+        interpolation_grid: Dict[str, Quantity],
     ) -> Union[float, List[float]]:
         """Computes the frequency scaling factor over bandpass integration.
 
         The bandpass integration is performed using the Commander mixing matrix
         formalism. Rather than computing the frequency scaling factor per pixel
         for each frequency in the bandpass, we grid out the spectral parameters
-        of the component to a small range covering the spatial variations over 
-        IQU. We then compute the frequency scaling factor for each gridded 
-        parameter integrated over the bandpass and store these values. To 
-        estimate the bandpass integration factor, we then simply interpolate in 
+        of the component to a small range covering the spatial variations over
+        IQU. We then compute the frequency scaling factor for each gridded
+        parameter integrated over the bandpass and store these values. To
+        estimate the bandpass integration factor, we then simply interpolate in
         these values.
 
         Parameters
@@ -99,7 +102,7 @@ class BandpassIntegration(Protocol):
         bandpass
             The bandpass profile.
         freq_scaling_func
-            Function that returns the SED scaling given frequencies and 
+            Function that returns the SED scaling given frequencies and
             spectral parameters.
         spectral_parameters
             Dictionary containing the spectral parameters of the component we
@@ -144,7 +147,7 @@ class BandpassIntegration1D:
         bandpass: Quantity,
         freq_scaling_func: FreqScalingFunction,
         spectral_parameters: Dict[str, Quantity],
-        interpolation_grid: Dict[str, Union[np.ndarray, Quantity]],
+        interpolation_grid: Dict[str, Quantity],
     ) -> List[float]:
 
         # Grid dictionary only has one item
@@ -171,11 +174,11 @@ class BandpassIntegration1D:
 
         scaling = [
             np.interp(
-                spectral_parameters[key][idx].value,
+                spectral_parameters[key][IQU].value,
                 spectral_parameter_grid.value,
-                col,
+                integral,
             )
-            for idx, col in enumerate(integrals)
+            for IQU, integral in enumerate(integrals)
         ]
 
         return scaling
@@ -190,7 +193,7 @@ class BandpassIntegration2D:
         bandpass: Quantity,
         freq_scaling_func: FreqScalingFunction,
         spectral_parameters: Dict[str, Quantity],
-        interpolation_grid: Dict[str, Union[np.ndarray, Quantity]],
+        interpolation_grid: Dict[str, Quantity],
     ) -> List[float]:
 
         mesh_grid = {
@@ -218,10 +221,10 @@ class BandpassIntegration2D:
         integrals = np.transpose(integrals)
 
         scaling = []
-        for idx, col in enumerate(integrals):
-            f = RectBivariateSpline(*interpolation_grid.values(), col)
+        for IQU, integral in enumerate(integrals):
+            f = RectBivariateSpline(*interpolation_grid.values(), integral)
             packed_spectrals = [
-                spectral[idx] if spectral.shape[0] == 3 else spectral[0]
+                spectral[IQU] if spectral.shape[0] == 3 else spectral[0]
                 for spectral in spectral_parameters.values()
             ]
             scaling.append(f(*packed_spectrals, grid=False))
@@ -238,7 +241,7 @@ BANDPASS_INTEGRATION_IMPLEMENTATIONS: Dict[int, BandpassIntegration] = {
 
 def get_interpolation_grid(
     spectral_parameters: Dict[str, Quantity]
-) -> Dict[str, Union[np.ndarray, Quantity]]:
+) -> Dict[str, Quantity]:
     """Returns a interpolation range.
 
     Computes the interpolation range of the spectral parameters of a
@@ -261,7 +264,7 @@ def get_interpolation_grid(
         if spectral_parameter.size > 3:
             dim += 1
 
-    grid: Dict[str, Union[np.ndarray, Quantity]] = {}
+    grid: Dict[str, Quantity] = {}
     if dim == 0:
         return grid
 
@@ -289,9 +292,7 @@ def get_bandpass_scaling(
     """Returns the appropriate Bandpass integration implementation given the spectral parameters."""
 
     grid = get_interpolation_grid(spectral_parameters)
-    dim = len(grid)
-
-    if dim not in BANDPASS_INTEGRATION_IMPLEMENTATIONS:
+    if (dim := len(grid)) not in BANDPASS_INTEGRATION_IMPLEMENTATIONS:
         raise NotImplementedError(
             "Bandpass integration for comps with more than two spectral "
             "parameters is not currently supported"
