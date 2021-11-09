@@ -1,5 +1,6 @@
 import inspect
 from typing import Dict, List, Type, Union, Optional, Literal
+import warnings
 
 from astropy.units import Quantity, Unit
 import healpy as hp
@@ -16,7 +17,7 @@ from cosmoglobe.sky._base_components import (
     DiffuseComponent,
     PointSourceComponent,
 )
-from cosmoglobe.sky._chain_context import chain_context
+from cosmoglobe.sky._chain_context import chain_context_registry
 from cosmoglobe.sky.cosmoglobe import CosmoglobeModel, DEFAULT_COSMOGLOBE_MODEL
 
 DEFAULT_SAMPLE = -1
@@ -41,7 +42,8 @@ def get_components_from_chain(
     components
         List of components to include in the model.
     model
-        String representing which sky model to use. Defaults to BeyondPlanck.
+        String representing which sky model to use. Defaults to the
+        BeyondPlanck model.
     samples
         The sample number for which to extract the model. If the input
         is 'all', then the model will an average of all samples in the chain.
@@ -70,12 +72,20 @@ def get_components_from_chain(
             "cannot initialize a sky model from a chain without a " "parameter group"
         )
 
-
-    print(f"Initializing model from {chain.path.name}")
+    if ".astropy/cache" in str(chain.path):
+        chain_name = "cached chainfile"
+    else:
+        chain_name = chain.path.name
+    print(f"Initializing model from {chain_name}")
     if components is None:
-        components = chain.components
-    elif any(component not in chain.components for component in components):
-        raise ChainComponentNotFoundError(f"component was not found in chain")
+        components = chain.components.copy()
+
+        for component in chain.components:
+            if component not in components:
+                warnings.warn(
+                    f"component {component} present in the Sky Model {model.version} "
+                    "but not found in chain."
+                )
 
     initialized_components: Dict[str, SkyComponent] = {}
     with tqdm(total=len(components), ncols=75) as progress_bar:
@@ -116,7 +126,7 @@ def get_comp_from_chain(
     component_class
         Class representing the sky component.
     samples
-        A range object, or an int representing the samples to use from the 
+        A range object, or an int representing the samples to use from the
         chain.
 
     Returns
@@ -125,14 +135,14 @@ def get_comp_from_chain(
     """
 
     class_args = get_comp_signature(component_class)
-    args = {}
+    args: Dict[str, Quantity] = {}
 
     # Chain contexts are operations that we perform on the data in the chain
     # to fit it to the format required in the Cosmoglobe Sky Model. This includes,
     # renaming of variables (mappings), specifying astropy units, and reshaping
     # and/or converting maps constant over the sky to scalars.
-    mappings = chain_context.get_mappings(component_class)
-    units = chain_context.get_units(component_class)
+    mappings = chain_context_registry.get_mappings(component_class)
+    units = chain_context_registry.get_units(component_class)
     for arg in class_args:
         chain_arg = mappings.get(arg, arg)
         chain_params = chain.parameters[component_label]
@@ -169,7 +179,7 @@ def get_comp_from_chain(
 
         args[arg] = Quantity(value, unit=units[arg] if arg in units else None)
 
-    contexts = chain_context.get_context(component_class)
+    contexts = chain_context_registry.get_context(component_class)
     for context in contexts:
         args.update(context(args))
 
@@ -179,7 +189,13 @@ def get_comp_from_chain(
 def get_comp_signature(comp_class: Type[SkyComponent]) -> List[str]:
     """Extracts and returns the parameters to extract from the chain."""
 
-    EXCLUDE = ["self", "spectral_parameters", "freqs"]
+    EXCLUDE = [
+        "self",
+        "freqs",
+        "spectral_parameters",
+        "_",
+        "__",
+    ]
     arguments: List[str] = []
     class_signature = inspect.signature(comp_class)
     arguments.extend(list(class_signature.parameters.keys()))

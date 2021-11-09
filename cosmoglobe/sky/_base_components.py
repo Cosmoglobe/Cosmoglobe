@@ -3,12 +3,12 @@ from typing import Dict, Optional
 import warnings
 
 from astropy.units import (
+    quantity_input,
     Quantity,
+    spectral,
     Unit,
     UnitConversionError,
     UnitsError,
-    spectral,
-    quantity_input,
 )
 import healpy as hp
 import numpy as np
@@ -19,7 +19,6 @@ from cosmoglobe.sky._constants import (
     SIGNAL_UNITS,
 )
 from cosmoglobe.sky._exceptions import NsideError
-from cosmoglobe.sky.components import SkyComponentLabel
 from cosmoglobe.sky._bandpass import (
     get_normalized_bandpass,
     get_bandpass_coefficient,
@@ -27,6 +26,7 @@ from cosmoglobe.sky._bandpass import (
 )
 from cosmoglobe.sky._beam import pointsources_to_healpix
 from cosmoglobe.sky._units import cmb_equivalencies
+from cosmoglobe.sky.components import SkyComponentLabel
 
 
 class SkyComponent(ABC):
@@ -352,7 +352,7 @@ class PointSourceComponent(SkyComponent):
     latitude and longitude must be specificed as a class/instance attribute.
     """
 
-    catalog: np.ndarray
+    catalog: Quantity
 
     def __init__(self, amp, freq_ref, **spectral_parameters):
         super().__init__(amp, freq_ref, **spectral_parameters)
@@ -361,7 +361,7 @@ class PointSourceComponent(SkyComponent):
         # properly broadcasted under the sky simulation.
         self._validate_amp(amp)
         try:
-            self._validate_catalog((self.catalog))
+            self._validate_catalog(self.catalog)
         except AttributeError:
             raise AttributeError(
                 "a point source catalog must be specified as a class attribute."
@@ -478,7 +478,7 @@ class PointSourceComponent(SkyComponent):
                     "if the parameter is a scalar"
                 )
 
-    def _validate_catalog(self, catalog: np.ndarray):
+    def _validate_catalog(self, catalog: Quantity):
         if catalog.shape[1] != self.amp.shape[1]:
             raise ValueError(
                 f"number of pointsources ({self.amp.shape[1]}) does not "

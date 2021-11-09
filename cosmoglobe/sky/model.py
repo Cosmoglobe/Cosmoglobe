@@ -2,25 +2,31 @@ from __future__ import annotations
 from typing import Dict, Iterator, List, Literal, Optional, Union
 
 from astropy.units import Quantity, Unit
+from astropy.units.core import UnitsError
 import healpy as hp
 import numpy as np
 
 from cosmoglobe.sky._base_components import (
     DiffuseComponent,
     LineComponent,
-    SkyComponent,
     PointSourceComponent,
+    SkyComponent,
 )
-from cosmoglobe.sky._constants import DEFAULT_OUTPUT_UNIT, DEFAULT_BEAM_FWHM
+from cosmoglobe.sky.components import SkyComponentLabel
+from cosmoglobe.sky._component_factory import get_components_from_chain
+from cosmoglobe.sky._constants import (
+    DEFAULT_OUTPUT_UNIT,
+    DEFAULT_BEAM_FWHM,
+    DEFAULT_GAL_CUT,
+)
 from cosmoglobe.sky._exceptions import (
     NsideError,
     ComponentError,
     ComponentNotFoundError,
 )
 from cosmoglobe.sky._units import cmb_equivalencies
+from cosmoglobe.sky.cosmoglobe import cosmoglobe_registry
 from cosmoglobe.h5.chain import Chain
-from cosmoglobe.sky._component_factory import get_components_from_chain
-from cosmoglobe.sky.cosmoglobe import CosmoglobeModelInfo, cosmoglobe_registry
 
 
 class SkyModel:
@@ -40,18 +46,20 @@ class SkyModel:
     Examples
     --------
     >>> import cosmoglobe
-    >>> model = cosmoglobe.SkyModel.from_chain("path/to/chain", nside=256)
+    >>> chain = cosmoglobe.get_test_chain()
+    >>> model = cosmoglobe.SkyModel.from_chain(chain, nside=256)
     >>> print(model)
     SkyModel(
-      nside: 256
-      components(
-        (ame): AME(nu_p)
-        (cmb): CMB()
-        (dust): Dust(beta, T)
-        (ff): FreeFree(Te)
-        (radio): Radio(specind)
-        (synch): Synchrotron(beta)
-      )
+        version: BeyondPlanck
+        nside: 256
+        components(
+            (ame): AME(freq_peak)
+            (cmb): CMB()
+            (dust): ThermalDust(beta, T)
+            (ff): FreeFree(T_e)
+            (radio): Radio(alpha)
+            (synch): Synchrotron(beta)
+        )
     )
 
     Simulating the full sky emission at some frequency, given a beam
@@ -59,8 +67,6 @@ class SkyModel:
 
     >>> import astropy.units as u
     >>> model(50*u.GHz, fwhm=30*u.arcmin)
-    Smoothing point sources...
-    Smoothing diffuse emission...
     [[ 2.25809786e+03  2.24380103e+03  2.25659060e+03 ... -2.34783682e+03
       -2.30464421e+03 -2.30387946e+03]
      [-1.64627550e+00  2.93583564e-01 -1.06788937e+00 ... -1.64354585e+01
@@ -73,7 +79,7 @@ class SkyModel:
         self,
         nside: int,
         components: Dict[str, SkyComponent],
-        info: Optional[CosmoglobeModelInfo] = None,
+        version: Optional[str] = None,
     ) -> None:
         """Initializes an instance of the Cosmoglobe Sky Model.
 
@@ -83,11 +89,14 @@ class SkyModel:
             Healpix resolution of the maps in sky model.
         components
             A list of pre-initialized `SkyComponent`to include in the model.
-        info
-            A ModelInfo object containing the info related to the current sky model.
+        cosmoglobe_model
+            The Cosmoglobe sky model representing this object.
         """
 
         self.nside = nside
+        self.components = components
+        self.version = version
+
         if not all(
             isinstance(component, SkyComponent) for component in components.values()
         ):
@@ -101,8 +110,6 @@ class SkyModel:
             raise NsideError(
                 "all diffuse maps in the sky model needs to be at a common nside"
             )
-        self.components = components
-        self.info = info
 
     @classmethod
     def from_chain(
@@ -150,7 +157,9 @@ class SkyModel:
         )
 
         return cls(
-            nside=nside, components=initialized_components, info=cosmoglobe_model.info
+            nside=nside,
+            components=initialized_components,
+            version=cosmoglobe_model.version,
         )
 
     @classmethod
@@ -267,14 +276,55 @@ class SkyModel:
 
         return emission
 
-    def remove_dipole(self, gal_cut: Quantity = 10 * Unit("deg")) -> None:
-        """Removes the CMB dipole, from the CMB amp map."""
+    def remove_dipole(
+        self,
+        gal_cut: Quantity = DEFAULT_GAL_CUT,
+        return_dipole: bool = False,
+    ) -> Optional[Quantity]:
+        """Removes the Solar dipole (and monopole), from the CMB sky component.
 
-        if "cmb" not in self.components:
-            raise ComponentNotFoundError("cmb component not present in model")
+        Parameters
+        ----------
+        gal_cut
+            Ignores pixels in range [-gal_cut;+gal_cut] when fitting and
+            subtracting the dipole.
+        return_dipole
+            If True, returns the dipole map.
+
+        Returns
+        _______
+        dipole
+            The dipole of the CMB sky component.
+        """
+
+        if not any(
+            component.label == SkyComponentLabel.CMB
+            for component in self.components.values()
+        ):
+            raise ComponentNotFoundError("CMB component not found in sky model.")
+
+        try:
+            gal_cut = gal_cut.to("deg")
+        except UnitsError:
+            raise UnitsError(
+                "gal_cut must be an astropy quantity compatible with 'deg'"
+            )
+
+        if return_dipole:
+            dipole_subtracted_amp = Quantity(
+                hp.remove_dipole(
+                    self["cmb"].amp[0],
+                    gal_cut=gal_cut.to("deg").value,
+                ),
+                unit=self["cmb"].amp.unit,
+            )
+            dipole = self["cmb"].amp[0] - dipole_subtracted_amp
+            self["cmb"].amp[0] = dipole_subtracted_amp
+
+            return dipole
 
         hp.remove_dipole(
-            self.components["cmb"].amp[0], gal_cut=gal_cut.to("deg").value, copy=False
+            self["cmb"].amp[0], gal_cut=gal_cut.to("deg").value, copy=False
         )
 
     def __iter__(self) -> Iterator:
@@ -299,8 +349,8 @@ class SkyModel:
             reprs.append(f"({label}): {component_repr}")
 
         main_repr = "SkyModel("
-        if self.info is not None:
-            main_repr += f"\n  version: {self.info.version}"
+        if self.version is not None:
+            main_repr += f"\n  version: {self.version}"
         main_repr += f"\n  nside: {self._nside}"
         main_repr += "\n  components( "
         main_repr += "\n    " + "    ".join(reprs)

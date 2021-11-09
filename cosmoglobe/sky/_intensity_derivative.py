@@ -23,7 +23,7 @@ class IntensityDerivative(Protocol):
         """
 
 
-class RayleighJeansIntensityDerivative:
+class RJIntensityDerivative:
     """Intensity derivative for K_RJ."""
 
     def __call__(self, freqs: Quantity) -> Quantity:
@@ -31,33 +31,30 @@ class RayleighJeansIntensityDerivative:
         # We specify that that the kelvin in this expression refers to K_CMB
         # and divide by sr to make this quantity compatible with the emission
         # amplitudes
-        factor *= Unit("K") / Unit("K_RJ")
-        factor /= Unit("sr")
+        factor *= Unit("K") / (Unit("K_RJ") * Unit("sr"))
 
         return factor
 
 
 class CMBIntensityDerivative:
-    """Intensity derivative for K_CMB."""
+    """Intensity derivative for the CMB anisotropy dB(nu)/dT."""
 
     def __call__(self, freqs: Quantity) -> Quantity:
-        x = (const.h * freqs) / (const.k_B * const.T_0)
-        term1 = (2 * const.h * freqs ** 3) / (const.c ** 2 * np.expm1(x))
-        term2 = np.exp(x) / np.expm1(x)
-        term3 = (const.h * freqs) / (const.k_B * const.T_0 ** 2)
 
-        factor = term1 * term2 * term3
+        x = (const.h * freqs) / (const.k_B * const.T_0)
+        A = 2 * const.k_B * freqs ** 2 / const.c ** 2
+        factor = A * x ** 2 * np.exp(x) / np.expm1(x) ** 2
+
         # We specify that that the kelvin in this expression refers to K_CMB
         # and divide by sr to make this quantity compatible with the emission
         # amplitudes
-        factor *= Unit("K") / Unit("K_CMB")
-        factor /= Unit("sr")
+        factor *= Unit("K") / (Unit("K_CMB") * Unit("sr"))
 
         return factor
 
 
 class IRASIntensityDerivative:
-    """Intensity derivative for MJY/sr."""
+    """Intensity derivative for MJY/sr dI_nu/dU_c."""
 
     def __call__(self, freqs: Quantity) -> Quantity:
 
@@ -65,7 +62,7 @@ class IRASIntensityDerivative:
 
 
 INTENSITY_DERIVATIVES: Dict[Unit, IntensityDerivative] = {
-    Unit("K_RJ"): RayleighJeansIntensityDerivative(),
+    Unit("K_RJ"): RJIntensityDerivative(),
     Unit("K_CMB"): CMBIntensityDerivative(),
     Unit("Jy/sr"): IRASIntensityDerivative(),
 }
@@ -77,5 +74,5 @@ def get_intensity_derivative(unit: Unit) -> IntensityDerivative:
     for intensity_derivative in INTENSITY_DERIVATIVES:
         if intensity_derivative.is_equivalent(unit):
             return INTENSITY_DERIVATIVES[intensity_derivative]
-    else:
-        raise KeyError("unit does not match any known intensity derivatives.")
+
+    raise KeyError("unit does not match any known intensity derivatives.")

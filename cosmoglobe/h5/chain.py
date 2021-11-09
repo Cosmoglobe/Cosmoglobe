@@ -274,9 +274,14 @@ class Chain:
                 output += fill
             return output
 
+        if ".astropy/cache" in str(self.path):
+            name = "cached chainfile"
+        else:
+            name = self.path.name
+
         main_repr = "\n"
         main_repr += "-" * COL_LEN + "\n"
-        main_repr += center(self.path.name) + "\n"
+        main_repr += center(name) + "\n"
         main_repr += "-" * COL_LEN + "\n"
         main_repr += "\n"
 

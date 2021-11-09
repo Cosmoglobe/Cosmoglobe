@@ -1,7 +1,5 @@
 from astropy.units import Quantity
-import numpy as np
 
-import cosmoglobe.sky._constants as const
 from cosmoglobe.sky._base_components import DiffuseComponent
 from cosmoglobe.sky.components import SkyComponentLabel
 
@@ -28,16 +26,11 @@ class CMB(DiffuseComponent):
 
     label = SkyComponentLabel.CMB
 
-    def get_freq_scaling(self, freqs: Quantity) -> Quantity:
+    def get_freq_scaling(self, *_) -> Quantity:
         """See base class.
-        
-        NOTE: The CMB amplitude is commonly stored in K_CMB, in which it is
-        constant over the sky (Hence, we return 1).
-        """
 
-        if self.amp.unit.is_equivalent("K_RJ"):
-            x = (const.h * freqs) / (const.k_B * const.T_0)
-            scaling = ((x ** 2 * np.exp(x)) / (np.expm1(x) ** 2)).si
-            return scaling
+        NOTE: The CMB amplitude is stored in units of uK_CMB where it is
+        constant over the sky.
+        """
 
         return Quantity(1)

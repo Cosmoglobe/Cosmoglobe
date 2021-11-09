@@ -6,13 +6,13 @@ Reference: https://github.com/galsci/pysm/blob/main/pysm3/__init__.py
 """
 
 from astropy.units import (
-    Unit,
+    add_enabled_units,
+    brightness_temperature,
+    def_unit,
     quantity_input,
     Quantity,
     thermodynamic_temperature,
-    brightness_temperature,
-    def_unit,
-    add_enabled_units,
+    Unit,
 )
 
 

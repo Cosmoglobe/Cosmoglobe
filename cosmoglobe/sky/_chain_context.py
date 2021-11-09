@@ -1,15 +1,15 @@
-from typing import Dict, Any, Protocol
+from typing import Dict, Protocol
 
 from astropy.units import Quantity, Unit
 import numpy as np
+
+from cosmoglobe.sky._context_registry import ChainContextRegistry
 from cosmoglobe.sky.components.ame import AME
 from cosmoglobe.sky.components.cmb import CMB
 from cosmoglobe.sky.components.dust import ThermalDust
 from cosmoglobe.sky.components.freefree import FreeFree
 from cosmoglobe.sky.components.radio import Radio
 from cosmoglobe.sky.components.synchrotron import Synchrotron
-
-from cosmoglobe.sky._context_registry import ChainContextRegistry
 
 
 class ChainContext(Protocol):
@@ -19,7 +19,7 @@ class ChainContext(Protocol):
     before they are ready to be put into the sky model.
     """
 
-    def __call__(self, args: Dict[str, Any]) -> Dict[str, Any]:
+    def __call__(self, args: Dict[str, Quantity]) -> Dict[str, Quantity]:
         """Function that performs the processing on the specific chain item.
 
         This function needs to manipulate and return the `args` dictionary
@@ -29,7 +29,7 @@ class ChainContext(Protocol):
 class FreqRefContext:
     """Re-shapes freq_ref for unpolarized components."""
 
-    def __call__(self, args: Dict[str, Any]) -> Dict[str, Any]:
+    def __call__(self, args: Dict[str, Quantity]) -> Dict[str, Quantity]:
         if "freq_ref" in args:
             args["freq_ref"] = args["freq_ref"].to("GHz")
             if (amp_dim := args["amp"].shape[0]) == 1:
@@ -53,10 +53,11 @@ class RadioContext:
 
     """
 
-    def __call__(self, args: Dict[str, Any]) -> Dict[str, Any]:
+    def __call__(self, args: Dict[str, Quantity]) -> Dict[str, Quantity]:
         args["alpha"] = args["alpha"][0]
 
         return args
+
 
 class MapToScalarContext:
     """Extract and returns a scalar.
@@ -66,7 +67,7 @@ class MapToScalarContext:
     dataset.
     """
 
-    def __call__(self, args: Dict[str, Any]) -> Dict[str, Any]:
+    def __call__(self, args: Dict[str, Quantity]) -> Dict[str, Quantity]:
         IGNORED_ARGS = ["amp", "freq_ref"]
         for key, value in args.items():
             if key not in IGNORED_ARGS and np.size(value) > 1:
@@ -83,21 +84,23 @@ class MapToScalarContext:
         return args
 
 
-chain_context = ChainContextRegistry()
+chain_context_registry = ChainContextRegistry()
 
-chain_context.register_context([], FreqRefContext)
-chain_context.register_context([], MapToScalarContext)
-chain_context.register_context([Radio], RadioContext)
+chain_context_registry.register_context([], FreqRefContext)
+chain_context_registry.register_context([], MapToScalarContext)
+chain_context_registry.register_context([Radio], RadioContext)
 
-chain_context.register_mapping([], {"freq_ref": "nu_ref"})
-chain_context.register_mapping([Radio], {"alpha": "specind"})
-chain_context.register_mapping([AME], {"freq_peak": "nu_p"})
-chain_context.register_mapping([FreeFree], {"T_e": "Te"})
+chain_context_registry.register_mapping([], {"freq_ref": "nu_ref"})
+chain_context_registry.register_mapping([Radio], {"alpha": "specind"})
+chain_context_registry.register_mapping([AME], {"freq_peak": "nu_p"})
+chain_context_registry.register_mapping([FreeFree], {"T_e": "Te"})
 
-chain_context.register_units([], {"freq_ref": Unit("Hz")})
-chain_context.register_units([AME, ThermalDust, Synchrotron, FreeFree], {"amp": Unit("uK_RJ")})
-chain_context.register_units([CMB], {"amp": Unit("uK_CMB")})
-chain_context.register_units([Radio], {"amp": Unit("mJy")})
-chain_context.register_units([AME], {"freq_peak": Unit("GHz")})
-chain_context.register_units([ThermalDust], {"T": Unit("K")})
-chain_context.register_units([FreeFree], {"T_e": Unit("K")})
+chain_context_registry.register_units([], {"freq_ref": Unit("Hz")})
+chain_context_registry.register_units(
+    [AME, ThermalDust, Synchrotron, FreeFree], {"amp": Unit("uK_RJ")}
+)
+chain_context_registry.register_units([CMB], {"amp": Unit("uK_CMB")})
+chain_context_registry.register_units([Radio], {"amp": Unit("mJy")})
+chain_context_registry.register_units([AME], {"freq_peak": Unit("GHz")})
+chain_context_registry.register_units([ThermalDust], {"T": Unit("K")})
+chain_context_registry.register_units([FreeFree], {"T_e": Unit("K")})

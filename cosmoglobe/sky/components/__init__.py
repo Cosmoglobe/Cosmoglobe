@@ -6,11 +6,7 @@ class SkyComponentLabel(Enum):
 
     AME = "ame"
     CMB = "cmb"
-    CIB = "cib"
     DUST = "dust"
     FF = "ff"
     RADIO = "radio"
     SYNCH = "synch"
-    SZ = "sz"
-    ZODI = "zodi"
-

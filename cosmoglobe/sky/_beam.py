@@ -10,7 +10,7 @@ from cosmoglobe.sky._constants import DEFAULT_BEAM_FWHM
 TEST_BEAM_BL = "/Users/metinsan/Documents/doktor/Cosmoglobe_test_data/wmap_beam.txt"
 
 
-@quantity_input(fwhm=Unit("rad"))
+@quantity_input(fwhm=("rad", "arcmin", "deg"))
 def get_sigma(fwhm: Quantity) -> Quantity:
     """Returns the standard deviation given a fwhm.
 
@@ -47,7 +47,7 @@ def gaussian_beam_2D(r: np.ndarray, sigma: float) -> np.ndarray:
 
 def pointsources_to_healpix(
     point_sources: Quantity,
-    catalog: np.ndarray,
+    catalog: Quantity,
     nside: int,
     fwhm: Quantity,
 ) -> Quantity:
@@ -67,8 +67,10 @@ def pointsources_to_healpix(
     # Getting the longitude and latitude for each pixel on the healpix map
 
     fwhm = fwhm.to("rad")
+    catalog = catalog.to("deg").value
+
     # Directly map to pixels without any smoothing
-    if fwhm.value == DEFAULT_BEAM_FWHM:
+    if fwhm == DEFAULT_BEAM_FWHM:
         warnings.warn(
             "fwhm not specified. Mapping point sources to pixels "
             "without beam smoothing"
@@ -83,8 +85,7 @@ def pointsources_to_healpix(
     # Applying a truncated Gaussian beam to each point source
     else:
         sigma = get_sigma(fwhm)
-        pixel_resolution = hp.nside2resol(nside)
-        if fwhm.value < pixel_resolution:
+        if fwhm.value < hp.nside2resol(nside):
             raise ValueError(
                 "fwhm must be >= pixel resolution to resolve the point sources."
             )
@@ -94,7 +95,6 @@ def pointsources_to_healpix(
             nside, np.arange(hp.nside2npix(nside)), lonlat=True
         )
 
-        print("Smoothing point sources...")
         lons, lats = catalog
         for idx, (lon, lat) in enumerate(zip(lons, lats)):
             vec = hp.ang2vec(lon, lat, lonlat=True)

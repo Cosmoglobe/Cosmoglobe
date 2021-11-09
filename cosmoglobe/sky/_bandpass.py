@@ -16,6 +16,8 @@ N_INTERPOLATION_GRID = {
 def get_normalized_bandpass(freqs: Quantity, bandpass: Quantity) -> Quantity:
     """Normalizes a bandpass to units of unity under integration.
 
+    TODO: Implement unit renormalization of bandpasses.
+    
     Parameters
     ----------
     freqs

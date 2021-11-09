@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Dict, List, Type, TYPE_CHECKING, Union
 
 from astropy.units import Unit
@@ -13,7 +14,7 @@ class ChainContextRegistry:
     """Class that book-keeps and registeres contexts for components."""
 
     def __init__(self):
-        self._context: Dict[Type[SkyComponent], List["ChainContext"]] = {
+        self._context: Dict[Type[SkyComponent], List[ChainContext]] = {
             component: [] for component in DEFAULT_COSMOGLOBE_MODEL.components
         }
         self._mappings: Dict[Type[SkyComponent], Dict[str, str]] = {
@@ -24,7 +25,7 @@ class ChainContextRegistry:
         }
 
     def register_context(
-        self, components: List[Type[SkyComponent]], context: Type["ChainContext"]
+        self, components: List[Type[SkyComponent]], context: Type[ChainContext]
     ) -> None:
         """Registers a specific context for a set of components."""
 
@@ -40,7 +41,9 @@ class ChainContextRegistry:
                 )
             self._context[component].append(context())
 
-    def register_mapping(self, components: List[Type[SkyComponent]], mapping: Dict[str, str]) -> None:
+    def register_mapping(
+        self, components: List[Type[SkyComponent]], mapping: Dict[str, str]
+    ) -> None:
         """Registers a specific mapping between chain and sky model notation."""
 
         if not components:
@@ -55,7 +58,9 @@ class ChainContextRegistry:
                 )
             self._mappings[component].update(mapping)
 
-    def register_units(self, components: List[Type[SkyComponent]], units: Dict[str, Union[str, Unit]]) -> None:
+    def register_units(
+        self, components: List[Type[SkyComponent]], units: Dict[str, Union[str, Unit]]
+    ) -> None:
         """Registers a units for values from the chain."""
 
         if not components:
@@ -70,7 +75,7 @@ class ChainContextRegistry:
                 )
             self._units[component].update(units)
 
-    def get_context(self, component: Type[SkyComponent]) -> List["ChainContext"]:
+    def get_context(self, component: Type[SkyComponent]) -> List[ChainContext]:
         """Returns the context."""
 
         if component not in self._context:

@@ -3,6 +3,7 @@ from astropy.units import Unit
 
 DEFAULT_BEAM_FWHM = 0.0 * Unit("arcmin")
 DEFAULT_OUTPUT_UNIT = Unit("uK_RJ")
+DEFAULT_GAL_CUT = 10 * Unit("deg")
 SIGNAL_UNITS = (Unit("K_RJ"), Unit("K_CMB"), Unit("Jy/sr"))
 
 h = const.h

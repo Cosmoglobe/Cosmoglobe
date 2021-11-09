@@ -30,7 +30,9 @@ class Radio(PointSourceComponent):
     """
 
     label = SkyComponentLabel.RADIO
-    catalog = np.loadtxt(RADIO_CATALOG, usecols=(0, 1)).transpose()
+    catalog = Quantity(
+        np.loadtxt(RADIO_CATALOG, usecols=(0, 1)).transpose(), unit="deg"
+    )
 
     def get_freq_scaling(self, freqs: Quantity, alpha: Quantity) -> Quantity:
         """See base class."""
