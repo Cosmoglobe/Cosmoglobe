@@ -15,7 +15,7 @@ from cosmoglobe.sky._base_components import (
 from cosmoglobe.sky.components import SkyComponentLabel
 from cosmoglobe.sky._component_factory import get_components_from_chain
 from cosmoglobe.sky._constants import (
-    DEFAULT_OUTPUT_UNIT,
+    DEFAULT_OUTPUT_UNIT_STR,
     DEFAULT_BEAM_FWHM,
     DEFAULT_GAL_CUT,
 )
@@ -193,7 +193,7 @@ class SkyModel:
         *,
         components: Optional[List[str]] = None,
         fwhm: Quantity = DEFAULT_BEAM_FWHM,
-        output_unit: Union[str, Unit] = DEFAULT_OUTPUT_UNIT,
+        output_unit: str = DEFAULT_OUTPUT_UNIT_STR,
     ) -> Quantity:
         r"""Simulates and returns the full sky model emission.
 
@@ -212,8 +212,8 @@ class SkyModel:
             The full width half max parameter of the Gaussian. Defaults to
             0.0, which indicates no smoothing of output maps.
         output_unit
-            The desired output units of the emission. Units must be compatible
-            with K_RJ or Jy/sr.
+            The output units of the emission. For instance 'uK_RJ', 'uK_CMB', 
+            or 'MJy/sr'. If Kelvin, Rayleigh-Jeans or CMB must be specified.
 
         Returns
         -------
@@ -240,8 +240,8 @@ class SkyModel:
             elif isinstance(component_class, PointSourceComponent):
                 pointsource_components.append(component_class)
 
-        output_unit = Unit(output_unit)
-        emission = Quantity(np.zeros((3, hp.nside2npix(self.nside))), unit=output_unit)
+        emission_unit = Unit(output_unit)
+        emission = Quantity(np.zeros((3, hp.nside2npix(self.nside))), unit=emission_unit)
 
         for diffuse_component in diffuse_components:
             component_emission = diffuse_component.simulate_emission(
@@ -249,7 +249,7 @@ class SkyModel:
                 bandpass=bandpass,
                 nside=self.nside,
                 fwhm=fwhm,
-                output_unit=output_unit,
+                output_unit=emission_unit,
             )
             for IQU, diffuse_emission in enumerate(component_emission):
                 emission[IQU] += diffuse_emission
@@ -267,7 +267,7 @@ class SkyModel:
                 bandpass=bandpass,
                 nside=self.nside,
                 fwhm=fwhm,
-                output_unit=output_unit,
+                output_unit=emission_unit,
             )
             for IQU, pointsource_emission in enumerate(component_emission):
                 emission[IQU] += pointsource_emission
