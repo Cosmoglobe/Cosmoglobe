@@ -44,13 +44,8 @@ class FreqRefContext:
 class RadioContext:
     """Context for the radio component in the chain.
 
-    In the chain, the amp of radio is stored in units of 'mJy'. Here we
-    manually set convert it to 'uK' through astropy.
-
-    NOTE: we pretend that amp has units of 'mJy/sr' to be able convert
-    the units properly. This is fine since we always end dividing by
-    the beam_area when converting the amplitudes to HEALPIX maps.
-
+    We are only interested in the column representinc the power law index
+    of the spectral index paramter in the chainfiles.
     """
 
     def __call__(self, args: Dict[str, Quantity]) -> Dict[str, Quantity]:
@@ -62,9 +57,9 @@ class RadioContext:
 class MapToScalarContext:
     """Extract and returns a scalar.
 
-    Datasets in the cosmoglobe chains tends to be stored in HEALPIX maps.
-    A quantity is considered a scalar if it is constant over all axes of the
-    dataset.
+    Datasets for unsamples quantities the cosmoglobe chains tends to be stored
+    in HEALPIX maps. A quantity is considered a scalar if it is constant
+    over all axes of the dataset.
     """
 
     def __call__(self, args: Dict[str, Quantity]) -> Dict[str, Quantity]:

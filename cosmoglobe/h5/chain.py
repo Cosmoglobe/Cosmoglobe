@@ -112,6 +112,21 @@ class Chain:
 
         return self._version
 
+    @property
+    def tree(self):
+        """Prints group and dataset structure of the chainfile."""
+
+        def print_attrs(name, _):
+            space = name.count("/") * "    "
+            path = name.split("/")
+            if path[0] not in ("000000", "parameters"):
+                return
+            item_name = path[-1]
+            print(space + item_name)
+
+        with h5py.File(self.path, "r") as file:
+            file.visititems(print_attrs)
+
     @overload
     def get(self, key: str, *, samples: Optional[range] = None) -> Any:
         ...

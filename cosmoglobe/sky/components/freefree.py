@@ -35,7 +35,7 @@ class FreeFree(DiffuseComponent):
         return scaling
 
 
-@quantity_input(freq=Unit("Hz"), T_e=Unit("K"))
+@quantity_input(freq="Hz", T_e="K")
 def gaunt_factor(freq: Quantity, T_e: Quantity) -> Quantity:
     """Returns the Gaunt factor.
 

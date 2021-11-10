@@ -89,8 +89,8 @@ class SkyModel:
             Healpix resolution of the maps in sky model.
         components
             A list of pre-initialized `SkyComponent`to include in the model.
-        cosmoglobe_model
-            The Cosmoglobe sky model representing this object.
+        version
+            The version of the Cosmoglobe Model used in the sky model.
         """
 
         self.nside = nside
@@ -245,27 +245,25 @@ class SkyModel:
 
         for diffuse_component in diffuse_components:
             component_emission = diffuse_component.simulate_emission(
-                freqs,
+                freqs=freqs,
                 bandpass=bandpass,
                 nside=self.nside,
                 fwhm=fwhm,
                 output_unit=output_unit,
             )
-            if component_emission != output_unit:
-                component_emission = component_emission.to(
-                    output_unit, equivalencies=cmb_equivalencies(freqs)
-                )
             for IQU, diffuse_emission in enumerate(component_emission):
                 emission[IQU] += diffuse_emission
 
+        # We smooth all diffuse components together
         if fwhm != DEFAULT_BEAM_FWHM:
             emission = Quantity(
                 hp.smoothing(emission, fwhm=fwhm.to("rad").value), unit=emission.unit
             )
 
+        # Pointsource emissions returned pre-smoothed
         for pointsource_component in pointsource_components:
             component_emission = pointsource_component.simulate_emission(
-                freqs,
+                freqs=freqs,
                 bandpass=bandpass,
                 nside=self.nside,
                 fwhm=fwhm,

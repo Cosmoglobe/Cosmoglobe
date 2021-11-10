@@ -159,7 +159,9 @@ class SkyComponent(ABC):
             )
         if freqs.size > 1:
             if bandpass is not None and freqs.shape != bandpass.shape:
-                raise ValueError("freqs and bandpass must have the same shape")
+                raise ValueError(
+                    "bandpass frequencies and weights must have the same shape"
+                )
 
             if bandpass is None:
                 warnings.warn("bandpass is None. Defaulting to top-hat bandpass")
@@ -284,8 +286,13 @@ class DiffuseComponent(SkyComponent):
             input_unit=emission.unit,
             output_unit=output_unit,
         )
+        emission *= unit_coefficient
 
-        return emission * unit_coefficient
+        # Converts to the correct prefix
+        if emission != output_unit:
+            emission = emission.to(output_unit)
+
+        return emission
 
     def _validate_amp(self, amp: Quantity) -> None:
         if not isinstance(amp, Quantity):
@@ -439,8 +446,13 @@ class PointSourceComponent(SkyComponent):
             input_unit=input_unit,
             output_unit=output_unit,
         )
+        emission *= unit_coefficient
 
-        return emission * unit_coefficient
+        # Converts to the correct prefix
+        if emission != output_unit:
+            emission = emission.to(output_unit)
+
+        return emission
 
     def _validate_amp(self, amp: Quantity) -> None:
         if not isinstance(amp, Quantity):

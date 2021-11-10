@@ -1,11 +1,19 @@
-from astropy.units import Quantity, Unit, brightness_temperature
+from typing import Tuple
+
+from astropy.units import Quantity, Unit
 import numpy as np
 
 from cosmoglobe.data import DATA_DIR
 from cosmoglobe.sky._base_components import DiffuseComponent
+from cosmoglobe.sky._units import cmb_equivalencies
 from cosmoglobe.sky.components import SkyComponentLabel
 
 SPDUST2_FILE = DATA_DIR / "spdust2_cnm.dat"
+
+SPDUST2_FREQS, SPDUST2_AMPS = np.loadtxt(SPDUST2_FILE, unpack=True)
+SPDUST2_FREQS *= Unit("GHz")
+SPDUST2_AMPS *= Unit("Jy/sr")
+SPDUST2_TEMPLATE = (SPDUST2_FREQS, SPDUST2_AMPS)
 
 
 class AME(DiffuseComponent):
@@ -29,32 +37,31 @@ class AME(DiffuseComponent):
     """
 
     label = SkyComponentLabel.AME
-    SPINNING_DUST_TEMPLATE = np.loadtxt(SPDUST2_FILE).transpose()
+    SPINNING_DUST_TEMPLATE: Tuple[Quantity, Quantity] = SPDUST2_TEMPLATE
 
     def get_freq_scaling(self, freqs: Quantity, freq_peak: Quantity) -> Quantity:
         """See base class."""
 
-        # Unpacking the template
-        template_freq = Quantity(self.SPINNING_DUST_TEMPLATE[0], unit="GHz")
-        template_amp = Quantity(self.SPINNING_DUST_TEMPLATE[1], unit="Jy/sr")
-        template_amp = template_amp.to(
-            "uK", equivalencies=brightness_temperature(template_freq)
+        spdust2_freqs = SPDUST2_TEMPLATE[0]
+        # We set the spdust2 template amplitudes to the component amplitude units.
+        spdust2_amps = SPDUST2_TEMPLATE[1].to(
+            self.amp.unit, equivalencies=cmb_equivalencies(spdust2_freqs)
         )
 
         peak_scale = 30 * Unit("GHz") / freq_peak
-
         interp = np.interp(
             (freqs * peak_scale).si.value,
-            template_freq.si.value,
-            template_amp.si.value,
+            spdust2_freqs.si.value,
+            spdust2_amps.decompose().value,
             left=0.0,
             right=0.0,
         )
         interp_ref = np.interp(
             (self.freq_ref * peak_scale).si.value,
-            template_freq.si.value,
-            template_amp.si.value,
+            spdust2_freqs.si.value,
+            spdust2_amps.decompose().value,
         )
 
         scaling = interp / interp_ref
-        return scaling
+
+        return Quantity(scaling)
