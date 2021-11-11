@@ -27,9 +27,6 @@ def bnu_prime_RJ(freqs: Quantity) -> Quantity:
     """Intensitity derivative for K_RJ (dB_nu(T)_dT in the Rayleigh-Jeans limit)."""
 
     factor = (2 * const.k_B * freqs ** 2) / const.c ** 2
-    # We specify that that the kelvin in this expression refers to K_CMB
-    # and divide by sr to make this quantity compatible with the emission
-    # amplitudes
     factor *= Unit("K") / (Unit("K_RJ") * Unit("sr"))
 
     return factor
@@ -41,10 +38,6 @@ def bnu_prime_CMB(freqs: Quantity) -> Quantity:
     x = (const.h * freqs) / (const.k_B * const.T_0)
     A = 2 * const.k_B * freqs ** 2 / const.c ** 2
     factor = A * x ** 2 * np.exp(x) / np.expm1(x) ** 2
-
-    # We specify that that the kelvin in this expression refers to K_CMB
-    # and divide by sr to make this quantity compatible with the emission
-    # amplitudes
     factor *= Unit("K") / (Unit("K_CMB") * Unit("sr"))
 
     return factor

@@ -18,7 +18,7 @@ class ChainContext(Protocol):
     Chain context defines additional processing required on the chain items
     before they are ready to be put into the sky model.
 
-    A context needs to to manipulate and return the `args` dictionary.
+    A context needs to manipulate and return the `args` dictionary.
     
     NOTE: Context functions are executed *AFTER* renaming the units in the 
     chain. It is therefore important to use keys to the args dict that match

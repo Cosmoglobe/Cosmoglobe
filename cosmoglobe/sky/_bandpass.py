@@ -6,7 +6,8 @@ from scipy.interpolate import RectBivariateSpline
 
 from cosmoglobe.sky._intensity_derivative import get_intensity_derivative
 
-# key: interpolation dimensions, value: number of points in the interpolate
+# Dict mapping number of grid points to the interpolation dimensin of the
+# bandpass integration.
 N_INTERPOLATION_GRID = {
     1: 1000,
     2: 100,
@@ -16,7 +17,9 @@ N_INTERPOLATION_GRID = {
 def get_normalized_bandpass(freqs: Quantity, bandpass: Quantity) -> Quantity:
     """Normalizes a bandpass to units of unity under integration.
 
-    TODO: Implement unit renormalization of bandpasses.
+    TODO: Implement unit renormalization of bandpasses. More specifically
+    we need to include the processing in the `constructor` and `update_tau`
+    functions in Commander.
 
     Parameters
     ----------
