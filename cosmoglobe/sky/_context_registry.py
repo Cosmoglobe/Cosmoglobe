@@ -25,13 +25,13 @@ class ChainContextRegistry:
         }
 
     def register_context(
-        self, components: List[Type[SkyComponent]], context: Type[ChainContext]
+        self, components: List[Type[SkyComponent]], context: ChainContext
     ) -> None:
         """Registers a specific context for a set of components."""
 
         if not components:
             for component in self._context.keys():
-                self._context[component].append(context())
+                self._context[component].append(context)
             return
 
         for component in components:
@@ -39,7 +39,7 @@ class ChainContextRegistry:
                 raise ValueError(
                     "Cannot register a context for a non cosmoglobe component"
                 )
-            self._context[component].append(context())
+            self._context[component].append(context)
 
     def register_mapping(
         self, components: List[Type[SkyComponent]], mapping: Dict[str, str]

@@ -13,48 +13,50 @@ from cosmoglobe.sky.components.synchrotron import Synchrotron
 
 
 class ChainContext(Protocol):
-    """Protocol defining context for chain files.
+    """Protocol defining the interface for a chain context.
 
     Chain context defines additional processing required on the chain items
     before they are ready to be put into the sky model.
+
+    A context needs to to manipulate and return the `args` dictionary.
+    
+    NOTE: Context functions are executed *AFTER* renaming the units in the 
+    chain. It is therefore important to use keys to the args dict that match
+    the registered naming mappings.
     """
 
     def __call__(self, args: Dict[str, Quantity]) -> Dict[str, Quantity]:
-        """Function that performs the processing on the specific chain item.
-
-        This function needs to manipulate and return the `args` dictionary
-        """
+        ...
 
 
-class FreqRefContext:
-    """Re-shapes freq_ref for unpolarized components."""
+def reshape_freq_ref(args: Dict[str, Quantity]) -> Dict[str, Quantity]:
+    """Context that re-shapes the `freq_ref` attribute for unpolarized components."""
 
-    def __call__(self, args: Dict[str, Quantity]) -> Dict[str, Quantity]:
-        if "freq_ref" in args:
-            args["freq_ref"] = args["freq_ref"].to("GHz")
-            if (amp_dim := args["amp"].shape[0]) == 1:
-                args["freq_ref"] = args["freq_ref"][0].reshape((1, 1))
-            elif amp_dim == 3:
-                args["freq_ref"] = args["freq_ref"].reshape((3, 1))
-            else:
-                raise ValueError("cannot reshape freq_ref into shape (3,1) or (1,1")
-        return args
+    if "freq_ref" in args:
+        args["freq_ref"] = args["freq_ref"].to("GHz")
+        if (amp_dim := args["amp"].shape[0]) == 1:
+            args["freq_ref"] = args["freq_ref"][0].reshape((1, 1))
+        elif amp_dim == 3:
+            args["freq_ref"] = args["freq_ref"].reshape((3, 1))
+        else:
+            raise ValueError("cannot reshape freq_ref into shape (3,1) or (1,1")
+
+    return args
 
 
-class RadioContext:
-    """Context for the radio component in the chain.
+def radip_specind(args: Dict[str, Quantity]) -> Dict[str, Quantity]:
+    """Context that removes all but the first column of alpha.
 
     We are only interested in the column representinc the power law index
     of the spectral index paramter in the chainfiles.
     """
 
-    def __call__(self, args: Dict[str, Quantity]) -> Dict[str, Quantity]:
-        args["alpha"] = args["alpha"][0]
+    args["alpha"] = args["alpha"][0]
 
-        return args
+    return args
 
 
-class MapToScalarContext:
+def map_to_scalar(args: Dict[str, Quantity]) -> Dict[str, Quantity]:
     """Extract and returns a scalar.
 
     Datasets for unsamples quantities the cosmoglobe chains tends to be stored
@@ -62,28 +64,27 @@ class MapToScalarContext:
     over all axes of the dataset.
     """
 
-    def __call__(self, args: Dict[str, Quantity]) -> Dict[str, Quantity]:
-        IGNORED_ARGS = ["amp", "freq_ref"]
-        for key, value in args.items():
-            if key not in IGNORED_ARGS and np.size(value) > 1:
-                if np.ndim(value) > 1:
-                    uniques = [np.unique(col) for col in value]
-                    all_cols_are_unique = all([len(col) == 1 for col in uniques])
-                else:
-                    uniques = np.unique(value)
-                    all_cols_are_unique = len(uniques) == 1
+    IGNORED_ARGS = ["amp", "freq_ref"]
+    for key, value in args.items():
+        if key not in IGNORED_ARGS and np.size(value) > 1:
+            if np.ndim(value) > 1:
+                uniques = [np.unique(col) for col in value]
+                all_cols_are_unique = all([len(col) == 1 for col in uniques])
+            else:
+                uniques = np.unique(value)
+                all_cols_are_unique = len(uniques) == 1
 
-                if all_cols_are_unique:
-                    args[key] = Quantity(uniques, unit=value.unit)
+            if all_cols_are_unique:
+                args[key] = Quantity(uniques, unit=value.unit)
 
-        return args
+    return args
 
 
 chain_context_registry = ChainContextRegistry()
 
-chain_context_registry.register_context([], FreqRefContext)
-chain_context_registry.register_context([], MapToScalarContext)
-chain_context_registry.register_context([Radio], RadioContext)
+chain_context_registry.register_context([], reshape_freq_ref)
+chain_context_registry.register_context([], map_to_scalar)
+chain_context_registry.register_context([Radio], radip_specind)
 
 chain_context_registry.register_mapping([], {"freq_ref": "nu_ref"})
 chain_context_registry.register_mapping([Radio], {"alpha": "specind"})
