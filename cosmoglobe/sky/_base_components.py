@@ -20,7 +20,7 @@ from cosmoglobe.sky._constants import (
 )
 from cosmoglobe.sky._exceptions import NsideError
 from cosmoglobe.sky._bandpass import (
-    get_normalized_bandpass,
+    get_normalized_weights,
     get_bandpass_coefficient,
     get_bandpass_scaling,
 )
@@ -89,7 +89,7 @@ class SkyComponent(ABC):
     def get_bandpass_emission(
         self,
         freqs: Quantity,
-        bandpass: Optional[Quantity],
+        weights: Optional[Quantity],
         *,
         nside: Optional[int],
         fwhm: Quantity,
@@ -102,7 +102,7 @@ class SkyComponent(ABC):
         freqs
             An array of frequencies for which to compute the bandpass emission
             over.
-        bandpass
+        weights
             An array of bandpass weights corresponding the frequencies in the
             frequencies array.
         nside
@@ -114,18 +114,18 @@ class SkyComponent(ABC):
 
         Returns
         -------
-            Integrated bandpass emission.
+            Bandpass integrated emission.
         """
 
     @quantity_input(
         freqs="Hz",
-        bandpass=("1/Hz", "K_RJ", "K_CMB", "Jy/sr", None),
+        weights=("K_RJ", "K_CMB", "Jy/sr", None),
         fwhm=("deg", "arcmin", "rad"),
     )
     def simulate_emission(
         self,
         freqs: Quantity,
-        bandpass: Optional[Quantity] = None,
+        weights: Optional[Quantity] = None,
         nside: Optional[int] = None,
         fwhm: Quantity = DEFAULT_BEAM_FWHM,
         output_unit: Unit = DEFAULT_OUTPUT_UNIT,
@@ -137,7 +137,7 @@ class SkyComponent(ABC):
         freqs
             An array of frequencies for which to compute the bandpass emission
             over.
-        bandpass
+        weights
             An array of bandpass weights corresponding the frequencies in the
             frequencies array.
         nside
@@ -149,7 +149,7 @@ class SkyComponent(ABC):
 
         Returns
         -------
-            Integrated bandpass emission.
+            Bandpass integrated emission.
         """
 
         if not any(unit.is_equivalent(output_unit) for unit in SIGNAL_UNITS):
@@ -158,18 +158,20 @@ class SkyComponent(ABC):
                 f"{', '.join(unit.to_string() for unit in SIGNAL_UNITS)}"
             )
         if freqs.size > 1:
-            if bandpass is not None and freqs.shape != bandpass.shape:
+            if weights is not None and freqs.shape != weights.shape:
                 raise ValueError(
                     "bandpass frequencies and weights must have the same shape"
                 )
 
-            if bandpass is None:
-                warnings.warn("bandpass is None. Defaulting to top-hat bandpass")
-                bandpass = np.ones(freqs_len := len(freqs)) / freqs_len * Unit("1/GHz")
+            if weights is None:
+                warnings.warn(
+                    "bandpass weights are None. Defaulting to top-hat weights."
+                )
+                weights = np.ones(freqs_len := len(freqs)) / freqs_len * Unit("K_RJ")
 
             return self.get_bandpass_emission(
                 freqs=freqs,
-                bandpass=bandpass,
+                weights=weights,
                 output_unit=output_unit,
                 fwhm=fwhm,
                 nside=nside,
@@ -267,22 +269,26 @@ class DiffuseComponent(SkyComponent):
         return emission.to(output_unit, equivalencies=cmb_equivalencies(freq))
 
     def get_bandpass_emission(
-        self, freqs: Quantity, bandpass: Quantity, output_unit: Unit, **_
+        self, freqs: Quantity, weights: Quantity, output_unit: Unit, **_
     ) -> Quantity:
         """See base class."""
 
-        bandpass = get_normalized_bandpass(freqs, bandpass)
+        normalized_weights = get_normalized_weights(
+            freqs=freqs,
+            weights=weights,
+            component_amp_unit=self.amp.unit,
+        )
 
         bandpass_scaling = get_bandpass_scaling(
             freqs=freqs,
-            bandpass=bandpass,
+            weights=normalized_weights,
             freq_scaling_func=self.get_freq_scaling,
             spectral_parameters=self.spectral_parameters,
         )
         emission = self.amp * bandpass_scaling
         unit_coefficient = get_bandpass_coefficient(
             freqs=freqs,
-            bandpass=bandpass,
+            weights=normalized_weights,
             input_unit=emission.unit,
             output_unit=output_unit,
         )
@@ -417,17 +423,21 @@ class PointSourceComponent(SkyComponent):
     def get_bandpass_emission(
         self,
         freqs: Quantity,
-        bandpass: Quantity,
+        weights: Quantity,
         nside: int,
         fwhm: Quantity,
         output_unit: Unit,
     ) -> Quantity:
         """See base class."""
 
-        bandpass = get_normalized_bandpass(freqs, bandpass)
+        normalized_weights = get_normalized_weights(
+            freqs=freqs,
+            weights=weights,
+            component_amp_unit=self.amp.unit,
+        )
         bandpass_scaling = get_bandpass_scaling(
             freqs=freqs,
-            bandpass=bandpass,
+            weights=normalized_weights,
             freq_scaling_func=self.get_freq_scaling,
             spectral_parameters=self.spectral_parameters,
         )
@@ -442,7 +452,7 @@ class PointSourceComponent(SkyComponent):
         input_unit = emission.unit
         unit_coefficient = get_bandpass_coefficient(
             freqs=freqs,
-            bandpass=bandpass,
+            weights=normalized_weights,
             input_unit=input_unit,
             output_unit=output_unit,
         )
@@ -522,7 +532,7 @@ class LineComponent(SkyComponent):
     def get_bandpass_emission(
         self,
         freqs: Quantity,
-        bandpass: Quantity,
+        weights: Quantity,
         output_unit: Unit,
         **_,
     ) -> Quantity:

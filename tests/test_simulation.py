@@ -68,9 +68,9 @@ def test_nside(nside):
         beta=Quantity(np.random.randint(10, 100, (3, hp.nside2npix(nside)))),
         T=Quantity(np.random.randint(10, 100, (3, hp.nside2npix(nside))), unit="K"),
     )
-    sky_model = SkyModel(nside, {"dust":dust})
+    sky_model = SkyModel(nside, {"dust": dust})
     sky_model(100 * Unit("GHz"))
-    sky_model([100, 120] * Unit("GHz"), bandpass=[1, 3] * Unit("MJy/sr"))
+    sky_model([100, 120] * Unit("GHz"), weights=[1, 3] * Unit("MJy/sr"))
 
 
 def test_bp_integ(dust0spec, dust1spec, dust2spec):
@@ -78,10 +78,10 @@ def test_bp_integ(dust0spec, dust1spec, dust2spec):
 
     comps = {"d1": dust0spec, "d2": dust1spec, "d3": dust2spec}
     sky_model = SkyModel(32, comps)
-    emission1 = sky_model([100, 120] * Unit("GHz"), bandpass=[1, 3] * Unit("uK_RJ"))
+    emission1 = sky_model([100, 120] * Unit("GHz"), weights=[1, 3] * Unit("uK_RJ"))
     emission2 = sky_model(
         freqs=[100, 120] * Unit("GHz"),
-        bandpass=[1, 3] * Unit("uK_RJ"),
+        weights=[1, 3] * Unit("uK_RJ"),
         output_unit="MJy/sr",
     )
     for comp in comps.values():
@@ -107,11 +107,11 @@ def test_inputs(sky_model):
     with pytest.raises(UnitsError):
         sky_model(
             [10, 11, 12] * Unit("GHz"),
-            bandpass=[10, 11, 12] * Unit("GHz"),
+            weights=[10, 11, 12] * Unit("GHz"),
         )
 
     with pytest.raises(ValueError):
         sky_model(
             [10, 11] * Unit("GHz"),
-            bandpass=[11, 12, 13] * DEFAULT_OUTPUT_UNIT,
+            weights=[11, 12, 13] * DEFAULT_OUTPUT_UNIT,
         )

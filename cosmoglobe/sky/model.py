@@ -189,7 +189,7 @@ class SkyModel:
     def __call__(
         self,
         freqs: Quantity,
-        bandpass: Optional[Quantity] = None,
+        weights: Optional[Quantity] = None,
         *,
         components: Optional[List[str]] = None,
         fwhm: Quantity = DEFAULT_BEAM_FWHM,
@@ -200,11 +200,16 @@ class SkyModel:
         Parameters
         ----------
         freqs
-            A frequency, or a list of frequencies.
-        bandpass
-            Bandpass profile corresponding to the frequencies in `freqs`.
-            If `bandpass` is None and `freqs` is a single frequency, a
-            delta peak is assumed. Defaults to None.
+            A frequency, or a list of frequencies corresponding to the 
+            bandpass weights.
+        weights
+            Bandpass weights corresponding to the frequencies in `freqs`.
+            The units of this quantity must match the units of the related 
+            detector, i.e, they must be compatible with K_RJ, K_CMB, or Jy/sr.
+            Even if the bandpass weights are already normalized and now have 
+            units of 1/Hz, redefine the quantities unites to be that of the 
+            detector. If `bandpass` is None and `freqs` is a single frequency, 
+            a delta peak is assumed. Defaults to None.
         components
             List of component labels. If None, all components in the sky
             model is included. Defaults to None.
@@ -246,7 +251,7 @@ class SkyModel:
         for diffuse_component in diffuse_components:
             component_emission = diffuse_component.simulate_emission(
                 freqs=freqs,
-                bandpass=bandpass,
+                weights=weights,
                 nside=self.nside,
                 fwhm=fwhm,
                 output_unit=emission_unit,
@@ -254,17 +259,18 @@ class SkyModel:
             for IQU, diffuse_emission in enumerate(component_emission):
                 emission[IQU] += diffuse_emission
 
-        # We smooth all diffuse components together
+        # We smooth all diffuse components together in a single smoothing operation.
         if fwhm != DEFAULT_BEAM_FWHM:
             emission = Quantity(
                 hp.smoothing(emission, fwhm=fwhm.to("rad").value), unit=emission.unit
             )
 
-        # Pointsource emissions returned pre-smoothed
+        # Pointsource emissions are already smoothed during the stage where 
+        # each source is mapped to the HEALPIX map.
         for pointsource_component in pointsource_components:
             component_emission = pointsource_component.simulate_emission(
                 freqs=freqs,
-                bandpass=bandpass,
+                weights=weights,
                 nside=self.nside,
                 fwhm=fwhm,
                 output_unit=emission_unit,

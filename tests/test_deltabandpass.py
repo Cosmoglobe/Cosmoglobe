@@ -33,42 +33,42 @@ def test_diffuse_bandpass(synch_1, synch_3):
     synchs = [synch_1, synch_3]
 
     for synch in synchs:
-        synch.get_bandpass_emission([10, 11, 12] * Unit("GHz"), [0.3,0.3,0.3] * Unit("1/GHz"), DEFAULT_OUTPUT_UNIT)
-        synch.get_bandpass_emission([10, 11, 12] * Unit("GHz"), [0.3,0.3,0.3] * Unit("1/GHz"), DEFAULT_OUTPUT_UNIT)
+        synch.get_bandpass_emission([10, 11, 12] * Unit("GHz"), [0.3,0.3,0.3] * Unit("K_RJ"), DEFAULT_OUTPUT_UNIT)
+        synch.get_bandpass_emission([10, 11, 12] * Unit("GHz"), [0.3,0.3,0.3] * Unit("K_RJ"), DEFAULT_OUTPUT_UNIT)
         synch.get_bandpass_emission(
-            [10, 11, 12] * Unit("GHz"), [0.3,0.3,0.3] * Unit("1/GHz"), output_unit=Unit("MJy/sr")
+            [10, 11, 12] * Unit("GHz"), [0.3,0.3,0.3] * Unit("K_RJ"), output_unit=Unit("MJy/sr")
         )
         synch.get_bandpass_emission(
             [10, 11, 12] * Unit("GHz"),
-            bandpass=[10, 11, 12] * DEFAULT_OUTPUT_UNIT,
+            weights=[10, 11, 12] * DEFAULT_OUTPUT_UNIT,
             output_unit=DEFAULT_OUTPUT_UNIT,
         )
         synch.get_bandpass_emission(
             [10, 11, 12] * Unit("GHz"),
-            bandpass=[10, 11, 12] * DEFAULT_OUTPUT_UNIT,
+            weights=[10, 11, 12] * DEFAULT_OUTPUT_UNIT,
             output_unit=Unit("MJy/sr"),
         )
         synch.get_bandpass_emission(
             [10, 11, 12] * Unit("GHz"),
-            bandpass=[10, 11, 12] * DEFAULT_OUTPUT_UNIT,
+            weights=[10, 11, 12] * DEFAULT_OUTPUT_UNIT,
             output_unit=Unit("MJy/sr"),
         )
         synch.get_bandpass_emission(
             [10, 11, 12] * Unit("GHz"),
-            bandpass=[10, 11, 12] * DEFAULT_OUTPUT_UNIT,
+            weights=[10, 11, 12] * DEFAULT_OUTPUT_UNIT,
             output_unit=Unit("MJy/sr"),
         )
 
         assert (
             synch.get_bandpass_emission(
-                [10, 11] * Unit("GHz"), [0.3,0.3] * Unit("1/GHz"), DEFAULT_OUTPUT_UNIT
+                [10, 11] * Unit("GHz"), [0.3,0.3] * Unit("K_RJ"), DEFAULT_OUTPUT_UNIT
             ).shape
             == synch.amp.shape
         )
         assert (
             synch.get_bandpass_emission(
                 [10, 11] * Unit("GHz"),
-                bandpass=[11, 13] * DEFAULT_OUTPUT_UNIT,
+                weights=[11, 13] * DEFAULT_OUTPUT_UNIT,
                 output_unit="MJy/sr",
             ).shape
             == synch.amp.shape

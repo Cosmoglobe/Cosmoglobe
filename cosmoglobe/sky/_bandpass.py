@@ -1,10 +1,14 @@
+from dataclasses import dataclass
 from typing import Dict, List, Protocol, Union
 
 from astropy.units import Quantity, Unit
+from astropy.units.core import UnitBase
 import numpy as np
 from scipy.interpolate import RectBivariateSpline
 
-from cosmoglobe.sky._intensity_derivative import get_intensity_derivative
+from cosmoglobe.sky._intensity_derivatives import get_intensity_derivative
+from cosmoglobe.sky._units import cmb_equivalencies
+
 
 # Dict mapping number of grid points to the interpolation dimensin of the
 # bandpass integration.
@@ -14,31 +18,50 @@ N_INTERPOLATION_GRID = {
 }
 
 
-def get_normalized_bandpass(freqs: Quantity, bandpass: Quantity) -> Quantity:
+# @dataclass
+# class Bandpass:
+#     """Class representing a *normalized* bandpass."""
+
+#     freqs: Quantity  # [Hz]
+#     weights: Quantity  # [1/Hz]
+
+
+def get_normalized_weights(
+    freqs: Quantity,
+    weights: Quantity,
+    component_amp_unit: UnitBase,
+) -> Quantity:
     """Normalizes a bandpass to units of unity under integration.
 
-    TODO: Implement unit renormalization of bandpasses. More specifically
-    we need to include the processing in the `constructor` and `update_tau`
-    functions in Commander.
+    Additionally, the bandpass is converted to the units of the amplitude
+    map of the sky component used in the bandpass integration.
 
     Parameters
     ----------
     freqs
         Frequencies corresponding to bandpass weights.
-    bandpass
-        The bandpass profile.
+    weights
+        The weights of the bandpass.
 
     Returns
     -------
-        Bandpass with unit integral over np.trapz.
+        Bandpass object.
     """
 
-    return bandpass / np.trapz(bandpass, freqs)
+    # For pointsources, we need to divide the quantity by sr to make it
+    # compatible with the cmb equivalencies.
+    if component_amp_unit.is_equivalent("Jy"):
+        component_amp_unit /= Unit("sr")
+
+    weights = weights.to(component_amp_unit, equivalencies=cmb_equivalencies(freqs))
+    weights /= np.trapz(weights, freqs)
+
+    return weights
 
 
 def get_bandpass_coefficient(
     freqs: Quantity,
-    bandpass: Quantity,
+    weights: Quantity,
     input_unit: Unit,
     output_unit: Unit,
 ) -> Quantity:
@@ -48,8 +71,8 @@ def get_bandpass_coefficient(
     ----------
     freqs
         Frequencies corresponding to bandpass weights.
-    bandpass
-        The bandpass profile.
+    weights
+        The weights of the bandpass.
     input_unit
         The unit of the cosmoglobe data.
     ouput_unit
@@ -64,8 +87,9 @@ def get_bandpass_coefficient(
 
     in_intensity_derivative = get_intensity_derivative(input_unit)
     out_intensity_derivative = get_intensity_derivative(output_unit)
-    coefficient = np.trapz(bandpass * in_intensity_derivative(freqs), freqs) / np.trapz(
-        bandpass * out_intensity_derivative(freqs), freqs
+
+    coefficient = np.trapz(weights * in_intensity_derivative(freqs), freqs) / np.trapz(
+        weights * out_intensity_derivative(freqs), freqs
     )
 
     return coefficient
@@ -84,9 +108,10 @@ class BandpassIntegration(Protocol):
     def __call__(
         self,
         freqs: Quantity,
-        bandpass: Quantity,
+        weights: Quantity,
         freq_scaling_func: FreqScalingFunc,
         spectral_parameters: Dict[str, Quantity],
+        *,
         interpolation_grid: Dict[str, Quantity],
     ) -> Union[float, List[float]]:
         """Computes the frequency scaling factor over bandpass integration.
@@ -104,8 +129,8 @@ class BandpassIntegration(Protocol):
         ----------
         freqs
             Frequencies corresponding to bandpass weights.
-        bandpass
-            The bandpass profile.
+        weights
+            The weights of the bandpass.
         freq_scaling_func
             Function that returns the SED scaling given frequencies and
             spectral parameters.
@@ -125,10 +150,10 @@ class BandpassIntegration(Protocol):
 
 def integrated_freq_scaling(
     freqs: Quantity,
-    bandpass: Quantity,
+    weights: Quantity,
     freq_scaling_func: FreqScalingFunc,
     spectral_parameters: Dict[str, Quantity],
-    *_,
+    **_,
 ) -> float:
     """Bandpass integration 0D.
 
@@ -137,7 +162,7 @@ def integrated_freq_scaling(
     """
 
     freq_scaling = freq_scaling_func(freqs, **spectral_parameters)
-    scaling_factor = np.trapz(freq_scaling * bandpass, freqs)
+    scaling_factor = np.trapz(freq_scaling * weights, freqs)
     if np.ndim(scaling_factor) > 0:
         return np.expand_dims(scaling_factor, axis=1)
 
@@ -146,7 +171,7 @@ def integrated_freq_scaling(
 
 def bandpass_interpolation_1d(
     freqs: Quantity,
-    bandpass: Quantity,
+    weights: Quantity,
     freq_scaling_func: FreqScalingFunc,
     spectral_parameters: Dict[str, Quantity],
     interpolation_grid: Dict[str, Quantity],
@@ -168,7 +193,7 @@ def bandpass_interpolation_1d(
             param: value for param, value in spectral_parameters.items() if param != key
         }
         freq_scaling = freq_scaling_func(freqs, **{key: grid_point}, **scalar_params)
-        integrals[idx] = np.trapz(freq_scaling * bandpass, freqs)
+        integrals[idx] = np.trapz(freq_scaling * weights, freqs)
 
     # We transpose the array to make it into row format similar to how
     # regular IQU maps are stored
@@ -188,7 +213,7 @@ def bandpass_interpolation_1d(
 
 def bandpass_interpolation_2d(
     freqs: Quantity,
-    bandpass: Quantity,
+    weights: Quantity,
     freq_scaling_func: FreqScalingFunc,
     spectral_parameters: Dict[str, Quantity],
     interpolation_grid: Dict[str, Quantity],
@@ -219,7 +244,7 @@ def bandpass_interpolation_2d(
         for j in range(n):
             grid_spectrals = {key: value[i, j] for key, value in mesh_grid.items()}
             freq_scaling = freq_scaling_func(freqs, **grid_spectrals)
-            integrals[i, j] = np.trapz(freq_scaling * bandpass, freqs)
+            integrals[i, j] = np.trapz(freq_scaling * weights, freqs)
     integrals = np.transpose(integrals)
 
     scaling = []
@@ -289,7 +314,7 @@ def get_interpolation_grid(
 
 def get_bandpass_scaling(
     freqs: Quantity,
-    bandpass: Quantity,
+    weights: Quantity,
     freq_scaling_func: FreqScalingFunc,
     spectral_parameters: Dict[str, Quantity],
 ) -> Union[float, List[float]]:
@@ -303,5 +328,9 @@ def get_bandpass_scaling(
         )
 
     return BP_INTEGRATION_MAPPINGS[dim](
-        freqs, bandpass, freq_scaling_func, spectral_parameters, grid
+        freqs=freqs,
+        weights=weights,
+        freq_scaling_func=freq_scaling_func,
+        spectral_parameters=spectral_parameters,
+        interpolation_grid=grid,
     )
