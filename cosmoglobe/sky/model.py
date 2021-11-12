@@ -24,16 +24,15 @@ from cosmoglobe.sky._exceptions import (
     ComponentError,
     ComponentNotFoundError,
 )
-from cosmoglobe.sky._units import cmb_equivalencies
 from cosmoglobe.sky.cosmoglobe import cosmoglobe_registry
 from cosmoglobe.h5.chain import Chain
 
 
 class SkyModel:
-    r"""Sky model object representing an initialized Cosmoglobe Sky Model.
+    r"""Sky model representing an initialized instance of the Cosmoglobe Sky Model.
 
     This class acts as a container for the various components making up
-    the Cosmoglobe Sky Model, and provides methods to simulate the sky.
+    the Cosmoglobe Sky Model and provides methods to simulate the sky.
     The primary use case of this class is to call its ``__call__``
     method, which simulates the sky at a single frequency :math:`\nu`,
     or integrated over a bandpass :math:`\tau`.

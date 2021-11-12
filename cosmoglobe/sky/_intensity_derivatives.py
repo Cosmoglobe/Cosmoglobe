@@ -44,7 +44,7 @@ def bnu_prime_CMB(freqs: Quantity) -> Quantity:
 
 
 def dI_nu_dI_c(freqs: Quantity) -> Quantity:
-    """Intensity derivative for MJY/sr (IRAS convention)."""
+    """Intensity derivative for MJy/sr (IRAS convention)."""
 
     return np.mean(freqs) / freqs
 
