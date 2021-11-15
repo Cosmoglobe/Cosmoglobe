@@ -19,8 +19,8 @@ class ChainContext(Protocol):
     before they are ready to be put into the sky model.
 
     A context needs to manipulate and return the `args` dictionary.
-    
-    NOTE: Context functions are executed *AFTER* renaming the units in the 
+
+    NOTE: Context functions are executed *AFTER* renaming the units in the
     chain. It is therefore important to use keys to the args dict that match
     the registered naming mappings.
     """
@@ -44,7 +44,7 @@ def reshape_freq_ref(args: Dict[str, Quantity]) -> Dict[str, Quantity]:
     return args
 
 
-def radip_specind(args: Dict[str, Quantity]) -> Dict[str, Quantity]:
+def radio_specind(args: Dict[str, Quantity]) -> Dict[str, Quantity]:
     """Context that removes all but the first column of alpha.
 
     We are only interested in the column representinc the power law index
@@ -82,21 +82,39 @@ def map_to_scalar(args: Dict[str, Quantity]) -> Dict[str, Quantity]:
 
 chain_context_registry = ChainContextRegistry()
 
-chain_context_registry.register_context([], reshape_freq_ref)
-chain_context_registry.register_context([], map_to_scalar)
-chain_context_registry.register_context([Radio], radip_specind)
-
-chain_context_registry.register_mapping([], {"freq_ref": "nu_ref"})
-chain_context_registry.register_mapping([Radio], {"alpha": "specind"})
-chain_context_registry.register_mapping([AME], {"freq_peak": "nu_p"})
-chain_context_registry.register_mapping([FreeFree], {"T_e": "Te"})
-
-chain_context_registry.register_units([], {"freq_ref": Unit("Hz")})
-chain_context_registry.register_units(
-    [AME, ThermalDust, Synchrotron, FreeFree], {"amp": Unit("uK_RJ")}
+chain_context_registry.register_class_context(
+    CMB,
+    functions=[reshape_freq_ref, map_to_scalar],
+    mappings={"freq_ref": "nu_ref"},
+    units={"freq_ref": Unit("Hz"), "amp": Unit("uK_CMB")},
 )
-chain_context_registry.register_units([CMB], {"amp": Unit("uK_CMB")})
-chain_context_registry.register_units([Radio], {"amp": Unit("mJy")})
-chain_context_registry.register_units([AME], {"freq_peak": Unit("GHz")})
-chain_context_registry.register_units([ThermalDust], {"T": Unit("K")})
-chain_context_registry.register_units([FreeFree], {"T_e": Unit("K")})
+chain_context_registry.register_class_context(
+    AME,
+    functions=[reshape_freq_ref, map_to_scalar],
+    mappings={"freq_ref": "nu_ref", "freq_peak": "nu_p"},
+    units={"freq_ref": Unit("Hz"), "amp": Unit("uK_RJ"), "freq_peak": Unit("GHz")},
+)
+chain_context_registry.register_class_context(
+    ThermalDust,
+    functions=[reshape_freq_ref, map_to_scalar],
+    mappings={"freq_ref": "nu_ref"},
+    units={"freq_ref": Unit("Hz"), "amp": Unit("uK_RJ"), "T": Unit("K")},
+)
+chain_context_registry.register_class_context(
+    Radio,
+    functions=[reshape_freq_ref, map_to_scalar, radio_specind],
+    mappings={"freq_ref": "nu_ref", "alpha": "specind"},
+    units={"freq_ref": Unit("Hz"), "amp": Unit("mJy")},
+)
+chain_context_registry.register_class_context(
+    FreeFree,
+    functions=[reshape_freq_ref, map_to_scalar],
+    mappings={"freq_ref": "nu_ref", "T_e": "Te"},
+    units={"freq_ref": Unit("Hz"), "amp": Unit("uK_RJ"), "T_e": Unit("K")},
+)
+chain_context_registry.register_class_context(
+    Synchrotron,
+    functions=[reshape_freq_ref, map_to_scalar],
+    mappings={"freq_ref": "nu_ref"},
+    units={"freq_ref": Unit("Hz"), "amp": Unit("uK_RJ")},
+)

@@ -1,5 +1,5 @@
-from typing import Dict, List, Optional, Type
-from dataclasses import dataclass
+from typing import Dict, List, Type
+from dataclasses import dataclass, field
 
 from cosmoglobe.sky._base_components import SkyComponent
 from cosmoglobe.sky._exceptions import ModelNotFoundError, ComponentNotFoundError
@@ -28,51 +28,32 @@ class CosmoglobeModel:
             f"component {component_name} not found in model."
         )
 
-
-class CosmoglobeRegistry:
+@dataclass
+class CosmoglobeModelRegistry:
     """Container for registered sky model versions."""
 
-    def __init__(self) -> None:
-        self.models: Dict[str, CosmoglobeModel] = {}
-        self._default_model: Optional[CosmoglobeModel] = None
-
-    @property
-    def default_model(self) -> CosmoglobeModel:
-        """The default cosmoglobe model."""
-
-        if self._default_model is None:
-            raise ValueError(
-                "default model has not yet been set. A default can be set "
-                "using `set_default_model`"
-            )
-
-        return self._default_model
-
-    def set_default_model(self, version: str) -> None:
-        """Sets the default sky model."""
-
-        self._default_model = self.models[version]
+    REGISTRY: Dict[str, CosmoglobeModel] = field(default_factory=dict)
 
     def register_model(self, model: CosmoglobeModel) -> None:
         """Adds a new sky model to the registry."""
 
-        if (version := model.version) in self.models:
+        if (version := model.version) in self.REGISTRY:
             raise ValueError(f"model by version {version} is already registered.")
 
-        self.models[version] = model
+        self.REGISTRY[version] = model
 
     def get_model(self, version: str) -> CosmoglobeModel:
         """Returns a registered sky model."""
         try:
-            return self.models[version]
+            return self.REGISTRY[version]
         except KeyError:
             raise ModelNotFoundError(
                 f"model {version} was not found in the registry. "
-                f"Available models are: {list(self.models.keys())}"
+                f"Available models are: {list(self.REGISTRY.keys())}"
             )
 
 
-cosmoglobe_registry = CosmoglobeRegistry()
+cosmoglobe_registry = CosmoglobeModelRegistry()
 cosmoglobe_registry.register_model(
     CosmoglobeModel(
         version="BeyondPlanck",
@@ -87,5 +68,4 @@ cosmoglobe_registry.register_model(
     )
 )
 
-cosmoglobe_registry.set_default_model("BeyondPlanck")
-DEFAULT_COSMOGLOBE_MODEL = cosmoglobe_registry.default_model
+DEFAULT_COSMOGLOBE_MODEL = cosmoglobe_registry.get_model("BeyondPlanck")

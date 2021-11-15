@@ -141,10 +141,10 @@ def get_comp_from_chain(
     # to fit it to the format required in the Cosmoglobe Sky Model. This includes,
     # renaming of variables (mappings), specifying astropy units, and reshaping
     # and/or converting maps constant over the sky to scalars.
-    mappings = chain_context_registry.get_mappings(component_class)
+    parameter_mappings = chain_context_registry.get_parameter_mappings(component_class)
     units = chain_context_registry.get_units(component_class)
     for arg in class_args:
-        chain_arg = mappings.get(arg, arg)
+        chain_arg = parameter_mappings.get(arg, arg)
         chain_params = chain.parameters[component_label]
 
         if chain_arg in chain_params:
@@ -179,9 +179,9 @@ def get_comp_from_chain(
 
         args[arg] = Quantity(value, unit=units[arg] if arg in units else None)
 
-    contexts = chain_context_registry.get_context(component_class)
-    for context in contexts:
-        args.update(context(args))
+    functions = chain_context_registry.get_functions(component_class)
+    for function in functions:
+        args.update(function(args))
 
     return component_class(**args)
 
