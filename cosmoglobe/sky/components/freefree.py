@@ -1,7 +1,7 @@
 from astropy.units import Quantity, Unit, quantity_input
 import numpy as np
 
-from cosmoglobe.sky._base_components import DiffuseComponent
+from cosmoglobe.sky._base_components import DiffuseComponent, FrequencyRange
 from cosmoglobe.sky.components import SkyComponentLabel
 
 
@@ -25,6 +25,10 @@ class FreeFree(DiffuseComponent):
     """
 
     label = SkyComponentLabel.FF
+    freq_range = FrequencyRange(
+        lower=0 * Unit("Hz"),
+        upper=5 * Unit("THz"),
+    )
 
     def get_freq_scaling(self, freqs: Quantity, T_e: Quantity) -> Quantity:
         """See base class."""

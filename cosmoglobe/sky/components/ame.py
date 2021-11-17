@@ -4,7 +4,7 @@ from astropy.units import Quantity, Unit
 import numpy as np
 
 from cosmoglobe.data import DATA_DIR
-from cosmoglobe.sky._base_components import DiffuseComponent
+from cosmoglobe.sky._base_components import DiffuseComponent, FrequencyRange
 from cosmoglobe.sky._units import cmb_equivalencies
 from cosmoglobe.sky.components import SkyComponentLabel
 
@@ -37,6 +37,10 @@ class AME(DiffuseComponent):
     """
 
     label = SkyComponentLabel.AME
+    freq_range = FrequencyRange(
+        lower=0 * Unit("Hz"),
+        upper=500 * Unit("GHz"),
+    )
     SPINNING_DUST_TEMPLATE: Tuple[Quantity, Quantity] = SPDUST2_TEMPLATE
 
     def get_freq_scaling(self, freqs: Quantity, freq_peak: Quantity) -> Quantity:

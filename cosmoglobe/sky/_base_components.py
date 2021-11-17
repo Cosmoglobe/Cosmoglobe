@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import Dict, Optional
 import warnings
 
@@ -29,6 +30,22 @@ from cosmoglobe.sky._units import cmb_equivalencies
 from cosmoglobe.sky.components import SkyComponentLabel
 
 
+@dataclass
+class FrequencyRange:
+    """Specifies a frequency range outside of which the emission becomes negligable."""
+
+    lower: Quantity
+    upper: Quantity
+
+    def __contains__(self, freqs: Quantity) -> bool:
+        """Returns True, if `freqs` are within the range defined by this object, and False if else."""
+
+        if freqs.ndim > 0:
+            return any(self.lower < freq < self.upper for freq in freqs)
+
+        return self.lower < freqs < self.upper
+
+
 class SkyComponent(ABC):
     """Abstract base class for sky components.
 
@@ -45,6 +62,7 @@ class SkyComponent(ABC):
     """
 
     label: SkyComponentLabel
+    freq_range: Optional[FrequencyRange] = None
 
     def __init__(
         self,
@@ -57,6 +75,8 @@ class SkyComponent(ABC):
         self.spectral_parameters = spectral_parameters
 
         self._validate_freq_ref(freq_ref)
+
+        self.label = SkyComponentLabel(self.label)
 
     @abstractmethod
     def get_delta_emission(
@@ -157,6 +177,12 @@ class SkyComponent(ABC):
                 "output unit must be one of "
                 f"{', '.join(unit.to_string() for unit in SIGNAL_UNITS)}"
             )
+
+        # If the emission from the sky component is negligable at the
+        # frequencies given by `freqs`, we simply return 0.
+        if self.freq_range is not None and freqs not in self.freq_range:
+            return Quantity([0, 0, 0], unit=output_unit)
+
         if freqs.size > 1:
             if weights is not None and freqs.shape != weights.shape:
                 raise ValueError(

@@ -1,7 +1,7 @@
 from astropy.units import Quantity, Unit, quantity_input
 import numpy as np
 
-from cosmoglobe.sky._base_components import DiffuseComponent
+from cosmoglobe.sky._base_components import DiffuseComponent, FrequencyRange
 from cosmoglobe.sky.components import SkyComponentLabel
 import cosmoglobe.sky._constants as const
 
@@ -29,7 +29,10 @@ class ThermalDust(DiffuseComponent):
     """
 
     label = SkyComponentLabel.DUST
-
+    freq_range = FrequencyRange(
+        lower=0 * Unit("Hz"),
+        upper=100 * Unit("THz"),
+    )
     def get_freq_scaling(
         self,
         freqs: Quantity,

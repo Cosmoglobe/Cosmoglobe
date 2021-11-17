@@ -1,6 +1,6 @@
-from astropy.units import Quantity
+from astropy.units import Quantity, Unit
 
-from cosmoglobe.sky._base_components import DiffuseComponent
+from cosmoglobe.sky._base_components import DiffuseComponent, FrequencyRange
 from cosmoglobe.sky.components import SkyComponentLabel
 
 
@@ -27,7 +27,10 @@ class Synchrotron(DiffuseComponent):
     """
 
     label = SkyComponentLabel.SYNCH
-
+    freq_range = FrequencyRange(
+        lower=0 * Unit("Hz"),
+        upper=2 * Unit("THz"),
+    )
     def get_freq_scaling(self, freqs: Quantity, beta: Quantity) -> Quantity:
         """See base class."""
 
