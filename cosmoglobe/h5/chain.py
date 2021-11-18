@@ -1,6 +1,6 @@
 from pathlib import Path
 import textwrap
-from typing import Any, Dict, Generator, List, Optional, Union, overload
+from typing import Any, Dict, Generator, List, Optional, Union
 
 import h5py
 import numpy as np
@@ -127,18 +127,15 @@ class Chain:
         with h5py.File(self.path, "r") as file:
             file.visititems(print_attrs)
 
-    @overload
-    def get(self, key: str, *, samples: Optional[range] = None) -> Any:
-        ...
-
-    @overload
-    def get(self, key: str, *, samples: Optional[int] = None) -> Any:
-        ...
-
     @validate_key
     @validate_samples
     @unpack_alms
-    def get(self, key: str, *, samples: List[str]) -> Any:
+    def get(
+        self,
+        key: str,
+        *,
+        samples: Optional[Union[range, int]] = None,
+    ) -> Any:
         """Returns the value of an key for all samples.
 
         Parameters
@@ -161,18 +158,15 @@ class Chain:
 
         return np.asarray(values) if len(values) != 1 else values[0]
 
-    @overload
-    def mean(self, key: str, *, samples: Optional[range] = None) -> Any:
-        ...
-
-    @overload
-    def mean(self, key: str, *, samples: Optional[int] = None) -> Any:
-        ...
-
     @validate_key
     @validate_samples
     @unpack_alms
-    def mean(self, key: str, *, samples: List[str]) -> Any:
+    def mean(
+        self,
+        key: str,
+        *,
+        samples: Optional[Union[range, int]] = None,
+    ) -> Any:
         """Returns the mean of an key over all samples.
 
         Parameters
@@ -199,17 +193,14 @@ class Chain:
 
         return dtype(value / len(samples))  # Converting back to original dtype
 
-    @overload
-    def load(self, key: str, *, samples: Optional[range] = None) -> Any:
-        ...
-
-    @overload
-    def load(self, key: str, *, samples: Optional[int] = None) -> Any:
-        ...
-
     @validate_key
     @validate_samples
-    def load(self, key: str, *, samples: List[str]) -> Generator:
+    def load(
+        self,
+        key: str,
+        *,
+        samples: Optional[Union[range, int]] = None,
+    ) -> Generator:
         """Returns a generator to be used in a for loop.
 
         NOTE to devs: The unpack_alms decorator wont work on this function
