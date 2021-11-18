@@ -202,7 +202,7 @@ def plot(
             if isinstance(width, str):
                 width = FIGURE_WIDTHS[width]
         ratio = 0.63 if cbar else 0.5
-        xsize = int((1000 / 8.5) * width)
+        xsize = int((xsize / 8.5) * width)
         override_plot_properties = {
             "figure_width": width,
             "figure_size_ratio": ratio,
