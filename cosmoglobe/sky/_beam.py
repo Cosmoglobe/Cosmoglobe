@@ -7,8 +7,6 @@ import healpy as hp
 
 from cosmoglobe.sky._constants import DEFAULT_BEAM_FWHM
 
-TEST_BEAM_BL = "/Users/metinsan/Documents/doktor/Cosmoglobe_test_data/wmap_beam.txt"
-
 
 @quantity_input(fwhm=("rad", "arcmin", "deg"))
 def get_sigma(fwhm: Quantity) -> Quantity:

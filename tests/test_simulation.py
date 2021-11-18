@@ -1,4 +1,4 @@
-from cosmoglobe.sky.components.dust import ThermalDust
+from cosmoglobe.sky.components.dust import ModifiedBlackbody
 import pytest
 
 from astropy.units import Unit, Quantity, UnitsError
@@ -62,7 +62,7 @@ def test_pointsource(sky_model):
 def test_nside(nside):
     """Tests a set of nsides."""
 
-    dust = ThermalDust(
+    dust = ModifiedBlackbody(
         Quantity(np.random.randint(10, 20, (3, hp.nside2npix(nside))), unit="K_RJ"),
         Quantity([[20], [50], [50]], unit="GHz"),
         beta=Quantity(np.random.randint(10, 100, (3, hp.nside2npix(nside)))),

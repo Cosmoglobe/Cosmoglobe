@@ -6,6 +6,10 @@ class ComponentNotFoundError(Exception):
     """Raised if a component is missing from the model."""
 
 
+class CosmoglobeModelError(Exception):
+    """Raised if there is an issue with the initialization of a CosmoglobeModel."""
+
+
 class ComponentError(Exception):
     """Raised if there is an issue with a component in the sky model."""
 

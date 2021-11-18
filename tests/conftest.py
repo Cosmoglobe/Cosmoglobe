@@ -4,12 +4,12 @@ from astropy.units import Quantity
 import healpy as hp
 import numpy as np
 
-from cosmoglobe.sky.components.ame import AME
+from cosmoglobe.sky.components.ame import SpinningDust
 from cosmoglobe.sky.components.cmb import CMB
-from cosmoglobe.sky.components.dust import ThermalDust
-from cosmoglobe.sky.components.freefree import FreeFree
-from cosmoglobe.sky.components.synchrotron import Synchrotron
-from cosmoglobe.sky.components.radio import Radio
+from cosmoglobe.sky.components.dust import ModifiedBlackbody
+from cosmoglobe.sky.components.freefree import LinearOpticallyThin
+from cosmoglobe.sky.components.synchrotron import PowerLaw
+from cosmoglobe.sky.components.radio import AGNPowerLaw
 
 from cosmoglobe.sky.model import SkyModel
 
@@ -17,7 +17,7 @@ from cosmoglobe.sky.model import SkyModel
 @pytest.fixture()
 def synch_1():
 
-    return Synchrotron(
+    return PowerLaw(
         Quantity(np.random.randint(10, 20, (1, hp.nside2npix(32))), unit="K_RJ"),
         Quantity([[40]], unit="GHz"),
         beta=Quantity([[1]]),
@@ -26,7 +26,7 @@ def synch_1():
 
 @pytest.fixture()
 def synch_3():
-    return Synchrotron(
+    return PowerLaw(
         Quantity(np.random.randint(10, 20, (3, hp.nside2npix(32))), unit="K_RJ"),
         Quantity([[40], [40], [40]], unit="GHz"),
         beta=Quantity([[1], [1], [1]]),
@@ -36,7 +36,7 @@ def synch_3():
 @pytest.fixture()
 def dust_1():
 
-    return ThermalDust(
+    return ModifiedBlackbody(
         Quantity(np.random.randint(10, 20, (1, hp.nside2npix(32))), unit="K_RJ"),
         Quantity([[40]], unit="GHz"),
         beta=Quantity(np.random.randint(10, 100, (1, hp.nside2npix(32)))),
@@ -46,7 +46,7 @@ def dust_1():
 
 @pytest.fixture()
 def dust_3():
-    return ThermalDust(
+    return ModifiedBlackbody(
         Quantity(np.random.randint(10, 20, (3, hp.nside2npix(32))), unit="K_RJ"),
         Quantity([[20], [50], [50]], unit="GHz"),
         beta=Quantity([[0.3], [0.4], [0.4]]),
@@ -56,7 +56,7 @@ def dust_3():
 
 @pytest.fixture()
 def dust0spec():
-    return ThermalDust(
+    return ModifiedBlackbody(
         Quantity(np.random.randint(10, 20, (3, hp.nside2npix(32))), unit="K_RJ"),
         Quantity([[20], [50], [50]], unit="GHz"),
         beta=Quantity([[10], [11], [11]]),
@@ -66,7 +66,7 @@ def dust0spec():
 
 @pytest.fixture()
 def dust1spec():
-    return ThermalDust(
+    return ModifiedBlackbody(
         Quantity(np.random.randint(10, 20, (3, hp.nside2npix(32))), unit="K_RJ"),
         Quantity([[20], [50], [50]], unit="GHz"),
         beta=Quantity([[10], [11], [11]]),
@@ -76,7 +76,7 @@ def dust1spec():
 
 @pytest.fixture()
 def dust2spec():
-    return ThermalDust(
+    return ModifiedBlackbody(
         Quantity(np.random.randint(10, 20, (3, hp.nside2npix(32))), unit="K_RJ"),
         Quantity([[20], [50], [50]], unit="GHz"),
         beta=Quantity(np.random.randint(10, 100, (3, hp.nside2npix(32)))),
@@ -89,7 +89,7 @@ def radio():
     amp = Quantity(np.random.randint(10, 20, (1, 12192)), unit="mJy")
     freq_ref = Quantity([[40]], unit="GHz")
     alpha = Quantity(np.random.randint(10, 20, (1, 12192)))
-    radio = Radio(amp, freq_ref, alpha=alpha)
+    radio = AGNPowerLaw(amp, freq_ref, alpha=alpha)
     return radio
 
 
@@ -99,12 +99,12 @@ def ff():
     freq_ref = Quantity([[40]], unit="GHz")
     T_e = Quantity(np.random.randint(10, 20, (1, hp.nside2npix(256))), unit="K")
 
-    return FreeFree(amp, freq_ref, T_e=T_e)
+    return LinearOpticallyThin(amp, freq_ref, T_e=T_e)
 
 
 @pytest.fixture()
 def ame():
-    return AME(
+    return SpinningDust(
         Quantity(np.random.randint(10, 20, (3, hp.nside2npix(256))), unit="uK_RJ"),
         Quantity([[20], [50], [50]], unit="GHz"),
         freq_peak=Quantity(
@@ -115,7 +115,7 @@ def ame():
 
 @pytest.fixture()
 def synch():
-    return Synchrotron(
+    return PowerLaw(
         Quantity(np.random.randint(10, 20, (1, hp.nside2npix(256))), unit="uK_RJ"),
         Quantity([[40]], unit="GHz"),
         beta=Quantity([[1]]),
@@ -124,7 +124,7 @@ def synch():
 
 @pytest.fixture()
 def dust():
-    return ThermalDust(
+    return ModifiedBlackbody(
         Quantity(np.random.randint(10, 20, (3, hp.nside2npix(256))), unit="uK_RJ"),
         Quantity([[20], [50], [50]], unit="GHz"),
         beta=Quantity([[0.3], [0.4], [0.4]]),

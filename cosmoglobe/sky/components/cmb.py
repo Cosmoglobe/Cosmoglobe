@@ -1,11 +1,11 @@
 from astropy.units import Quantity, Unit
 
-from cosmoglobe.sky._base_components import DiffuseComponent, FrequencyRange
-from cosmoglobe.sky.components import SkyComponentLabel
+from cosmoglobe.sky._base_components import DiffuseComponent
+from cosmoglobe.sky.components._labels import SkyComponentLabel
 
 
 class CMB(DiffuseComponent):
-    r"""Class representing the CMB component.
+    r"""Class representing the CMB component in the Cosmoglobe Sky Model.
 
     Notes
     -----
@@ -25,10 +25,7 @@ class CMB(DiffuseComponent):
     """
 
     label = SkyComponentLabel.CMB
-    freq_range = FrequencyRange(
-        lower=0 * Unit("Hz"),
-        upper=1 * Unit("THz"),
-    )
+    freq_range = (0 * Unit("Hz"), 1 * Unit("THz"))
 
     def get_freq_scaling(self, *_) -> Quantity:
         """See base class.

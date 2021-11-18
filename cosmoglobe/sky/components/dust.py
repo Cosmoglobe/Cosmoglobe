@@ -1,13 +1,13 @@
 from astropy.units import Quantity, Unit, quantity_input
 import numpy as np
 
-from cosmoglobe.sky._base_components import DiffuseComponent, FrequencyRange
-from cosmoglobe.sky.components import SkyComponentLabel
+from cosmoglobe.sky._base_components import DiffuseComponent
+from cosmoglobe.sky.components._labels import SkyComponentLabel
 import cosmoglobe.sky._constants as const
 
 
-class ThermalDust(DiffuseComponent):
-    r"""Class representing the thermal dust component in the sky model.
+class ModifiedBlackbody(DiffuseComponent):
+    r"""Class representing the thermal dust component in the Cosmoglobe Sky Model.
 
     Notes
     -----
@@ -29,10 +29,8 @@ class ThermalDust(DiffuseComponent):
     """
 
     label = SkyComponentLabel.DUST
-    freq_range = FrequencyRange(
-        lower=0 * Unit("Hz"),
-        upper=100 * Unit("THz"),
-    )
+    freq_range = (0 * Unit("Hz"), 100 * Unit("THz"))
+
     def get_freq_scaling(
         self,
         freqs: Quantity,
@@ -49,7 +47,7 @@ class ThermalDust(DiffuseComponent):
         return scaling
 
 
-@quantity_input(freq=Unit("Hz"), T=Unit("K"))
+@quantity_input(freq="Hz", T="K")
 def blackbody_emission(freq: Quantity, T: Quantity) -> Quantity:
     """Returns the blackbody emission.
 

@@ -12,7 +12,7 @@ from cosmoglobe.sky._base_components import (
     PointSourceComponent,
     SkyComponent,
 )
-from cosmoglobe.sky.components import SkyComponentLabel
+from cosmoglobe.sky.components._labels import SkyComponentLabel
 from cosmoglobe.sky._component_factory import get_components_from_chain
 from cosmoglobe.sky._constants import (
     DEFAULT_OUTPUT_UNIT_STR,
@@ -52,12 +52,12 @@ class SkyModel:
         version: BeyondPlanck
         nside: 256
         components(
-            (ame): AME(freq_peak)
+            (ame): SpinningDust(freq_peak)
             (cmb): CMB()
-            (dust): ThermalDust(beta, T)
-            (ff): FreeFree(T_e)
-            (radio): Radio(alpha)
-            (synch): Synchrotron(beta)
+            (dust): ModifiedBlackbody(beta, T)
+            (ff): LinearOpticallyThin(T_e)
+            (radio): AGNPowerLaw(alpha)
+            (synch): PowerLaw(beta)
         )
     )
 
@@ -117,7 +117,7 @@ class SkyModel:
         nside: int,
         components: Optional[List[str]] = None,
         model: str = "BeyondPlanck",
-        samples: Optional[Union[range, int, Literal["all"]]] = -1,
+        samples: Union[range, int, Literal["all"]] = -1,
         burn_in: Optional[int] = None,
     ) -> SkyModel:
         """Initializes the SkyModel from a Cosmoglobe chain.

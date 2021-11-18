@@ -5,10 +5,10 @@ import numpy as np
 import healpy as hp
 
 from cosmoglobe.sky._constants import DEFAULT_OUTPUT_UNIT
-from cosmoglobe.sky.components.ame import AME
-from cosmoglobe.sky.components.dust import ThermalDust
-from cosmoglobe.sky.components.synchrotron import Synchrotron
-from cosmoglobe.sky.components.radio import Radio
+from cosmoglobe.sky.components.ame import SpinningDust
+from cosmoglobe.sky.components.dust import ModifiedBlackbody
+from cosmoglobe.sky.components.synchrotron import PowerLaw
+from cosmoglobe.sky.components.radio import AGNPowerLaw
 from cosmoglobe.sky._exceptions import (
     NsideError,
     ComponentError,
@@ -31,12 +31,12 @@ def test_init_sky_model_nside(synch_3, dust_3):
     with pytest.raises(ComponentError):
         SkyModel(32, {"s": 1})
 
-    synch = Synchrotron(
+    synch = PowerLaw(
         Quantity(np.random.randint(10, 30, (3, hp.nside2npix(32))), unit="uK_RJ"),
         Quantity([[40], [50], [50]], unit="GHz"),
         beta=Quantity(np.random.randint(10, 30, (3, hp.nside2npix(32)))),
     )
-    dust = ThermalDust(
+    dust = ModifiedBlackbody(
         Quantity(np.random.randint(10, 30, (3, hp.nside2npix(128))), unit="uK_RJ"),
         Quantity([[40], [50], [50]], unit="GHz"),
         beta=Quantity([[1], [2], [2]]),
@@ -49,12 +49,12 @@ def test_init_sky_model_nside(synch_3, dust_3):
 
 def test_comp_arg(sky_model):
     """Tests that all comps in the comp arg is present."""
-    synch = Synchrotron(
+    synch = PowerLaw(
         Quantity(np.random.randint(10, 30, (3, hp.nside2npix(32))), unit="uK_RJ"),
         Quantity([[40], [50], [50]], unit="GHz"),
         beta=Quantity(np.random.randint(10, 30, (3, hp.nside2npix(32)))),
     )
-    dust = ThermalDust(
+    dust = ModifiedBlackbody(
         Quantity(np.random.randint(10, 30, (3, hp.nside2npix(32))), unit="uK_RJ"),
         Quantity([[40], [50], [50]], unit="GHz"),
         beta=Quantity([[1], [2], [2]]),
@@ -119,7 +119,7 @@ def test_simulate(sky_model):
 def test_synch():
     """Tests a sim of synch."""
 
-    synch = Synchrotron(
+    synch = PowerLaw(
         Quantity(np.random.randint(10, 30, (3, hp.nside2npix(128))), unit="uK_RJ"),
         Quantity([[40], [50], [50]], unit="GHz"),
         beta=Quantity(np.random.randint(10, 30, (3, hp.nside2npix(128)))),
@@ -136,7 +136,7 @@ def test_synch():
 def test_dust():
     """Tests a sim of dust."""
 
-    dust = ThermalDust(
+    dust = ModifiedBlackbody(
         Quantity(np.random.randint(10, 30, (3, hp.nside2npix(128))), unit="uK_RJ"),
         Quantity([[40], [50], [50]], unit="GHz"),
         beta=Quantity([[1], [2], [2]]),
@@ -154,7 +154,7 @@ def test_dust():
 def test_radio():
     """Tests a sim of radio."""
 
-    radio = Radio(
+    radio = AGNPowerLaw(
         Quantity(np.random.randint(10, 30, (1, 12192)), unit="mJy"),
         Quantity([[40]], unit="GHz"),
         alpha=Quantity(np.random.randint(10, 30, (1, 12192))),
@@ -179,7 +179,7 @@ def test_radio():
 def test_ame():
     """Tests a sim of ame."""
 
-    ame = AME(
+    ame = SpinningDust(
         Quantity(np.random.randint(10, 30, (3, hp.nside2npix(128))), unit="uK_RJ"),
         Quantity([[40], [30], [30]], unit="GHz"),
         freq_peak=Quantity([[100], [100], [100]], unit="GHz"),
@@ -199,7 +199,7 @@ def test_remove_dipole(sky_model):
 
     sky_model.remove_dipole()
 
-    ame = AME(
+    ame = SpinningDust(
         Quantity(np.random.randint(10, 30, (3, hp.nside2npix(128))), unit="uK_RJ"),
         Quantity([[40], [30], [30]], unit="GHz"),
         freq_peak=Quantity([[100], [100], [100]], unit="GHz"),

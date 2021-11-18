@@ -3,13 +3,13 @@ import numpy as np
 
 from cosmoglobe.data import DATA_DIR
 from cosmoglobe.sky._base_components import PointSourceComponent
-from cosmoglobe.sky.components import SkyComponentLabel
+from cosmoglobe.sky.components._labels import SkyComponentLabel
 
 
 RADIO_CATALOG = DATA_DIR / "radio_catalog.dat"
 
 
-class Radio(PointSourceComponent):
+class AGNPowerLaw(PointSourceComponent):
     r"""Class representing the radio component.
 
     Notes

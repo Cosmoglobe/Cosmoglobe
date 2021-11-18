@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 import warnings
 
 from astropy.units import (
@@ -26,24 +25,9 @@ from cosmoglobe.sky._bandpass import (
     get_bandpass_scaling,
 )
 from cosmoglobe.sky._beam import pointsources_to_healpix
+from cosmoglobe.sky._freq_range import FrequencyRange
 from cosmoglobe.sky._units import cmb_equivalencies
-from cosmoglobe.sky.components import SkyComponentLabel
-
-
-@dataclass
-class FrequencyRange:
-    """Specifies a frequency range outside of which the emission becomes negligable."""
-
-    lower: Quantity
-    upper: Quantity
-
-    def __contains__(self, freqs: Quantity) -> bool:
-        """Returns True, if `freqs` are within the range defined by this object, and False if else."""
-
-        if freqs.ndim > 0:
-            return any(self.lower < freq < self.upper for freq in freqs)
-
-        return self.lower < freqs < self.upper
+from cosmoglobe.sky.components._labels import SkyComponentLabel
 
 
 class SkyComponent(ABC):
@@ -62,7 +46,7 @@ class SkyComponent(ABC):
     """
 
     label: SkyComponentLabel
-    freq_range: Optional[FrequencyRange] = None
+    freq_range: Optional[Tuple[Quantity, Quantity]] = None
 
     def __init__(
         self,
@@ -76,7 +60,8 @@ class SkyComponent(ABC):
 
         self._validate_freq_ref(freq_ref)
 
-        self.label = SkyComponentLabel(self.label)
+        if self.freq_range is not None:
+            self._freq_range = FrequencyRange(*self.freq_range)
 
     @abstractmethod
     def get_delta_emission(
@@ -180,7 +165,7 @@ class SkyComponent(ABC):
 
         # If the emission from the sky component is negligable at the
         # frequencies given by `freqs`, we simply return 0.
-        if self.freq_range is not None and freqs not in self.freq_range:
+        if self.freq_range is not None and freqs not in self._freq_range:
             return Quantity([0, 0, 0], unit=output_unit)
 
         if freqs.size > 1:

@@ -1,9 +1,11 @@
 """Here we define K_CMB and K_RJ as custom astropy units. Unforunately, these 
 unit conventions are not built into astropy, meaning that we need to define
-them our selves. In the following code, we follow the definitions used in pysm3
+them our selves. In the following code, we follow the implementation in pysm3
 
 Reference: https://github.com/galsci/pysm/blob/main/pysm3/__init__.py
 """
+
+from typing import Any, List
 
 from astropy.units import (
     add_enabled_units,
@@ -17,7 +19,7 @@ from astropy.units import (
 
 
 @quantity_input(freqs="Hz")
-def cmb_equivalencies(freqs: Quantity):
+def cmb_equivalencies(freqs: Quantity) -> List[Any]:
     """Custom equivalency representing the conversion between Kelvin Rayleigh-Jeans and CMB units.
 
     Parameters
@@ -25,6 +27,7 @@ def cmb_equivalencies(freqs: Quantity):
     freqs
         Frequencies at which to perform the conversion.
     """
+
     [(_, _, Jy_to_CMB, CMB_to_Jy)] = thermodynamic_temperature(freqs)
     [(_, _, Jy_to_RJ, RJ_to_Jy)] = brightness_temperature(freqs)
 

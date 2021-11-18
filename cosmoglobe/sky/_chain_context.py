@@ -4,12 +4,12 @@ from astropy.units import Quantity, Unit
 import numpy as np
 
 from cosmoglobe.sky._context_registry import ChainContextRegistry
-from cosmoglobe.sky.components.ame import AME
+from cosmoglobe.sky.components.ame import SpinningDust
 from cosmoglobe.sky.components.cmb import CMB
-from cosmoglobe.sky.components.dust import ThermalDust
-from cosmoglobe.sky.components.freefree import FreeFree
-from cosmoglobe.sky.components.radio import Radio
-from cosmoglobe.sky.components.synchrotron import Synchrotron
+from cosmoglobe.sky.components.dust import ModifiedBlackbody
+from cosmoglobe.sky.components.freefree import LinearOpticallyThin
+from cosmoglobe.sky.components.radio import AGNPowerLaw
+from cosmoglobe.sky.components.synchrotron import PowerLaw
 
 
 class ChainContext(Protocol):
@@ -89,31 +89,31 @@ chain_context_registry.register_class_context(
     units={"freq_ref": Unit("Hz"), "amp": Unit("uK_CMB")},
 )
 chain_context_registry.register_class_context(
-    AME,
+    SpinningDust,
     functions=[reshape_freq_ref, map_to_scalar],
     mappings={"freq_ref": "nu_ref", "freq_peak": "nu_p"},
     units={"freq_ref": Unit("Hz"), "amp": Unit("uK_RJ"), "freq_peak": Unit("GHz")},
 )
 chain_context_registry.register_class_context(
-    ThermalDust,
+    ModifiedBlackbody,
     functions=[reshape_freq_ref, map_to_scalar],
     mappings={"freq_ref": "nu_ref"},
     units={"freq_ref": Unit("Hz"), "amp": Unit("uK_RJ"), "T": Unit("K")},
 )
 chain_context_registry.register_class_context(
-    Radio,
+    AGNPowerLaw,
     functions=[reshape_freq_ref, map_to_scalar, radio_specind],
     mappings={"freq_ref": "nu_ref", "alpha": "specind"},
     units={"freq_ref": Unit("Hz"), "amp": Unit("mJy")},
 )
 chain_context_registry.register_class_context(
-    FreeFree,
+    LinearOpticallyThin,
     functions=[reshape_freq_ref, map_to_scalar],
     mappings={"freq_ref": "nu_ref", "T_e": "Te"},
     units={"freq_ref": Unit("Hz"), "amp": Unit("uK_RJ"), "T_e": Unit("K")},
 )
 chain_context_registry.register_class_context(
-    Synchrotron,
+    PowerLaw,
     functions=[reshape_freq_ref, map_to_scalar],
     mappings={"freq_ref": "nu_ref"},
     units={"freq_ref": Unit("Hz"), "amp": Unit("uK_RJ")},

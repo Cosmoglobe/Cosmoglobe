@@ -4,8 +4,8 @@ from astropy.units import Quantity, UnitsError
 import numpy as np
 import healpy as hp
 
-from cosmoglobe.sky.components.synchrotron import Synchrotron
-from cosmoglobe.sky.components.dust import ThermalDust
+from cosmoglobe.sky.components.synchrotron import PowerLaw
+from cosmoglobe.sky.components.dust import ModifiedBlackbody
 from cosmoglobe.sky._exceptions import NsideError
 
 amp_1 = Quantity(np.ones((1, hp.nside2npix(32))), unit="K_RJ")
@@ -27,60 +27,60 @@ def test_radio_catalog(radio):
 def test_freq_ref_type():
     """Tests the type of freq_ref."""
 
-    Synchrotron(amp_1, freq_ref_1, beta=beta_1)
-    Synchrotron(amp_1, freq_ref_1, beta=beta_1)
+    PowerLaw(amp_1, freq_ref_1, beta=beta_1)
+    PowerLaw(amp_1, freq_ref_1, beta=beta_1)
 
     with pytest.raises(TypeError):
-        Synchrotron(amp_1, np.array([[10]]), beta=beta_1)
+        PowerLaw(amp_1, np.array([[10]]), beta=beta_1)
 
 
 def test_freq_ref_shape():
     """Tests that the freq_ref shape is valid."""
 
-    Synchrotron(amp_1, freq_ref_1, beta=beta_1)
-    Synchrotron(amp_3, freq_ref_3, beta=beta_3)
+    PowerLaw(amp_1, freq_ref_1, beta=beta_1)
+    PowerLaw(amp_3, freq_ref_3, beta=beta_3)
 
     with pytest.raises(ValueError):
-        Synchrotron(amp_1, Quantity([50], unit="GHz"), beta=beta_1)
+        PowerLaw(amp_1, Quantity([50], unit="GHz"), beta=beta_1)
 
     with pytest.raises(ValueError):
-        Synchrotron(amp_1, Quantity([50, 30, 10], unit="GHz"), beta=beta_1)
+        PowerLaw(amp_1, Quantity([50, 30, 10], unit="GHz"), beta=beta_1)
 
 
 def test_freq_ref_unit():
     """Tests that the unit of freq_ref is compatible with GHz."""
 
-    Synchrotron(amp_1, freq_ref_1, beta=beta_1)
+    PowerLaw(amp_1, freq_ref_1, beta=beta_1)
 
     with pytest.raises(UnitsError):
-        Synchrotron(amp_1, Quantity([[30]], unit="s"), beta=beta_1)
+        PowerLaw(amp_1, Quantity([[30]], unit="s"), beta=beta_1)
 
 
 def test_amp_type():
     """Tests the type of amp."""
 
-    Synchrotron(amp_1, freq_ref_1, beta=beta_1)
+    PowerLaw(amp_1, freq_ref_1, beta=beta_1)
 
     with pytest.raises(TypeError):
-        Synchrotron(np.ones((1, hp.nside2npix(32))), freq_ref_1, beta=beta_1)
+        PowerLaw(np.ones((1, hp.nside2npix(32))), freq_ref_1, beta=beta_1)
 
 
 def test_amp_shape():
     """Tests that the amp shape is valid."""
 
-    Synchrotron(amp_1, freq_ref_1, beta=beta_1)
-    Synchrotron(amp_3, freq_ref_3, beta=beta_3)
+    PowerLaw(amp_1, freq_ref_1, beta=beta_1)
+    PowerLaw(amp_3, freq_ref_3, beta=beta_3)
 
     with pytest.raises(NsideError):
-        Synchrotron(Quantity(np.ones((1, 23423)), unit="K_RJ"), freq_ref_1, beta=beta_1)
+        PowerLaw(Quantity(np.ones((1, 23423)), unit="K_RJ"), freq_ref_1, beta=beta_1)
 
     with pytest.raises(ValueError):
-        Synchrotron(
+        PowerLaw(
             Quantity(np.ones((2, hp.nside2npix(32))), unit="K_RJ"), freq_ref_1, beta=beta_1
         )
 
     with pytest.raises(ValueError):
-        Synchrotron(
+        PowerLaw(
             Quantity(np.ones((hp.nside2npix(32))), unit="K_RJ"), freq_ref_1, beta=beta_1
         )
 
@@ -88,13 +88,13 @@ def test_amp_shape():
 def test_amp_unit():
     """Tests that the unit of amp is compatible with uK."""
 
-    Synchrotron(amp_1, freq_ref_1, beta=beta_1)
-    Synchrotron(
+    PowerLaw(amp_1, freq_ref_1, beta=beta_1)
+    PowerLaw(
         Quantity(np.ones((1, hp.nside2npix(32))), unit="Jy/sr"), freq_ref_1, beta=beta_1
     )
 
     with pytest.raises(UnitsError):
-        Synchrotron(
+        PowerLaw(
             Quantity(np.ones((1, hp.nside2npix(32))), unit="m"), freq_ref_1, beta=beta_1
         )
 
@@ -102,20 +102,20 @@ def test_amp_unit():
 def test_spectral_params_type():
     """Tests the type of spectral_params."""
 
-    Synchrotron(amp_1, freq_ref_1, beta=beta_1)
-    Synchrotron(amp_1, freq_ref_1, beta=beta_1)
-    Synchrotron(
+    PowerLaw(amp_1, freq_ref_1, beta=beta_1)
+    PowerLaw(amp_1, freq_ref_1, beta=beta_1)
+    PowerLaw(
         amp_3,
         freq_ref_3,
         beta=beta_3,
     )
-    ThermalDust(amp_3, freq_ref_3, beta=beta_3, T=T_3)
+    ModifiedBlackbody(amp_3, freq_ref_3, beta=beta_3, T=T_3)
 
     with pytest.raises(TypeError):
-        ThermalDust(amp_1, freq_ref_1, beta=beta_1, T=[[1]])
+        ModifiedBlackbody(amp_1, freq_ref_1, beta=beta_1, T=[[1]])
 
     with pytest.raises(ValueError):
-        ThermalDust(
+        ModifiedBlackbody(
             amp_1,
             freq_ref_1,
             beta=beta_1,
@@ -126,35 +126,35 @@ def test_spectral_params_type():
 def test_spectral_params_shape():
     """Tests the shape of spectral_params."""
 
-    Synchrotron(amp_1, freq_ref_1, beta=beta_1)
-    ThermalDust(
+    PowerLaw(amp_1, freq_ref_1, beta=beta_1)
+    ModifiedBlackbody(
         amp_3,
         freq_ref_3,
         beta=Quantity([[10], [40], [20]]),
         T=Quantity([[10], [1], [1]], unit="K"),
     )
-    ThermalDust(
+    ModifiedBlackbody(
         amp_3,
         freq_ref_3,
         beta=Quantity([[10], [40], [20]]),
         T=T_3,
     )
-    Synchrotron(
+    PowerLaw(
         amp_3,
         freq_ref_3,
         beta=Quantity(np.zeros((3, hp.nside2npix(32))), unit="K"),
     )
-    Synchrotron(
+    PowerLaw(
         amp_1,
         freq_ref_1,
         beta=Quantity(np.zeros((1, hp.nside2npix(32))), unit="K"),
     )
 
     with pytest.raises(ValueError):
-        Synchrotron(amp_1, freq_ref_1, beta=Quantity(np.zeros((hp.nside2npix(32)))))
+        PowerLaw(amp_1, freq_ref_1, beta=Quantity(np.zeros((hp.nside2npix(32)))))
 
     with pytest.raises(ValueError):
-        ThermalDust(
+        ModifiedBlackbody(
             amp_1,
             freq_ref_1,
             beta=Quantity(np.zeros(3)),
