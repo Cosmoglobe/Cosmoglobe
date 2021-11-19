@@ -3,11 +3,10 @@
 Sky model
 =========
 
-.. currentmodule:: cosmoglobe.sky.model
+.. currentmodule:: cosmoglobe
 
 The Model class is the main interface to *cosmoglobe*. The ``__call__`` method
-of the ``SkyModel`` object returns the simulated sky emission summed over all model
-components.
+of the ``SkyModel`` object returns the simulated sky emission.
 
 .. autosummary::
     :toctree: generated/

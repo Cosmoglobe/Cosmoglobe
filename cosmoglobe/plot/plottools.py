@@ -585,21 +585,20 @@ def get_data(input, sig, comp, freq, fwhm, nside=None, sample=-1):
             if specparam == "amp":
                 if freq is None:
                     # Get map at reference frequency if freq not specified
-                    freq_ref = getattr(data, comp).freq_ref
+                    freq_ref = data[comp].freq_ref
                     freq = freq_ref.value
-                    m = getattr(data, comp).amp
+                    m = data[comp].amp
                     if comp == "radio":
-                        m = getattr(data, comp)(freq_ref, fwhm=fwhm)
+                        m = data(freq_ref, fwhm=fwhm, components=[comp])
                     try:
                         freq = round(freq.squeeze()[sig], 5) * freq_ref.unit
                     except IndexError:
                         freq = round(freq, 5) * freq_ref.unit
                 else:
                     # If freq is specified, scale with sky model
-                    m = getattr(data, comp)(freq, fwhm=fwhm)
+                    m = data(freq, fwhm=fwhm, components=[comp])
             else:
-                m = getattr(data, comp).spectral_parameters[specparam]
-
+                m = data[comp].spectral_parameters[specparam]
                 if len(m[sig]) == 1:
                     warnings.warn(
                         "Same value across the whole sky, mapping to array of length Npix"

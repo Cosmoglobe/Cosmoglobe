@@ -80,7 +80,7 @@ html_static_path = ["_static/"]
 
 html_css_files = ["css/cosmoglobe.css"]
 
-source_suffix = [".rst", ".ipynb"]
+source_suffix = [".rst"]
 
 # import_module('cosmoglobe')
 # package = sys.modules['cosmoglobe']
