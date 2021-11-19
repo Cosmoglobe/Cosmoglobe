@@ -23,14 +23,13 @@ Installation
    
    install
    
-
-Tutorials
+Tutorial
 ---------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
-   Tutorials <cosmoglobe_tutorial>
+   Tutorial <cosmoglobe_tutorial>
 
  
 Reference

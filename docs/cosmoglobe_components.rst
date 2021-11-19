@@ -13,9 +13,9 @@ emission in the model.
 .. autosummary:: 
     :toctree: generated/
     
-    AME
-    CMB
-    Dust
-    FreeFree
-    Radio
-    Synchrotron
+    ame.SpinningDust
+    cmb.CMB
+    dust.ModifiedBlackbody
+    freefree.LinearOpticallyThin
+    radio.AGNPowerLaw
+    synchrotron.PowerLaw
