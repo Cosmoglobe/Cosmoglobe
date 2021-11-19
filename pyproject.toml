@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "cosmoglobe"
-version = "0.9.43"
+version = "0.9.44"
 description = "A Python package for interfacing the Cosmoglobe Sky Model with commander3 outputs for the purpose of producing astrophysical sky maps."
 authors = ["Metin San <metinisan@gmail.com>", "Trygve Leithe Svalheim <t.l.svalheim@astro.uio.no>"]
 maintainers = ["Metin San <metinisan@gmail.com>", "Trygve Leithe Svalheim <t.l.svalheim@astro.uio.no>"]
@@ -11,34 +11,21 @@ documentation = "https://cosmoglobe.readthedocs.io"
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.10"
-numpy = ">=1.17.0,<1.21.0"
-numba = "^0.54.0"
-scipy = ">=1.6.0"
-healpy = "^1.15.0"
-astropy = "^4.3.1"
 h5py = ">=3.0.0"
-tqdm = "^4.62.2"
-cmasher = "^1.6.2"
-matplotlib = "^3.4.3"
+numpy = ">=1.15"
+numba = "^0.54.1"
+astropy = "^4.3.1"
+healpy = "^1.15.0"
+tqdm = "^4.62.3"
+rich = "^10.14.0"
+cmasher = "^1.6.3"
 click = ">=8.0.1"
-rich = "^10.9.0"
-Pillow = ">=8.3.2"
 
 [tool.poetry.dev-dependencies]
+Sphinx = "^4.3.0"
+nbsphinx = "^0.8.7"
 numpydoc = "^1.1.0"
-ipython = "^7.26.0"
-pydata-sphinx-theme = "^0.6.3"
-nbsphinx = "=0.8.3"
-black = "^21.7b0"
-Sphinx = "^4.1.2"
-pandoc = "^1.1.0"
-ipykernel = "^6.2.0"
-async_generator = "^1.10"
-jinja2= "<3.0.0"
-pytest = "^6.2.5"
-mypy = "^0.910"
-pytest-cov = "^2.12.1"
-flake8 = "^4.0.1"
+pydata-sphinx-theme = "^0.7.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -46,28 +33,3 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 cosmoglobe = 'cosmoglobe.__main__:cli'
-
-[tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "pragma: unreachable",
-    "def __repr__",
-    "if __name__ == .__main__.:",
-    "if TYPE_CHECKING:",
-]
-
-[tool.coverage.run]
-branch = true
-include = [
-    "ward/*",
-]
-
-
-[tool.mypy]
-overrides = [
-    { module = "h5py.*", ignore_missing_imports = true},
-    { module = "numba.*", ignore_missing_imports = true},
-    { module = "healpy.*", ignore_missing_imports = true},
-    { module = "astropy.*", ignore_missing_imports = true},
-    { module = "tqdm.*", ignore_missing_imports = true},
-]
