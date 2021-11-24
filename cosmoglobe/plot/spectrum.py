@@ -28,6 +28,7 @@ def spec(model,
         planck = True,
         dirbe = True,
         litebird = False,
+        custom_bands = None,
         include_co=True,
         add_error = True):
     # TODO, they need to be smoothed to common res!
@@ -220,6 +221,13 @@ def spec(model,
     else:
         yscaletextup = 1.03
         yscaletext = 0.90
+
+
+    if custom_bands is not None:
+        """
+        TODO: Make it easier to specify which bands to include
+        """
+        pass 
 
     # TODO add these as args?
     databands = {"Haslam":  {"0.408\nHaslam": {"pol": False, "show": haslam, "position": [.408, ymin*yscaletextup],  "range": [.406,.410], "color": purple,}},
