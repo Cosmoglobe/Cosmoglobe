@@ -212,6 +212,11 @@ def plot(
 
     if not fontsize:
         fontsize = DEFAULT_FONTSIZES
+    else:
+        fontsize_ = DEFAULT_FONTSIZES.copy()
+        for key in fontsize.keys():
+            fontsize_[key] = fontsize[key]
+        fontsize = fontsize_
     set_style(darkmode)
 
     # Translate sig to correct format
@@ -336,10 +341,7 @@ def plot(
             phi_convention=phi_convention,
             custom_xtick_labels=custom_xtick_labels,
             custom_ytick_labels=custom_ytick_labels,
-        )
-        # Remove color bar because of healpy bug
-        plt.gca().collections[-1].colorbar.remove()
-        
+        )        
     
     if not return_only_data:
 
