@@ -210,10 +210,10 @@ def plot(
         }
         if cb_orientation == 'horizontal':
             override_plot_properties["cbar_pad"]    =  0.04
-            override_plot_properties["cbar_shrink"] =  0.3,
+            override_plot_properties["cbar_shrink"] =  0.3
         elif cb_orientation == 'vertical':
             override_plot_properties["cbar_pad"]    =  0.02
-            override_plot_properties["cbar_shrink"] =  0.5,
+            override_plot_properties["cbar_shrink"] =  0.5
 
     if not fontsize:
         fontsize = DEFAULT_FONTSIZES
