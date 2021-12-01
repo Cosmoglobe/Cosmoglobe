@@ -401,6 +401,7 @@ def plot(
         fontsize=fontsize["left_label"],
         transform=plt.gca().transAxes,
     )
-
+    if cb_orientation == 'vertical':
+        plt.subplots_adjust(left=0.01, right=1.05)
 
     return ret, params
