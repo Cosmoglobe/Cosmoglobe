@@ -24,6 +24,7 @@ def plot(
     max=None,
     rng=None,
     cbar=True,
+    cbar_invisible=False,
     unit=None,
     fwhm=0.0 * u.arcmin,
     nside=None,
@@ -202,13 +203,17 @@ def plot(
             if isinstance(width, str):
                 width = FIGURE_WIDTHS[width]
         ratio = 0.63 if cbar else 0.5
-        xsize = int((xsize / 8.5) * width)
+        xsize = int((1000 / 8.5) * width)
         override_plot_properties = {
             "figure_width": width,
             "figure_size_ratio": ratio,
-            "cbar_pad": 0.04,
-            "cbar_shrink": 0.3,
         }
+        if cb_orientation == 'horizontal':
+            override_plot_properties["cbar_pad"]    =  0.04
+            override_plot_properties["cbar_shrink"] =  0.3,
+        elif cb_orientation == 'vertical':
+            override_plot_properties["cbar_pad"]    =  0.02
+            override_plot_properties["cbar_shrink"] =  0.5,
 
     if not fontsize:
         fontsize = DEFAULT_FONTSIZES
@@ -338,8 +343,8 @@ def plot(
             custom_ytick_labels=custom_ytick_labels,
         )
         # Remove color bar because of healpy bug
-        plt.gca().collections[-1].colorbar.remove()
-        
+        #plt.gca().collections[-1].colorbar.remove()
+        print(ret) 
     
     if not return_only_data:
 
@@ -347,8 +352,12 @@ def plot(
             cbar_pad = override_plot_properties["cbar_pad"]
             cbar_shrink = override_plot_properties["cbar_shrink"]
         else: 
-            cbar_pad = 0.04
-            cbar_shrink = 0.3
+            if cb_orientation == 'horizontal':
+                cbar_pad = 0.04
+                cbar_shrink = 0.3
+            elif cb_orientation == 'vertical':
+                cbar_pad =  0.02
+                cbar_shrink =  0.5
 
         # Add pretty color bar
         if cbar:
@@ -363,8 +372,9 @@ def plot(
                 linthresh=1,
                 norm=params["norm"],
                 cbar_pad=cbar_pad,
-                cbar_shrink=cbar_shrink
-
+                cbar_shrink=cbar_shrink,
+                orientation=cb_orientation,
+                invisible=cbar_invisible
             )
 
     #### Right Title ####
