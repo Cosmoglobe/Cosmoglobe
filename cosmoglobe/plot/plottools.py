@@ -380,7 +380,9 @@ def apply_colorbar(
     norm=None,
     cbar_pad=0.04,
     cbar_shrink=0.3,
-    cmap=None
+    cmap=None,
+    orientation='horizontal',
+    invisible=False,
 ):
     """
     This function applies a colorbar to the figure and formats the ticks.
@@ -390,14 +392,14 @@ def apply_colorbar(
         norm = mpl.colors.Normalize(vmin=ticks[0], vmax=ticks[-1])
         cb = mpl.colorbar.ColorbarBase(ax, cmap=cmap,
                                         norm=norm,
-                                        orientation="horizontal",
+                                        orientation=orientation,
                                         ticks=ticks,
                                         format=FuncFormatter(fmt))
     else:
         cb = fig.colorbar(
             image,
             ax=ax,
-            orientation="horizontal",
+            orientation=orientation,
             shrink=cbar_shrink,
             pad=cbar_pad,
             ticks=ticks,
@@ -408,9 +410,13 @@ def apply_colorbar(
         fontsize = DEFAULT_FONTSIZES
     if isinstance(unit, u.UnitBase):
         unit = unit.to_string("latex")
-
-    cb.ax.set_xticklabels(ticklabels, size=fontsize["cbar_tick_label"])
-    cb.ax.xaxis.set_label_text(unit, size=fontsize["cbar_label"])
+    
+    if orientation == 'horizontal':
+        cb.ax.set_xticklabels(ticklabels, size=fontsize["cbar_tick_label"])
+        cb.ax.xaxis.set_label_text(unit, size=fontsize["cbar_label"])
+    elif orientation == 'vertical':
+        cb.ax.set_yticklabels(ticklabels, size=fontsize["cbar_tick_label"])
+        cb.ax.yaxis.set_label_text(unit, size=fontsize["cbar_label"])
     if norm == "log":
         linticks = np.linspace(-1, 1, 3) * linthresh
         logmin = np.round(ticks[0])
@@ -446,6 +452,9 @@ def apply_colorbar(
     cb.ax.xaxis.labelpad = 0
     # workaround for issue with viewers, see colorbar docstring
     cb.solids.set_edgecolor("face")
+
+    if invisible:
+        mpl.figure.Figure.delaxes(fig, fig.axes[1])
 
     return cb
 
@@ -599,6 +608,7 @@ def get_data(input, sig, comp, freq, fwhm, nside=None, sample=-1):
                     m = data(freq, fwhm=fwhm, components=[comp])
             else:
                 m = data[comp].spectral_parameters[specparam]
+
                 if len(m[sig]) == 1:
                     warnings.warn(
                         "Same value across the whole sky, mapping to array of length Npix"
