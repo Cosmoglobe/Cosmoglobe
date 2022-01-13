@@ -442,14 +442,28 @@ def apply_colorbar(
 
         minorticks = symlog(minorticks, linthresh)
         minorticks = minorticks[(minorticks >= ticks[0]) & (minorticks <= ticks[-1])]
-        cb.ax.xaxis.set_ticks(minorticks, minor=True)
+        if orientation == 'horizontal':
+            cb.ax.xaxis.set_ticks(minorticks, minor=True)
+        elif orientation == 'vertical':
+            cb.ax.yaxis.set_ticks(minorticks, minor=True)
 
-    cb.ax.tick_params(
-        which="both",
-        axis="x",
-        direction="in",
-    )
-    cb.ax.xaxis.labelpad = 0
+    if orientation == 'horizontal':
+        cb.ax.tick_params(
+            which="both",
+            axis="x",
+            direction="in",
+        )
+        cb.ax.xaxis.labelpad = 0
+    elif orientation == 'vertical':
+        cb.ax.tick_params(
+            which="both",
+            axis="y",
+            direction="in",
+        )
+        cb.ax.yaxis.labelpad = 0
+
+        ylabels = cb.ax.get_yticklabels()
+        cb.ax.set_yticklabels(ylabels, Rotation= 90)
     # workaround for issue with viewers, see colorbar docstring
     cb.solids.set_edgecolor("face")
 

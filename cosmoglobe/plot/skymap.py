@@ -63,6 +63,7 @@ def plot(
     phi_convention="counterclockwise",
     custom_xtick_labels=None,
     custom_ytick_labels=None,
+    ratio=None,
 ):
     """
     General plotting function for healpix maps.
@@ -202,7 +203,8 @@ def plot(
         except ValueError:
             if isinstance(width, str):
                 width = FIGURE_WIDTHS[width]
-        ratio = 0.63 if cbar else 0.5
+        if ratio is None:
+            ratio = 0.63 if cbar else 0.5
         xsize = int((1000 / 8.5) * width)
         override_plot_properties = {
             "figure_width": width,
@@ -210,10 +212,10 @@ def plot(
         }
         if cb_orientation == 'horizontal':
             override_plot_properties["cbar_pad"]    =  0.04
-            override_plot_properties["cbar_shrink"] =  0.3,
+            override_plot_properties["cbar_shrink"] =  0.3
         elif cb_orientation == 'vertical':
             override_plot_properties["cbar_pad"]    =  0.02
-            override_plot_properties["cbar_shrink"] =  0.5,
+            override_plot_properties["cbar_shrink"] =  0.8
 
     if not fontsize:
         fontsize = DEFAULT_FONTSIZES
@@ -399,6 +401,7 @@ def plot(
         fontsize=fontsize["left_label"],
         transform=plt.gca().transAxes,
     )
-
+    if cb_orientation == 'vertical':
+        plt.subplots_adjust(left=0.01, right=1.05)
 
     return ret, params
