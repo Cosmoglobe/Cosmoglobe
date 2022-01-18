@@ -140,6 +140,9 @@ def plot(
     left_label : str, optional
         Sets the upper left title. Has LaTeX functionaliity (ex. $A_{s}$.)
         default = None
+    width : str, float, optional
+        Size in inches OR 1/3, 1/2 and full page width (2.75/3.5/4.7/7 inches) [ex. x, s, m or l]
+        default = "m" (4.7 inches)
     darkmode : bool, optional
         Plots all outlines in white for dark backgrounds, and adds 'dark' in
         filename.
