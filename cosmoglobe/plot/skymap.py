@@ -24,7 +24,6 @@ def plot(
     max=None,
     rng=None,
     cbar=True,
-    cbar_invisible=False,
     unit=None,
     fwhm=0.0 * u.arcmin,
     nside=None,
@@ -38,7 +37,7 @@ def plot(
     title=None,
     right_label=None,
     left_label=None,
-    width=None,
+    width=4.7,
     xsize=1000,
     darkmode=False,
     interactive=False,
@@ -193,9 +192,9 @@ def plot(
     custom_ytick_labels : list
         override y-axis tick labels
     """
-    
+
     # Pick sizes from size dictionary for page width plots
-    if width is None:
+    if False:
         override_plot_properties = None
     else:
         try:
@@ -363,6 +362,9 @@ def plot(
                 cbar_pad =  0.02
                 cbar_shrink =  0.5
 
+        # Remove color bar because of healpy bug
+        plt.gca().collections[-1].colorbar.remove()
+
         # Add pretty color bar
         if cbar:
             apply_colorbar(
@@ -378,25 +380,24 @@ def plot(
                 cbar_pad=cbar_pad,
                 cbar_shrink=cbar_shrink,
                 orientation=cb_orientation,
-                invisible=cbar_invisible
             )
 
     #### Right Title ####
     plt.text(
-        0.925,
+        0.975,
         0.925,
         params["right_label"],
-        ha="center",
+        ha="right",
         va="center",
         fontsize=fontsize["right_label"],
         transform=plt.gca().transAxes,
     )
     #### Left Title (stokes parameter label by default) ####
     plt.text(
-        0.075,
+        0.025,
         0.925,
         params["left_label"],
-        ha="center",
+        ha="left",
         va="center",
         fontsize=fontsize["left_label"],
         transform=plt.gca().transAxes,

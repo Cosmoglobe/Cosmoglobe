@@ -382,7 +382,6 @@ def apply_colorbar(
     cbar_shrink=0.3,
     cmap=None,
     orientation='horizontal',
-    invisible=False,
 ):
     """
     This function applies a colorbar to the figure and formats the ticks.
@@ -466,9 +465,6 @@ def apply_colorbar(
         cb.ax.set_yticklabels(ylabels, Rotation= 90)
     # workaround for issue with viewers, see colorbar docstring
     cb.solids.set_edgecolor("face")
-
-    if invisible:
-        mpl.figure.Figure.delaxes(fig, fig.axes[1])
 
     return cb
 
@@ -829,7 +825,6 @@ def mask_map(m, mask):
     #mask = mask*np.NaN
     #m *= mask
     return m
-
 
 def create_70GHz_mask(sky_frac, nside=256, pol=False):
     """
