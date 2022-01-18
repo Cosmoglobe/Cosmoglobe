@@ -6,6 +6,7 @@ from numpy.core.numeric import NaN
 from .. import data as data_dir
 from cosmoglobe.sky.model import SkyModel
 from cosmoglobe.h5.chain import Chain
+from cosmoglobe.sky._units import cmb_equivalencies
 
 import cmasher
 from rich import print
@@ -918,14 +919,16 @@ def seds_from_model(nu, model, nside=None, pol=False, sky_fractions=(25,85)):
                     amp_pol = rms_amp(np.sqrt(amp[1]**2+amp[2]**2))
             amp = rms_amp(amp[0])
 
-            freq_scaling=value.get_freq_scaling(nu*u.GHz,**specinds)
-            k = 1 if freq_scaling.shape[0]>1 else 0
-
-            if key == "cmb": 
-                amp_pol=0.67
-                amp=45
-            seds[key][0,i,:] = amp*freq_scaling[0]
-            seds[key][1,i,:] = amp_pol*freq_scaling[k]
+            
+            if key == "cmb":
+                freq_scaling=(np.ones(len(nu)) * u.Unit("uK_CMB")).to("uK_RJ", equivalencies=cmb_equivalencies(nu*u.GHz))
+                seds[key][0,i,:] = 45*freq_scaling   # TEMP
+                seds[key][1,i,:] = 0.67*freq_scaling # POL
+            else:
+                freq_scaling=value.get_freq_scaling(nu*u.GHz,**specinds)
+                k = 1 if freq_scaling.shape[0]>1 else 0
+                seds[key][0,i,:] = amp*freq_scaling[0]
+                seds[key][1,i,:] = amp_pol*freq_scaling[k]
 
     return seds
 

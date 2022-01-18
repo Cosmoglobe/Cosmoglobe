@@ -130,7 +130,8 @@ def spec(model,
         if comp.startswith("bb"):
             a=0.67*1e-1 if comp.endswith("2") else 0.67*1e-2
             sed = np.zeros((2,len(sky_fractions),N))
-            sed[1]=a*model.components["cmb"].get_freq_scaling(nu*u.GHz,)
+            cmb_blackbody = (np.ones(len(nu)) * u.Unit("uK_CMB")).to("uK_RJ", equivalencies=cmb_equivalencies(nu*u.GHz))
+            sed[1]=a*cmb_blackbody
             foregrounds[comp]["spectrum"] = sed
 
         if comp in seds.keys():
