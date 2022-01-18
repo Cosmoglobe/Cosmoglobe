@@ -207,6 +207,10 @@ def plot(
                 width = FIGURE_WIDTHS[width]
         if ratio is None:
             ratio = 0.63 if cbar else 0.5
+            if title is not None:
+                # Calculated slope of ratio. Could be better.
+                rat=((0.04 - 0.07)/(7-4.7))*width+0.131
+                ratio+=rat
         xsize = int((1000 / 8.5) * width)
         override_plot_properties = {
             "figure_width": width,
@@ -214,7 +218,7 @@ def plot(
         }
         if cb_orientation == 'horizontal':
             override_plot_properties["cbar_pad"]    =  0.04
-            override_plot_properties["cbar_shrink"] =  0.3
+            override_plot_properties["cbar_shrink"] =  0.4
         elif cb_orientation == 'vertical':
             override_plot_properties["cbar_pad"]    =  0.02
             override_plot_properties["cbar_shrink"] =  0.8

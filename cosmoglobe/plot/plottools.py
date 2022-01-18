@@ -29,7 +29,7 @@ DEFAULT_FONTSIZES = {
     "ytick_label": 8,
     "title": 12,
     "cbar_label": 11,
-    "cbar_tick_label": 9,
+    "cbar_tick_label": 11,
     "left_label": 11,
     "right_label": 11,
 }
