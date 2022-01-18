@@ -142,6 +142,14 @@ def spec(model,
         if pol and comp=="ame":
             foregrounds[comp]["spectrum"][1] = ame_polfrac*foregrounds[comp]["spectrum"][0]
 
+        if add_error and not comp.startswith("co") and not comp.startswith("bb") and not comp.startswith("cmb"):
+            thresh=0.1                    
+            alpha=0.5
+            foregrounds[comp]["spectrum"][sig][0] = foregrounds[comp]["spectrum"][sig][0]*(1-np.exp(-(abs(foregrounds[comp]["spectrum"][sig][0]/thresh)**alpha)))
+            foregrounds[comp]["spectrum"][sig][1] = foregrounds[comp]["spectrum"][sig][1]/(1-np.exp(-(abs(foregrounds[comp]["spectrum"][sig][1]/thresh)**alpha)))
+            foregrounds[comp]["spectrum"][sig][0][np.isnan(foregrounds[comp]["spectrum"][sig][0])] = 0
+            foregrounds[comp]["spectrum"][sig][1][np.isnan(foregrounds[comp]["spectrum"][sig][1])] = 0
+            
         if foregrounds[comp]["sum"] and foregrounds[comp]["spectrum"] is not None:
             if i==0:
                 foregrounds["sumfg"]["spectrum"] = foregrounds[comp]["spectrum"].copy()
@@ -149,11 +157,6 @@ def spec(model,
                 foregrounds["sumfg"]["spectrum"] += foregrounds[comp]["spectrum"]
             i+=1
 
-        if add_error and not comp.startswith("co") and not comp.startswith("bb"):
-            thresh=0.1                    
-            alpha=0.5
-            foregrounds[comp]["spectrum"][sig][0] = foregrounds[comp]["spectrum"][sig][0]*(1-np.exp(-(abs(foregrounds[comp]["spectrum"][sig][0]/thresh)**alpha)))
-            foregrounds[comp]["spectrum"][sig][1] = foregrounds[comp]["spectrum"][sig][1]/(1-np.exp(-(abs(foregrounds[comp]["spectrum"][sig][1]/thresh)**alpha)))
 
     # ---- Plotting foregrounds and labels ----
     j=0
