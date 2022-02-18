@@ -1,6 +1,6 @@
 from pathlib import Path
 import textwrap
-from typing import Any, Dict, Generator, List, Optional, Union
+from typing import Any, Dict, Generator, List, Optional, Sequence, Union
 
 import h5py
 import numpy as np
@@ -134,7 +134,7 @@ class Chain:
         self,
         key: str,
         *,
-        samples: Optional[Union[range, int]] = None,
+        samples: Optional[Union[range, int, Sequence[int]]] = None,
     ) -> Any:
         """Returns the value of an key for all samples.
 
@@ -165,7 +165,7 @@ class Chain:
         self,
         key: str,
         *,
-        samples: Optional[Union[range, int]] = None,
+        samples: Optional[Union[range, int, Sequence[int]]] = None,
     ) -> Any:
         """Returns the mean of an key over all samples.
 
@@ -199,7 +199,7 @@ class Chain:
         self,
         key: str,
         *,
-        samples: Optional[Union[range, int]] = None,
+        samples: Optional[Union[range, int, Sequence[int]]] = None,
     ) -> Generator:
         """Returns a generator to be used in a for loop.
 
@@ -303,3 +303,38 @@ class Chain:
         main_repr += "-" * COL_LEN + "\n"
 
         return main_repr
+
+    @validate_samples
+    def copy(
+        self,
+        samples: Union[int, Sequence[int], range] = -1,
+        new_name: Optional[str] = None,
+    ) -> h5py.File:
+        """Creates a copy of the chain with a single or multiple samples."""
+
+        if new_name is None:
+            new_name = self.path.stem + "_copy" + self.path.suffix
+
+        with h5py.File(new_name, "w") as new_chain:
+            with h5py.File(self.path, "r") as chain:
+                for sample in samples:
+                    group = chain[sample]
+                    chain.copy(source=group, dest=new_chain, name=group.name)
+
+                parameter_group = chain["parameters"]
+                chain.copy(
+                    source=parameter_group, dest=new_chain, name=parameter_group.name
+                )
+
+
+def copy_chain(
+    chain: Union[str, Path, Chain],
+    samples: Union[int, Sequence[int], range] = -1,
+    new_name: Optional[str] = None,
+) -> h5py.File:
+    """Creates a copy of the chain with a single or multiple samples."""
+
+    if not isinstance(chain, Chain):
+        chain = Chain(chain)
+
+    chain.copy(samples=samples, new_name=new_name)
