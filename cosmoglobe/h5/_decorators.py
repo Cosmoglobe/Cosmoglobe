@@ -46,6 +46,13 @@ def validate_samples(func):
                 raise ChainSampleError(f"input sample {samples} is not in the chain")
         elif isinstance(samples, range):
             samples = list(samples)
+        elif isinstance(samples, (tuple, list)):
+            for sample in samples:
+                try:
+                    chain.samples[sample]
+                except IndexError:
+                    raise ChainSampleError(f"input sample {sample} is not in the chain")
+            samples = list(samples)
         else:
             raise ChainSampleError("input samples must be an int or a range")
 

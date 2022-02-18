@@ -94,9 +94,6 @@ def test_validate_samples(chain):
     """
 
     with pytest.raises(ChainSampleError):
-        chain.get("dust/amp_alm", samples=[1, 2, 3])
-
-    with pytest.raises(ChainSampleError):
         chain.get("dust/amp_alm", samples="000001")
 
     with pytest.raises(ChainSampleError):
@@ -113,6 +110,7 @@ def test_validate_samples(chain):
 
     chain.get("dust/amp_alm", samples=1)
     chain.mean("dust/amp_alm", samples=range(10))
+    chain.mean("dust/amp_alm", samples=[1,5,10])
     chain.load("dust/amp_alm", samples=-1)
 
 

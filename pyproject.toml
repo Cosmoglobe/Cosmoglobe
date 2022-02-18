@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "cosmoglobe"
-version = "0.9.46"
+version = "0.9.47"
 description = "A Python package for interfacing the Cosmoglobe Sky Model with commander3 outputs for the purpose of producing astrophysical sky maps."
 authors = ["Metin San <metinisan@gmail.com>", "Trygve Leithe Svalheim <t.l.svalheim@astro.uio.no>"]
 maintainers = ["Metin San <metinisan@gmail.com>", "Trygve Leithe Svalheim <t.l.svalheim@astro.uio.no>"]
@@ -10,11 +10,11 @@ repository = "https://github.com/Cosmoglobe/Cosmoglobe"
 documentation = "https://cosmoglobe.readthedocs.io"
 
 [tool.poetry.dependencies]
-python = ">=3.8,<3.10"
+python = ">=3.8,<=3.10"
 h5py = ">=3.0.0"
-numpy = ">=1.15"
-numba = "^0.54.1"
-astropy = "^4.3.1"
+numpy = ">=1.21"
+numba = "^0.55.1"
+astropy = ">=5.0.1"
 healpy = "^1.15.0"
 tqdm = "^4.62.3"
 rich = "^10.14.0"
@@ -27,6 +27,9 @@ Sphinx = "^4.3.0"
 nbsphinx = "^0.8.7"
 numpydoc = "^1.1.0"
 pydata-sphinx-theme = "^0.7.2"
+pytest = "^7.0.1"
+mypy = "^0.931"
+ipython = ">=7.31.1"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
