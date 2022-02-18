@@ -1,3 +1,4 @@
+from __future__ import annotations
 from pathlib import Path
 import textwrap
 from typing import Any, Dict, Generator, List, Optional, Sequence, Union
@@ -8,7 +9,7 @@ import numpy as np
 from cosmoglobe.h5 import ChainVersion, PARAMETER_GROUP_NAME
 from cosmoglobe.h5._alms import unpack_alms_from_chain
 from cosmoglobe.h5._decorators import validate_key, validate_samples, unpack_alms
-from cosmoglobe.h5._exceptions import ChainFormatError, ChainSampleError
+from cosmoglobe.h5._exceptions import ChainFormatError, ChainSampleError, ChainKeyError
 from cosmoglobe.sky.components._labels import SkyComponentLabel
 
 
@@ -309,17 +310,17 @@ class Chain:
         self,
         samples: Union[int, Sequence[int], range] = -1,
         new_name: Optional[str] = None,
-    ) -> h5py.File:
+    ) -> None:
         """Creates a copy of the chain with a single or multiple samples."""
 
         if new_name is None:
-            new_name = self.path.stem + "_copy" + self.path.suffix
+            new_name = self.path.stem + "_copy.h5"
 
         with h5py.File(new_name, "w") as new_chain:
             with h5py.File(self.path, "r") as chain:
-                for sample in samples:
+                for idx, sample in enumerate(samples):
                     group = chain[sample]
-                    chain.copy(source=group, dest=new_chain, name=group.name)
+                    chain.copy(source=group, dest=new_chain, name=self._format_samples(idx))
 
                 parameter_group = chain["parameters"]
                 chain.copy(
@@ -327,14 +328,62 @@ class Chain:
                 )
 
 
+    def combine(
+        self,
+        other_chain: Chain,
+        group_list: List[str],
+        new_name: Optional[str] = None,
+    ) -> None:
+        """Creates a new chainfile that combines specific groups from two chains."""
+
+        sample = other_chain.samples[0]
+        for group in group_list:
+            try:
+                other_chain[f"{sample}/{group}"]
+            except ChainKeyError:
+                raise ChainKeyError(f"group {group} does not exist in `other chain`.")
+
+        if new_name is None:
+            new_name = self.path.stem + "_combined.h5"
+        self.copy(samples=-1, new_name=new_name)
+
+        with h5py.File(new_name, "r+") as new_chain:
+            with h5py.File(other_chain.path, "r") as chain:
+                sample = other_chain.samples[0]
+                for group in group_list:
+                    if group in new_chain[sample].keys():
+                        del new_chain[f"{sample}/{group}"]
+                    group_to_copy = chain[f"{sample}/{group}"]
+                    chain.copy(source=group_to_copy, dest=new_chain, name=group_to_copy.name)
+
+                    if group in (params := chain[f"parameters/{group}"]).keys():
+                        chain.copy(source=params, dest=new_chain, name=params.name)
+
+
 def copy_chain(
     chain: Union[str, Path, Chain],
     samples: Union[int, Sequence[int], range] = -1,
     new_name: Optional[str] = None,
-) -> h5py.File:
+) -> None:
     """Creates a copy of the chain with a single or multiple samples."""
 
     if not isinstance(chain, Chain):
         chain = Chain(chain)
 
     chain.copy(samples=samples, new_name=new_name)
+
+
+def combine_chain(
+    chain: Union[str, Path, Chain],
+    other_chain: Union[str, Path, Chain],
+    group_list: List[str],
+    new_name: Optional[str] = None,
+) -> None:
+    """Creates a new chainfile that combines specific groups from two chains."""
+
+    if not isinstance(chain, Chain):
+        chain = Chain(chain)
+    if not isinstance(other_chain, Chain):
+        other_chain = Chain(other_chain)
+
+    chain.combine(other_chain, group_list=group_list)
