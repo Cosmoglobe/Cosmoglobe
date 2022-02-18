@@ -6,6 +6,7 @@ from numpy.core.numeric import NaN
 from .. import data as data_dir
 from cosmoglobe.sky.model import SkyModel
 from cosmoglobe.h5.chain import Chain
+from cosmoglobe.sky._units import cmb_equivalencies
 
 import cmasher
 from rich import print
@@ -28,7 +29,7 @@ DEFAULT_FONTSIZES = {
     "ytick_label": 8,
     "title": 12,
     "cbar_label": 11,
-    "cbar_tick_label": 9,
+    "cbar_tick_label": 11,
     "left_label": 11,
     "right_label": 11,
 }
@@ -382,7 +383,6 @@ def apply_colorbar(
     cbar_shrink=0.3,
     cmap=None,
     orientation='horizontal',
-    invisible=False,
 ):
     """
     This function applies a colorbar to the figure and formats the ticks.
@@ -466,9 +466,6 @@ def apply_colorbar(
         cb.ax.set_yticklabels(ylabels, Rotation= 90)
     # workaround for issue with viewers, see colorbar docstring
     cb.solids.set_edgecolor("face")
-
-    if invisible:
-        mpl.figure.Figure.delaxes(fig, fig.axes[1])
 
     return cb
 
@@ -830,7 +827,6 @@ def mask_map(m, mask):
     #m *= mask
     return m
 
-
 def create_70GHz_mask(sky_frac, nside=256, pol=False):
     """
     Creates a mask from a 70GHz frequency map at nside=256 for a 
@@ -923,14 +919,16 @@ def seds_from_model(nu, model, nside=None, pol=False, sky_fractions=(25,85)):
                     amp_pol = rms_amp(np.sqrt(amp[1]**2+amp[2]**2))
             amp = rms_amp(amp[0])
 
-            freq_scaling=value.get_freq_scaling(nu*u.GHz,**specinds)
-            k = 1 if freq_scaling.shape[0]>1 else 0
-
-            if key == "cmb": 
-                amp_pol=0.67
-                amp=45
-            seds[key][0,i,:] = amp*freq_scaling[0]
-            seds[key][1,i,:] = amp_pol*freq_scaling[k]
+            
+            if key == "cmb":
+                freq_scaling=(np.ones(len(nu)) * u.Unit("uK_CMB")).to("uK_RJ", equivalencies=cmb_equivalencies(nu*u.GHz))
+                seds[key][0,i,:] = 45*freq_scaling   # TEMP
+                seds[key][1,i,:] = 0.67*freq_scaling # POL
+            else:
+                freq_scaling=value.get_freq_scaling(nu*u.GHz,**specinds)
+                k = 1 if freq_scaling.shape[0]>1 else 0
+                seds[key][0,i,:] = amp*freq_scaling[0]
+                seds[key][1,i,:] = amp_pol*freq_scaling[k]
 
     return seds
 

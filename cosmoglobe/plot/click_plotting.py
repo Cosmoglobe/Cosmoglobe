@@ -137,7 +137,7 @@ def commands_plotting():
 )
 @click.option(
     "-width",
-    default=None,
+    default=4.7,
     help="Size: in inches OR 1/3, 1/2 and full page width (8.8/12/18cm) [ex. x, s, m or l, or ex. slm for all], m by default",
 )
 @click.option(
