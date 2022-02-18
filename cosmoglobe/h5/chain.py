@@ -316,6 +316,11 @@ class Chain:
         if new_name is None:
             new_name = self.path.stem + "_copy.h5"
 
+        if Path(new_name).is_file():
+            print(f"You are about to overwrite {new_name}. Would you like to continue? [y/n]")
+            if not input() in ["y", "Y"]:
+                exit()
+
         with h5py.File(new_name, "w") as new_chain:
             with h5py.File(self.path, "r") as chain:
                 for idx, sample in enumerate(samples):
@@ -345,6 +350,7 @@ class Chain:
 
         if new_name is None:
             new_name = self.path.stem + "_combined.h5"
+
         self.copy(samples=-1, new_name=new_name)
 
         with h5py.File(new_name, "r+") as new_chain:
@@ -356,8 +362,10 @@ class Chain:
                     group_to_copy = chain[f"{sample}/{group}"]
                     chain.copy(source=group_to_copy, dest=new_chain, name=group_to_copy.name)
 
-                    if group in (params := chain[f"parameters/{group}"]).keys():
-                        chain.copy(source=params, dest=new_chain, name=params.name)
+                    if group in chain[f"parameters"].keys():
+                        del new_chain[f"parameters/{group}"]
+                        param_to_copy = chain[f"parameters/{group}"]
+                        chain.copy(source=param_to_copy, dest=new_chain, name=param_to_copy.name)
 
 
 def copy_chain(
