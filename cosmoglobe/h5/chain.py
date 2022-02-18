@@ -317,21 +317,24 @@ class Chain:
             new_name = self.path.stem + "_copy.h5"
 
         if Path(new_name).is_file():
-            print(f"You are about to overwrite {new_name}. Would you like to continue? [y/n]")
-            if not input() in ["y", "Y"]:
+            print(
+                f"You are about to overwrite {new_name}. Would you like to continue? [y/n]"
+            )
+            if not input("> ") in ["y", "Y"]:
                 exit()
 
         with h5py.File(new_name, "w") as new_chain:
             with h5py.File(self.path, "r") as chain:
                 for idx, sample in enumerate(samples):
                     group = chain[sample]
-                    chain.copy(source=group, dest=new_chain, name=self._format_samples(idx))
+                    chain.copy(
+                        source=group, dest=new_chain, name=self._format_samples(idx)
+                    )
 
                 parameter_group = chain["parameters"]
                 chain.copy(
                     source=parameter_group, dest=new_chain, name=parameter_group.name
                 )
-
 
     def combine(
         self,
@@ -360,12 +363,18 @@ class Chain:
                     if group in new_chain[sample].keys():
                         del new_chain[f"{sample}/{group}"]
                     group_to_copy = chain[f"{sample}/{group}"]
-                    chain.copy(source=group_to_copy, dest=new_chain, name=group_to_copy.name)
+                    chain.copy(
+                        source=group_to_copy, dest=new_chain, name=group_to_copy.name
+                    )
 
                     if group in chain[f"parameters"].keys():
                         del new_chain[f"parameters/{group}"]
                         param_to_copy = chain[f"parameters/{group}"]
-                        chain.copy(source=param_to_copy, dest=new_chain, name=param_to_copy.name)
+                        chain.copy(
+                            source=param_to_copy,
+                            dest=new_chain,
+                            name=param_to_copy.name,
+                        )
 
 
 def copy_chain(
@@ -373,7 +382,17 @@ def copy_chain(
     samples: Union[int, Sequence[int], range] = -1,
     new_name: Optional[str] = None,
 ) -> None:
-    """Creates a copy of the chain with a single or multiple samples."""
+    """Creates a copy of the chain with a single or multiple samples.
+
+    Parameters
+    ----------
+    chain
+        Path to the chain file or the `Chain` object to copy.
+    samples
+        Samples to copy. Can be an int, a list of ints or a python range object.
+    new_name
+        Name of the chain copy. If None, a default is "{chain.name}_copy.h5"
+    """
 
     if not isinstance(chain, Chain):
         chain = Chain(chain)
@@ -381,17 +400,35 @@ def copy_chain(
     chain.copy(samples=samples, new_name=new_name)
 
 
-def combine_chain(
+def combine_chains(
     chain: Union[str, Path, Chain],
     other_chain: Union[str, Path, Chain],
     group_list: List[str],
     new_name: Optional[str] = None,
 ) -> None:
-    """Creates a new chainfile that combines specific groups from two chains."""
+    """Creates a new chainfile that combines specific groups from two chains.
+
+    The new file will contain all content from `chain`, except for the content
+    within the groups in the `group_list`, which are taken from `other_chain`
+    instead.
+
+    Parameters
+    ----------
+    chain
+        Path to chain file. This chain defines all the chain whos content you
+        want to overwrite in a new combined file.
+    other_chain
+        Path to chain file.  This chain contains the groups you want to
+        overwrite in `chain`.
+    group_list
+        List of hdf5 groups that will be overwritten in the new chainfile.
+    new_name
+        Name of the chain copy. If None, a default is "{chain.name}_copy.h5"
+    """
 
     if not isinstance(chain, Chain):
         chain = Chain(chain)
     if not isinstance(other_chain, Chain):
         other_chain = Chain(other_chain)
 
-    chain.combine(other_chain, group_list=group_list)
+    chain.combine(other_chain, group_list=group_list, new_name=new_name)
