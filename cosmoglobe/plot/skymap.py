@@ -207,6 +207,7 @@ def plot(
                 width = FIGURE_WIDTHS[width]
         if ratio is None:
             ratio = 0.63 if cbar else 0.5
+            if cb_orientation == 'vertical': ratio = 0.5
             if title is not None:
                 # Calculated slope of ratio. Could be better.
                 rat=((0.04 - 0.07)/(7-4.7))*width+0.131
