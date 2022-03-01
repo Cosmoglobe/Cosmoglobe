@@ -410,7 +410,6 @@ def apply_colorbar(
         fontsize = DEFAULT_FONTSIZES
     if isinstance(unit, u.UnitBase):
         unit = unit.to_string("latex")
-    
     if orientation == 'horizontal':
         cb.ax.set_xticklabels(ticklabels, size=fontsize["cbar_tick_label"])
         cb.ax.xaxis.set_label_text(unit, size=fontsize["cbar_label"])
@@ -429,9 +428,14 @@ def apply_colorbar(
 
         logticks = symlog(ticks_, linthresh)
         logticks = [x for x in logticks if x not in ticks]
-        cb.set_ticks(np.concatenate((ticks, logticks)))  # Set major ticks
-        cb.ax.set_xticklabels(ticklabels + [""] * len(logticks))
-
+        if orientation == 'horizontal':
+            cb.set_ticks(np.concatenate((ticks, logticks)))  # Set major ticks  
+            cb.ax.set_xticklabels(ticklabels + [""] * len(logticks))
+        elif orientation == 'vertical':
+            #cb.ax.yaxis.set_ticks(np.concatenate((ticks, logticks)))  # Set major ticks  
+            #cb.ax.set_yticklabels(ticklabels + [""] * len(logticks))
+            pass
+        
         minorticks = np.linspace(-linthresh, linthresh, 5)
         minorticks2 = np.arange(2, 10) * linthresh
 
