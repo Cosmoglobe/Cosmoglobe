@@ -370,8 +370,10 @@ def plot(
                 cbar_pad =  0.02
                 cbar_shrink =  0.5
 
-        # Remove color bar because of healpy bug
-        plt.gca().collections[-1].colorbar.remove()
+        if plt.gca().collections[-1].colorbar is not None:
+            # Remove color bar because of healpy bug.
+            # Not nessecary after Healpy 1.15.1
+            plt.gca().collections[-1].colorbar.remove()
 
         # Add pretty color bar
         if cbar:
