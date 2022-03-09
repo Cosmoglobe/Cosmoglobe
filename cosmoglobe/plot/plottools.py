@@ -18,7 +18,8 @@ import matplotlib as mpl
 from matplotlib.colors import colorConverter, LinearSegmentedColormap, ListedColormap
 from matplotlib.patches import Polygon
 from matplotlib import _pylab_helpers
-from matplotlib.ticker import FuncFormatter
+from matplotlib.ticker import FuncFormatter, LogLocator, LogFormatter
+import matplotlib.patheffects as pe
 from pathlib import Path
 import json
 
@@ -192,6 +193,9 @@ def symlog(m, linthresh=1.0):
     """
     This is the semi-logarithmic function used when logscale=True
     """
+    if linthresh == 0.0:
+        return np.sign(m)*np.log10(1+abs(m))
+
     # Extra fact of 2 ln 10 makes symlog(m) = m in linear regime
     m = m / linthresh / (2 * np.log(10))
     return np.log10(0.5 * (m + np.sqrt(4.0 + m * m)))
@@ -388,13 +392,16 @@ def apply_colorbar(
     This function applies a colorbar to the figure and formats the ticks.
     """
 
+    format = LogFormatter(10) if norm=="log" else FuncFormatter(fmt)
+    format = FuncFormatter(fmt)
+
     if image is None and cmap is not None:
         norm = mpl.colors.Normalize(vmin=ticks[0], vmax=ticks[-1])
         cb = mpl.colorbar.ColorbarBase(ax, cmap=cmap,
                                         norm=norm,
                                         orientation=orientation,
                                         ticks=ticks,
-                                        format=FuncFormatter(fmt))
+                                        format=format)
     else:
         cb = fig.colorbar(
             image,
@@ -403,7 +410,7 @@ def apply_colorbar(
             shrink=cbar_shrink,
             pad=cbar_pad,
             ticks=ticks,
-            format=FuncFormatter(fmt),
+            format=format,
         )
     
     if fontsize is None:
@@ -416,11 +423,11 @@ def apply_colorbar(
     elif orientation == 'vertical':
         cb.ax.set_yticklabels(ticklabels, size=fontsize["cbar_tick_label"])
         cb.ax.yaxis.set_label_text(unit, size=fontsize["cbar_label"])
-    if norm == "log":
+    if norm in ["linlog", "log"]:
         linticks = np.linspace(-1, 1, 3) * linthresh
         logmin = np.round(ticks[0])
         logmax = np.round(ticks[-1])
-
+        
         logticks_min = -(10 ** np.arange(0, abs(logmin) + 1))
         logticks_max = 10 ** np.arange(0, logmax + 1)
         ticks_ = np.unique(np.concatenate((logticks_min, linticks, logticks_max)))
@@ -438,7 +445,6 @@ def apply_colorbar(
         
         minorticks = np.linspace(-linthresh, linthresh, 5)
         minorticks2 = np.arange(2, 10) * linthresh
-
         for i in range(len(logticks_min)):
             minorticks = np.concatenate((-(10 ** i) * minorticks2, minorticks))
         for i in range(len(logticks_max)):
@@ -456,6 +462,7 @@ def apply_colorbar(
             which="both",
             axis="x",
             direction="in",
+            color="#3d3d3d",
         )
         cb.ax.xaxis.labelpad = 0
     elif orientation == 'vertical':
@@ -463,14 +470,37 @@ def apply_colorbar(
             which="both",
             axis="y",
             direction="in",
+            color="#3d3d3d",
         )
         cb.ax.yaxis.labelpad = 0
 
         ylabels = cb.ax.get_yticklabels()
         cb.ax.set_yticklabels(ylabels, Rotation= 90)
+    """
+    pos = cb.ax.get_position()
+    #
+
+    # create a second axes instance and set the limits you need
+    ax3 = cb.ax.twiny()
+    ax3.set_xlim([1,-2])
+
+    # resize the colorbar (otherwise it overlays the plot)
+    #cb.ax.set_position(pos)
+    #pos.y0 += 0.05
+    #print(cb.ax.get_xticks(), cb.ax.get_yticks(),)
+    #ax3.set_ticks(np.concatenate((ticks, logticks)))
+    ax3.xaxis.set_ticks(minorticks, minor=True)
+    ax3.set_position(pos)
+    ax3.set_xticklabels([]) 
+    ax3.tick_params(
+        which="both",
+        axis="x",
+        direction="in",
+        color="white",
+    )
+    """
     # workaround for issue with viewers, see colorbar docstring
     cb.solids.set_edgecolor("face")
-
     return cb
 
 

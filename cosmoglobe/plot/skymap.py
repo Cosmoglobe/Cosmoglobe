@@ -119,6 +119,8 @@ def plot(
         if norm=='linear':
             normal
         if norm=='log':
+            Uses log10 scale
+        if norm=='linlog':
             Normalizes data using a semi-logscale linear between -1 and 1.
             Autodetector uses this sometimes, you will be warned.
         default = None
@@ -287,11 +289,11 @@ def plot(
         width=width,
         nside=nside,
     )
-
     # Semi-log normalization
-    if params["norm"] == "log":
+    linthresh = 0.0 if params["norm"]=="log" else 1.
+    if params["norm"] in  ["linlog", "log"]:
         params["data"], params["ticks"] = apply_logscale(
-            params["data"], params["ticks"], linthresh=1
+            params["data"], params["ticks"], linthresh=linthresh
         )
 
     # Colormap
@@ -301,7 +303,7 @@ def plot(
 
     
     if interactive: # Plot using mollview if interactive mode
-        if params["norm"] == "log":
+        if params["norm"] == "linlog":
             params["norm"] = None
         hp.mollview(
             params["data"],
@@ -385,7 +387,7 @@ def plot(
                 params["ticklabels"],
                 params["unit"],
                 fontsize=fontsize,
-                linthresh=1,
+                linthresh=linthresh,
                 norm=params["norm"],
                 cbar_pad=cbar_pad,
                 cbar_shrink=cbar_shrink,
