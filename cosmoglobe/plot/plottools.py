@@ -1,4 +1,5 @@
 # This file contains useful functions used across different plotting scripts.
+from cmath import inf
 from re import A, T
 import warnings
 
@@ -194,7 +195,7 @@ def symlog(m, linthresh=1.0):
     This is the semi-logarithmic function used when logscale=True
     """
     if linthresh == 0.0:
-        return np.sign(m)*np.log10(1+abs(m))
+        return np.sign(m)*np.log10(1e-20 + abs(m))
 
     # Extra fact of 2 ln 10 makes symlog(m) = m in linear regime
     m = m / linthresh / (2 * np.log(10))
@@ -325,7 +326,7 @@ def apply_logscale(m, ticks, linthresh=1):
     NOTE: This should ideally be done for the colorbar, not the data.
     """
 
-    print("[magenta]Applying semi-logscale[/magenta]")
+    print(f"[magenta]Applying semi-logscale with linear threshold={linthresh}[/magenta]")
     m = symlog(m, linthresh)
     new_ticks = []
     for i in ticks:
@@ -444,7 +445,9 @@ def apply_colorbar(
             pass
         
         minorticks = np.linspace(-linthresh, linthresh, 5)
-        minorticks2 = np.arange(2, 10) * linthresh
+        lt = 1 if norm=="log" else linthresh
+        minorticks2 = np.arange(2, 10) * lt
+
         for i in range(len(logticks_min)):
             minorticks = np.concatenate((-(10 ** i) * minorticks2, minorticks))
         for i in range(len(logticks_max)):
@@ -452,6 +455,7 @@ def apply_colorbar(
 
         minorticks = symlog(minorticks, linthresh)
         minorticks = minorticks[(minorticks >= ticks[0]) & (minorticks <= ticks[-1])]
+
         if orientation == 'horizontal':
             cb.ax.xaxis.set_ticks(minorticks, minor=True)
         elif orientation == 'vertical':
