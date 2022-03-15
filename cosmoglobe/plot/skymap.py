@@ -6,6 +6,7 @@ import healpy as hp
 import numpy as np
 import astropy.units as u
 import matplotlib.pyplot as plt
+from matplotlib.colors import SymLogNorm
 
 from .plottools import *
 
@@ -32,6 +33,7 @@ def plot(
     maskfill=None,
     cmap=None,
     norm=None,
+    linthresh=1,
     remove_dip=False,
     remove_mono=False,
     title=None,
@@ -115,15 +117,19 @@ def plot(
         available as of now. Also supports qualitative plotly map, [ex.
         q-Plotly-4 (q for qualitative 4 for max color)] Sets planck as default.
         default = None
-    norm : str, optional
+    norm : str, matplotlib norm object, optional
         if norm=='linear':
             normal
         if norm=='log':
             Uses log10 scale
-        if norm=='linlog':
             Normalizes data using a semi-logscale linear between -1 and 1.
             Autodetector uses this sometimes, you will be warned.
+        SPECIFY linthresh for linear threshold of symlog!
         default = None
+    linthresh : float, optional
+        Linear threshold in symmetric logarithimc scaling.
+        Only used if log-norming
+        default = 1
     remove_dip : bool, optional
         If mdmask is specified, fits and removes a dipole.
         default = True
@@ -289,12 +295,10 @@ def plot(
         width=width,
         nside=nside,
     )
-    # Semi-log normalization
-    linthresh = 0.0 if params["norm"]=="log" else 1.
-    if params["norm"] in  ["linlog", "log"]:
-        params["data"], params["ticks"] = apply_logscale(
-            params["data"], params["ticks"], linthresh=linthresh
-        )
+    
+    # Set symlognorm
+    if params["norm"]=="log":
+        params["norm"] = SymLogNorm(linthresh=linthresh, linscale=0.3, base=10)
 
     # Colormap
     cmap = load_cmap(params["cmap"])
@@ -303,8 +307,6 @@ def plot(
 
     
     if interactive: # Plot using mollview if interactive mode
-        if params["norm"] == "linlog":
-            params["norm"] = None
         hp.mollview(
             params["data"],
             min=params["ticks"][0],
@@ -324,14 +326,14 @@ def plot(
         ret=plt.gca().get_images()[0]
 
     else: # Using fancy projview
-
         warnings.filterwarnings("ignore")  # Healpy complains too much
+
         # Plot figure
         ret = hp.newvisufunc.projview(
             params["data"],
             min=params["ticks"][0],
             max=params["ticks"][-1],
-            cbar=False,
+            cbar=True, # Use nicer personal colorbar
             cmap=cmap,
             xsize=xsize,
             # unedited params
@@ -357,7 +359,11 @@ def plot(
             phi_convention=phi_convention,
             custom_xtick_labels=custom_xtick_labels,
             custom_ytick_labels=custom_ytick_labels,
-        )        
+            norm=params["norm"]
+        )   
+
+        #print(ret.set_norm(params["norm"]))
+        #norm=colors.SymLogNorm(linthresh=1, linscale=0.03, base=10)    
     
     if not return_only_data:
 
@@ -372,10 +378,10 @@ def plot(
                 cbar_pad =  0.02
                 cbar_shrink =  0.5
 
-        if plt.gca().collections[-1].colorbar is not None:
-            # Remove color bar because of healpy bug.
-            # Not nessecary after Healpy 1.15.1
-            plt.gca().collections[-1].colorbar.remove()
+        #if plt.gca().collections[-1].colorbar is not None:
+        #    # Remove color bar because of healpy bug.
+        #    # Not nessecary after Healpy 1.15.1
+        #    plt.gca().collections[-1].colorbar.remove()
 
         # Add pretty color bar
         if cbar:

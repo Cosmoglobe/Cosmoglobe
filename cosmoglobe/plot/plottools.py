@@ -19,7 +19,7 @@ import matplotlib as mpl
 from matplotlib.colors import colorConverter, LinearSegmentedColormap, ListedColormap
 from matplotlib.patches import Polygon
 from matplotlib import _pylab_helpers
-from matplotlib.ticker import FuncFormatter, LogLocator, LogFormatter
+from matplotlib import ticker
 import matplotlib.patheffects as pe
 from pathlib import Path
 import json
@@ -393,47 +393,52 @@ def apply_colorbar(
     This function applies a colorbar to the figure and formats the ticks.
     """
 
-    format = LogFormatter(10) if norm=="log" else FuncFormatter(fmt)
-    format = FuncFormatter(fmt)
-
     if image is None and cmap is not None:
         norm = mpl.colors.Normalize(vmin=ticks[0], vmax=ticks[-1])
         cb = mpl.colorbar.ColorbarBase(ax, cmap=cmap,
                                         norm=norm,
                                         orientation=orientation,
-                                        ticks=ticks,
-                                        format=format)
-    else:
+                                        ticks=ticks,)
+    elif False:
         cb = fig.colorbar(
             image,
-            ax=ax,
+            #ax=ax,
             orientation=orientation,
             shrink=cbar_shrink,
             pad=cbar_pad,
-            ticks=ticks,
-            format=format,
         )
-    
     if fontsize is None:
         fontsize = DEFAULT_FONTSIZES
     if isinstance(unit, u.UnitBase):
         unit = unit.to_string("latex")
-    if orientation == 'horizontal':
-        cb.ax.set_xticklabels(ticklabels, size=fontsize["cbar_tick_label"])
-        cb.ax.xaxis.set_label_text(unit, size=fontsize["cbar_label"])
-    elif orientation == 'vertical':
-        cb.ax.set_yticklabels(ticklabels, size=fontsize["cbar_tick_label"])
-        cb.ax.yaxis.set_label_text(unit, size=fontsize["cbar_label"])
-    if norm in ["linlog", "log"]:
-        linticks = np.linspace(-1, 1, 3) * linthresh
+    #if orientation == 'horizontal':
+    #    cb.ax.set_xticklabels(ticklabels, size=fontsize["cbar_tick_label"])
+    #    cb.ax.xaxis.set_label_text(unit, size=fontsize["cbar_label"])
+    #elif orientation == 'vertical':
+    #    cb.ax.set_yticklabels(ticklabels, size=fontsize["cbar_tick_label"])
+    #    cb.ax.yaxis.set_label_text(unit, size=fontsize["cbar_label"])
+
+    #cb = plt.gca().collections[-1].colorbar
+    #labels = cb.ax.xaxis.get_ticklabels()
+    ##ticks = cb.get_ticks()
+    #N = len(labels)
+    #for i, label in enumerate(labels):
+    #    if i in [0, N//2, N-1]:
+    #        continue
+    #    label.set_visible(False)
+    
+    if False: #norm in ["linlog", "log"]:
+        """
+        Make logarithmic tick markers manually
+        """
+        linticks = np.linspace(-1, 1, 3) * linthresh if linthresh > 0.0 else [0]
         logmin = np.round(ticks[0])
         logmax = np.round(ticks[-1])
-        
         logticks_min = -(10 ** np.arange(0, abs(logmin) + 1))
         logticks_max = 10 ** np.arange(0, logmax + 1)
         ticks_ = np.unique(np.concatenate((logticks_min, linticks, logticks_max)))
-        # cb.set_ticks(np.concatenate((ticks,symlog(ticks_))), []) # Set major ticks
 
+        # cb.set_ticks(np.concatenate((ticks,symlog(ticks_))), []) # Set major ticks
         logticks = symlog(ticks_, linthresh)
         logticks = [x for x in logticks if x not in ticks]
         if orientation == 'horizontal':
@@ -443,43 +448,56 @@ def apply_colorbar(
             #cb.ax.yaxis.set_ticks(np.concatenate((ticks, logticks)))  # Set major ticks  
             #cb.ax.set_yticklabels(ticklabels + [""] * len(logticks))
             pass
+
+
+        # Minor tick log markers
         
-        minorticks = np.linspace(-linthresh, linthresh, 5)
+        # Linear range for linlog plotting
+        minorticks = np.linspace(-linthresh, linthresh, 5) if linthresh > 0.0 else [0]
+
+        # Make first range of logarithmic minor ticks
         lt = 1 if norm=="log" else linthresh
         minorticks2 = np.arange(2, 10) * lt
+        
 
+        # Create range of minor ticks from min value to negative max
         for i in range(len(logticks_min)):
             minorticks = np.concatenate((-(10 ** i) * minorticks2, minorticks))
+
+        # Create range of minor ticks from min value to positive max
         for i in range(len(logticks_max)):
-            minorticks = np.concatenate((minorticks, 10 ** i * minorticks2))
+            minorticks = np.concatenate((minorticks, (10 ** i) * minorticks2))
 
+        # Convert values to true logarithmic values
         minorticks = symlog(minorticks, linthresh)
-        minorticks = minorticks[(minorticks >= ticks[0]) & (minorticks <= ticks[-1])]
 
+        # Remove values outside of range
+        minorticks = minorticks[(minorticks >= ticks[0]) & (minorticks <= ticks[-1])]
         if orientation == 'horizontal':
             cb.ax.xaxis.set_ticks(minorticks, minor=True)
         elif orientation == 'vertical':
             cb.ax.yaxis.set_ticks(minorticks, minor=True)
+    # workaround for issue with viewers, see colorbar docstring
+    #cb.solids.set_edgecolor("face")
+    #if orientation == 'horizontal':
+    #    cb.ax.tick_params(
+    #        which="both",
+    #        axis="x",
+    #        direction="in",
+    #        color="#3d3d3d",
+    #    )
+    #    cb.ax.xaxis.labelpad = 0
+    #elif orientation == 'vertical':
+    #    cb.ax.tick_params(
+    #        which="both",
+    #        axis="y",
+    #        direction="in",
+    #        color="#3d3d3d",
+    #    )
+    #    cb.ax.yaxis.labelpad = 0
 
-    if orientation == 'horizontal':
-        cb.ax.tick_params(
-            which="both",
-            axis="x",
-            direction="in",
-            color="#3d3d3d",
-        )
-        cb.ax.xaxis.labelpad = 0
-    elif orientation == 'vertical':
-        cb.ax.tick_params(
-            which="both",
-            axis="y",
-            direction="in",
-            color="#3d3d3d",
-        )
-        cb.ax.yaxis.labelpad = 0
-
-        ylabels = cb.ax.get_yticklabels()
-        cb.ax.set_yticklabels(ylabels, Rotation= 90)
+    #    ylabels = cb.ax.get_yticklabels()
+    #    cb.ax.set_yticklabels(ylabels, Rotation= 90)
     """
     pos = cb.ax.get_position()
     #
@@ -503,9 +521,8 @@ def apply_colorbar(
         color="white",
     )
     """
-    # workaround for issue with viewers, see colorbar docstring
-    cb.solids.set_edgecolor("face")
-    return cb
+
+    return #cb
 
 
 def load_cmap(cmap):
