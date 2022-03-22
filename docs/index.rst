@@ -39,7 +39,6 @@ Reference
    :maxdepth: 3
 
    Reference <cosmoglobe_reference>
-
    
 License
 -------

@@ -15,3 +15,4 @@ detail. For learning how to use *cosmoglobe*, see our
    Chain <cosmoglobe_chain>
    SkyModel <cosmoglobe_model>
    SkyComponents <cosmoglobe_components>
+   Plot <cosmoglobe_plot>

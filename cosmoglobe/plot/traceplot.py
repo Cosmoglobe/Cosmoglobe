@@ -18,32 +18,95 @@ def trace(
     cmap="tab10",
     figsize=(8, 3),
     darkmode=False,
-    fignum=None,
-    subplot=None,
+    sub=None,
     hold=False,
     reuse_axes=False,
 ):
-    if isinstance(input, str) and input.endswith(".h5") and dataset is not None:
-        chain = Chain(input)
-        if ylabel == None:
-            ylabel = dataset
-        #component, *items = dataset.split("/")
-        input = chain.get(dataset)
+    """
+    Make a trace plot of a quantity over gibbs samples
+
+    Parameters
+    ----------
+    input : ndarray, fits file path or cosmoglobe model object
+        Map data input given as numpy array either 1d or index given by 'sig'.
+        Also supports fits-file path string or cosmoglobe model.
+        If cosmoglobe object is passed such as 'model', specify comp or freq.
+    dataset : str, optional
+        if passing hdf5 file, specify dataset
+        default: None
+    sig : str or int, optional
+        Specify which signal to plot if ndim>1.
+        default: None
+    labels : list of str, optional
+        List of strings to use as labels for each of the components
+        default: None
+    showval : bool, optional
+        display the mean and stddev of the distribution next to label
+        default: True
+    burnin : int, optional
+        Number of burnin samples, used in calculating mean and stddev values
+        default: 0
+    xlabel : str, optional 
+        label x axis
+        default: None
+    ylabel : str, optional 
+        label y axis
+        default: None
+    nbins : int, optional,
+        number of bins
+        default: None
+    cmap : str, optional
+        Colormap (ex. sunburst, planck, jet). Both matplotliib and cmasher
+        available as of now. Also supports qualitative plotly map, [ex.
+        q-Plotly-4 (q for qualitative 4 for max color)] Sets planck as default.
+        default: None
+    figsize : touple, optional 
+        size of figure
+        default: None
+    darkmode : bool, optional 
+        turn all axis elements white for optimal dark visualization
+        default: False
+    sub : int, scalar or sequence, optional
+        Use only a zone of the current figure (same syntax as subbplot).
+        Default: None
+    hold : bool, optional
+        If True, replace the current Axes by a MollweideAxes.
+        use this if you want to have multiple maps on the same
+        figure. 
+        Default: False
+    reuse_axes : bool, optional
+        If True, reuse the current Axes (should be a MollweideAxes). This is
+        useful if you want to overplot with a partially transparent colormap,
+        such as for plotting a line integral convolution. 
+        Default: False
+    """
+    chain = None
+    if isinstance(input, str):
+        if input.endswith(".h5") and dataset is not None:
+            chain = Chain(input)
+            if ylabel == None:
+                ylabel = dataset
+            #component, *items = dataset.split("/")
+
+            input = chain.get(dataset)
 
     # Make figure
     fig, ax = make_fig(
         figsize,
-        fignum,
+        None,
         hold,
-        subplot,
+        sub,
         reuse_axes,
         darkmode,
     )
 
     if input.ndim < 2:
         input.reshape(-1, 1, 1)
+    elif chain is None and input.ndim==2:
+        input = input[:,np.newaxis, :]
     elif input.ndim == 2:
-        input.reshape(0, 1, -1)
+        input = input[:,:,np.newaxis]
+    
     Nsamp, Nsig, Ncomp = input.shape
 
     cmap = load_cmap(cmap)

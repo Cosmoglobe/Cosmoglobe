@@ -83,40 +83,40 @@ def plot(
         If cosmoglobe object is passed such as 'model', specify comp or freq.
     sig : str or int, optional
         Specify which signal to plot if ndim>1.
-        default = None
+        default: None
     comp : string, optional
         Component label for automatic identification of plotting
         parameters based on information from autoparams.json
-        default = None
+        default: None
     freq : astropy GHz, optional
         frequency in GHz needed for scaling maps when using a model object input
-        default = None
+        default: None
     ticks : list or str, optional
         Min and max value for data. If None, uses 97.5th percentile.
-        default = None
+        default: None
     min : float, optional
       The minimum range value. If specified, overwrites autodetector.
-      default = None
+      default: None
     max : float, optional
       The maximum range value. If specified, overwrites autodetector.
-      default = None
+      default: None
     rng : float, optional
       Sets this value as min and max value. If specified, overwrites autodetector.
-      default = None
+      default: None
     cbar : bool, optional
         Toggles the colorbar
-        cbar = True
+        cbar : True
     fwhm : astropy arcmin/rad/deg, optional
         Optional map smoothing. FWHM of gaussian smoothing in arcmin.
-        default = 0.0
+        default: 0.0
     mask : str path or np.ndarray, optional
         Apply a mask file to data
-        default = None
+        default: None
     cmap : str, optional
         Colormap (ex. sunburst, planck, jet). Both matplotliib and cmasher
         available as of now. Also supports qualitative plotly map, [ex.
         q-Plotly-4 (q for qualitative 4 for max color)] Sets planck as default.
-        default = None
+        default: None
     norm : str, matplotlib norm object, optional
         if norm=='linear':
             normal
@@ -125,36 +125,36 @@ def plot(
             Normalizes data using a semi-logscale linear between -1 and 1.
             Autodetector uses this sometimes, you will be warned.
         SPECIFY linthresh for linear threshold of symlog!
-        default = None
+        default: None
     linthresh : float, optional
         Linear threshold in symmetric logarithimc scaling.
         Only used if log-norming
-        default = 1
+        default: 1
     remove_dip : bool, optional
         If mdmask is specified, fits and removes a dipole.
-        default = True
+        default: True
     remove_mono : bool, optional
         If mdmask is specified, fits and removes a monopole.
-        default = True
+        default: True
     unit : str, optional
         Unit label for colorbar
-        default = None
+        default: None
     title : str, optional
         Sets the full figure title. Has LaTeX functionaliity (ex. $A_{s}$.)
-        default = None
+        default: None
     right_label : str, optional
         Sets the upper right title. Has LaTeX functionaliity (ex. $A_{s}$.)
-        default = None
+        default: None
     left_label : str, optional
         Sets the upper left title. Has LaTeX functionaliity (ex. $A_{s}$.)
-        default = None
+        default: None
     width : str, float, optional
         Size in inches OR 1/3, 1/2 and full page width (2.75/3.5/4.7/7 inches) [ex. x, s, m or l]
-        default = "m" (4.7 inches)
+        default: "m" (4.7 inches)
     darkmode : bool, optional
         Plots all outlines in white for dark backgrounds, and adds 'dark' in
         filename.
-        default = False
+        default: False
     rot : scalar or sequence, optional
       Describe the rotation to apply.
       In the form (lon, lat, psi) (unit: degrees) : the point at
@@ -333,7 +333,7 @@ def plot(
             params["data"],
             min=params["ticks"][0],
             max=params["ticks"][-1],
-            cbar=True, # Use nicer personal colorbar
+            cbar=False, # Use nicer personal colorbar
             cmap=cmap,
             xsize=xsize,
             # unedited params
@@ -359,7 +359,7 @@ def plot(
             phi_convention=phi_convention,
             custom_xtick_labels=custom_xtick_labels,
             custom_ytick_labels=custom_ytick_labels,
-            norm=params["norm"]
+            #norm=params["norm"] # Do this later
         )   
 
         #print(ret.set_norm(params["norm"]))
@@ -384,7 +384,8 @@ def plot(
         #    plt.gca().collections[-1].colorbar.remove()
 
         # Add pretty color bar
-        if cbar:
+        # TODO: fix healpy
+        if False: #cbar:
             apply_colorbar(
                 plt.gcf(),
                 plt.gca(),

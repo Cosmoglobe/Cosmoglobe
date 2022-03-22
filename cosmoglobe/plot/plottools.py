@@ -96,7 +96,7 @@ def set_style(darkmode=False, font="serif"):
 
 
 def make_fig(
-    figsize, fignum, hold, subplot, reuse_axes, darkmode=False, projection=None
+    figsize, fignum, hold, sub, reuse_axes, darkmode=False, projection=None
 ):
     """
     Create matplotlib figure, add subplot, use current axes etc.
@@ -113,7 +113,7 @@ def make_fig(
     #  From healpy
     nrows, ncols, idx = (1, 1, 1)
     width, height = figsize
-    if not (hold or subplot or reuse_axes):
+    if not (hold or sub or reuse_axes):
         # Set general style parameters
         set_style(darkmode)
 
@@ -125,10 +125,10 @@ def make_fig(
     elif reuse_axes:
         fig = plt.gcf()
     else:  # using subplot syntax
-        if hasattr(subplot, "__len__"):
-            nrows, ncols, idx = subplot
+        if hasattr(sub, "__len__"):
+            nrows, ncols, idx = sub
         else:
-            nrows, ncols, idx = subplot // 100, (subplot % 100) // 10, (subplot % 10)
+            nrows, ncols, idx = sub // 100, (sub % 100) // 10, (sub % 10)
 
         # If figure exists, get. If not, create.
         figManager = _pylab_helpers.Gcf.get_active()
@@ -399,7 +399,7 @@ def apply_colorbar(
                                         norm=norm,
                                         orientation=orientation,
                                         ticks=ticks,)
-    elif False:
+    else:
         cb = fig.colorbar(
             image,
             #ax=ax,
@@ -427,7 +427,7 @@ def apply_colorbar(
     #        continue
     #    label.set_visible(False)
     
-    if False: #norm in ["linlog", "log"]:
+    if  norm in ["linlog", "log"]:
         """
         Make logarithmic tick markers manually
         """
@@ -478,49 +478,27 @@ def apply_colorbar(
         elif orientation == 'vertical':
             cb.ax.yaxis.set_ticks(minorticks, minor=True)
     # workaround for issue with viewers, see colorbar docstring
-    #cb.solids.set_edgecolor("face")
-    #if orientation == 'horizontal':
-    #    cb.ax.tick_params(
-    #        which="both",
-    #        axis="x",
-    #        direction="in",
-    #        color="#3d3d3d",
-    #    )
-    #    cb.ax.xaxis.labelpad = 0
-    #elif orientation == 'vertical':
-    #    cb.ax.tick_params(
-    #        which="both",
-    #        axis="y",
-    #        direction="in",
-    #        color="#3d3d3d",
-    #    )
-    #    cb.ax.yaxis.labelpad = 0
+    cb.solids.set_edgecolor("face")
+    if orientation == 'horizontal':
+        cb.ax.tick_params(
+            which="both",
+            axis="x",
+            direction="in",
+            color="#3d3d3d",
+        )
+        cb.ax.xaxis.labelpad = 0
+    elif orientation == 'vertical':
+        cb.ax.tick_params(
+            which="both",
+            axis="y",
+            direction="in",
+            color="#3d3d3d",
+        )
+        cb.ax.yaxis.labelpad = 0
 
-    #    ylabels = cb.ax.get_yticklabels()
-    #    cb.ax.set_yticklabels(ylabels, Rotation= 90)
-    """
-    pos = cb.ax.get_position()
-    #
+        ylabels = cb.ax.get_yticklabels()
+        cb.ax.set_yticklabels(ylabels, Rotation= 90)
 
-    # create a second axes instance and set the limits you need
-    ax3 = cb.ax.twiny()
-    ax3.set_xlim([1,-2])
-
-    # resize the colorbar (otherwise it overlays the plot)
-    #cb.ax.set_position(pos)
-    #pos.y0 += 0.05
-    #print(cb.ax.get_xticks(), cb.ax.get_yticks(),)
-    #ax3.set_ticks(np.concatenate((ticks, logticks)))
-    ax3.xaxis.set_ticks(minorticks, minor=True)
-    ax3.set_position(pos)
-    ax3.set_xticklabels([]) 
-    ax3.tick_params(
-        which="both",
-        axis="x",
-        direction="in",
-        color="white",
-    )
-    """
 
     return #cb
 

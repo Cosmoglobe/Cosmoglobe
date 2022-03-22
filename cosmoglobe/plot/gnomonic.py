@@ -35,13 +35,124 @@ def gnom(
     fontsize=None,
     figsize=(3, 4),
     darkmode=False,
-    fignum=None,
-    subplot=None,
+    sub=None,
     hold=False,
     reuse_axes=False,
 ):
     """
-    Gnomonic view plotting.
+    Gnomonic view plotting
+
+    Parameters
+    ----------
+    input : ndarray, fits file path or cosmoglobe model object
+        Map data input given as numpy array either 1d or index given by 'sig'.
+        Also supports fits-file path string or cosmoglobe model.
+        If cosmoglobe object is passed such as 'model', specify comp or freq.
+    lon : float
+        Longitude coordinate of the center of the figure in galactic coordinates
+        default: 0
+    lat : float
+        Latitude coordinate of the center of the figure in galactic coordinates
+        default: 0
+    sig : str or int, optional
+        Specify which signal to plot if ndim>1.
+        default: None
+    comp : string, optional
+        Component label for automatic identification of plotting
+        parameters based on information from autoparams.json
+        default: None
+    freq : astropy GHz, optional
+        frequency in GHz needed for scaling maps when using a model object input
+        default: None
+    nside : int, optional
+        optional ud_grading of the input data
+        default: None
+    size : float, optional
+        Size of square in degrees
+        default: 20
+    sample : float, optional
+        Specify sample if passing chain
+        default: -1
+    vmin : float, optional
+        Min value
+        default: None
+    vmax : float, optional
+        Max value
+        default: None
+    ticks : list or str, optional
+        Ticks for colorbar
+        default: None
+    rng : float, optional
+      Sets this value as min and max value. If specified, overwrites autodetector.
+      default: None
+    left_label : str, optional
+        Sets the upper left title. Has LaTeX functionaliity (ex. $A_{s}$.)
+        default: None
+    right_label : str, optional
+        Sets the upper right title. Has LaTeX functionaliity (ex. $A_{s}$.)
+        default: None
+    unit : str, optional
+        Unit label for colorbar
+        default: None
+    cmap : str, optional
+        Colormap (ex. sunburst, planck, jet). Both matplotliib and cmasher
+        available as of now. Also supports qualitative plotly map, [ex.
+        q-Plotly-4 (q for qualitative 4 for max color)] Sets planck as default.
+        default: None
+    graticule : bool
+        add graticule
+        default: False
+    norm : str, matplotlib norm object, optional
+        if norm=='linear':
+            normal
+        if norm=='log':
+            Uses log10 scale
+            Normalizes data using a semi-logscale linear between -1 and 1.
+            Autodetector uses this sometimes, you will be warned.
+        SPECIFY linthresh for linear threshold of symlog!
+        default: None
+    cbar : bool, optional
+        Toggles the colorbar
+        cbar : True
+    cbar_pad : float, optioinal
+        default: 0.04    
+    cbar_shrink : float, optional
+        default: 0.7    
+    fwhm : astropy arcmin/rad/deg, optional
+        Optional map smoothing. FWHM of gaussian smoothing in arcmin.
+        default: 0.0
+    remove_dip : bool, optional
+        If mdmask is specified, fits and removes a dipole.
+        default: True
+    remove_mono : bool, optional
+        If mdmask is specified, fits and removes a monopole.
+        default: True
+    fontsize : int, optional
+        Size of labels
+        default: None
+    figsize : touple, optional 
+        size of figure
+        default: None
+    darkmode : bool, optional 
+        turn all axis elements white for optimal dark visualization
+        default: False
+    sub : int, scalar or sequence, optional
+        Use only a zone of the current figure (same syntax as subplot).
+        Default: None
+    hold : bool, optional
+        If True, replace the current Axes by a MollweideAxes.
+        use this if you want to have multiple maps on the same
+        figure. 
+        Default: False
+    reuse_axes : bool, optional
+        If True, reuse the current Axes (should be a MollweideAxes). This is
+        useful if you want to overplot with a partially transparent colormap,
+        such as for plotting a line integral convolution. 
+        Default: False
+
+    mask : str path or np.ndarray, optional
+        Apply a mask file to data
+        default = None
     """
     if not fontsize:
         fontsize = {
@@ -99,9 +210,9 @@ def gnom(
 
     fig, ax = make_fig(
         figsize,
-        fignum,
+        None,
         hold,
-        subplot,
+        sub,
         reuse_axes
     )
     image = plt.imshow(
