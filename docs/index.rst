@@ -23,13 +23,13 @@ Installation
    
    install
    
-Tutorial
+Tutorials
 ---------
 
 .. toctree::
    :maxdepth: 1
 
-   Tutorial <cosmoglobe_tutorial>
+   tutorial.rst
 
  
 Reference
@@ -38,7 +38,7 @@ Reference
 .. toctree::
    :maxdepth: 3
 
-   Reference <cosmoglobe_reference>
+   reference.rst
    
 License
 -------
@@ -47,4 +47,4 @@ License
    :maxdepth: 1
    :titlesonly:
 
-   license
+   license.rst

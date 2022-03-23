@@ -7,5 +7,12 @@ Classes representing the components in the Cosmoglobe Sky Model. The
 component, similarly to how ``Model()`` returns the sum of all component
 emission in the model.
 
-.. automodule:: cosmoglobe.sky.components
-    :members:
+
+.. toctree::
+
+    components/ame
+    components/cmb
+    components/dust
+    components/freefree
+    components/synchrotron
+    components/radio

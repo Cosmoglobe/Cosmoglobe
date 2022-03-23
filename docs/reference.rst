@@ -1,5 +1,5 @@
-cosmoglobe Documentation
-========================
+Reference
+=========
 
 :Release: |release|
 
@@ -9,6 +9,6 @@ detail. For learning how to use *cosmoglobe*, see our
 .. toctree::
    :maxdepth: 3
 
-   reference/chain.rst
    reference/model.rst
+   reference/chain.rst
    reference/components.rst

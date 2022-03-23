@@ -6,7 +6,6 @@ from astropy.units import (
     quantity_input,
     Quantity,
     spectral,
-    Unit,
     UnitConversionError,
     UnitsError,
 )
@@ -26,7 +25,7 @@ from cosmoglobe.sky._bandpass import (
 )
 from cosmoglobe.sky._beam import pointsources_to_healpix
 from cosmoglobe.sky._freq_range import FrequencyRange
-from cosmoglobe.sky._units import cmb_equivalencies
+from cosmoglobe.sky._units import *
 from cosmoglobe.sky.components._labels import SkyComponentLabel
 
 

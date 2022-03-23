@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Dict, Iterator, List, Literal, Optional, Union
 
-from astropy.units import Quantity, Unit
+from astropy.units import Quantity
 from astropy.units.core import UnitsError
 import healpy as hp
 import numpy as np
@@ -24,6 +24,7 @@ from cosmoglobe.sky._exceptions import (
     ComponentError,
     ComponentNotFoundError,
 )
+from cosmoglobe.sky._units import Unit
 from cosmoglobe.sky.cosmoglobe import cosmoglobe_registry
 from cosmoglobe.h5.chain import Chain
 

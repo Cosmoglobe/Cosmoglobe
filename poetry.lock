@@ -319,11 +319,11 @@ numpy = ">=1.14.5"
 
 [[package]]
 name = "healpy"
-version = "1.15.0"
+version = "1.15.2"
 description = "Healpix tools package for Python"
 category = "main"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.7"
 
 [package.dependencies]
 astropy = "*"
@@ -346,6 +346,22 @@ description = "Getting image size from png/jpeg/jpeg2000/gif file"
 category = "dev"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+
+[[package]]
+name = "importlib-metadata"
+version = "4.11.3"
+description = "Read metadata from Python packages"
+category = "dev"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+zipp = ">=0.5"
+
+[package.extras]
+docs = ["sphinx", "jaraco.packaging (>=9)", "rst.linker (>=1.9)"]
+perf = ["ipython"]
+testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-cov", "pytest-enabler (>=1.0.1)", "packaging", "pyfakefs", "flufl.flake8", "pytest-perf (>=0.9.2)", "pytest-black (>=0.3.7)", "pytest-mypy (>=0.9.1)", "importlib-resources (>=1.3)"]
 
 [[package]]
 name = "importlib-resources"
@@ -702,21 +718,6 @@ optional = false
 python-versions = ">=3.7,<3.11"
 
 [[package]]
-name = "numpydoc"
-version = "1.1.0"
-description = "Sphinx extension to support docstrings in Numpy format"
-category = "dev"
-optional = false
-python-versions = ">=3.5"
-
-[package.dependencies]
-Jinja2 = ">=2.3"
-sphinx = ">=1.6.5"
-
-[package.extras]
-testing = ["matplotlib", "pytest", "pytest-cov"]
-
-[[package]]
 name = "packaging"
 version = "21.3"
 description = "Core utilities for Python packages"
@@ -1065,7 +1066,7 @@ python-versions = ">=3.6"
 
 [[package]]
 name = "sphinx"
-version = "4.3.0"
+version = "4.4.0"
 description = "Python documentation generator"
 category = "dev"
 optional = false
@@ -1077,6 +1078,7 @@ babel = ">=1.3"
 colorama = {version = ">=0.3.5", markers = "sys_platform == \"win32\""}
 docutils = ">=0.14,<0.18"
 imagesize = "*"
+importlib-metadata = {version = ">=4.4", markers = "python_version < \"3.10\""}
 Jinja2 = ">=2.3"
 packaging = "*"
 Pygments = ">=2.0"
@@ -1091,7 +1093,7 @@ sphinxcontrib-serializinghtml = ">=1.1.5"
 
 [package.extras]
 docs = ["sphinxcontrib-websupport"]
-lint = ["flake8 (>=3.5.0)", "isort", "mypy (>=0.900)", "docutils-stubs", "types-typed-ast", "types-pkg-resources", "types-requests"]
+lint = ["flake8 (>=3.5.0)", "isort", "mypy (>=0.931)", "docutils-stubs", "types-typed-ast", "types-requests"]
 test = ["pytest", "pytest-cov", "html5lib", "cython", "typed-ast"]
 
 [[package]]
@@ -1302,7 +1304,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<=3.10"
-content-hash = "9efa430f13c9d35dcdec1a56c7ca17cb9390b6e7ab9be6edf93bd23506a1d4b6"
+content-hash = "b62ac9ec4749fd734843da3c3fc19f8e5f577a4700c96000359c11993d27b7dc"
 
 [metadata.files]
 alabaster = [
@@ -1517,19 +1519,15 @@ h5py = [
     {file = "h5py-3.6.0.tar.gz", hash = "sha256:8752d2814a92aba4e2b2a5922d2782d0029102d99caaf3c201a566bc0b40db29"},
 ]
 healpy = [
-    {file = "healpy-1.15.0-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:7e0bc24c3d3aeb1ef81b9b0473a497355a288e24d6bbfda753633484fe41df97"},
-    {file = "healpy-1.15.0-cp36-cp36m-manylinux_2_5_i686.manylinux1_i686.whl", hash = "sha256:c18d3089e8eae36af8789a74510136cbe22bc7b0fabfa7fe584d37fec74cda63"},
-    {file = "healpy-1.15.0-cp36-cp36m-manylinux_2_5_x86_64.manylinux1_x86_64.whl", hash = "sha256:28b6c60a331d05649563ca73a139d93836c8ebafe17f99a590bd45a98d3e290c"},
-    {file = "healpy-1.15.0-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:d2baa63cdfb5757e22cff79b6f1d2448d67d1dbf449c5596a38eba91ed12a690"},
-    {file = "healpy-1.15.0-cp37-cp37m-manylinux_2_5_i686.manylinux1_i686.whl", hash = "sha256:5df1248a465807312361fe9bba8b5e02e47c458ce72379730a73d48ef0206735"},
-    {file = "healpy-1.15.0-cp37-cp37m-manylinux_2_5_x86_64.manylinux1_x86_64.whl", hash = "sha256:3501537abfda74fcd63b3157d93e4d56acadd5ad3d8545106bf635f5cb01ebb5"},
-    {file = "healpy-1.15.0-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:257abd88dfe9deb8818116ec0294a53e41f1c7ac9b0795700a04e419e08f8d85"},
-    {file = "healpy-1.15.0-cp38-cp38-manylinux_2_5_i686.manylinux1_i686.whl", hash = "sha256:548bfdfb6263d829c1c1a69ac4e3d4a7d059b8068a56ca42d18f79d2dcd6c953"},
-    {file = "healpy-1.15.0-cp38-cp38-manylinux_2_5_x86_64.manylinux1_x86_64.whl", hash = "sha256:82822762be56ac1db4655a685cb609bcff310158fb2214eedbcd8592608a06a4"},
-    {file = "healpy-1.15.0-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:a3f91214f3b2b17fbe2e027c2903317cda7ede05efc2b7f32d84f50f1ad9681d"},
-    {file = "healpy-1.15.0-cp39-cp39-manylinux_2_5_i686.manylinux1_i686.whl", hash = "sha256:832085ee5f2a2e342dbeb36b2acf567b74e2d2e3d0d5fa6651fbdf48e16661f4"},
-    {file = "healpy-1.15.0-cp39-cp39-manylinux_2_5_x86_64.manylinux1_x86_64.whl", hash = "sha256:deb21d0b2a41a6efa2b896028501145f91a7507db942f605dbfad46b9ef9331c"},
-    {file = "healpy-1.15.0.tar.gz", hash = "sha256:e09300a9f24e40b07f09ca7a7026d640a0478960b6ca6a5fc85052c0bb4335bf"},
+    {file = "healpy-1.15.2-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:6cb706590711d9bbe423066d6c3f93b6fa9f5594bd99f832b991f3635b2aff11"},
+    {file = "healpy-1.15.2-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:46a8e023cafc4d9076b80a96ac9b060175973e719f5a6934578b1470de48c816"},
+    {file = "healpy-1.15.2-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:226cb8b4a0d882327453ed06bae9bea71e4769d8e6dce990f25270d4c9aa46ca"},
+    {file = "healpy-1.15.2-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8070a5de53c0655cd753511c4596b8d94e5319604d2093c0cf6bbe9919a971a9"},
+    {file = "healpy-1.15.2-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:f3ff6a7d25c0b057cb0e50cb01de8d22bae8d3d493ddcc08b7606e3c7bcf36a7"},
+    {file = "healpy-1.15.2-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:790959ac1e5a88b3e0cffed3743c87f7d00e43021c6391b830368721e565a045"},
+    {file = "healpy-1.15.2-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:b8edda2ba872eb74ccb422b20978b8b66a576f43ad1e9a4ddfb27decfe620065"},
+    {file = "healpy-1.15.2-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4c8d7a279815446d12d6cc3e2c030d893dac785ac65f11314e2932638970c5f8"},
+    {file = "healpy-1.15.2.tar.gz", hash = "sha256:d559ad287a78d3b500919a5cb9e4dff3cb63c1b3a2e23edf62819c871ccacf7f"},
 ]
 idna = [
     {file = "idna-3.3-py3-none-any.whl", hash = "sha256:84d9dd047ffa80596e0f246e2eab0b391788b0503584e8945f2368256d2735ff"},
@@ -1538,6 +1536,10 @@ idna = [
 imagesize = [
     {file = "imagesize-1.3.0-py2.py3-none-any.whl", hash = "sha256:1db2f82529e53c3e929e8926a1fa9235aa82d0bd0c580359c67ec31b2fddaa8c"},
     {file = "imagesize-1.3.0.tar.gz", hash = "sha256:cd1750d452385ca327479d45b64d9c7729ecf0b3969a58148298c77092261f9d"},
+]
+importlib-metadata = [
+    {file = "importlib_metadata-4.11.3-py3-none-any.whl", hash = "sha256:1208431ca90a8cca1a6b8af391bb53c1a2db74e5d1cef6ddced95d4b2062edc6"},
+    {file = "importlib_metadata-4.11.3.tar.gz", hash = "sha256:ea4c597ebf37142f827b8f39299579e31685c31d3a438b59f469406afd0f2539"},
 ]
 importlib-resources = [
     {file = "importlib_resources-5.4.0-py3-none-any.whl", hash = "sha256:33a95faed5fc19b4bc16b29a6eeae248a3fe69dd55d4d229d2b480e23eeaad45"},
@@ -1858,10 +1860,6 @@ numpy = [
     {file = "numpy-1.21.5-pp37-pypy37_pp73-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:a7c4b701ca418cd39e28ec3b496e6388fe06de83f5f0cb74794fa31cfa384c02"},
     {file = "numpy-1.21.5.zip", hash = "sha256:6a5928bc6241264dce5ed509e66f33676fc97f464e7a919edc672fb5532221ee"},
 ]
-numpydoc = [
-    {file = "numpydoc-1.1.0-py3-none-any.whl", hash = "sha256:c53d6311190b9e3b9285bc979390ba0257ba9acde5eca1a7065fc8dfca9d46e8"},
-    {file = "numpydoc-1.1.0.tar.gz", hash = "sha256:c36fd6cb7ffdc9b4e165a43f67bf6271a7b024d0bb6b00ac468c9e2bfc76448e"},
-]
 packaging = [
     {file = "packaging-21.3-py3-none-any.whl", hash = "sha256:ef103e05f519cdc783ae24ea4e2e0f508a9c99b2d4969652eed6a2e1ea5bd522"},
     {file = "packaging-21.3.tar.gz", hash = "sha256:dd47c42927d89ab911e606518907cc2d3a1f38bbd026385970643f9c5b8ecfeb"},
@@ -2162,8 +2160,8 @@ soupsieve = [
     {file = "soupsieve-2.3.1.tar.gz", hash = "sha256:b8d49b1cd4f037c7082a9683dfa1801aa2597fb11c3a1155b7a5b94829b4f1f9"},
 ]
 sphinx = [
-    {file = "Sphinx-4.3.0-py3-none-any.whl", hash = "sha256:7e2b30da5f39170efcd95c6270f07669d623c276521fee27ad6c380f49d2bf5b"},
-    {file = "Sphinx-4.3.0.tar.gz", hash = "sha256:6d051ab6e0d06cba786c4656b0fe67ba259fe058410f49e95bee6e49c4052cbf"},
+    {file = "Sphinx-4.4.0-py3-none-any.whl", hash = "sha256:5da895959511473857b6d0200f56865ed62c31e8f82dd338063b84ec022701fe"},
+    {file = "Sphinx-4.4.0.tar.gz", hash = "sha256:6caad9786055cb1fa22b4a365c1775816b876f91966481765d7d50e9f0dd35cc"},
 ]
 sphinx-autodoc-typehints = [
     {file = "sphinx_autodoc_typehints-1.17.0-py3-none-any.whl", hash = "sha256:081daf53077b4ae1c28347d6d858e13e63aefe3b4aacef79fd717dd60687b470"},

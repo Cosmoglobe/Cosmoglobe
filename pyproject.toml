@@ -25,7 +25,6 @@ Pillow = ">=9.0.0"
 [tool.poetry.dev-dependencies]
 Sphinx = "^4.3.0"
 nbsphinx = "^0.8.7"
-numpydoc = "^1.1.0"
 pydata-sphinx-theme = "^0.7.2"
 pytest = "^7.0.1"
 mypy = "^0.931"

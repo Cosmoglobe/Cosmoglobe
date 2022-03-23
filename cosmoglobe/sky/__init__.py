@@ -1,9 +1,7 @@
 from typing import List, Literal, Optional, Union
 
 from cosmoglobe.h5.chain import Chain
-from cosmoglobe.sky._units import *
 from cosmoglobe.sky.model import SkyModel
-
 
 def model_from_chain(
     chain: Union[str, Chain],

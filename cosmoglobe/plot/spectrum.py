@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 
 from .plottools import *
 
+from cosmoglobe.sky._units import Unit
+
 #TODO: 
 # CO is currently hardcoded
 # Make better custom band selection
@@ -198,7 +200,7 @@ def spec(model,
         if comp.startswith("bb"):
             a=0.67*1e-1 if comp.endswith("2") else 0.67*1e-2
             sed = np.zeros((2,len(sky_fractions),N))
-            cmb_blackbody = (np.ones(len(nu)) * u.Unit("uK_CMB")).to("uK_RJ", equivalencies=cmb_equivalencies(nu*u.GHz))
+            cmb_blackbody = (np.ones(len(nu)) * Unit("uK_CMB")).to("uK_RJ", equivalencies=cmb_equivalencies(nu*u.GHz))
             sed[1]=a*cmb_blackbody
             foregrounds[comp]["spectrum"] = sed
 

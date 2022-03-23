@@ -7,7 +7,7 @@ from numpy.core.numeric import NaN
 from .. import data as data_dir
 from cosmoglobe.sky.model import SkyModel
 from cosmoglobe.h5.chain import Chain
-from cosmoglobe.sky._units import cmb_equivalencies
+from cosmoglobe.sky._units import cmb_equivalencies, Unit
 
 import cmasher
 from rich import print
@@ -954,7 +954,7 @@ def seds_from_model(nu, model, nside=None, pol=False, sky_fractions=(25,85)):
 
             
             if key == "cmb":
-                freq_scaling=(np.ones(len(nu)) * u.Unit("uK_CMB")).to("uK_RJ", equivalencies=cmb_equivalencies(nu*u.GHz))
+                freq_scaling=(np.ones(len(nu)) * Unit("uK_CMB")).to("uK_RJ", equivalencies=cmb_equivalencies(nu*u.GHz))
                 seds[key][0,i,:] = 45*freq_scaling   # TEMP
                 seds[key][1,i,:] = 0.67*freq_scaling # POL
             else:
