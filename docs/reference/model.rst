@@ -6,3 +6,4 @@ of the ``SkyModel`` object returns the simulated sky emission.
 
 .. autoclass:: cosmoglobe.sky.model.SkyModel
     :members:
+    :special-members: __call__

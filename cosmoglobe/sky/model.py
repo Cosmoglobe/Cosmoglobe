@@ -38,11 +38,6 @@ class SkyModel:
     method, which simulates the sky at a single frequency :math:`\nu`,
     or integrated over a bandpass :math:`\tau`.
 
-    Methods
-    -------
-    __call__
-    remove_dipole
-
     Examples
     --------
     >>> import cosmoglobe
