@@ -34,11 +34,11 @@ release = "1.0.0"
 # ones.
 extensions = [
     "sphinx.ext.autosectionlabel",
-    "sphinx.ext.autosummary",
+    # "sphinx.ext.autosummary",
     "sphinx.ext.autodoc",
     "sphinx.ext.viewcode",
     "nbsphinx",
-    "numpydoc",
+    "sphinx_autodoc_typehints",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -49,14 +49,18 @@ templates_path = ["_templates"]
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "**.ipynb_checkpoints"]
 
-autodoc_default_flags = ["members"]
-autosummary_generate = True
+napoleon_use_param = True
+napoleon_numpy_docstring=True
+napoleon_include_init_with_doc=True
+napoleon_attr_annotations=True
+
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-numpydoc_show_class_members = False
+autosectionlabel_prefix_document = True
+autosectionlabel_maxdepth = 2
 
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -90,6 +94,6 @@ source_suffix = [".rst"]
 # today_fmt = "%B %d, %Y"
 # html_last_updated_fmt = "%b %d, %Y"
 
-import glob
+# import glob
 
 # autosummary_generate = glob.glob("*.rst")

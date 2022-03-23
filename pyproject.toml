@@ -30,6 +30,7 @@ pydata-sphinx-theme = "^0.7.2"
 pytest = "^7.0.1"
 mypy = "^0.931"
 ipython = ">=7.31.1"
+sphinx-autodoc-typehints = "^1.17.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

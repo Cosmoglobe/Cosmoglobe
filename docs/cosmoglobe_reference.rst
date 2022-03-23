@@ -1,6 +1,3 @@
-.. module:: cosmoglobe
-
-========================
 cosmoglobe Documentation
 ========================
 
@@ -10,8 +7,8 @@ This reference manual describes the objects and functions in *cosmoglobe* in
 detail. For learning how to use *cosmoglobe*, see our  
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
-   Chain <cosmoglobe_chain>
-   SkyModel <cosmoglobe_model>
-   SkyComponents <cosmoglobe_components>
+   reference/chain.rst
+   reference/model.rst
+   reference/components.rst
