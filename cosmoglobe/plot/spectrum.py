@@ -9,7 +9,9 @@ import matplotlib.pyplot as plt
 
 from .plottools import *
 
-#TODO: CO is currently hardcoded
+#TODO: 
+# CO is currently hardcoded
+# Make better custom band selection
 
 def spec(model, 
         pol=False, 
@@ -30,19 +32,85 @@ def spec(model,
         custom_bands = None,
         include_co=True,
         add_error = True):
-    # TODO, they need to be smoothed to common res!
-    set_style(darkmode, font="dejavusans")
+    """
+    Generates RMS intensity plot for components in model.
+        `model = cosmoglobe.model_from_chain(chain, nside=64, components=["synch", "ff", "ame", "dust", "radio"])`
+        `spec(model)`
+
+
+    Parameters
+    ----------
+    model : cosmoglobe Model object
+        Object containing all sky components to be visualized
+    pol : bool, optional
+        Plot polarization instead of intensity
+        default = None (temperature)
+    sky_fractions : touple, optional
+        Min and max sky fractions for thickness of lines
+        default: (25,85)
+    xlim : touple, optional
+        The limits of the x axis
+        default: (0.25, 4000)
+    long: bool, optional
+        Increases the xlimit and includes an additional subplot on top
+        default: True
+    darkmode : bool, optional
+        Set True to turn all frame elements white for black background viewing.
+        default: False 
+    ame_polfrac: float, optional
+        Set the polarization fraction of AME with a scale factor.
+        default: 0.006
+    haslam : bool, optional
+        Toggle this observation column
+        default:  True
+    chipass : bool, optional
+        Toggle this observation column
+        default:  True
+    spass : bool, optional
+        Toggle this observation column
+        default:  True
+    cbass : bool, optional
+        Toggle this observation column
+        default:  True
+    quijote : bool, optional
+        Toggle this observation column
+        default:  False
+    wmap : bool, optional
+        Toggle this observation column
+        default:  True
+    planck : bool, optional
+        Toggle this observation column
+        default:  True
+    dirbe : bool, optional
+        Toggle this observation column
+        default:  True
+    litebird : bool, optional
+        Toggle this observation column
+        default:  False
+    custom_bands : bool, optional
+        TODO: NOT IMPLEMENTED, toggle specific bands
+        default:  None
+    include_co : bool,  optional
+        Turn off CO lines
+        default: True
+    add_error : bool, optional
+        Toggle added uncertainty to low S/N part of spectrum.
+        default: True
+
+    """
+    
+    set_style(darkmode, font="serif")
     params={
         'xtick.top'          : False,
-        'ytick.right'        : True, #Set to false
-        'axes.spines.top'    : True, #Set to false
+        'ytick.right'        : True, 
+        'axes.spines.top'    : True, 
         'axes.spines.bottom' : True,
         'axes.spines.left'   : True,
-        'axes.spines.right'  : True, #Set to false@
+        'axes.spines.right'  : True,
         'axes.grid.axis'     : 'y',
         'axes.grid'          : False,
         'ytick.major.size'   : 5,
-        'ytick.minor.size'   : 2.6,
+        'ytick.minor.size'   : 2.5,
         'xtick.major.size'   : 5,
         'xtick.minor.size'   : 2.5,
         'xtick.major.pad'    : 8, 
@@ -316,13 +384,17 @@ def spec(model,
     ax.tick_params(axis='both', which='major', labelsize=lsize, direction='in')
     ax.tick_params(which="both",direction="in")
     ax.tick_params(axis='y', labelrotation=90) 
-    ax.set_yticklabels([fmt(x,1) for x in ax.get_yticks()], va="center")
+    ax.set_yticklabels([fmt(x,1) for x in ax.get_yticks()], va="center", fontsize=lsize)
     if long:
         ax2.set(xscale='log', yscale='log', ylim=(ymin2, ymax2), xlim=(xmin,xmax), yticks=[1e4,1e6,], xticks=ticks, xticklabels=ticks)
         ax2.tick_params(axis='both', which='major', labelsize=lsize, direction='in')
         ax2.tick_params(which="both",direction="in")
         ax2.tick_params(axis='y', labelrotation=90,) 
-        ax2.set_yticklabels([fmt(x,1) for x in ax2.get_yticks()], va="center")
+        ax2.set_yticklabels([fmt(x,1) for x in ax2.get_yticks()], va="center", fontsize=lsize)
+
+    ax.set_xticklabels([fmt(x,1) for x in ax.get_xticks()], fontsize=lsize)
+
+
 
     # Axis labels
     sax = fig.add_subplot(111, frameon=False)

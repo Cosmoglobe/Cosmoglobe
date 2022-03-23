@@ -13,5 +13,6 @@ contained in the package, see the :doc:`reference <cosmoglobe_reference>`.
 .. toctree::
    :maxdepth: 1
 
-   Sky Model tutorial <tutorial.ipynb>
+   Sky Model tutorial <tutorials/skymodel.ipynb>
+   Plotting tutorial <tutorials/plotting.ipynb>
     

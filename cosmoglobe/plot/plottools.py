@@ -1,4 +1,5 @@
 # This file contains useful functions used across different plotting scripts.
+from cmath import inf
 from re import A, T
 import warnings
 
@@ -18,7 +19,8 @@ import matplotlib as mpl
 from matplotlib.colors import colorConverter, LinearSegmentedColormap, ListedColormap
 from matplotlib.patches import Polygon
 from matplotlib import _pylab_helpers
-from matplotlib.ticker import FuncFormatter
+from matplotlib import ticker
+import matplotlib.patheffects as pe
 from pathlib import Path
 import json
 
@@ -30,8 +32,8 @@ DEFAULT_FONTSIZES = {
     "title": 12,
     "cbar_label": 11,
     "cbar_tick_label": 11,
-    "left_label": 11,
-    "right_label": 11,
+    "llabel": 11,
+    "rlabel": 11,
 }
 FIGURE_WIDTHS = {
     "x": 2.75,
@@ -94,7 +96,7 @@ def set_style(darkmode=False, font="serif"):
 
 
 def make_fig(
-    figsize, fignum, hold, subplot, reuse_axes, darkmode=False, projection=None
+    figsize, fignum, hold, sub, reuse_axes, darkmode=False, projection=None
 ):
     """
     Create matplotlib figure, add subplot, use current axes etc.
@@ -111,7 +113,7 @@ def make_fig(
     #  From healpy
     nrows, ncols, idx = (1, 1, 1)
     width, height = figsize
-    if not (hold or subplot or reuse_axes):
+    if not (hold or sub or reuse_axes):
         # Set general style parameters
         set_style(darkmode)
 
@@ -123,10 +125,10 @@ def make_fig(
     elif reuse_axes:
         fig = plt.gcf()
     else:  # using subplot syntax
-        if hasattr(subplot, "__len__"):
-            nrows, ncols, idx = subplot
+        if hasattr(sub, "__len__"):
+            nrows, ncols, idx = sub
         else:
-            nrows, ncols, idx = subplot // 100, (subplot % 100) // 10, (subplot % 10)
+            nrows, ncols, idx = sub // 100, (sub % 100) // 10, (sub % 10)
 
         # If figure exists, get. If not, create.
         figManager = _pylab_helpers.Gcf.get_active()
@@ -192,6 +194,9 @@ def symlog(m, linthresh=1.0):
     """
     This is the semi-logarithmic function used when logscale=True
     """
+    if linthresh == 0.0:
+        return np.sign(m)*np.log10(1e-20 + abs(m))
+
     # Extra fact of 2 ln 10 makes symlog(m) = m in linear regime
     m = m / linthresh / (2 * np.log(10))
     return np.log10(0.5 * (m + np.sqrt(4.0 + m * m)))
@@ -321,7 +326,7 @@ def apply_logscale(m, ticks, linthresh=1):
     NOTE: This should ideally be done for the colorbar, not the data.
     """
 
-    print("[magenta]Applying semi-logscale[/magenta]")
+    print(f"[magenta]Applying semi-logscale with linear threshold={linthresh}[/magenta]")
     m = symlog(m, linthresh)
     new_ticks = []
     for i in ticks:
@@ -393,65 +398,93 @@ def apply_colorbar(
         cb = mpl.colorbar.ColorbarBase(ax, cmap=cmap,
                                         norm=norm,
                                         orientation=orientation,
-                                        ticks=ticks,
-                                        format=FuncFormatter(fmt))
+                                        ticks=ticks,)
     else:
         cb = fig.colorbar(
             image,
-            ax=ax,
+            #ax=ax,
             orientation=orientation,
             shrink=cbar_shrink,
             pad=cbar_pad,
-            ticks=ticks,
-            format=FuncFormatter(fmt),
         )
-    
     if fontsize is None:
         fontsize = DEFAULT_FONTSIZES
     if isinstance(unit, u.UnitBase):
         unit = unit.to_string("latex")
+    #if orientation == 'horizontal':
+    #    cb.ax.set_xticklabels(ticklabels, size=fontsize["cbar_tick_label"])
+    #    cb.ax.xaxis.set_label_text(unit, size=fontsize["cbar_label"])
+    #elif orientation == 'vertical':
+    #    cb.ax.set_yticklabels(ticklabels, size=fontsize["cbar_tick_label"])
+    #    cb.ax.yaxis.set_label_text(unit, size=fontsize["cbar_label"])
+
+    #cb = plt.gca().collections[-1].colorbar
+    #labels = cb.ax.xaxis.get_ticklabels()
+    ##ticks = cb.get_ticks()
+    #N = len(labels)
+    #for i, label in enumerate(labels):
+    #    if i in [0, N//2, N-1]:
+    #        continue
+    #    label.set_visible(False)
     
-    if orientation == 'horizontal':
-        cb.ax.set_xticklabels(ticklabels, size=fontsize["cbar_tick_label"])
-        cb.ax.xaxis.set_label_text(unit, size=fontsize["cbar_label"])
-    elif orientation == 'vertical':
-        cb.ax.set_yticklabels(ticklabels, size=fontsize["cbar_tick_label"])
-        cb.ax.yaxis.set_label_text(unit, size=fontsize["cbar_label"])
-    if norm == "log":
-        linticks = np.linspace(-1, 1, 3) * linthresh
+    if  norm in ["linlog", "log"]:
+        """
+        Make logarithmic tick markers manually
+        """
+        linticks = np.linspace(-1, 1, 3) * linthresh if linthresh > 0.0 else [0]
         logmin = np.round(ticks[0])
         logmax = np.round(ticks[-1])
-
         logticks_min = -(10 ** np.arange(0, abs(logmin) + 1))
         logticks_max = 10 ** np.arange(0, logmax + 1)
         ticks_ = np.unique(np.concatenate((logticks_min, linticks, logticks_max)))
-        # cb.set_ticks(np.concatenate((ticks,symlog(ticks_))), []) # Set major ticks
 
+        # cb.set_ticks(np.concatenate((ticks,symlog(ticks_))), []) # Set major ticks
         logticks = symlog(ticks_, linthresh)
         logticks = [x for x in logticks if x not in ticks]
-        cb.set_ticks(np.concatenate((ticks, logticks)))  # Set major ticks
-        cb.ax.set_xticklabels(ticklabels + [""] * len(logticks))
+        if orientation == 'horizontal':
+            cb.set_ticks(np.concatenate((ticks, logticks)))  # Set major ticks  
+            cb.ax.set_xticklabels(ticklabels + [""] * len(logticks))
+        elif orientation == 'vertical':
+            #cb.ax.yaxis.set_ticks(np.concatenate((ticks, logticks)))  # Set major ticks  
+            #cb.ax.set_yticklabels(ticklabels + [""] * len(logticks))
+            pass
 
-        minorticks = np.linspace(-linthresh, linthresh, 5)
-        minorticks2 = np.arange(2, 10) * linthresh
 
+        # Minor tick log markers
+        
+        # Linear range for linlog plotting
+        minorticks = np.linspace(-linthresh, linthresh, 5) if linthresh > 0.0 else [0]
+
+        # Make first range of logarithmic minor ticks
+        lt = 1 if norm=="log" else linthresh
+        minorticks2 = np.arange(2, 10) * lt
+        
+
+        # Create range of minor ticks from min value to negative max
         for i in range(len(logticks_min)):
             minorticks = np.concatenate((-(10 ** i) * minorticks2, minorticks))
-        for i in range(len(logticks_max)):
-            minorticks = np.concatenate((minorticks, 10 ** i * minorticks2))
 
+        # Create range of minor ticks from min value to positive max
+        for i in range(len(logticks_max)):
+            minorticks = np.concatenate((minorticks, (10 ** i) * minorticks2))
+
+        # Convert values to true logarithmic values
         minorticks = symlog(minorticks, linthresh)
+
+        # Remove values outside of range
         minorticks = minorticks[(minorticks >= ticks[0]) & (minorticks <= ticks[-1])]
         if orientation == 'horizontal':
             cb.ax.xaxis.set_ticks(minorticks, minor=True)
         elif orientation == 'vertical':
             cb.ax.yaxis.set_ticks(minorticks, minor=True)
-
+    # workaround for issue with viewers, see colorbar docstring
+    cb.solids.set_edgecolor("face")
     if orientation == 'horizontal':
         cb.ax.tick_params(
             which="both",
             axis="x",
             direction="in",
+            color="#3d3d3d",
         )
         cb.ax.xaxis.labelpad = 0
     elif orientation == 'vertical':
@@ -459,15 +492,15 @@ def apply_colorbar(
             which="both",
             axis="y",
             direction="in",
+            color="#3d3d3d",
         )
         cb.ax.yaxis.labelpad = 0
 
         ylabels = cb.ax.get_yticklabels()
         cb.ax.set_yticklabels(ylabels, Rotation= 90)
-    # workaround for issue with viewers, see colorbar docstring
-    cb.solids.set_edgecolor("face")
 
-    return cb
+
+    return #cb
 
 
 def load_cmap(cmap):
@@ -701,19 +734,19 @@ def get_params(**params):
         if params["freq_ref"] is not None:
             params["freq_ref"] * u.GHz
 
-        if params["left_label"] is None:
-            params["left_label"] = ["I", "Q", "U"][params["sig"]]
+        if params["llabel"] is None:
+            params["llabel"] = ["I", "Q", "U"][params["sig"]]
         specials = ["residual", "freqmap", "bpcorr", "smap"]
         if any(j in params["comp"] for j in specials):
             if freq is not None:
-                params["right_label"] = (
-                    params["right_label"]
+                params["rlabel"] = (
+                    params["rlabel"]
                     + "{"
                     + f'{("%.5f" % freq.value).rstrip("0").rstrip(".")}'
                     + "}"
                 )
             else:
-                params["right_label"] = None
+                params["rlabel"] = None
                 warnings.warn(
                     f'Specify frequency with -freq for automatic frequency labeling with the "freqmap" profile'
                 )
@@ -722,15 +755,15 @@ def get_params(**params):
         # NOTE: This probably doesnt work with the current state of the comp
         # keyword. Rewrite somehow.
         if "rms" in params["comp"]:
-            params["right_label"] += "^{\mathrm{RMS}}"
+            params["rlabel"] += "^{\mathrm{RMS}}"
             params["cmap"] = "neutral"
             params["ticks"] = "comp"
         if "stddev" in params["comp"]:
-            params["right_label"] = "\sigma_{\mathrm{" + params["right_label"] + "}}"
+            params["rlabel"] = "\sigma_{\mathrm{" + params["rlabel"] + "}}"
             params["cmap"] = "neutral"
             params["ticks"] = "comp"
         if "mean" in params["comp"]:
-            params["right_label"] = "\langle " + params["right_label"] + "\rangle"
+            params["rlabel"] = "\langle " + params["rlabel"] + "\rangle"
         """
 
         # Specify at which frequency we are observing in unit lable
@@ -788,7 +821,7 @@ def get_params(**params):
             params["ticks"][-1] = pmax
 
     # Math text in labels
-    for key in ["right_label", "left_label", "unit"]:
+    for key in ["rlabel", "llabel", "unit"]:
         if params[key] and params[key] != "":
             if "$" not in params[key]:
                 params[key] = r"$" + params[key] + "$"

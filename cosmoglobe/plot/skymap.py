@@ -6,6 +6,7 @@ import healpy as hp
 import numpy as np
 import astropy.units as u
 import matplotlib.pyplot as plt
+from matplotlib.colors import SymLogNorm
 
 from .plottools import *
 
@@ -35,8 +36,8 @@ def plot(
     remove_dip=False,
     remove_mono=False,
     title=None,
-    right_label=None,
-    left_label=None,
+    rlabel=None,
+    llabel=None,
     width=4.7,
     xsize=1000,
     darkmode=False,
@@ -81,72 +82,78 @@ def plot(
         If cosmoglobe object is passed such as 'model', specify comp or freq.
     sig : str or int, optional
         Specify which signal to plot if ndim>1.
-        default = None
+        default: None
     comp : string, optional
         Component label for automatic identification of plotting
         parameters based on information from autoparams.json
-        default = None
+        default: None
     freq : astropy GHz, optional
         frequency in GHz needed for scaling maps when using a model object input
-        default = None
+        default: None
     ticks : list or str, optional
         Min and max value for data. If None, uses 97.5th percentile.
-        default = None
+        default: None
     min : float, optional
       The minimum range value. If specified, overwrites autodetector.
-      default = None
+      default: None
     max : float, optional
       The maximum range value. If specified, overwrites autodetector.
-      default = None
+      default: None
     rng : float, optional
       Sets this value as min and max value. If specified, overwrites autodetector.
-      default = None
+      default: None
     cbar : bool, optional
         Toggles the colorbar
-        cbar = True
+        cbar : True
     fwhm : astropy arcmin/rad/deg, optional
         Optional map smoothing. FWHM of gaussian smoothing in arcmin.
-        default = 0.0
+        default: 0.0
     mask : str path or np.ndarray, optional
         Apply a mask file to data
-        default = None
+        default: None
     cmap : str, optional
         Colormap (ex. sunburst, planck, jet). Both matplotliib and cmasher
         available as of now. Also supports qualitative plotly map, [ex.
         q-Plotly-4 (q for qualitative 4 for max color)] Sets planck as default.
-        default = None
-    norm : str, optional
+        default: None
+    norm : str, matplotlib norm object, optional
         if norm=='linear':
             normal
         if norm=='log':
+            Uses log10 scale
             Normalizes data using a semi-logscale linear between -1 and 1.
             Autodetector uses this sometimes, you will be warned.
-        default = None
+        SPECIFY linthresh for linear threshold of symlog!
+        default: None
+    linthresh : float, optional
+        Linear threshold in symmetric logarithimc scaling.
+        Only used if log-norming
+        default: 1
     remove_dip : bool, optional
         If mdmask is specified, fits and removes a dipole.
-        default = True
+        default: True
     remove_mono : bool, optional
         If mdmask is specified, fits and removes a monopole.
-        default = True
+        default: True
     unit : str, optional
         Unit label for colorbar
-        default = None
+        default: None
     title : str, optional
         Sets the full figure title. Has LaTeX functionaliity (ex. $A_{s}$.)
-        default = None
-    right_label : str, optional
+        default: None
+    rlabel : str, optional
         Sets the upper right title. Has LaTeX functionaliity (ex. $A_{s}$.)
-        default = None
-    left_label : str, optional
+        default: None
+    llabel : str, optional
         Sets the upper left title. Has LaTeX functionaliity (ex. $A_{s}$.)
-        default = None
+        default: None
     width : str, float, optional
         Size in inches OR 1/3, 1/2 and full page width (2.75/3.5/4.7/7 inches) [ex. x, s, m or l]
-        default = "m" (4.7 inches)
+        default: "m" (4.7 inches)
     darkmode : bool, optional
         Plots all outlines in white for dark backgrounds, and adds 'dark' in
         filename.
-        default = False
+        default: False
     rot : scalar or sequence, optional
       Describe the rotation to apply.
       In the form (lon, lat, psi) (unit: degrees) : the point at
@@ -196,33 +203,6 @@ def plot(
         override y-axis tick labels
     """
 
-    # Pick sizes from size dictionary for page width plots
-    if False:
-        override_plot_properties = None
-    else:
-        try:
-            width = float(width)
-        except ValueError:
-            if isinstance(width, str):
-                width = FIGURE_WIDTHS[width]
-        if ratio is None:
-            ratio = 0.63 if cbar else 0.5
-            if title is not None:
-                # Calculated slope of ratio. Could be better.
-                rat=((0.04 - 0.07)/(7-4.7))*width+0.131
-                ratio+=rat
-        xsize = int((1000 / 8.5) * width)
-        override_plot_properties = {
-            "figure_width": width,
-            "figure_size_ratio": ratio,
-        }
-        if cb_orientation == 'horizontal':
-            override_plot_properties["cbar_pad"]    =  0.04
-            override_plot_properties["cbar_shrink"] =  0.4
-        elif cb_orientation == 'vertical':
-            override_plot_properties["cbar_pad"]    =  0.02
-            override_plot_properties["cbar_shrink"] =  0.8
-
     if not fontsize:
         fontsize = DEFAULT_FONTSIZES
     else:
@@ -230,12 +210,12 @@ def plot(
         for key in fontsize.keys():
             fontsize_[key] = fontsize[key]
         fontsize = fontsize_
+        
     set_style(darkmode)
 
     # Translate sig to correct format
     if isinstance(sig, str):
         sig = STOKES.index(sig)
-
 
     # Get data
     m, comp, freq, nside = get_data(input, sig, comp, freq, fwhm, nside=nside, sample=sample)
@@ -252,29 +232,14 @@ def plot(
             )
             mask = hp.ud_grade(mask, nside)
         m.mask = np.logical_not(mask)
-
-    # Remove mono/dipole
-    if remove_dip:
-        m = hp.remove_dipole(
-            m,
-            gal_cut=30,
-            copy=True,
-        )
-    if remove_mono:
-        m = hp.remove_monopole(
-            m,
-            gal_cut=30,
-            copy=True,
-        )
-
     
     # Pass all your arguments in, return parsed plotting parameters
     params = get_params(
         data=m,
         comp=comp,
         sig=sig,
-        right_label=right_label,
-        left_label=left_label,
+        rlabel=rlabel,
+        llabel=llabel,
         unit=unit,
         ticks=ticks,
         min=min,
@@ -286,27 +251,20 @@ def plot(
         width=width,
         nside=nside,
     )
-
-    # Semi-log normalization
-    if params["norm"] == "log":
-        params["data"], params["ticks"] = apply_logscale(
-            params["data"], params["ticks"], linthresh=1
-        )
-
+    
     # Colormap
     cmap = load_cmap(params["cmap"])
     if maskfill:
         cmap.set_bad(maskfill)
 
-    
+    if override_plot_properties is None:
+        override_plot_properties={"cbar_tick_direction": "in"}
     if interactive: # Plot using mollview if interactive mode
-        if params["norm"] == "log":
-            params["norm"] = None
         hp.mollview(
             params["data"],
             min=params["ticks"][0],
             max=params["ticks"][-1],
-            cbar=False,
+            cbar=cbar, 
             cmap=cmap,
             unit=params["unit"],
             title=title,
@@ -321,17 +279,23 @@ def plot(
         ret=plt.gca().get_images()[0]
 
     else: # Using fancy projview
-
         warnings.filterwarnings("ignore")  # Healpy complains too much
         # Plot figure
         ret = hp.newvisufunc.projview(
             params["data"],
             min=params["ticks"][0],
             max=params["ticks"][-1],
-            cbar=False,
+            cbar_ticks=params["ticks"],
+            cbar=cbar,
             cmap=cmap,
-            xsize=xsize,
+            llabel=params["llabel"],
+            rlabel=params["rlabel"],
+            norm=params["norm"],
+            override_plot_properties=override_plot_properties,
+            show_tickmarkers=True,
+            width=width,
             # unedited params
+            xsize=xsize,
             title=title,
             rot=rot,
             coord=coord,
@@ -346,7 +310,6 @@ def plot(
             ylabel=ylabel,
             longitude_grid_spacing=longitude_grid_spacing,
             latitude_grid_spacing=latitude_grid_spacing,
-            override_plot_properties=override_plot_properties,
             xtick_label_color=xtick_label_color,
             ytick_label_color=ytick_label_color,
             graticule_color=graticule_color,
@@ -354,62 +317,7 @@ def plot(
             phi_convention=phi_convention,
             custom_xtick_labels=custom_xtick_labels,
             custom_ytick_labels=custom_ytick_labels,
-        )        
-    
-    if not return_only_data:
+        )   
 
-        if override_plot_properties is not None:
-            cbar_pad = override_plot_properties["cbar_pad"]
-            cbar_shrink = override_plot_properties["cbar_shrink"]
-        else: 
-            if cb_orientation == 'horizontal':
-                cbar_pad = 0.04
-                cbar_shrink = 0.3
-            elif cb_orientation == 'vertical':
-                cbar_pad =  0.02
-                cbar_shrink =  0.5
-
-        # Remove color bar because of healpy bug
-        plt.gca().collections[-1].colorbar.remove()
-
-        # Add pretty color bar
-        if cbar:
-            apply_colorbar(
-                plt.gcf(),
-                plt.gca(),
-                ret,
-                params["ticks"],
-                params["ticklabels"],
-                params["unit"],
-                fontsize=fontsize,
-                linthresh=1,
-                norm=params["norm"],
-                cbar_pad=cbar_pad,
-                cbar_shrink=cbar_shrink,
-                orientation=cb_orientation,
-            )
-
-    #### Right Title ####
-    plt.text(
-        0.975,
-        0.925,
-        params["right_label"],
-        ha="right",
-        va="center",
-        fontsize=fontsize["right_label"],
-        transform=plt.gca().transAxes,
-    )
-    #### Left Title (stokes parameter label by default) ####
-    plt.text(
-        0.025,
-        0.925,
-        params["left_label"],
-        ha="left",
-        va="center",
-        fontsize=fontsize["left_label"],
-        transform=plt.gca().transAxes,
-    )
-    if cb_orientation == 'vertical':
-        plt.subplots_adjust(left=0.01, right=1.05)
 
     return ret, params

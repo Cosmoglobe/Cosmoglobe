@@ -374,7 +374,7 @@ def plot(
     dpi,
 ):
     """
-    This function invokes the plot function from the command line
+    Invokes the plot function from the command line
     input: filename of fits or h5 file, optional plotting paramameters
     """
     imgs = []  # Container for images used with gif
@@ -769,7 +769,7 @@ def gnom(
     dpi,
 ):
     """
-    This function plots a fits file in gnomonic view.
+    Plots a fits file in gnomonic view.
     It is wrapper on the cosmoglobe "gnom" function.s
     """
     cbar = False if nocbar else True
@@ -975,7 +975,7 @@ def trace(
     dpi,
 ):
     """
-    This function creates a trace plot off data in a HDF file.
+    Creates a trace plot off data in a HDF file.
     This is a click wrapper the same function in cosmoglobe.
     """
     labels = labels.split(" ")
