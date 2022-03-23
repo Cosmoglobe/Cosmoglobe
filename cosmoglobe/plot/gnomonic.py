@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from functools import partial
 from .plottools import *
 
+import matplotlib.patheffects as path_effects
 
 @u.quantity_input(freq=u.Hz, fwhm=(u.arcmin, u.rad, u.deg))
 def gnom(
@@ -20,20 +21,21 @@ def gnom(
     vmax=None,
     ticks=None,
     rng=None,
-    left_label=None,
-    right_label=None,
+    llabel=None,
+    rlabel=None,
     unit=None,
     cmap=None,
     graticule=False,
     norm=None,
     cbar=True,
-    cbar_pad=0.04,
-    cbar_shrink=0.7,
+    cbar_pad=0.0,
+    cbar_shrink=1,
     fwhm=0.0 * u.arcmin,
     remove_dip=False,
     remove_mono=False,
     fontsize=None,
     figsize=(3, 4),
+    xsize=1000,
     darkmode=False,
     sub=None,
     hold=False,
@@ -85,10 +87,10 @@ def gnom(
     rng : float, optional
       Sets this value as min and max value. If specified, overwrites autodetector.
       default: None
-    left_label : str, optional
+    llabel : str, optional
         Sets the upper left title. Has LaTeX functionaliity (ex. $A_{s}$.)
         default: None
-    right_label : str, optional
+    rlabel : str, optional
         Sets the upper right title. Has LaTeX functionaliity (ex. $A_{s}$.)
         default: None
     unit : str, optional
@@ -133,6 +135,9 @@ def gnom(
     figsize : touple, optional 
         size of figure
         default: None
+    xsize : int, optional 
+        width of figure in pixels
+        default: 1000
     darkmode : bool, optional 
         turn all axis elements white for optimal dark visualization
         default: False
@@ -163,12 +168,11 @@ def gnom(
             "title": 12,
             "cbar_label": 11,
             "cbar_tick_label": 9,
-            "left_label": 11,
-            "right_label": 11,
+            "llabel": 11,
+            "rlabel": 11,
         }
     # Set plotting rcParams
     set_style(darkmode)
-    xsize = 1000
     reso = size * 60 / xsize
 
     # Get data
@@ -188,8 +192,8 @@ def gnom(
         data=reproj_im, 
         comp=comp,
         sig=sig,
-        right_label=right_label,
-        left_label=left_label,
+        rlabel=rlabel,
+        llabel=llabel,
         unit=unit,
         ticks=ticks,
         min=vmin,
@@ -219,33 +223,37 @@ def gnom(
         params["data"],
         origin="lower",
         interpolation="nearest",
-        vmin=params["ticks"][0],
-        vmax=params["ticks"][-1],
+        vmin=np.min(params["ticks"]),
+        vmax=np.max(params["ticks"]),
         cmap=cmap
     )
+
+    # Galaxy-brain inverse of data color
+    colors = image.cmap(image.norm((params["data"])))
+    llabel_color = (1,1,1,2)-np.mean(colors[int(xsize*.9):int(xsize*.95),int(xsize*.05):int(xsize*.15)],axis=(0,1))
+    rlabel_color = (1,1,1,2)-np.mean(colors[int(xsize*.9):int(xsize*.95),int(xsize*.85):int(xsize*.95)],axis=(0,1))
 
     plt.xticks([])
     plt.yticks([])
     plt.text(
         0.95,
         0.95,
-        params["right_label"],
-        color="black",
+        params["rlabel"],
+        color=rlabel_color,
         va="top",
         ha="right",
         transform=ax.transAxes,
-        fontsize=fontsize["title"]
+        fontsize=fontsize["title"],
     )
     plt.text(
         0.05,
         0.95,
-        params["left_label"],
-        color="black",
+        params["llabel"],
+        color=llabel_color,
         va="top",
         transform=ax.transAxes,
-        fontsize=fontsize["title"]
+        fontsize=fontsize["title"],
     )
-
     if cbar:
         apply_colorbar(
             plt.gcf(),
