@@ -32,8 +32,8 @@ DEFAULT_FONTSIZES = {
     "title": 12,
     "cbar_label": 11,
     "cbar_tick_label": 11,
-    "left_label": 11,
-    "right_label": 11,
+    "llabel": 11,
+    "rlabel": 11,
 }
 FIGURE_WIDTHS = {
     "x": 2.75,
@@ -734,19 +734,19 @@ def get_params(**params):
         if params["freq_ref"] is not None:
             params["freq_ref"] * u.GHz
 
-        if params["left_label"] is None:
-            params["left_label"] = ["I", "Q", "U"][params["sig"]]
+        if params["llabel"] is None:
+            params["llabel"] = ["I", "Q", "U"][params["sig"]]
         specials = ["residual", "freqmap", "bpcorr", "smap"]
         if any(j in params["comp"] for j in specials):
             if freq is not None:
-                params["right_label"] = (
-                    params["right_label"]
+                params["rlabel"] = (
+                    params["rlabel"]
                     + "{"
                     + f'{("%.5f" % freq.value).rstrip("0").rstrip(".")}'
                     + "}"
                 )
             else:
-                params["right_label"] = None
+                params["rlabel"] = None
                 warnings.warn(
                     f'Specify frequency with -freq for automatic frequency labeling with the "freqmap" profile'
                 )
@@ -755,15 +755,15 @@ def get_params(**params):
         # NOTE: This probably doesnt work with the current state of the comp
         # keyword. Rewrite somehow.
         if "rms" in params["comp"]:
-            params["right_label"] += "^{\mathrm{RMS}}"
+            params["rlabel"] += "^{\mathrm{RMS}}"
             params["cmap"] = "neutral"
             params["ticks"] = "comp"
         if "stddev" in params["comp"]:
-            params["right_label"] = "\sigma_{\mathrm{" + params["right_label"] + "}}"
+            params["rlabel"] = "\sigma_{\mathrm{" + params["rlabel"] + "}}"
             params["cmap"] = "neutral"
             params["ticks"] = "comp"
         if "mean" in params["comp"]:
-            params["right_label"] = "\langle " + params["right_label"] + "\rangle"
+            params["rlabel"] = "\langle " + params["rlabel"] + "\rangle"
         """
 
         # Specify at which frequency we are observing in unit lable
@@ -821,7 +821,7 @@ def get_params(**params):
             params["ticks"][-1] = pmax
 
     # Math text in labels
-    for key in ["right_label", "left_label", "unit"]:
+    for key in ["rlabel", "llabel", "unit"]:
         if params[key] and params[key] != "":
             if "$" not in params[key]:
                 params[key] = r"$" + params[key] + "$"
