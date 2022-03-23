@@ -20,7 +20,7 @@ tqdm = "^4.62.3"
 rich = "^10.14.0"
 cmasher = "^1.6.3"
 click = ">=8.0.1"
-Pillow = ">=9.0.0"
+Pillow = ">=9.0.1"
 
 [tool.poetry.dev-dependencies]
 Sphinx = "^4.3.0"
