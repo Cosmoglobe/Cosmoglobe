@@ -19,8 +19,6 @@ import matplotlib as mpl
 from matplotlib.colors import colorConverter, LinearSegmentedColormap, ListedColormap
 from matplotlib.patches import Polygon
 from matplotlib import _pylab_helpers
-from matplotlib import ticker
-import matplotlib.patheffects as pe
 from pathlib import Path
 import json
 

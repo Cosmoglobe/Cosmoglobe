@@ -4,8 +4,6 @@ import matplotlib.pyplot as plt
 from functools import partial
 from .plottools import *
 
-import matplotlib.patheffects as path_effects
-
 @u.quantity_input(freq=u.Hz, fwhm=(u.arcmin, u.rad, u.deg))
 def gnom(
     input,
