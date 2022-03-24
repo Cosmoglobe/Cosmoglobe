@@ -3,5 +3,11 @@
 Plotting features
 =================
 
-.. automodule:: cosmoglobe.plot
-    :members: plot, gnom, hist, trace, spec, standalone_colorbar, 
+.. toctree::
+
+    plot/skymap
+    plot/gnomonic
+    plot/histogram
+    plot/traceplot
+    plot/spectrum
+    
