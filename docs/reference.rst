@@ -12,3 +12,4 @@ detail. For learning how to use *cosmoglobe*, see our
    reference/model.rst
    reference/chain.rst
    reference/components.rst
+   reference/plot.rst
