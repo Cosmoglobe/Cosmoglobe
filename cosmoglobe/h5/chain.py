@@ -200,7 +200,7 @@ class Chain:
         key: str,
         *,
         alm2map=False,
-        samples: Optional[Union[range, int, Sequence[int]]] = None,
+        samples: Optional[range | int | Sequence[int]] = None,
     ) -> Any:
         """Returns the stddev of an key over all samples.
 
