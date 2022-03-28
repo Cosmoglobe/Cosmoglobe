@@ -4,14 +4,15 @@ import textwrap
 from typing import Any, Dict, Generator, List, Optional, Sequence, Union
 
 import h5py
+import healpy as hp
 import numpy as np
 
 from cosmoglobe.h5 import ChainVersion, PARAMETER_GROUP_NAME
 from cosmoglobe.h5._alms import unpack_alms_from_chain
+from cosmoglobe.h5._alms import unpack_alms as unpack_alms_
 from cosmoglobe.h5._decorators import validate_key, validate_samples, unpack_alms
 from cosmoglobe.h5._exceptions import ChainFormatError, ChainSampleError, ChainKeyError
 from cosmoglobe.sky.components._labels import SkyComponentLabel
-
 
 class Chain:
     """An interface for Cosmoglobe chainfiles.
@@ -190,16 +191,15 @@ class Chain:
             if len(samples) > 1:
                 for sample in samples[1:]:
                     value += file[f"{sample}/{key}"][()]
-
         return dtype(value / len(samples))  # Converting back to original dtype
 
     @validate_key
     @validate_samples
-    @unpack_alms
     def stddev(
         self,
         key: str,
         *,
+        alm2map=False,
         samples: Optional[Union[range, int, Sequence[int]]] = None,
     ) -> Any:
         """Returns the stddev of an key over all samples.
@@ -218,14 +218,35 @@ class Chain:
         value
             The averaged value of the key over all samples.
         """
-        mu = self.mean(key, samples=samples)
+
+        with h5py.File(self.path, "r") as file:
+            value = file[f"{samples[0]}/{key}"][()]
+            dtype = value.dtype.type
+            if len(samples) > 1:
+                for sample in samples[1:]:
+                    value += file[f"{sample}/{key}"][()]
+        mu = dtype(value / len(samples))  # Converting back to original dtype
+
+        # Calculate in map-space if alm2map
+        if alm2map:
+            comp, quantity = key.split("/")
+            nside = self.parameters[comp]["nside"]
+            pol = True if quantity.startswith("amp") else False
+            fwhm = self.parameters[comp]["fwhm"]
+            lmax = 3*nside
+            mu = hp.alm2map(unpack_alms_(mu, lmax), nside=nside, lmax=lmax, fwhm=fwhm, pol=pol, pixwin=True,)
+
+
         with h5py.File(self.path, "r") as file: 
             x = file[f"{samples[0]}/{key}"][()] 
+            if alm2map: x = hp.alm2map(unpack_alms_(x, lmax), nside=nside, lmax=lmax, fwhm=fwhm, pol=pol, pixwin=True,)
             dtype = x.dtype.type
             numerator = (x - mu)**2
             if len(samples) > 1:
                 for sample in samples[1:]:
-                    numerator += (file[f"{sample}/{key}"][()] - mu)**2
+                    x = file[f"{sample}/{key}"][()]
+                    if alm2map: x = hp.alm2map(unpack_alms_(x, lmax), nside=nside, lmax=lmax, fwhm=fwhm, pol=pol, pixwin=True,)
+                    numerator += (x - mu)**2
 
         return dtype(np.sqrt(numerator/len(samples)))  # Converting back to original dtype
 

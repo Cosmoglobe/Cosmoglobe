@@ -149,8 +149,6 @@ def mean(chain, dataset, outname, min, max, nside):
     else:
         np.savetxt(outname, data)
 
-
-
 @commands_h5.command()
 @click.argument("chain", type=click.Path(exists=True),)
 @click.argument("dataset",)
@@ -195,17 +193,12 @@ def stddev(chain, dataset, outname, min, max, nside):
 
     chain = Chain(chain)
     if max is None: max = chain.nsamples
-    data = chain.stddev(dataset, samples=range(min, max))
 
     if outname.endswith(".fits"):
-        if dataset.endswith("alm"): 
-            comp, quantity = dataset.split("/")
-            if nside is None: nside = chain.parameters[comp]["nside"]
-            pol = True if quantity.startswith("amp") else False
-            fwhm = chain.parameters[comp]["fwhm"]
-            data = hp.alm2map(data, nside=nside, fwhm=fwhm, pol=pol, pixwin=True,)
-            
+        alm2map = True if dataset.endswith("alm") else False
+        data = chain.stddev(dataset, samples=range(min, max), alm2map=alm2map)
         hp.write_map(outname, data, overwrite=True)
     else:
+        data = chain.stddev(dataset, samples=range(min, max),)
         np.savetxt(outname, data)
 
