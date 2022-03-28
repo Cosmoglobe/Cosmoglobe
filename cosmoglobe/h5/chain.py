@@ -316,14 +316,7 @@ class Chain:
         if new_name is None:
             new_name = self.path.stem + "_copy.h5"
 
-        if Path(new_name).is_file():
-            print(
-                f"You are about to overwrite {new_name}. Would you like to continue? [y/n]"
-            )
-            if not input("> ") in ["y", "Y"]:
-                exit()
-
-        with h5py.File(new_name, "w") as new_chain:
+        with h5py.File(new_name, "x") as new_chain:
             with h5py.File(self.path, "r") as chain:
                 for idx, sample in enumerate(samples):
                     group = chain[sample]
