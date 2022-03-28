@@ -1,7 +1,7 @@
 from __future__ import annotations
 from pathlib import Path
 import textwrap
-from typing import Any, Dict, Generator, List, Optional, Sequence, Union
+from typing import Any, Generator, Optional, Sequence
 
 import h5py
 import healpy as hp
@@ -21,7 +21,7 @@ class Chain:
     Cosmoglobe chain files.
     """
 
-    def __init__(self, path: Union[str, Path], burn_in: Optional[int] = None) -> None:
+    def __init__(self, path: str | Path, burn_in: Optional[int] = None) -> None:
         """Validate and initialize the Chain object.
 
         Parameters
@@ -58,7 +58,7 @@ class Chain:
                 if group in [label.value for label in SkyComponentLabel]
             ]
 
-            parameters: Dict[str, Dict[str, Any]] = {}
+            parameters: dict[str, dict[str, Any]] = {}
             if version is ChainVersion.NEW:
                 for component, group in file[PARAMETER_GROUP_NAME].items():
                     parameters[component] = {}
@@ -79,7 +79,7 @@ class Chain:
         self._version = version
 
     @property
-    def samples(self) -> List[str]:
+    def samples(self) -> list[str]:
         """List of all samples in the chain."""
 
         return self._samples
@@ -91,13 +91,13 @@ class Chain:
         return len(self.samples)
 
     @property
-    def components(self) -> List[str]:
+    def components(self) -> list[str]:
         """List of the sky components in the chain."""
 
         return self._components
 
     @property
-    def parameters(self) -> Dict[str, Dict[str, Any]]:
+    def parameters(self) -> dict[str, dict[str, Any]]:
         """Dictionary of the parameters in the parameter group in the chain."""
 
         return self._parameters
@@ -136,7 +136,7 @@ class Chain:
         self,
         key: str,
         *,
-        samples: Optional[Union[range, int, Sequence[int]]] = None,
+        samples: Optional[range | int | Sequence[int]] = None,
     ) -> Any:
         """Returns the value of an key for all samples.
 
@@ -167,7 +167,7 @@ class Chain:
         self,
         key: str,
         *,
-        samples: Optional[Union[range, int, Sequence[int]]] = None,
+        samples: Optional[range | int | Sequence[int]] = None,
     ) -> Any:
         """Returns the mean of an key over all samples.
 
@@ -256,7 +256,7 @@ class Chain:
         self,
         key: str,
         *,
-        samples: Optional[Union[range, int, Sequence[int]]] = None,
+        samples: Optional[range | int | Sequence[int]] = None,
     ) -> Generator:
         """Returns a generator to be used in a for loop.
 
@@ -310,7 +310,7 @@ class Chain:
                     return item.asstr()[()]
                 return item[()]
 
-    def _format_samples(self, samples: Union[List[int], int]) -> Union[List[str], str]:
+    def _format_samples(self, samples: list[int] | int) -> list[str] | str:
         """Converts a range to the string format of the samples in the chain."""
 
         leading_zeros = len(self.samples[0])
@@ -364,7 +364,7 @@ class Chain:
     @validate_samples
     def copy(
         self,
-        samples: Union[int, Sequence[int], range] = -1,
+        samples: int | Sequence[int] | range = -1,
         new_name: Optional[str] = None,
     ) -> None:
         """Creates a copy of the chain with a single or multiple samples."""
@@ -372,14 +372,7 @@ class Chain:
         if new_name is None:
             new_name = self.path.stem + "_copy.h5"
 
-        if Path(new_name).is_file():
-            print(
-                f"You are about to overwrite {new_name}. Would you like to continue? [y/n]"
-            )
-            if not input("> ") in ["y", "Y"]:
-                exit()
-
-        with h5py.File(new_name, "w") as new_chain:
+        with h5py.File(new_name, "x") as new_chain:
             with h5py.File(self.path, "r") as chain:
                 for idx, sample in enumerate(samples):
                     group = chain[sample]
@@ -395,7 +388,7 @@ class Chain:
     def combine(
         self,
         other_chain: Chain,
-        group_list: List[str],
+        group_list: Sequence[str],
         new_name: Optional[str] = None,
     ) -> None:
         """Creates a new chainfile that combines specific groups from two chains."""
@@ -434,8 +427,8 @@ class Chain:
 
 
 def copy_chain(
-    chain: Union[str, Path, Chain],
-    samples: Union[int, Sequence[int], range] = -1,
+    chain: str | Path | Chain,
+    samples: int | Sequence[int] | range = -1,
     new_name: Optional[str] = None,
 ) -> None:
     """Creates a copy of the chain with a single or multiple samples.
@@ -457,9 +450,9 @@ def copy_chain(
 
 
 def combine_chains(
-    chain: Union[str, Path, Chain],
-    other_chain: Union[str, Path, Chain],
-    group_list: List[str],
+    chain: str | Path | Chain,
+    other_chain: str | Path | Chain,
+    group_list: Sequence[str],
     new_name: Optional[str] = None,
 ) -> None:
     """Creates a new chainfile that combines specific groups from two chains.
