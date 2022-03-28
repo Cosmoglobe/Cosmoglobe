@@ -184,7 +184,6 @@ class Chain:
         value
             The averaged value of the key over all samples.
         """
-
         with h5py.File(self.path, "r") as file:
             value = file[f"{samples[0]}/{key}"][()]
             dtype = value.dtype.type
@@ -193,6 +192,42 @@ class Chain:
                     value += file[f"{sample}/{key}"][()]
 
         return dtype(value / len(samples))  # Converting back to original dtype
+
+    @validate_key
+    @validate_samples
+    @unpack_alms
+    def stddev(
+        self,
+        key: str,
+        *,
+        samples: Optional[Union[range, int, Sequence[int]]] = None,
+    ) -> Any:
+        """Returns the stddev of an key over all samples.
+
+        Parameters
+        ----------
+        key
+            The path to an item that has been sampled in the chain, e.g
+            'dust/amp_alm'.
+        samples
+            An int or a range of samples to average over. If None, all
+            samples in the chain are used.
+
+        Returns
+        -------
+        value
+            The averaged value of the key over all samples.
+        """
+        mu = self.mean(key, samples=samples)
+        with h5py.File(self.path, "r") as file: 
+            x = file[f"{samples[0]}/{key}"][()] 
+            dtype = x.dtype.type
+            numerator = (x - mu)**2
+            if len(samples) > 1:
+                for sample in samples[1:]:
+                    numerator += (file[f"{sample}/{key}"][()] - mu)**2
+
+        return dtype(np.sqrt(numerator/len(samples)))  # Converting back to original dtype
 
     @validate_key
     @validate_samples

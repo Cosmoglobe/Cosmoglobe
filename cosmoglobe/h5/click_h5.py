@@ -1,11 +1,10 @@
 import click
 from rich import print
-import astropy.units as u
-import matplotlib.pyplot as plt
-import os
-import re
+import healpy as hp
+import numpy as np
 
 from cosmoglobe.h5 import chain
+from cosmoglobe.h5.chain import Chain
 
 @click.group()
 def commands_h5():
@@ -92,4 +91,121 @@ def combine_chains(**kwargs):
     """
     chain.combine_chains(**kwargs)
 
+@commands_h5.command()
+@click.argument("chain", type=click.Path(exists=True),)
+@click.argument("dataset",)
+@click.argument("outname", )
+@click.option(
+    "-min",
+    type=click.INT,
+    default=0,
+    help="First sample.",
+)
+@click.option(
+    "-max",
+    type=click.INT,
+    default=None, 
+    help="Last sample. If not specified, use last sample of dataset.",
+)
+@click.option(
+    "-nside",
+    type=click.INT,
+    default=None, 
+    help="Output nside of data.",
+)
+def mean(chain, dataset, outname, min, max, nside):
+    """Calculates the mean of a dataset over a range of samples
+
+    Parameters
+    ----------
+    chain
+        Path to chain file. This chain defines all the chain whos content you
+        want to overwrite in a new combined file.
+    dataset
+        Chain dataset on the form dust/amp_alm
+    outname
+        Name of .fits file to output the result to.
+    min
+        The first sample, default is first sample of chain.
+    max
+        last sample, default is last sample of chain.
+    nside
+        Output nside of data.
+    """
+
+    chain = Chain(chain)
+    if max is None: max = chain.nsamples
+    data = chain.mean(dataset, samples=range(min, max))
+
+    if outname.endswith(".fits"):
+        if dataset.endswith("alm"): 
+            comp, quantity = dataset.split("/")
+            if nside is None: nside = chain.parameters[comp]["nside"]
+            pol = True if quantity.startswith("amp") else False
+            fwhm = chain.parameters[comp]["fwhm"]
+            data = hp.alm2map(data, nside=nside, fwhm=fwhm, pol=pol, pixwin=True,)
+            
+        hp.write_map(outname, data, overwrite=True)
+    else:
+        np.savetxt(outname, data)
+
+
+
+@commands_h5.command()
+@click.argument("chain", type=click.Path(exists=True),)
+@click.argument("dataset",)
+@click.argument("outname", )
+@click.option(
+    "-min",
+    type=click.INT,
+    default=0,
+    help="First sample.",
+)
+@click.option(
+    "-max",
+    type=click.INT,
+    default=None, 
+    help="Last sample. If not specified, use last sample of dataset.",
+)
+@click.option(
+    "-nside",
+    type=click.INT,
+    default=None, 
+    help="Output nside of data.",
+)
+def stddev(chain, dataset, outname, min, max, nside):
+    """Calculates the stddev of a dataset over a range of samples
+
+    Parameters
+    ----------
+    chain
+        Path to chain file. This chain defines all the chain whos content you
+        want to overwrite in a new combined file.
+    dataset
+        Chain dataset on the form dust/amp_alm
+    outname
+        Name of .fits file to output the result to.
+    min
+        The first sample, default is first sample of chain.
+    max
+        last sample, default is last sample of chain.
+    nside
+        Output nside of data.
+    """
+
+    chain = Chain(chain)
+    if max is None: max = chain.nsamples
+    data = chain.stddev(dataset, samples=range(min, max))
+
+    if outname.endswith(".fits"):
+        if dataset.endswith("alm"): 
+            comp, quantity = dataset.split("/")
+            if nside is None: nside = chain.parameters[comp]["nside"]
+            pol = True if quantity.startswith("amp") else False
+            fwhm = chain.parameters[comp]["fwhm"]
+            data = hp.alm2map(data, nside=nside, fwhm=fwhm, pol=pol, pixwin=True,)
+            
+        hp.write_map(outname, data, overwrite=True)
+    else:
+        np.savetxt(outname, data)
 
