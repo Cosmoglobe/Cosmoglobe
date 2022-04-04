@@ -50,7 +50,7 @@ def set_style(darkmode=False, font="serif"):
     """
     This function sets the color parameter and text style
     """
-    if font=="serif":
+    if font == "serif":
         plt.rc(
             "font",
             family="serif",
@@ -93,9 +93,7 @@ def set_style(darkmode=False, font="serif"):
             plt.rcParams[p] = "black"
 
 
-def make_fig(
-    figsize, fignum, hold, sub, reuse_axes, darkmode=False, projection=None
-):
+def make_fig(figsize, fignum, hold, sub, reuse_axes, darkmode=False, projection=None):
     """
     Create matplotlib figure, add subplot, use current axes etc.
     """
@@ -193,7 +191,7 @@ def symlog(m, linthresh=1.0):
     This is the semi-logarithmic function used when logscale=True
     """
     if linthresh == 0.0:
-        return np.sign(m)*np.log10(1e-20 + abs(m))
+        return np.sign(m) * np.log10(1e-20 + abs(m))
 
     # Extra fact of 2 ln 10 makes symlog(m) = m in linear regime
     m = m / linthresh / (2 * np.log(10))
@@ -315,7 +313,7 @@ def find_nearest(array, value):
     array = np.asarray(array)
     idx = (np.abs(array - value)).argmin()
     return array[idx], idx
-    
+
 
 def apply_logscale(m, ticks, linthresh=1):
     """
@@ -324,7 +322,9 @@ def apply_logscale(m, ticks, linthresh=1):
     NOTE: This should ideally be done for the colorbar, not the data.
     """
 
-    print(f"[magenta]Applying semi-logscale with linear threshold={linthresh}[/magenta]")
+    print(
+        f"[magenta]Applying semi-logscale with linear threshold={linthresh}[/magenta]"
+    )
     m = symlog(m, linthresh)
     new_ticks = []
     for i in ticks:
@@ -332,6 +332,7 @@ def apply_logscale(m, ticks, linthresh=1):
 
     m = np.maximum(np.minimum(m, new_ticks[-1]), new_ticks[0])
     return m, new_ticks
+
 
 def standalone_colorbar(
     cmap,
@@ -345,19 +346,19 @@ def standalone_colorbar(
     width=2,
 ):
 
-    fig = plt.figure(figsize=(width, width/4))
+    fig = plt.figure(figsize=(width, width / 4))
     set_style(darkmode)
-    cmap=load_cmap(cmap)
-    img = plt.imshow(np.array([[0,1]]), cmap=cmap)
+    cmap = load_cmap(cmap)
+    img = plt.imshow(np.array([[0, 1]]), cmap=cmap)
     plt.gca().set_visible(False)
-    ax = plt.axes([0.1, 0.7, 0.8, 0.2]) #LBWH
+    ax = plt.axes([0.1, 0.7, 0.8, 0.2])  # LBWH
 
     if fontsize is None:
         fontsize = DEFAULT_FONTSIZES
 
     if ticklabels is None:
         ticklabels = format_list(ticks)
-    
+
     apply_colorbar(
         fig,
         ax,
@@ -369,8 +370,9 @@ def standalone_colorbar(
         norm=norm,
         cbar_shrink=shrink,
         cbar_pad=0.0,
-        cmap=cmap
+        cmap=cmap,
     )
+
 
 def apply_colorbar(
     fig,
@@ -385,7 +387,7 @@ def apply_colorbar(
     cbar_pad=0.04,
     cbar_shrink=0.3,
     cmap=None,
-    orientation='horizontal',
+    orientation="horizontal",
 ):
     """
     This function applies a colorbar to the figure and formats the ticks.
@@ -393,14 +395,17 @@ def apply_colorbar(
 
     if image is None and cmap is not None:
         norm = mpl.colors.Normalize(vmin=ticks[0], vmax=ticks[-1])
-        cb = mpl.colorbar.ColorbarBase(ax, cmap=cmap,
-                                        norm=norm,
-                                        orientation=orientation,
-                                        ticks=ticks,)
+        cb = mpl.colorbar.ColorbarBase(
+            ax,
+            cmap=cmap,
+            norm=norm,
+            orientation=orientation,
+            ticks=ticks,
+        )
     else:
         cb = fig.colorbar(
             image,
-            #ax=ax,
+            # ax=ax,
             orientation=orientation,
             shrink=cbar_shrink,
             pad=cbar_pad,
@@ -409,23 +414,23 @@ def apply_colorbar(
         fontsize = DEFAULT_FONTSIZES
     if isinstance(unit, u.UnitBase):
         unit = unit.to_string("latex")
-    #if orientation == 'horizontal':
+    # if orientation == 'horizontal':
     #    cb.ax.set_xticklabels(ticklabels, size=fontsize["cbar_tick_label"])
     #    cb.ax.xaxis.set_label_text(unit, size=fontsize["cbar_label"])
-    #elif orientation == 'vertical':
+    # elif orientation == 'vertical':
     #    cb.ax.set_yticklabels(ticklabels, size=fontsize["cbar_tick_label"])
     #    cb.ax.yaxis.set_label_text(unit, size=fontsize["cbar_label"])
 
-    #cb = plt.gca().collections[-1].colorbar
-    #labels = cb.ax.xaxis.get_ticklabels()
+    # cb = plt.gca().collections[-1].colorbar
+    # labels = cb.ax.xaxis.get_ticklabels()
     ##ticks = cb.get_ticks()
-    #N = len(labels)
-    #for i, label in enumerate(labels):
+    # N = len(labels)
+    # for i, label in enumerate(labels):
     #    if i in [0, N//2, N-1]:
     #        continue
     #    label.set_visible(False)
-    
-    if  norm in ["linlog", "log"]:
+
+    if norm in ["linlog", "log"]:
         """
         Make logarithmic tick markers manually
         """
@@ -439,24 +444,22 @@ def apply_colorbar(
         # cb.set_ticks(np.concatenate((ticks,symlog(ticks_))), []) # Set major ticks
         logticks = symlog(ticks_, linthresh)
         logticks = [x for x in logticks if x not in ticks]
-        if orientation == 'horizontal':
-            cb.set_ticks(np.concatenate((ticks, logticks)))  # Set major ticks  
+        if orientation == "horizontal":
+            cb.set_ticks(np.concatenate((ticks, logticks)))  # Set major ticks
             cb.ax.set_xticklabels(ticklabels + [""] * len(logticks))
-        elif orientation == 'vertical':
-            #cb.ax.yaxis.set_ticks(np.concatenate((ticks, logticks)))  # Set major ticks  
-            #cb.ax.set_yticklabels(ticklabels + [""] * len(logticks))
+        elif orientation == "vertical":
+            # cb.ax.yaxis.set_ticks(np.concatenate((ticks, logticks)))  # Set major ticks
+            # cb.ax.set_yticklabels(ticklabels + [""] * len(logticks))
             pass
 
-
         # Minor tick log markers
-        
+
         # Linear range for linlog plotting
         minorticks = np.linspace(-linthresh, linthresh, 5) if linthresh > 0.0 else [0]
 
         # Make first range of logarithmic minor ticks
-        lt = 1 if norm=="log" else linthresh
+        lt = 1 if norm == "log" else linthresh
         minorticks2 = np.arange(2, 10) * lt
-        
 
         # Create range of minor ticks from min value to negative max
         for i in range(len(logticks_min)):
@@ -471,13 +474,13 @@ def apply_colorbar(
 
         # Remove values outside of range
         minorticks = minorticks[(minorticks >= ticks[0]) & (minorticks <= ticks[-1])]
-        if orientation == 'horizontal':
+        if orientation == "horizontal":
             cb.ax.xaxis.set_ticks(minorticks, minor=True)
-        elif orientation == 'vertical':
+        elif orientation == "vertical":
             cb.ax.yaxis.set_ticks(minorticks, minor=True)
     # workaround for issue with viewers, see colorbar docstring
     cb.solids.set_edgecolor("face")
-    if orientation == 'horizontal':
+    if orientation == "horizontal":
         cb.ax.tick_params(
             which="both",
             axis="x",
@@ -485,7 +488,7 @@ def apply_colorbar(
             color="#3d3d3d",
         )
         cb.ax.xaxis.labelpad = 0
-    elif orientation == 'vertical':
+    elif orientation == "vertical":
         cb.ax.tick_params(
             which="both",
             axis="y",
@@ -495,10 +498,9 @@ def apply_colorbar(
         cb.ax.yaxis.labelpad = 0
 
         ylabels = cb.ax.get_yticklabels()
-        cb.ax.set_yticklabels(ylabels, Rotation= 90)
+        cb.ax.set_yticklabels(ylabels, Rotation=90)
 
-
-    return #cb
+    return  # cb
 
 
 def load_cmap(cmap):
@@ -601,7 +603,8 @@ def get_data(input, sig, comp, freq, fwhm, nside=None, sample=-1):
                     lmax = chain.get(f"{comp}/{specparam}_lmax", samples=sample)
                     alms = chain.get(f"{comp}/{specparam}_alm", samples=sample)
                     fwhm_ = chain.parameters[comp]["fwhm"] * u.arcmin
-                    if nside is None: nside = chain.parameters[comp]["nside"]
+                    if nside is None:
+                        nside = chain.parameters[comp]["nside"]
                     pol = True if specparam == "amp" and alms.shape[0] == 3 else False
                     # PROBLEM! Get issue with nside when udgrading directly to low nside
                     data = hp.alm2map(
@@ -845,22 +848,24 @@ def get_params(**params):
 
     return params
 
+
 def mask_map(m, mask):
     """
     Apply a mask to a map
     """
-    
+
     m = hp.ma(m)
     m.mask = mask
-    #Alternative
-        
-    #mask = mask*np.NaN
-    #m *= mask
+    # Alternative
+
+    # mask = mask*np.NaN
+    # m *= mask
     return m
+
 
 def create_70GHz_mask(sky_frac, nside=256, pol=False):
     """
-    Creates a mask from a 70GHz frequency map at nside=256 for a 
+    Creates a mask from a 70GHz frequency map at nside=256 for a
     threshold corresponding to a given sky fraction (in %). The 70GGz
     map is chosen due to it containing a large portion of all low-frequency
     sky components.
@@ -874,54 +879,66 @@ def create_70GHz_mask(sky_frac, nside=256, pol=False):
         Mask covering the sky for a given sky fraction.
     """
     # Read amplitude map to use for thresholding
-    field=(1,2) if pol else 0    
-    template = hp.read_map(Path(data_dir.__path__[0]) / 'mask_template_n256.fits', dtype=np.float64, field=field)
-    if pol: 
-        template = np.sqrt(template[0]**2+template[1]**2)
+    field = (1, 2) if pol else 0
+    template = hp.read_map(
+        Path(data_dir.__path__[0]) / "mask_template_n256.fits",
+        dtype=np.float64,
+        field=field,
+    )
+    if pol:
+        template = np.sqrt(template[0] ** 2 + template[1] ** 2)
     template = hp.ma(template)
 
-    if nside!=256:
+    if nside != 256:
         template = hp.ud_grade(template, nside)
 
-
     # Masking based on sky fraction is not trivial. Here we manually compute
-    # the sky fraction by masking all pixels with amplitudes larger than a 
-    # given percentage of the maximum map amplitude. The pixels masks then 
+    # the sky fraction by masking all pixels with amplitudes larger than a
+    # given percentage of the maximum map amplitude. The pixels masks then
     # correspond to a sky fraction. We tabulate the amplitude percentage and
     # sky fraction for a range, and interpolate from this table.
-    amp_percentages = np.flip(np.arange(1,101))
+    amp_percentages = np.flip(np.arange(1, 101))
     fracs = []
     mask = np.zeros(len(template), dtype=np.bool)
 
     for i in range(len(amp_percentages)):
         mask = np.zeros(len(template), dtype=np.bool)
         masked_template = np.abs(hp.ma(template))
-        mask[np.where(np.log(masked_template) > 
-            (amp_percentages[i]/100)*np.nanmax(np.log(masked_template)))] = 1
+        mask[
+            np.where(
+                np.log(masked_template)
+                > (amp_percentages[i] / 100) * np.nanmax(np.log(masked_template))
+            )
+        ] = 1
         masked_template.mask = mask
 
-        frac = ((len(masked_template)-masked_template.count())
-                /len(masked_template))*100
+        frac = (
+            (len(masked_template) - masked_template.count()) / len(masked_template)
+        ) * 100
         fracs.append(frac)
 
-    amp_percentage = np.interp(100-sky_frac, fracs, amp_percentages)
+    amp_percentage = np.interp(100 - sky_frac, fracs, amp_percentages)
 
     mask = np.zeros(len(template), dtype=np.bool)
     masked_template = np.abs(hp.ma(template))
-    mask[np.where(np.log(masked_template) > 
-        (amp_percentage/100)*np.nanmax(np.log(masked_template)))] = 1
+    mask[
+        np.where(
+            np.log(masked_template)
+            > (amp_percentage / 100) * np.nanmax(np.log(masked_template))
+        )
+    ] = 1
 
     return mask
 
 
-def seds_from_model(nu, model, nside=None, pol=False, sky_fractions=(25,85)):
-    ignore_comps=["radio"]
+def seds_from_model(nu, model, nside=None, pol=False, sky_fractions=(25, 85)):
+    ignore_comps = ["radio"]
     comps = model.components
-    if nside is None or nside==model.nside:
+    if nside is None or nside == model.nside:
         nside = model.nside
-        udgrade=False
+        udgrade = False
     else:
-        udgrade=True
+        udgrade = True
 
     masks = np.zeros((len(sky_fractions), hp.nside2npix(nside)))
 
@@ -929,41 +946,49 @@ def seds_from_model(nu, model, nside=None, pol=False, sky_fractions=(25,85)):
         masks[i] = create_70GHz_mask(sky_frac, nside, pol=pol)
 
     # SED dictionary with T and P, skyfractions and the value per nu
-    seds = {comp: np.zeros((2, len(sky_fractions), len(nu))) for comp in model.components}
+    seds = {
+        comp: np.zeros((2, len(sky_fractions), len(nu))) for comp in model.components
+    }
     for key, value in comps.items():
-        if key in ignore_comps: continue
+        if key in ignore_comps:
+            continue
 
         for i, mask in enumerate(masks):
             specinds = {}
             for specind, m in value.spectral_parameters.items():
-                if m.shape[-1]!=1: 
-                    m = np.mean(mask_map(m,mask), axis=1).reshape(-1,1)*value.spectral_parameters[specind].unit
+                if m.shape[-1] != 1:
+                    m = (
+                        np.mean(mask_map(m, mask), axis=1).reshape(-1, 1)
+                        * value.spectral_parameters[specind].unit
+                    )
                 specinds[specind] = m
 
             amp = hp.ud_grade(value.amp, nside) if udgrade else value.amp
-            amp[0,amp[0]<0.0]=0.0 #abs(amp)
+            amp[0, amp[0] < 0.0] = 0.0  # abs(amp)
             amp = mask_map(amp, mask)
 
-            amp_pol=0
+            amp_pol = 0
             if pol:
-                if amp.shape[0]>1:
-                    amp_pol = rms_amp(np.sqrt(amp[1]**2+amp[2]**2))
+                if amp.shape[0] > 1:
+                    amp_pol = rms_amp(np.sqrt(amp[1] ** 2 + amp[2] ** 2))
             amp = rms_amp(amp[0])
 
-            
             if key == "cmb":
-                freq_scaling=(np.ones(len(nu)) * Unit("uK_CMB")).to("uK_RJ", equivalencies=cmb_equivalencies(nu*u.GHz))
-                seds[key][0,i,:] = 45*freq_scaling   # TEMP
-                seds[key][1,i,:] = 0.67*freq_scaling # POL
+                freq_scaling = (np.ones(len(nu)) * Unit("uK_CMB")).to(
+                    "uK_RJ", equivalencies=cmb_equivalencies(nu * u.GHz)
+                )
+                seds[key][0, i, :] = 45 * freq_scaling  # TEMP
+                seds[key][1, i, :] = 0.67 * freq_scaling  # POL
             else:
-                freq_scaling=value.get_freq_scaling(nu*u.GHz,**specinds)
-                k = 1 if freq_scaling.shape[0]>1 else 0
-                seds[key][0,i,:] = amp*freq_scaling[0]
-                seds[key][1,i,:] = amp_pol*freq_scaling[k]
+                freq_scaling = value.get_freq_scaling(nu * u.GHz, **specinds)
+                k = 1 if freq_scaling.shape[0] > 1 else 0
+                seds[key][0, i, :] = amp * freq_scaling[0]
+                seds[key][1, i, :] = amp_pol * freq_scaling[k]
 
     return seds
 
+
 def rms_amp(m):
-    n = len(m)-np.sum(m.mask)
+    n = len(m) - np.sum(m.mask)
     m -= np.mean(m)
-    return np.sqrt(np.sum(m**2)/n)
+    return np.sqrt(np.sum(m ** 2) / n)

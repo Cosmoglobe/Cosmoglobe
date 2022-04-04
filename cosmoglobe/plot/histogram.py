@@ -36,19 +36,19 @@ def hist(
     dataset : str, optional
         dataset to plot if passing hdf5 file
         default: None
-    xlabel : str, optional 
+    xlabel : str, optional
         label x axis
         default: None
-    ylabel : str, optional 
+    ylabel : str, optional
         label y axis
         default: None
-    field : int, optional 
+    field : int, optional
         which field to plot if .fits file is passed
         default: 0
-    darkmode : bool, optional 
+    darkmode : bool, optional
         turn all axis elements white for optimal dark visualization
         default: False
-    figsize : touple, optional 
+    figsize : touple, optional
         size of figure
         default: None
     sub : int, scalar or sequence, optional
@@ -57,12 +57,12 @@ def hist(
     hold : bool, optional
         If True, replace the current Axes by a MollweideAxes.
         use this if you want to have multiple maps on the same
-        figure. 
+        figure.
         Default: False
     reuse_axes : bool, optional
         If True, reuse the current Axes (should be a MollweideAxes). This is
         useful if you want to overplot with a partially transparent colormap,
-        such as for plotting a line integral convolution. 
+        such as for plotting a line integral convolution.
         Default: False
 
     """
@@ -77,8 +77,6 @@ def hist(
             input = hp.read_map(input, field=field)
         else:
             raise_error("Input format not recognized")
-
-
 
     # Make figure
     fig, ax = make_fig(
