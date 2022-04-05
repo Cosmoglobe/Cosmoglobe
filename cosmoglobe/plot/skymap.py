@@ -294,6 +294,8 @@ def plot(
             show_tickmarkers=True,
             width=width,
             # unedited params
+            remove_dip=remove_dip,
+            remove_mono=remove_mono,
             xsize=xsize,
             title=title,
             rot=rot,
