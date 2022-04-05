@@ -33,18 +33,12 @@ DEFAULT_FONTSIZES = {
     "llabel": 11,
     "rlabel": 11,
 }
-FIGURE_WIDTHS = {
-    "x": 2.75,
-    "s": 3.5,
-    "m": 4.7,
-    "l": 7,
-}
+
 STOKES = [
     "I",
     "Q",
     "U",
 ]
-
 
 def set_style(darkmode=False, font="serif"):
     """
@@ -128,18 +122,13 @@ def get_figure_width(width=600, fraction=1):
     return fig_dim
 
 
-def make_fig(figsize, fignum, hold, sub, reuse_axes, darkmode=False, projection=None):
+def make_fig(figsize, fignum, hold, sub, reuse_axes, darkmode=False, projection=None, fraction=0.5):
     """
     Create matplotlib figure, add subplot, use current axes etc.
     """
 
     if figsize is None:
-        fig_width_pt = 246.0  # Get this from LaTeX using \showthe\columnwidth
-        inches_per_pt = 1.0 / 72.27  # Convert pt to inch
-        golden_mean = (np.sqrt(5) - 1.0) / 2.0  # Aesthetic ratio
-        fig_width = fig_width_pt * inches_per_pt  # width in inches
-        fig_height = fig_width * golden_mean  # height in inches
-        figsize = [fig_width, fig_height]
+        figsize = get_figure_width(fraction=fraction)
 
     #  From healpy
     nrows, ncols, idx = (1, 1, 1)

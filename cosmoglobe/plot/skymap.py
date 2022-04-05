@@ -37,7 +37,8 @@ def plot(
     title=None,
     rlabel=None,
     llabel=None,
-    width=4.7,
+    width=None,
+    fraction=0.5,
     xsize=1000,
     darkmode=False,
     interactive=False,
@@ -146,9 +147,12 @@ def plot(
     llabel : str, optional
         Sets the upper left title. Has LaTeX functionaliity (ex. $A_{s}$.)
         default: None
-    width : str, float, optional
-        Size in inches OR 1/3, 1/2 and full page width (2.75/3.5/4.7/7 inches) [ex. x, s, m or l]
-        default: "m" (4.7 inches)
+    width : float, optional
+        Size in inches default is half latex page, see fraction.
+        default: None
+    fraction : float, optional
+        Fraction of latex page width. 
+        default : 0.5
     darkmode : bool, optional
         Plots all outlines in white for dark backgrounds, and adds 'dark' in
         filename.
@@ -209,6 +213,11 @@ def plot(
         for key in fontsize.keys():
             fontsize_[key] = fontsize[key]
         fontsize = fontsize_
+
+    # Get figure width from page fraction
+    if width is None: 
+        figsize = get_figure_width(fraction=fraction)
+        width = figsize[0]
 
     set_style(darkmode)
 
