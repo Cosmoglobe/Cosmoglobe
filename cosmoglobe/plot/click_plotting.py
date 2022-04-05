@@ -832,11 +832,7 @@ def gnom(
         fn = os.path.splitext(fn)[0] + f".{filetype}"
         print(f"[bold green]Outputting {fn}[/bold green] to {path}")
         plt.savefig(
-            f"{path}/{fn}",
-            bbox_inches="tight",
-            pad_inches=0.02,
-            format=filetype,
-            dpi=dpi,
+            f"{path}/{fn}", bbox_inches="tight", pad_inches=0.02, format=filetype, dpi=dpi
         )
 
 
@@ -983,9 +979,8 @@ def trace(
     This is a click wrapper the same function in cosmoglobe.
     """
     labels = labels.split(" ")
-    if figsize is None:
-        figsize = (8, 3)
-    showval = True if not hideval else False
+    if figsize is None: figsize = (8, 3)
+    showval=True if not hideval else False
     ctrace(
         input,
         dataset,
@@ -1022,9 +1017,5 @@ def trace(
         fn = os.path.splitext(fn)[0] + f".{filetype}"
         print(f"[bold green]Outputting {fn}[/bold green] to {path}")
         plt.savefig(
-            f"{path}/{fn}",
-            bbox_inches="tight",
-            pad_inches=0.02,
-            format=filetype,
-            dpi=dpi,
+            f"{path}/{fn}", bbox_inches="tight", pad_inches=0.02, format=filetype, dpi=dpi
         )

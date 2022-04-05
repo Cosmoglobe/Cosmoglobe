@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 from functools import partial
 from .plottools import *
 
-
 @u.quantity_input(freq=u.Hz, fwhm=(u.arcmin, u.rad, u.deg))
 def gnom(
     input,
@@ -116,9 +115,9 @@ def gnom(
         Toggles the colorbar
         cbar : True
     cbar_pad : float, optioinal
-        default: 0.04
+        default: 0.04    
     cbar_shrink : float, optional
-        default: 0.7
+        default: 0.7    
     fwhm : astropy arcmin/rad/deg, optional
         Optional map smoothing. FWHM of gaussian smoothing in arcmin.
         default: 0.0
@@ -131,13 +130,13 @@ def gnom(
     fontsize : int, optional
         Size of labels
         default: None
-    figsize : touple, optional
+    figsize : touple, optional 
         size of figure
         default: None
-    xsize : int, optional
+    xsize : int, optional 
         width of figure in pixels
         default: 1000
-    darkmode : bool, optional
+    darkmode : bool, optional 
         turn all axis elements white for optimal dark visualization
         default: False
     sub : int, scalar or sequence, optional
@@ -146,12 +145,12 @@ def gnom(
     hold : bool, optional
         If True, replace the current Axes by a MollweideAxes.
         use this if you want to have multiple maps on the same
-        figure.
+        figure. 
         Default: False
     reuse_axes : bool, optional
         If True, reuse the current Axes (should be a MollweideAxes). This is
         useful if you want to overplot with a partially transparent colormap,
-        such as for plotting a line integral convolution.
+        such as for plotting a line integral convolution. 
         Default: False
 
     mask : str path or np.ndarray, optional
@@ -175,9 +174,7 @@ def gnom(
     reso = size * 60 / xsize
 
     # Get data
-    m, comp, freq, nside = get_data(
-        input, sig, comp, freq, fwhm, nside=nside, sample=sample
-    )
+    m, comp, freq, nside  = get_data(input, sig, comp, freq, fwhm, nside=nside, sample=sample)
     if remove_dip:
         m = hp.remove_dipole(m, gal_cut=30, copy=True, verbose=True)
     if remove_mono:
@@ -190,7 +187,7 @@ def gnom(
 
     # Pass all your arguments in, return parsed plotting parameters
     params = get_params(
-        data=reproj_im,
+        data=reproj_im, 
         comp=comp,
         sig=sig,
         rlabel=rlabel,
@@ -204,41 +201,35 @@ def gnom(
         cmap=cmap,
         freq_ref=freq,
         width=figsize[0],
-        nside=nside,
+        nside=nside
     )
 
     # Semi-log normalization
     if params["norm"] == "log":
-        params["data"], params["ticks"] = apply_logscale(
-            params["data"], params["ticks"], linthresh=1
-        )
+        params["data"], params["ticks"] = apply_logscale(params["data"], params["ticks"], linthresh=1)
 
     cmap = load_cmap(params["cmap"])
 
-    fig, ax = make_fig(figsize, None, hold, sub, reuse_axes)
+    fig, ax = make_fig(
+        figsize,
+        None,
+        hold,
+        sub,
+        reuse_axes
+    )
     image = plt.imshow(
         params["data"],
         origin="lower",
         interpolation="nearest",
         vmin=np.min(params["ticks"]),
         vmax=np.max(params["ticks"]),
-        cmap=cmap,
+        cmap=cmap
     )
 
     # Galaxy-brain inverse of data color
     colors = image.cmap(image.norm((params["data"])))
-    llabel_color = (1, 1, 1, 2) - np.mean(
-        colors[
-            int(xsize * 0.9) : int(xsize * 0.95), int(xsize * 0.05) : int(xsize * 0.15)
-        ],
-        axis=(0, 1),
-    )
-    rlabel_color = (1, 1, 1, 2) - np.mean(
-        colors[
-            int(xsize * 0.9) : int(xsize * 0.95), int(xsize * 0.85) : int(xsize * 0.95)
-        ],
-        axis=(0, 1),
-    )
+    llabel_color = (1,1,1,2)-np.mean(colors[int(xsize*.9):int(xsize*.95),int(xsize*.05):int(xsize*.15)],axis=(0,1))
+    rlabel_color = (1,1,1,2)-np.mean(colors[int(xsize*.9):int(xsize*.95),int(xsize*.85):int(xsize*.95)],axis=(0,1))
 
     plt.xticks([])
     plt.yticks([])
@@ -273,7 +264,7 @@ def gnom(
             linthresh=1,
             norm=params["norm"],
             cbar_pad=cbar_pad,
-            cbar_shrink=cbar_shrink,
+            cbar_shrink=cbar_shrink
         )
 
     if graticule:
