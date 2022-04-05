@@ -296,6 +296,7 @@ def plot(
             cbar_ticks=params["ticks"],
             cbar=cbar,
             cmap=cmap,
+            unit=params["unit"],
             llabel=params["llabel"],
             rlabel=params["rlabel"],
             norm=params["norm"],
