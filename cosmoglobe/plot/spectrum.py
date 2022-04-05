@@ -15,14 +15,17 @@ from cosmoglobe.sky._units import Unit
 # CO is currently hardcoded
 # Make better custom band selection
 
-
 def spec(
     model,
     pol=False,
     sky_fractions=(25, 85),
     xlim=(0.25, 4000),
     figsize=None,
-    long=True,
+    fraction=1,
+    labelsize=11,
+    comp_labelsize=9,
+    band_labelsize=8,
+    extend=True,
     darkmode=False,
     ame_polfrac=0.006,
     haslam=True,
@@ -37,8 +40,9 @@ def spec(
     custom_bands=None,
     include_co=True,
     add_error=True,
-    fsky_pos=900,
+    fsky_pos=500,
     component_options=None,
+    text_offset=2,
 ):
     """
     Generates RMS intensity plot for components in model.
@@ -59,9 +63,21 @@ def spec(
         The limits of the x axis
         default: (0.25, 4000)
     figsize : touple, optional
-        size of figure. This is automatically set by long.
+        size of figure. This is automatically set by extend.
         default : None
-    long: bool, optional
+    fraction : float, optional
+        Sets the figsize to be a fraction of a latex document
+        default : None
+    labelsize : float, 
+        Fontsize of ticklabels and axislabels
+        default : 11
+    comp_labelsize : float, 
+        Fontsize of component labels
+        default : 9
+    band_labelsize : float, 
+        Fontsize of frequency band labels
+        default : 8
+    extend: bool, optional
         Increases the xlimit and includes an additional subplot on top
         default: True
     darkmode : bool, optional
@@ -113,38 +129,21 @@ def spec(
         Allows for overriding dictionary that sets all the properties of components.
         Such as {"dust":{"position":30, "label": "Thing", "linestyle": ":"}}
         default : None
+    text_offset : float, optional
+        Text offset from lines
+        default : 5
     """
-
+    if fraction is not None: figsize = get_figure_width(fraction=fraction)
     set_style(darkmode, font="serif")
-    figparams = {
-        "xtick.top": False,
-        "ytick.right": True,
-        "axes.spines.top": True,
-        "axes.spines.bottom": True,
-        "axes.spines.left": True,
-        "axes.spines.right": True,
-        "axes.grid.axis": "y",
-        "axes.grid": False,
-        "ytick.major.size": 5,
-        "ytick.minor.size": 2.5,
-        "xtick.major.size": 5,
-        "xtick.minor.size": 2.5,
-        "xtick.major.pad": 8,
-        "ytick.major.width": 1.5,
-        "ytick.minor.width": 1.5,
-        "xtick.major.width": 1.5,
-        "xtick.minor.width": 1.5,
-        "axes.linewidth": 1.5,
-    }
-    rcParams.update(figparams)
+
+    #rcParams.update(figparams)
     black = "k"
     if darkmode:
         brokecol = "white"
         grey = "#C0C0C0"
     else:
         brokecol = black
-        grey = "grey"
-        grey = "#C0C0C0"
+        grey = "#A3A3A3"
 
     colors = [
         "#636EFA",
@@ -160,6 +159,8 @@ def spec(
         grey,
     ]
     rcParams["axes.prop_cycle"] = cycler(color=colors)
+    rcParams["ytick.right"] = True
+    
     blue, red, green, purple, orange, teal, lightred, lightgreen, pink, yellow, grey = (
         "C0",
         "C1",
@@ -176,27 +177,26 @@ def spec(
 
     # plt.rcParams.update(plt.rcParamsDefault)
 
+    # Plot polarization or temperature
     sig = 1 if pol else 0
+
+    # Set x and y limits if extended and pol
     if xlim == (0.25, 4000):
-        if not long:
+        if not extend:
             xlim = (9, 1500)
     xmin, xmax = xlim
     ymin, ymax = (0.05, 7e2) if not pol else (1.001e-3, 2e2)
     ymin2, ymax2 = (ymax + 100, 1e7)
-    # textsize
-    freqtext = 12
-    fgtext = 16
-    lsize = 16
 
-    if long:
-        # Figure
-        ratio = 5
-        figsize = (16, 8) if figsize is None else figsize
+    figsize = get_figure_width(fraction=fraction) if figsize is None else figsize
+    
+    if extend:
+        ratio = 5 # Make subplot on top at 5:1 ratio
         fig, (ax2, ax) = plt.subplots(
             2,
             1,
             sharex=True,
-            figsize=figsize,
+            figsize=(figsize[0],figsize[1]),
             gridspec_kw={"height_ratios": [1, ratio]},
         )
         aspect_ratio = figsize[0] / figsize[1] * 1.25  # Correct for ratio
@@ -209,7 +209,7 @@ def spec(
         # ---- Adding broken axis lines ----
         d = 0.005  # how big to make the diagonal lines in axes coordinates
 
-        kwargs = dict(transform=ax2.transAxes, color=brokecol, clip_on=False)
+        kwargs = dict(transform=ax2.transAxes, color=brokecol, clip_on=False, linewidth=1)
         ax2.plot((-d, +d), (-d * ratio, +d * ratio), **kwargs)  # top-left diagonal
         ax2.plot(
             (1 - d, 1 + d), (-d * ratio, +d * ratio), **kwargs
@@ -221,7 +221,6 @@ def spec(
     else:
         ymax2 = ymax
         ymin2 = ymax
-        figsize = (12, 8) if figsize is None else figsize
         fig, ax = plt.subplots(1, 1, figsize=figsize)
         aspect_ratio = figsize[0] / figsize[1]
 
@@ -230,9 +229,10 @@ def spec(
     nu = np.logspace(np.log10(0.1), np.log10(5000), N)
     seds = seds_from_model(nu, model, pol=pol, sky_fractions=sky_fractions)
 
-    foregrounds = get_foregrounds(pol, long)
+    # Get parameters for each component line
+    foregrounds = get_foregrounds(pol, extend)
     if component_options is not None:
-        # Loop over nested dictionary
+        # Loop over nested dictionary for optional arguments
         for comp_ in component_options:
             foregrounds[comp_].update(component_options[comp_])
 
@@ -328,15 +328,15 @@ def spec(
                     nu,
                     params["spectrum"][sig][1],
                     linestyle=params["linestyle"],
-                    linewidth=2,
+                    linewidth=1.5,
                     color=params["color"],
                 )
-                if long:
+                if extend:
                     ax2.loglog(
                         nu,
                         params["spectrum"][sig][1],
                         linestyle=params["linestyle"],
-                        linewidth=2,
+                        linewidth=1.5,
                         color=params["color"],
                     )
                 k = 1
@@ -345,15 +345,15 @@ def spec(
                         nu,
                         params["spectrum"][sig][0],
                         linestyle=params["linestyle"],
-                        linewidth=2,
+                        linewidth=1.5,
                         color=params["color"],
                     )
-                    if long:
+                    if extend:
                         ax2.loglog(
                             nu,
                             params["spectrum"][sig][0],
                             linestyle=params["linestyle"],
-                            linewidth=2,
+                            linewidth=1.5,
                             color=params["color"],
                         )
                     k = 1
@@ -368,7 +368,7 @@ def spec(
                             max(params["spectrum"][sig][1]),
                         ],
                         linestyle=params["linestyle"],
-                        linewidth=4,
+                        linewidth=2,
                         color=params["color"],
                         zorder=1000,
                     )
@@ -381,10 +381,10 @@ def spec(
                         nu,
                         params["spectrum"][sig][0],
                         linestyle=params["linestyle"],
-                        linewidth=4,
+                        linewidth=2,
                         color=params["color"],
                     )
-                    if long:
+                    if extend:
                         ax2.loglog(
                             nu,
                             params["spectrum"][sig][0],
@@ -401,7 +401,7 @@ def spec(
                         color=params["color"],
                         alpha=0.8,
                     )
-                    if long:
+                    if extend:
                         ax2.fill_between(
                             nu,
                             params["spectrum"][sig][1],
@@ -421,9 +421,9 @@ def spec(
                 ha="right",
                 va="center",
                 rotation=90,
-                fontsize=fgtext,
+                fontsize=comp_labelsize,
                 path_effects=[
-                    path_effects.withSimplePatchShadow(alpha=0.8, offset=(1, -1))
+                    path_effects.withSimplePatchShadow(alpha=0.8, offset=(0.3, -0.3))
                 ],
                 zorder=1000,
             )
@@ -437,18 +437,18 @@ def spec(
                 (ymin, ymax),
                 aspect_ratio,
             )
-            text_offset = 20 if comp == "sumfg" else 10
+            _text_offset = text_offset*1.5 if comp=="sumfg" else text_offset
             ax.annotate(
                 params["label"],
                 xy=(x0, y0),
-                xytext=(0, text_offset),
+                xytext=(0, _text_offset),
                 textcoords="offset pixels",
                 rotation=rotation,
                 rotation_mode="anchor",
-                fontsize=fgtext,
+                fontsize=comp_labelsize,
                 color=params["color"],
                 path_effects=[
-                    path_effects.withSimplePatchShadow(alpha=0.8, offset=(1, -1)),
+                    path_effects.withSimplePatchShadow(alpha=0.8, offset=(0.3, -0.3)),
                 ],
                 horizontalalignment="center",
             )
@@ -464,19 +464,19 @@ def spec(
                     aspect_ratio,
                 )
                 ax.annotate(
-                    r"$f_{sky}=$" + "{:d}%".format(int(sky_fractions[1])),
+                    r"$f_{\mathrm{sky}}=" + "{:d}".format(int(sky_fractions[1])) +"\%$",
                     rotation=rotation,
                     rotation_mode="anchor",
                     xy=(x0, y0),
                     ha="center",
                     va="bottom",
-                    fontsize=fgtext,
+                    fontsize=comp_labelsize,
                     color=grey,
-                    xytext=(0, 10),
+                    xytext=(0, text_offset),
                     textcoords="offset pixels",
                     path_effects=[
                         path_effects.withSimplePatchShadow(
-                            alpha=0.8, offset=(0.5, -0.5)
+                            alpha=0.8, offset=(0.3, -0.3)
                         ),
                     ],
                 )
@@ -490,25 +490,25 @@ def spec(
                     aspect_ratio,
                 )
                 ax.annotate(
-                    r"$f_{sky}=$" + "{:d}%".format(int(sky_fractions[0])),
+                    r"$f_{\mathrm{sky}}=" + "{:d}".format(int(sky_fractions[0]))+"\%$",
                     rotation=rotation,
                     rotation_mode="anchor",
                     xy=(x0, y0),
                     ha="center",
                     va="top",
-                    fontsize=fgtext,
+                    fontsize=comp_labelsize,
                     color=grey,
-                    xytext=(0, -15),
+                    xytext=(0, -text_offset),
                     textcoords="offset pixels",
                     path_effects=[
                         path_effects.withSimplePatchShadow(
-                            alpha=0.8, offset=(0.5, -0.5)
+                            alpha=0.8, offset=(0.3, -0.3)
                         ),
                     ],
                 )
 
     # ---- Data band ranges ----
-    if long:
+    if extend:
         yscaletext = 0.70
         yscaletextup = 1.2
     else:
@@ -611,63 +611,63 @@ def spec(
             "30": {
                 "pol": True,
                 "show": planck[0],
-                "position": [27, ymax2 * yscaletext],
+                "position": [28, ymax2 * yscaletext],
                 "range": [23.9, 34.5],
                 "color": orange,
             },  # Planck 30
             "44": {
                 "pol": True,
                 "show": planck[1],
-                "position": [40, ymax2 * yscaletext],
+                "position": [44, ymax2 * yscaletext],
                 "range": [39, 50],
                 "color": orange,
             },  # Planck 44
             "70": {
                 "pol": True,
                 "show": planck[2],
-                "position": [60, ymax2 * yscaletext],
+                "position": [70, ymax2 * yscaletext],
                 "range": [60, 78],
                 "color": orange,
             },  # Planck 70
             "100": {
                 "pol": True,
                 "show": planck[3],
-                "position": [90, ymax2 * yscaletext],
+                "position": [100, ymax2 * yscaletext],
                 "range": [82, 120],
                 "color": orange,
             },  # Planck 100
             "143": {
                 "pol": True,
                 "show": planck[4],
-                "position": [130, ymax2 * yscaletext],
+                "position": [145, ymax2 * yscaletext],
                 "range": [125, 170],
                 "color": orange,
             },  # Planck 143
             "217": {
                 "pol": True,
                 "show": planck[5],
-                "position": [195, ymax2 * yscaletext],
+                "position": [217, ymax2 * yscaletext],
                 "range": [180, 265],
                 "color": orange,
             },  # Planck 217
             "353": {
                 "pol": True,
                 "show": planck[6],
-                "position": [320, ymax2 * yscaletext],
+                "position": [350, ymax2 * yscaletext],
                 "range": [300, 430],
                 "color": orange,
             },  # Planck 353
             "545": {
                 "pol": False,
                 "show": planck[7],
-                "position": [490, ymax2 * yscaletext],
+                "position": [540, ymax2 * yscaletext],
                 "range": [450, 650],
                 "color": orange,
             },  # Planck 545
             "857": {
                 "pol": False,
                 "show": planck[8],
-                "position": [730, ymax2 * yscaletext],
+                "position": [850, ymax2 * yscaletext],
                 "range": [700, 1020],
                 "color": orange,
             },
@@ -676,21 +676,21 @@ def spec(
             "DIRBE\n1250": {
                 "pol": False,
                 "show": dirbe,
-                "position": [1000, ymin * yscaletextup],
+                "position": [1200, ymin * yscaletextup],
                 "range": [1000, 1540],
                 "color": red,
             },  # DIRBE 1250
             "2140": {
                 "pol": False,
                 "show": dirbe,
-                "position": [1750, ymin * yscaletextup],
+                "position": [1900, ymin * yscaletextup],
                 "range": [1780, 2500],
                 "color": red,
             },  # DIRBE 2140
             "3000": {
                 "pol": False,
                 "show": dirbe,
-                "position": [2500, ymin * yscaletextup],
+                "position": [3000, ymin * yscaletextup],
                 "range": [2600, 3500],
                 "color": red,
             },
@@ -699,28 +699,28 @@ def spec(
             "K": {
                 "pol": True,
                 "show": wmap[0],
-                "position": [21.8, ymin * yscaletextup],
+                "position": [23, ymin * yscaletextup],
                 "range": [21, 25.5],
                 "color": teal,
             },
             "Ka": {
                 "pol": True,
                 "show": wmap[1],
-                "position": [31.5, ymin * yscaletextup],
+                "position": [33, ymin * yscaletextup],
                 "range": [30, 37],
                 "color": teal,
             },
             "Q": {
                 "pol": True,
                 "show": wmap[2],
-                "position": [39.0, ymin * yscaletextup],
+                "position": [41.0, ymin * yscaletextup],
                 "range": [38, 45],
                 "color": teal,
             },
             "V": {
                 "pol": True,
                 "show": wmap[3],
-                "position": [58.0, ymin * yscaletextup],
+                "position": [60.0, ymin * yscaletextup],
                 "range": [54, 68],
                 "color": teal,
             },
@@ -842,10 +842,10 @@ def spec(
     }
 
     # If band is not included, label another band:
-    if planck[3]:
+    if planck[4]:
         oldkey = list(databands["Planck"].keys())[3]
     else:
-        for i in [2, 4, 1, 5, 6, 7, 8]:
+        for i in [3, 2, 1, 5, 6, 7, 8]:
             if planck[i]:
                 oldkey = list(databands["Planck"].keys())[i]
                 break
@@ -880,7 +880,7 @@ def spec(
                     else "top"
                 )  # VA for WMAP on bottom
                 ha = (
-                    "left"
+                    "center"
                     if experiment
                     in [
                         "Planck",
@@ -896,7 +896,7 @@ def spec(
                     zorder=-20,
                     label=experiment
                 )
-                if long:
+                if extend:
                     ax2.axvspan(
                         *band["range"],
                         color=band["color"],
@@ -911,10 +911,10 @@ def spec(
                             color=band["color"],
                             va=va,
                             ha=ha,
-                            size=freqtext,
+                            size=band_labelsize,
                             path_effects=[
                                 path_effects.withSimplePatchShadow(
-                                    alpha=0.8, offset=(1, -1)
+                                    alpha=0.8, offset=(0.3, -0.3)
                                 )
                             ]
                         )
@@ -925,10 +925,10 @@ def spec(
                             color=band["color"],
                             va=va,
                             ha=ha,
-                            size=freqtext,
+                            size=band_labelsize,
                             path_effects=[
                                 path_effects.withSimplePatchShadow(
-                                    alpha=0.8, offset=(1, -1)
+                                    alpha=0.8, offset=(0.3, -0.3)
                                 )
                             ]
                         )
@@ -939,64 +939,67 @@ def spec(
                         color=band["color"],
                         va=va,
                         ha=ha,
-                        size=freqtext,
+                        size=band_labelsize,
                         path_effects=[
                             path_effects.withSimplePatchShadow(
-                                alpha=0.8, offset=(1, -1)
+                                alpha=0.8, offset=(0.3, -0.3)
                             )
                         ]
                     )
 
     # ---- Axis stuff ----
-    ticks = []
-    ticks_ = [0.3, 1, 3, 10, 30, 100, 300, 1000, 3000]
+    xticks = []
+    xticks_ = [0.3, 1, 3, 10, 30, 100, 300, 1000, 3000]
+    for i, xtick in enumerate(xticks_):
+        if xtick >= xmin and xtick <= xmax:
+            xticks.append(xtick)
 
-    for i, tick in enumerate(ticks_):
-        if tick >= xmin and tick <= xmax:
-            ticks.append(tick)
+    yticks = []
+    yticks_ = [0.001, 0.01, 0.1, 1, 10, 100, 1000]
+    for i, ytick in enumerate(yticks_):
+        if ytick >= ymin and ytick <= ymax:
+            yticks.append(ytick)
+
+
     ax.set(
         xscale="log",
         yscale="log",
         ylim=(ymin, ymax),
         xlim=(xmin, xmax),
-        xticks=ticks,
-        xticklabels=ticks,
+        yticks=yticks,
+        yticklabels=yticks,
+        xticks=xticks,
+        xticklabels=xticks,
     )
-    ax.xaxis.set_major_formatter(ticker.ScalarFormatter(useMathText=True))
-    ax.tick_params(axis="both", which="major", labelsize=lsize, direction="in")
-    ax.tick_params(which="both", direction="in")
-    ax.tick_params(axis="y", labelrotation=90)
-    ax.set_yticklabels(
-        [fmt(x, 1) for x in ax.get_yticks()], va="center", fontsize=lsize
-    )
-    if long:
+    formatter = ticker.FuncFormatter(fmt)
+    ax.xaxis.set_major_formatter(formatter)
+    ax.yaxis.set_major_formatter(formatter)
+    ax.tick_params(axis="both", which="both", labelsize=labelsize, direction="in")
+    ax.tick_params(axis="y", labelrotation=90, labelsize=labelsize,)
+    
+
+    if extend:
         ax2.set(
             xscale="log",
             yscale="log",
             ylim=(ymin2, ymax2),
             xlim=(xmin, xmax),
-            yticks=[
-                1e4,
-                1e6,
-            ],
-            xticks=ticks,
-            xticklabels=ticks,
+            xticks=xticks,
+            xticklabels=xticks,
         )
-        ax2.tick_params(axis="both", which="major", labelsize=lsize, direction="in")
-        ax2.tick_params(which="both", direction="in")
-        ax2.tick_params(
-            axis="y",
-            labelrotation=90,
-        )
-        ax2.set_yticklabels(
-            [fmt(x, 1) for x in ax2.get_yticks()], va="center", fontsize=lsize
-        )
-
-    ax.set_xticklabels([fmt(x, 1) for x in ax.get_xticks()], fontsize=lsize)
+        ax2.yaxis.set_major_formatter(formatter)
+        ax2.tick_params(axis="both", which="both", labelsize=labelsize, direction="in")
+        ax2.tick_params(axis="y",labelrotation=90, labelsize=labelsize,)
+        ax2.set_yticklabels([fmt(x,1) for x in ax2.get_yticks()], fontsize=labelsize, va="center",)
+    
+    
+    # Why do i have to do this?
+    ax.set_yticklabels([fmt(x,1) for x in ax.get_yticks()], fontsize=labelsize, va="center",)
+    ax.set_xticklabels([fmt(x,1) for x in ax.get_xticks()], fontsize=labelsize)
 
     # Axis labels
     sax = fig.add_subplot(111, frameon=False)
-    plt.tick_params(
+    sax.tick_params(
         labelcolor="none",
         top=False,
         bottom=False,
@@ -1004,17 +1007,12 @@ def spec(
         right=False,
         width=0.0,
     )
-    if pol:
-        sax.set_ylabel(
-            r"RMS polarization amplitude [$\mu\mathrm{K}_{\mathrm{RJ}}$]",
-            fontsize=lsize,
-        )
-    else:
-        sax.set_ylabel(
-            r"RMS brightness temperature [$\mu\mathrm{K}_{\mathrm{RJ}}$]",
-            fontsize=lsize,
-        )
-    sax.set_xlabel(r"Frequency [GHz]", fontsize=lsize)
+
+    sax.set_ylabel(
+        r"$\mathrm{RMS\ amplitude\ [}\mu\mathrm{K}_{\mathrm{RJ}}\mathrm{]}$",
+        fontsize=labelsize, labelpad=0
+    )
+    sax.set_xlabel(r"$\mathrm{Frequency\ [GHz]}$", fontsize=labelsize)
     plt.subplots_adjust(wspace=0.0, hspace=0.02)
 
 
@@ -1036,15 +1034,15 @@ def rotate_label(x, y, pos, xrange, yrange, aspect_ratio):
     return x0, y0, rotation
 
 
-def get_foregrounds(pol, long):
+def get_foregrounds(pol, extend):
     """
     This function grabs a dictionary of the default component values
     used for the spectrum plotting style.
     Override this by passing the component_option dictionary to spec
     """
     if pol:
-        p = 0.6 if long else 15
-        sd = 2 if long else 70
+        p = 0.6 if extend else 15
+        sd = 2 if extend else 70
         return {
             "synch": {
                 "label": "Synchrotron",
@@ -1124,8 +1122,8 @@ def get_foregrounds(pol, long):
             },
         }
     else:
-        p = 3 if long else 65
-        td = 10 if long else 17
+        p = 3 if extend else 65
+        td = 10 if extend else 17
         return {
             "dust": {
                 "label": "Thermal Dust",
