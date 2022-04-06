@@ -33,6 +33,7 @@ def plot(
     maskfill=None,
     cmap=None,
     norm=None,
+    norm_dict=None,
     remove_dip=False,
     remove_mono=False,
     title=None,
@@ -117,19 +118,19 @@ def plot(
         available as of now. Also supports qualitative plotly map, [ex.
         q-Plotly-4 (q for qualitative 4 for max color)] Sets planck as default.
         default: None
-    norm : str, matplotlib norm object, optional
-        if norm=='linear':
-            normal
-        if norm=='log':
-            Uses log10 scale
-            Normalizes data using a semi-logscale linear between -1 and 1.
-            Autodetector uses this sometimes, you will be warned.
-        SPECIFY linthresh for linear threshold of symlog!
+    norm : {'hist', 'log', 'symlog', 'symlog2', None}
+      Color normalization:
+      hist = histogram equalized color mapping.
+      log = logarithmic color mapping.
+      symlog = symmetric logarithmic, linear between -linthresh and linthresh.
+      symlog2 = similar to symlog, used for plack log colormap.
+      default: None (linear color mapping)
+    norm_dict : dict, optionals
+        Parameters for normalization:
+        default is set to {"linthresh": 1, "base": 10, "linscale": 0.1}
+        where linthresh determines the linear regime of symlog norm,
+        and linscale sets the size of the linear regime on the cbar.
         default: None
-    linthresh : float, optional
-        Linear threshold in symmetric logarithimc scaling.
-        Only used if log-norming
-        default: 1
     remove_dip : bool, optional
         If mdmask is specified, fits and removes a dipole.
         default: True
@@ -253,6 +254,7 @@ def plot(
         max=max,
         rng=rng,
         norm=norm,
+        norm_dict=norm_dict,
         cmap=cmap,
         freq_ref=freq,
         width=width,
@@ -288,10 +290,11 @@ def plot(
     else:  # Using fancy projview
         warnings.filterwarnings("ignore")  # Healpy complains too much
         # Plot figure
+        print(params["norm_dict"],)
         ret = hp.newvisufunc.projview(
             params["data"],
-            min=params["ticks"][0],
-            max=params["ticks"][-1],
+            min=np.min(params["ticks"]),
+            max=np.max(params["ticks"]),
             cbar_ticks=params["ticks"],
             cbar=cbar,
             cmap=cmap,
@@ -299,6 +302,7 @@ def plot(
             llabel=params["llabel"],
             rlabel=params["rlabel"],
             norm=params["norm"],
+            norm_dict=params["norm_dict"],
             override_plot_properties=override_plot_properties,
             show_tickmarkers=True,
             width=width,

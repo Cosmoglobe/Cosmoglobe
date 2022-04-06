@@ -796,7 +796,7 @@ def get_params(**params):
                 params["ticks"][-1] = params["max"]
 
     # Ticks and ticklabels
-    if params["ticks"] == "auto" or params["norm"] == "hist":
+    if params["ticks"] == "auto":
         params["ticks"] = get_percentile(params["data"], 97.5)
     elif None in params["ticks"]:
         pmin, pmax = get_percentile(params["data"], 97.5)
@@ -824,7 +824,7 @@ def get_params(**params):
     # Set planck as default cmap
     if params["cmap"] is None:
         params["cmap"] = "planck"
-        
+    
     return params
 
 

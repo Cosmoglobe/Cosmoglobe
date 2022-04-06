@@ -158,8 +158,7 @@ def gnom(
         Apply a mask file to data
         default = None
     """
-    if not fontsize:
-        fontsize = {
+    default_fontsize= {
             "xlabel": 11,
             "ylabel": 11,
             "xtick_label": 8,
@@ -170,6 +169,8 @@ def gnom(
             "llabel": 11,
             "rlabel": 11,
         }
+    if fontsize is not None: default_fontsize.update(fontsize)
+
     # Set plotting rcParams
     set_style(darkmode)
     reso = size * 60 / xsize
@@ -234,7 +235,7 @@ def gnom(
         va="top",
         ha="right",
         transform=ax.transAxes,
-        fontsize=fontsize["title"],
+        fontsize=default_fontsize["title"],
     )
     plt.text(
         0.05,
@@ -243,7 +244,7 @@ def gnom(
         color=llabel_color,
         va="top",
         transform=ax.transAxes,
-        fontsize=fontsize["title"],
+        fontsize=default_fontsize["title"],
     )
     if cbar:
         apply_colorbar(
@@ -253,7 +254,7 @@ def gnom(
             params["ticks"],
             params["ticklabels"],
             params["unit"],
-            fontsize=fontsize,
+            fontsize=default_fontsize,
             linthresh=1,
             norm=params["norm"],
             cbar_pad=cbar_pad,
