@@ -15,6 +15,7 @@ from cosmoglobe.sky._units import Unit
 # CO is currently hardcoded
 # Make better custom band selection
 
+
 def spec(
     model,
     pol=False,
@@ -68,13 +69,13 @@ def spec(
     fraction : float, optional
         Sets the figsize to be a fraction of a latex document
         default : None
-    labelsize : float, 
+    labelsize : float,
         Fontsize of ticklabels and axislabels
         default : 11
-    comp_labelsize : float, 
+    comp_labelsize : float,
         Fontsize of component labels
         default : 9
-    band_labelsize : float, 
+    band_labelsize : float,
         Fontsize of frequency band labels
         default : 8
     extend: bool, optional
@@ -133,10 +134,11 @@ def spec(
         Text offset from lines
         default : 5
     """
-    if fraction is not None: figsize = get_figure_width(fraction=fraction)
+    if fraction is not None:
+        figsize = get_figure_width(fraction=fraction)
     set_style(darkmode, font="serif")
 
-    #rcParams.update(figparams)
+    # rcParams.update(figparams)
     black = "k"
     if darkmode:
         brokecol = "white"
@@ -160,7 +162,7 @@ def spec(
     ]
     rcParams["axes.prop_cycle"] = cycler(color=colors)
     rcParams["ytick.right"] = True
-    
+
     blue, red, green, purple, orange, teal, lightred, lightgreen, pink, yellow, grey = (
         "C0",
         "C1",
@@ -189,14 +191,14 @@ def spec(
     ymin2, ymax2 = (ymax + 100, 1e7)
 
     figsize = get_figure_width(fraction=fraction) if figsize is None else figsize
-    
+
     if extend:
-        ratio = 5 # Make subplot on top at 5:1 ratio
+        ratio = 5  # Make subplot on top at 5:1 ratio
         fig, (ax2, ax) = plt.subplots(
             2,
             1,
             sharex=True,
-            figsize=(figsize[0],figsize[1]),
+            figsize=(figsize[0], figsize[1]),
             gridspec_kw={"height_ratios": [1, ratio]},
         )
         aspect_ratio = figsize[0] / figsize[1] * 1.25  # Correct for ratio
@@ -211,9 +213,7 @@ def spec(
 
         kwargs = dict(transform=ax2.transAxes, color=brokecol, clip_on=False, linewidth=1)
         ax2.plot((-d, +d), (-d * ratio, +d * ratio), **kwargs)  # top-left diagonal
-        ax2.plot(
-            (1 - d, 1 + d), (-d * ratio, +d * ratio), **kwargs
-        )  # top-right diagonal
+        ax2.plot((1 - d, 1 + d), (-d * ratio, +d * ratio), **kwargs)  # top-right diagonal
         kwargs.update(transform=ax.transAxes)  # switch to the bottom axes
         ax.plot((-d, +d), (1 - d, 1 + d), **kwargs)  # bottom-left diagonal
         ax.plot((1 - d, 1 + d), (1 - d, 1 + d), **kwargs)  # bottom-right diagonal
@@ -240,23 +240,15 @@ def spec(
     i = 0
     for comp in foregrounds.keys():
         if comp.startswith("co") and include_co:  # get closest thing to ref freq
-            foregrounds[comp]["params"][2], line_idx = find_nearest(
-                nu, foregrounds[comp]["params"][2]
-            )
+            foregrounds[comp]["params"][2], line_idx = find_nearest(nu, foregrounds[comp]["params"][2])
             foregrounds[comp]["spectrum"] = np.zeros((2, len(sky_fractions), N))
-            foregrounds[comp]["spectrum"][sig][0][line_idx] = foregrounds[comp][
-                "params"
-            ][0]
-            foregrounds[comp]["spectrum"][sig][1][line_idx] = foregrounds[comp][
-                "params"
-            ][1]
+            foregrounds[comp]["spectrum"][sig][0][line_idx] = foregrounds[comp]["params"][0]
+            foregrounds[comp]["spectrum"][sig][1][line_idx] = foregrounds[comp]["params"][1]
 
         if comp.startswith("bb"):
             a = 0.67 * 1e-1 if comp.endswith("2") else 0.67 * 1e-2
             sed = np.zeros((2, len(sky_fractions), N))
-            cmb_blackbody = (np.ones(len(nu)) * Unit("uK_CMB")).to(
-                "uK_RJ", equivalencies=cmb_equivalencies(nu * u.GHz)
-            )
+            cmb_blackbody = (np.ones(len(nu)) * Unit("uK_CMB")).to("uK_RJ", equivalencies=cmb_equivalencies(nu * u.GHz))
             sed[1] = a * cmb_blackbody
             foregrounds[comp]["spectrum"] = sed
 
@@ -266,40 +258,15 @@ def spec(
             continue
 
         if pol and comp == "ame":
-            foregrounds[comp]["spectrum"][1] = (
-                ame_polfrac * foregrounds[comp]["spectrum"][0]
-            )
+            foregrounds[comp]["spectrum"][1] = ame_polfrac * foregrounds[comp]["spectrum"][0]
 
-        if (
-            add_error
-            and not comp.startswith("co")
-            and not comp.startswith("bb")
-            and not comp.startswith("cmb")
-        ):
+        if add_error and not comp.startswith("co") and not comp.startswith("bb") and not comp.startswith("cmb"):
             thresh = 0.1
             alpha = 0.5
-            foregrounds[comp]["spectrum"][sig][0] = foregrounds[comp]["spectrum"][sig][
-                0
-            ] * (
-                1
-                - np.exp(
-                    -(abs(foregrounds[comp]["spectrum"][sig][0] / thresh) ** alpha)
-                )
-            )
-            foregrounds[comp]["spectrum"][sig][1] = foregrounds[comp]["spectrum"][sig][
-                1
-            ] / (
-                1
-                - np.exp(
-                    -(abs(foregrounds[comp]["spectrum"][sig][1] / thresh) ** alpha)
-                )
-            )
-            foregrounds[comp]["spectrum"][sig][0][
-                np.isnan(foregrounds[comp]["spectrum"][sig][0])
-            ] = 0
-            foregrounds[comp]["spectrum"][sig][1][
-                np.isnan(foregrounds[comp]["spectrum"][sig][1])
-            ] = 0
+            foregrounds[comp]["spectrum"][sig][0] = foregrounds[comp]["spectrum"][sig][0] * (1 - np.exp(-(abs(foregrounds[comp]["spectrum"][sig][0] / thresh) ** alpha)))
+            foregrounds[comp]["spectrum"][sig][1] = foregrounds[comp]["spectrum"][sig][1] / (1 - np.exp(-(abs(foregrounds[comp]["spectrum"][sig][1] / thresh) ** alpha)))
+            foregrounds[comp]["spectrum"][sig][0][np.isnan(foregrounds[comp]["spectrum"][sig][0])] = 0
+            foregrounds[comp]["spectrum"][sig][1][np.isnan(foregrounds[comp]["spectrum"][sig][1])] = 0
 
         if foregrounds[comp]["sum"] and foregrounds[comp]["spectrum"] is not None:
             if i == 0:
@@ -422,9 +389,7 @@ def spec(
                 va="center",
                 rotation=90,
                 fontsize=comp_labelsize,
-                path_effects=[
-                    path_effects.withSimplePatchShadow(alpha=0.8, offset=(0.3, -0.3))
-                ],
+                path_effects=[path_effects.withSimplePatchShadow(alpha=0.8, offset=(0.3, -0.3))],
                 zorder=1000,
             )
         else:
@@ -437,7 +402,7 @@ def spec(
                 (ymin, ymax),
                 aspect_ratio,
             )
-            _text_offset = text_offset*1.5 if comp=="sumfg" else text_offset
+            _text_offset = text_offset * 1.5 if comp == "sumfg" else text_offset
             ax.annotate(
                 params["label"],
                 xy=(x0, y0),
@@ -464,7 +429,7 @@ def spec(
                     aspect_ratio,
                 )
                 ax.annotate(
-                    r"$f_{\mathrm{sky}}=" + "{:d}".format(int(sky_fractions[1])) +"\%$",
+                    r"$f_{\mathrm{sky}}=" + "{:d}".format(int(sky_fractions[1])) + "\%$",
                     rotation=rotation,
                     rotation_mode="anchor",
                     xy=(x0, y0),
@@ -475,9 +440,7 @@ def spec(
                     xytext=(0, text_offset),
                     textcoords="offset pixels",
                     path_effects=[
-                        path_effects.withSimplePatchShadow(
-                            alpha=0.8, offset=(0.3, -0.3)
-                        ),
+                        path_effects.withSimplePatchShadow(alpha=0.8, offset=(0.3, -0.3)),
                     ],
                 )
 
@@ -490,7 +453,7 @@ def spec(
                     aspect_ratio,
                 )
                 ax.annotate(
-                    r"$f_{\mathrm{sky}}=" + "{:d}".format(int(sky_fractions[0]))+"\%$",
+                    r"$f_{\mathrm{sky}}=" + "{:d}".format(int(sky_fractions[0])) + "\%$",
                     rotation=rotation,
                     rotation_mode="anchor",
                     xy=(x0, y0),
@@ -501,9 +464,7 @@ def spec(
                     xytext=(0, -text_offset),
                     textcoords="offset pixels",
                     path_effects=[
-                        path_effects.withSimplePatchShadow(
-                            alpha=0.8, offset=(0.3, -0.3)
-                        ),
+                        path_effects.withSimplePatchShadow(alpha=0.8, offset=(0.3, -0.3)),
                     ],
                 )
 
@@ -874,11 +835,7 @@ def spec(
                     continue  # Skip non-polarization bands
                 if band["position"][0] >= xmax or band["position"][0] <= xmin:
                     continue  # Skip databands outside range
-                va = (
-                    "bottom"
-                    if experiment in ["WMAP", "CHI-PASS", "DIRBE", "Haslam"]
-                    else "top"
-                )  # VA for WMAP on bottom
+                va = "bottom" if experiment in ["WMAP", "CHI-PASS", "DIRBE", "Haslam"] else "top"  # VA for WMAP on bottom
                 ha = (
                     "center"
                     if experiment
@@ -889,63 +846,15 @@ def spec(
                     ]
                     else "center"
                 )
-                ax.axvspan(
-                    *band["range"],
-                    color=band["color"],
-                    alpha=0.3,
-                    zorder=-20,
-                    label=experiment
-                )
+                ax.axvspan(*band["range"], color=band["color"], alpha=0.3, zorder=-20, label=experiment)
                 if extend:
-                    ax2.axvspan(
-                        *band["range"],
-                        color=band["color"],
-                        alpha=0.3,
-                        zorder=-20,
-                        label=experiment
-                    )
+                    ax2.axvspan(*band["range"], color=band["color"], alpha=0.3, zorder=-20, label=experiment)
                     if experiment in ["WMAP", "CHI-PASS", "DIRBE", "Haslam"]:
-                        ax.text(
-                            *band["position"],
-                            label,
-                            color=band["color"],
-                            va=va,
-                            ha=ha,
-                            size=band_labelsize,
-                            path_effects=[
-                                path_effects.withSimplePatchShadow(
-                                    alpha=0.8, offset=(0.3, -0.3)
-                                )
-                            ]
-                        )
+                        ax.text(*band["position"], label, color=band["color"], va=va, ha=ha, size=band_labelsize, path_effects=[path_effects.withSimplePatchShadow(alpha=0.8, offset=(0.3, -0.3))])
                     else:
-                        ax2.text(
-                            *band["position"],
-                            label,
-                            color=band["color"],
-                            va=va,
-                            ha=ha,
-                            size=band_labelsize,
-                            path_effects=[
-                                path_effects.withSimplePatchShadow(
-                                    alpha=0.8, offset=(0.3, -0.3)
-                                )
-                            ]
-                        )
+                        ax2.text(*band["position"], label, color=band["color"], va=va, ha=ha, size=band_labelsize, path_effects=[path_effects.withSimplePatchShadow(alpha=0.8, offset=(0.3, -0.3))])
                 else:
-                    ax.text(
-                        *band["position"],
-                        label,
-                        color=band["color"],
-                        va=va,
-                        ha=ha,
-                        size=band_labelsize,
-                        path_effects=[
-                            path_effects.withSimplePatchShadow(
-                                alpha=0.8, offset=(0.3, -0.3)
-                            )
-                        ]
-                    )
+                    ax.text(*band["position"], label, color=band["color"], va=va, ha=ha, size=band_labelsize, path_effects=[path_effects.withSimplePatchShadow(alpha=0.8, offset=(0.3, -0.3))])
 
     # ---- Axis stuff ----
     xticks = []
@@ -959,7 +868,6 @@ def spec(
     for i, ytick in enumerate(yticks_):
         if ytick >= ymin and ytick <= ymax:
             yticks.append(ytick)
-
 
     ax.set(
         xscale="log",
@@ -975,8 +883,11 @@ def spec(
     ax.xaxis.set_major_formatter(formatter)
     ax.yaxis.set_major_formatter(formatter)
     ax.tick_params(axis="both", which="both", labelsize=labelsize, direction="in")
-    ax.tick_params(axis="y", labelrotation=90, labelsize=labelsize,)
-    
+    ax.tick_params(
+        axis="y",
+        labelrotation=90,
+        labelsize=labelsize,
+    )
 
     if extend:
         ax2.set(
@@ -989,13 +900,24 @@ def spec(
         )
         ax2.yaxis.set_major_formatter(formatter)
         ax2.tick_params(axis="both", which="both", labelsize=labelsize, direction="in")
-        ax2.tick_params(axis="y",labelrotation=90, labelsize=labelsize,)
-        ax2.set_yticklabels([fmt(x,1) for x in ax2.get_yticks()], fontsize=labelsize, va="center",)
-    
-    
+        ax2.tick_params(
+            axis="y",
+            labelrotation=90,
+            labelsize=labelsize,
+        )
+        ax2.set_yticklabels(
+            [fmt(x, 1) for x in ax2.get_yticks()],
+            fontsize=labelsize,
+            va="center",
+        )
+
     # Why do i have to do this?
-    ax.set_yticklabels([fmt(x,1) for x in ax.get_yticks()], fontsize=labelsize, va="center",)
-    ax.set_xticklabels([fmt(x,1) for x in ax.get_xticks()], fontsize=labelsize)
+    ax.set_yticklabels(
+        [fmt(x, 1) for x in ax.get_yticks()],
+        fontsize=labelsize,
+        va="center",
+    )
+    ax.set_xticklabels([fmt(x, 1) for x in ax.get_xticks()], fontsize=labelsize)
 
     # Axis labels
     sax = fig.add_subplot(111, frameon=False)
@@ -1008,10 +930,7 @@ def spec(
         width=0.0,
     )
 
-    sax.set_ylabel(
-        r"$\mathrm{RMS\ amplitude\ [}\mu\mathrm{K}_{\mathrm{RJ}}\mathrm{]}$",
-        fontsize=labelsize, labelpad=0
-    )
+    sax.set_ylabel(r"$\mathrm{RMS\ amplitude\ [}\mu\mathrm{K}_{\mathrm{RJ}}\mathrm{]}$", fontsize=labelsize, labelpad=0)
     sax.set_xlabel(r"$\mathrm{Frequency\ [GHz]}$", fontsize=labelsize)
     plt.subplots_adjust(wspace=0.0, hspace=0.02)
 

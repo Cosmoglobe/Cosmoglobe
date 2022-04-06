@@ -40,6 +40,7 @@ STOKES = [
     "U",
 ]
 
+
 def set_style(darkmode=False, font="serif"):
     """
     This function sets the color parameter and text style
@@ -86,6 +87,7 @@ def set_style(darkmode=False, font="serif"):
         for p in params:
             plt.rcParams[p] = "black"
 
+
 def get_figure_width(width=600, fraction=1):
     """Set figure dimensions to avoid scaling in LaTeX.
 
@@ -109,7 +111,7 @@ def get_figure_width(width=600, fraction=1):
 
     # Golden ratio to set aesthetic figure height
     # https://disq.us/p/2940ij3
-    golden_ratio = (5**.5 - 1) / 2
+    golden_ratio = (5**0.5 - 1) / 2
 
     # Figure width in inches
     fig_width_in = fig_width_pt * inches_per_pt
@@ -161,9 +163,7 @@ def make_fig(figsize, fignum, hold, sub, reuse_axes, darkmode=False, projection=
             fig = plt.figure(figsize=figsize)
 
         if idx < 1 or idx > ncols * nrows:
-            raise ValueError(
-                "Wrong values for subplot: %d, %d, %d" % (nrows, ncols, idx)
-            )
+            raise ValueError("Wrong values for subplot: %d, %d, %d" % (nrows, ncols, idx))
 
     if reuse_axes:
         ax = fig.gca()
@@ -198,12 +198,12 @@ def fmt(x, pos):
         elif float(a) == -1.00:
             return r"$-10^{" + str(b) + "}$"
         else:
-            return fr"${a} \cdot 10^{b}$"
+            return rf"${a} \cdot 10^{b}$"
     elif abs(x) > 1e1 or (float(abs(x))).is_integer():
-        return fr"${int(x):d}$"
+        return rf"${int(x):d}$"
     else:
         x = round(x, 2)
-        return fr"${x}$"
+        return rf"${x}$"
 
 
 def format_list(items):
@@ -307,9 +307,7 @@ def gradient_fill(x, y, fill_color=None, ax=None, alpha=1.0, invert=False, **kwa
     xmin, xmax, ymin, ymax = x.min(), x.max(), y.min(), y.max()
     if invert:
         ymin, ymax = (ymax, ymin)
-    im = ax.imshow(
-        z, aspect="auto", extent=[xmin, xmax, ymin, ymax], origin="lower", zorder=zorder
-    )
+    im = ax.imshow(z, aspect="auto", extent=[xmin, xmax, ymin, ymax], origin="lower", zorder=zorder)
 
     xy = np.column_stack([x, y])
     xy = np.vstack([[xmin, ymin], xy, [xmax, ymin], [xmin, ymin]])
@@ -346,9 +344,7 @@ def apply_logscale(m, ticks, linthresh=1):
     NOTE: This should ideally be done for the colorbar, not the data.
     """
 
-    print(
-        f"[magenta]Applying semi-logscale with linear threshold={linthresh}[/magenta]"
-    )
+    print(f"[magenta]Applying semi-logscale with linear threshold={linthresh}[/magenta]")
     m = symlog(m, linthresh)
     new_ticks = []
     for i in ticks:
@@ -487,11 +483,11 @@ def apply_colorbar(
 
         # Create range of minor ticks from min value to negative max
         for i in range(len(logticks_min)):
-            minorticks = np.concatenate((-(10 ** i) * minorticks2, minorticks))
+            minorticks = np.concatenate((-(10**i) * minorticks2, minorticks))
 
         # Create range of minor ticks from min value to positive max
         for i in range(len(logticks_max)):
-            minorticks = np.concatenate((minorticks, (10 ** i) * minorticks2))
+            minorticks = np.concatenate((minorticks, (10**i) * minorticks2))
 
         # Convert values to true logarithmic values
         minorticks = symlog(minorticks, linthresh)
@@ -558,7 +554,7 @@ def load_cmap(cmap):
                     return self.cmap(yi, alpha)
 
                 def modsinh(self, x):
-                    return np.log10(0.5 * (x + np.sqrt(x ** 2 + 4)))
+                    return np.log10(0.5 * (x + np.sqrt(x**2 + 4)))
 
             cmap_path = Path(data_dir.__path__[0]) / "planck_cmap_logscale.dat"
             planck_cmap = np.loadtxt(cmap_path) / 255.0
@@ -608,18 +604,12 @@ def get_data(input, sig, comp, freq, fwhm, nside=None, sample=-1):
         if input.endswith(".h5"):
             if comp is None:
                 if freq is None:
-                    print(
-                        "[bold magenta]Warning! Neither frequency nor component selected. Plotting sky at 70GHz[/bold magenta]"
-                    )
-                data = SkyModel.from_chain(
-                    input, components=comp, nside=nside, samples=sample
-                )
+                    print("[bold magenta]Warning! Neither frequency nor component selected. Plotting sky at 70GHz[/bold magenta]")
+                data = SkyModel.from_chain(input, components=comp, nside=nside, samples=sample)
             else:
                 if freq is not None:
                     # If frequency is specified, simulate sky with model.
-                    data = SkyModel.from_chain(
-                        input, components=comp, nside=nside, samples=sample
-                    )
+                    data = SkyModel.from_chain(input, components=comp, nside=nside, samples=sample)
                 else:
                     chain = Chain(
                         input,
@@ -653,9 +643,7 @@ def get_data(input, sig, comp, freq, fwhm, nside=None, sample=-1):
         """
         if comp is None:
             if freq is None:
-                print(
-                    "[bold magenta]Warning! Neither frequency nor component selected. Plotting sky at 70GHz[/bold magenta]"
-                )
+                print("[bold magenta]Warning! Neither frequency nor component selected. Plotting sky at 70GHz[/bold magenta]")
                 freq = 70 * u.GHz
             comp = "freqmap"
             m = data(freq, fwhm=fwhm)
@@ -679,22 +667,15 @@ def get_data(input, sig, comp, freq, fwhm, nside=None, sample=-1):
                 m = data[comp].spectral_parameters[specparam]
 
                 if len(m[sig]) == 1:
-                    warnings.warn(
-                        "Same value across the whole sky, mapping to array of length Npix"
-                    )
+                    warnings.warn("Same value across the whole sky, mapping to array of length Npix")
                     m = np.full(hp.nside2npix(data.nside), m[sig])
 
     elif isinstance(data, np.ndarray):
         m = data
         if m.ndim == 1 and sig > 0 and not isinstance(input, str):
-            print(
-                f"[magenta]Input array is 1d, specified signal will only be used for labeling, make sure this is correct.[/magenta]"
-            )
+            print(f"[magenta]Input array is 1d, specified signal will only be used for labeling, make sure this is correct.[/magenta]")
     else:
-        raise TypeError(
-            f"Type {type(data)} of data not supported"
-            f"Supports numpy array, cosmoglobe model object or fits file string"
-        )
+        raise TypeError(f"Type {type(data)} of data not supported" f"Supports numpy array, cosmoglobe model object or fits file string")
 
     # Make sure it is a 1d array
     if m.ndim > 1:
@@ -733,17 +714,12 @@ def get_params(**params):
         try:
             autoparams = autoparams[params["comp"]]
         except KeyError:
-            print(
-                f"[magenta]Component label {params['comp']} not found. Using unidentified profile.[/magenta]"
-            )
+            print(f"[magenta]Component label {params['comp']} not found. Using unidentified profile.[/magenta]")
             print(f"available keys are: {autoparams.keys()}")
             autoparams = autoparams["unidentified"]
 
         # Replace default values if None
-        params = {
-            key: (autoparams[key] if key in autoparams and value is None else value)
-            for key, value in params.items()
-        }
+        params = {key: (autoparams[key] if key in autoparams and value is None else value) for key, value in params.items()}
 
         # NOTE: This is really ugly code for selecting pol parameters
         # Pick polarization or temperature
@@ -764,17 +740,10 @@ def get_params(**params):
         specials = ["residual", "freqmap", "bpcorr", "smap"]
         if any(j in params["comp"] for j in specials):
             if freq is not None:
-                params["rlabel"] = (
-                    params["rlabel"]
-                    + "{"
-                    + f'{("%.5f" % freq.value).rstrip("0").rstrip(".")}'
-                    + "}"
-                )
+                params["rlabel"] = params["rlabel"] + "{" + f'{("%.5f" % freq.value).rstrip("0").rstrip(".")}' + "}"
             else:
                 params["rlabel"] = None
-                warnings.warn(
-                    f'Specify frequency with -freq for automatic frequency labeling with the "freqmap" profile'
-                )
+                warnings.warn(f'Specify frequency with -freq for automatic frequency labeling with the "freqmap" profile')
 
         """
         # NOTE: This probably doesnt work with the current state of the comp
@@ -793,22 +762,13 @@ def get_params(**params):
 
         # Specify at which frequency we are observing in unit lable
         if freq is not None and params["unit"] is not None:
-            params["unit"] = (
-                f'{params["unit"]}\,@\,{("%.5f" % freq.value).rstrip("0").rstrip(".")}'
-                + "\,\mathrm{GHz}"
-            )
+            params["unit"] = f'{params["unit"]}\,@\,{("%.5f" % freq.value).rstrip("0").rstrip(".")}' + "\,\mathrm{GHz}"
 
         # In the case that a difference frequency than the reference
         # is requested for a component map.
         if params["ticks"] == None:
-            if (
-                freq is not None
-                and params["freq_ref"] != freq.value
-                and params["comp"] not in specials
-            ):
-                warnings.warn(
-                    f"Input frequency is different from reference, autosetting ticks"
-                )
+            if freq is not None and params["freq_ref"] != freq.value and params["comp"] not in specials:
+                warnings.warn(f"Input frequency is different from reference, autosetting ticks")
                 print(f'input: {freq}, reference: {params["freq_ref"]}')
                 params["ticks"] = "auto"
 
@@ -852,24 +812,19 @@ def get_params(**params):
                 params[key] = r"$" + params[key] + "$"
 
     # Special case if dipole is detected in freqmap
-    if (
-        params["comp"] == "freqmap"
-        and params["min"] is None
-        and params["max"] is None
-        and params["rng"] is None
-    ):
+    if params["comp"] == "freqmap" and params["min"] is None and params["max"] is None and params["rng"] is None:
         # if colorbar is super-saturated
-        while (
-            len(params["data"][abs(params["data"]) > params["ticks"][-1]])
-            / len(params["data"].ravel())
-            > 0.7
-        ):
+        while len(params["data"][abs(params["data"]) > params["ticks"][-1]]) / len(params["data"].ravel()) > 0.7:
             params["ticks"] = [tick * 10 for tick in params["ticks"]]
             print("[magenta]Colormap saturated. Expanding color-range.[/magenta]")
 
     # Create ticklabels from final ticks
     params["ticklabels"] = format_list(params["ticks"])
 
+    # Set planck as default cmap
+    if params["cmap"] is None:
+        params["cmap"] = "planck"
+        
     return params
 
 
@@ -928,29 +883,17 @@ def create_70GHz_mask(sky_frac, nside=256, pol=False):
     for i in range(len(amp_percentages)):
         mask = np.zeros(len(template), dtype=np.bool)
         masked_template = np.abs(hp.ma(template))
-        mask[
-            np.where(
-                np.log(masked_template)
-                > (amp_percentages[i] / 100) * np.nanmax(np.log(masked_template))
-            )
-        ] = 1
+        mask[np.where(np.log(masked_template) > (amp_percentages[i] / 100) * np.nanmax(np.log(masked_template)))] = 1
         masked_template.mask = mask
 
-        frac = (
-            (len(masked_template) - masked_template.count()) / len(masked_template)
-        ) * 100
+        frac = ((len(masked_template) - masked_template.count()) / len(masked_template)) * 100
         fracs.append(frac)
 
     amp_percentage = np.interp(100 - sky_frac, fracs, amp_percentages)
 
     mask = np.zeros(len(template), dtype=np.bool)
     masked_template = np.abs(hp.ma(template))
-    mask[
-        np.where(
-            np.log(masked_template)
-            > (amp_percentage / 100) * np.nanmax(np.log(masked_template))
-        )
-    ] = 1
+    mask[np.where(np.log(masked_template) > (amp_percentage / 100) * np.nanmax(np.log(masked_template)))] = 1
 
     return mask
 
@@ -970,9 +913,7 @@ def seds_from_model(nu, model, nside=None, pol=False, sky_fractions=(25, 85)):
         masks[i] = create_70GHz_mask(sky_frac, nside, pol=pol)
 
     # SED dictionary with T and P, skyfractions and the value per nu
-    seds = {
-        comp: np.zeros((2, len(sky_fractions), len(nu))) for comp in model.components
-    }
+    seds = {comp: np.zeros((2, len(sky_fractions), len(nu))) for comp in model.components}
     for key, value in comps.items():
         if key in ignore_comps:
             continue
@@ -981,10 +922,7 @@ def seds_from_model(nu, model, nside=None, pol=False, sky_fractions=(25, 85)):
             specinds = {}
             for specind, m in value.spectral_parameters.items():
                 if m.shape[-1] != 1:
-                    m = (
-                        np.mean(mask_map(m, mask), axis=1).reshape(-1, 1)
-                        * value.spectral_parameters[specind].unit
-                    )
+                    m = np.mean(mask_map(m, mask), axis=1).reshape(-1, 1) * value.spectral_parameters[specind].unit
                 specinds[specind] = m
 
             amp = hp.ud_grade(value.amp, nside) if udgrade else value.amp
@@ -998,9 +936,7 @@ def seds_from_model(nu, model, nside=None, pol=False, sky_fractions=(25, 85)):
             amp = rms_amp(amp[0])
 
             if key == "cmb":
-                freq_scaling = (np.ones(len(nu)) * Unit("uK_CMB")).to(
-                    "uK_RJ", equivalencies=cmb_equivalencies(nu * u.GHz)
-                )
+                freq_scaling = (np.ones(len(nu)) * Unit("uK_CMB")).to("uK_RJ", equivalencies=cmb_equivalencies(nu * u.GHz))
                 seds[key][0, i, :] = 45 * freq_scaling  # TEMP
                 seds[key][1, i, :] = 0.67 * freq_scaling  # POL
             else:
@@ -1015,4 +951,4 @@ def seds_from_model(nu, model, nside=None, pol=False, sky_fractions=(25, 85)):
 def rms_amp(m):
     n = len(m) - np.sum(m.mask)
     m -= np.mean(m)
-    return np.sqrt(np.sum(m ** 2) / n)
+    return np.sqrt(np.sum(m**2) / n)

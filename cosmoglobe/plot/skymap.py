@@ -12,6 +12,7 @@ from .plottools import *
 # Fix for macos openMP duplicate bug
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
+
 @u.quantity_input(freq=u.Hz, fwhm=(u.arcmin, u.rad, u.deg))
 def plot(
     input,
@@ -151,7 +152,7 @@ def plot(
         Size in inches default is half latex page, see fraction.
         default: None
     fraction : float, optional
-        Fraction of latex page width. 
+        Fraction of latex page width.
         default : 0.5
     darkmode : bool, optional
         Plots all outlines in white for dark backgrounds, and adds 'dark' in
@@ -215,7 +216,7 @@ def plot(
         fontsize = fontsize_
 
     # Get figure width from page fraction
-    if width is None: 
+    if width is None:
         figsize = get_figure_width(fraction=fraction)
         width = figsize[0]
 
@@ -235,12 +236,10 @@ def plot(
 
         m = hp.ma(m)
         if hp.get_nside(mask) != nside:
-            print(
-                "[magenta]Input mask nside is different, ud_grading to output nside.[/magenta]"
-            )
+            print("[magenta]Input mask nside is different, ud_grading to output nside.[/magenta]")
             mask = hp.ud_grade(mask, nside)
         m.mask = np.logical_not(mask)
-    
+
     # Pass all your arguments in, return parsed plotting parameters
     params = get_params(
         data=m,
@@ -259,20 +258,20 @@ def plot(
         width=width,
         nside=nside,
     )
-    
+
     # Colormap
     cmap = load_cmap(params["cmap"])
     if maskfill:
         cmap.set_bad(maskfill)
 
     if override_plot_properties is None:
-        override_plot_properties={"cbar_tick_direction": "in"}
-    if interactive: # Plot using mollview if interactive mode
+        override_plot_properties = {"cbar_tick_direction": "in"}
+    if interactive:  # Plot using mollview if interactive mode
         hp.mollview(
             params["data"],
             min=params["ticks"][0],
             max=params["ticks"][-1],
-            cbar=cbar, 
+            cbar=cbar,
             cmap=cmap,
             unit=params["unit"],
             title=title,
@@ -284,9 +283,9 @@ def plot(
             flip=flip,
             return_projected_map=True,
         )
-        ret=plt.gca().get_images()[0]
+        ret = plt.gca().get_images()[0]
 
-    else: # Using fancy projview
+    else:  # Using fancy projview
         warnings.filterwarnings("ignore")  # Healpy complains too much
         # Plot figure
         ret = hp.newvisufunc.projview(
@@ -328,7 +327,6 @@ def plot(
             phi_convention=phi_convention,
             custom_xtick_labels=custom_xtick_labels,
             custom_ytick_labels=custom_ytick_labels,
-        )   
-
+        )
 
     return ret, params
