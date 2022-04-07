@@ -120,7 +120,7 @@ def get_figure_width(width=600, fraction=1):
 
     # Proper scaling
     fig_dim = (fig_width_in, fig_height_in)
-    print(f"Using dimensions: {fig_dim}")
+    #print(f"Using dimensions: {fig_dim}")
     return fig_dim
 
 
@@ -530,48 +530,10 @@ def load_cmap(cmap):
 
     if cmap is None:
         cmap = "planck"
-    if "planck" in cmap:
-        if "planck_log" in cmap:  # logscale:
-            # setup nonlinear colormap
 
-            class GlogColormap(LinearSegmentedColormap):
-                name = cmap
-
-                def __init__(self, cmap, vmin=-1e3, vmax=1e7):
-                    self.cmap = cmap
-                    self.N = self.cmap.N
-                    self.vmin = vmin
-                    self.vmax = vmax
-
-                def is_gray(self):
-                    return False
-
-                def __call__(self, xi, alpha=1.0, **kw):
-                    x = xi * (self.vmax - self.vmin) + self.vmin
-                    yi = self.modsinh(x)
-                    # range 0-1
-                    yi = (yi + 3) / 10.0
-                    return self.cmap(yi, alpha)
-
-                def modsinh(self, x):
-                    return np.log10(0.5 * (x + np.sqrt(x**2 + 4)))
-
-            cmap_path = Path(data_dir.__path__[0]) / "planck_cmap_logscale.dat"
-            planck_cmap = np.loadtxt(cmap_path) / 255.0
-            cmap = ListedColormap(planck_cmap, "planck")
-            cmap = GlogColormap(cmap)
-        else:
-            cmap_path = Path(data_dir.__path__[0]) / "planck_cmap.dat"
-            planck_cmap = np.loadtxt(cmap_path) / 255.0
-            if cmap.endswith("_r"):
-                planck_cmap = planck_cmap[::-1]
-            cmap = ListedColormap(planck_cmap, "planck")
-    elif "wmap" in cmap:
-        cmap_path = Path(data_dir.__path__[0]) / "wmap_cmap.dat"
-        wmap_cmap = np.loadtxt(cmap_path) / 255.0
-        if cmap.endswith("_r"):
-            wmap_cmap = wmap_cmap[::-1]
-        cmap = ListedColormap(wmap_cmap, "wmap")
+    if cmap in ["planck", "planck_log", "wmap"]:
+        cmap_path =  cmap_path = Path(data_dir.__path__[0]) / f"{cmap}_cmap.dat"
+        cmap = ListedColormap(np.loadtxt(cmap_path) / 255.0, cmap)
     elif cmap.startswith("black2"):
         cmap = LinearSegmentedColormap.from_list(cmap, cmap.split("2"))
     else:
@@ -585,7 +547,6 @@ def load_cmap(cmap):
 
                 cmap = plt.get_cmap(cmap)
 
-    # print("Colormap:" + f" {cmap.name}")
     return cmap
 
 
@@ -652,14 +613,15 @@ def get_data(input, sig, comp, freq, fwhm, nside=None, sample=-1):
                 if freq is None:
                     # Get map at reference frequency if freq not specified
                     freq_ref = data[comp].freq_ref
-                    freq = freq_ref.value
+                    freq = (freq_ref.value).squeeze()
                     m = data[comp].amp
                     if comp == "radio":
                         m = data(freq_ref, fwhm=fwhm, components=[comp])
+                    
                     try:
-                        freq = round(freq.squeeze()[sig], 5) * freq_ref.unit
+                        freq = np.round(freq[sig], 5) * freq_ref.unit
                     except IndexError:
-                        freq = round(freq, 5) * freq_ref.unit
+                        freq = np.round(freq, 5) * freq_ref.unit
                 else:
                     # If freq is specified, scale with sky model
                     m = data(freq, fwhm=fwhm, components=[comp])
@@ -679,7 +641,11 @@ def get_data(input, sig, comp, freq, fwhm, nside=None, sample=-1):
 
     # Make sure it is a 1d array
     if m.ndim > 1:
-        m = m[sig]
+        if sig>np.shape(m)[0]-1:
+            warnings.warn(f"Index {sig} out of data range {np.shape(m)}, returning empty map")
+            m = np.zeros(np.shape(m[-1]))+hp.UNSEEN
+        else:
+            m = m[sig]
 
     # Convert astropy map to numpy array
     if isinstance(m, u.Quantity):
@@ -687,7 +653,7 @@ def get_data(input, sig, comp, freq, fwhm, nside=None, sample=-1):
 
     # ud_grade map
     if nside is not None and nside != hp.get_nside(m):
-        print("Ud_grading map")
+        print("ud_grading map")
         m = hp.ud_grade(m, nside)
 
     # Smooth map
@@ -796,10 +762,10 @@ def get_params(**params):
                 params["ticks"][-1] = params["max"]
 
     # Ticks and ticklabels
-    if params["ticks"] == "auto":
-        params["ticks"] = get_percentile(params["data"], 97.5)
+    if params["ticks"] == "auto" or "auto" in params["ticks"]:
+        params["ticks"] = get_percentile(params["data"], 99)
     elif None in params["ticks"]:
-        pmin, pmax = get_percentile(params["data"], 97.5)
+        pmin, pmax = get_percentile(params["data"], 99)
         if params["ticks"][0] is None:
             params["ticks"][0] = pmin
         if params["ticks"][-1] is None:

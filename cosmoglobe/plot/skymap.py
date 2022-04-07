@@ -8,6 +8,7 @@ import astropy.units as u
 import matplotlib.pyplot as plt
 
 from .plottools import *
+from .temp_newvisufunc import projview as temp_projview
 
 # Fix for macos openMP duplicate bug
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
@@ -40,10 +41,9 @@ def plot(
     rlabel=None,
     llabel=None,
     width=None,
-    fraction=0.5,
+    fraction=1,
     xsize=1000,
     darkmode=False,
-    interactive=False,
     rot=None,
     coord=None,
     nest=False,
@@ -66,6 +66,7 @@ def plot(
     custom_xtick_labels=None,
     custom_ytick_labels=None,
     ratio=None,
+    **kwargs,
 ):
     """
     General plotting function for healpix maps.
@@ -154,7 +155,7 @@ def plot(
         default: None
     fraction : float, optional
         Fraction of latex page width.
-        default : 0.5
+        default : 1
     darkmode : bool, optional
         Plots all outlines in white for dark backgrounds, and adds 'dark' in
         filename.
@@ -206,6 +207,8 @@ def plot(
         override x-axis tick labels
     custom_ytick_labels : list
         override y-axis tick labels
+    kwargs : keywords
+        passed to projview
     """
 
     if not fontsize:
@@ -268,69 +271,50 @@ def plot(
 
     if override_plot_properties is None:
         override_plot_properties = {"cbar_tick_direction": "in"}
-    if interactive:  # Plot using mollview if interactive mode
-        hp.mollview(
-            params["data"],
-            min=params["ticks"][0],
-            max=params["ticks"][-1],
-            cbar=cbar,
-            cmap=cmap,
-            unit=params["unit"],
-            title=title,
-            norm=params["norm"],
-            # unedited params
-            rot=rot,
-            coord=coord,
-            nest=nest,
-            flip=flip,
-            return_projected_map=True,
-        )
-        ret = plt.gca().get_images()[0]
 
-    else:  # Using fancy projview
-        warnings.filterwarnings("ignore")  # Healpy complains too much
-        # Plot figure
-        print(params["norm_dict"],)
-        ret = hp.newvisufunc.projview(
-            params["data"],
-            min=np.min(params["ticks"]),
-            max=np.max(params["ticks"]),
-            cbar_ticks=params["ticks"],
-            cbar=cbar,
-            cmap=cmap,
-            unit=params["unit"],
-            llabel=params["llabel"],
-            rlabel=params["rlabel"],
-            norm=params["norm"],
-            norm_dict=params["norm_dict"],
-            override_plot_properties=override_plot_properties,
-            show_tickmarkers=True,
-            width=width,
-            # unedited params
-            remove_dip=remove_dip,
-            remove_mono=remove_mono,
-            xsize=xsize,
-            title=title,
-            rot=rot,
-            coord=coord,
-            nest=nest,
-            flip=flip,
-            graticule=graticule,
-            graticule_labels=graticule_labels,
-            return_only_data=return_only_data,
-            projection_type=projection_type,
-            cb_orientation=cb_orientation,
-            xlabel=xlabel,
-            ylabel=ylabel,
-            longitude_grid_spacing=longitude_grid_spacing,
-            latitude_grid_spacing=latitude_grid_spacing,
-            xtick_label_color=xtick_label_color,
-            ytick_label_color=ytick_label_color,
-            graticule_color=graticule_color,
-            fontsize=fontsize,
-            phi_convention=phi_convention,
-            custom_xtick_labels=custom_xtick_labels,
-            custom_ytick_labels=custom_ytick_labels,
-        )
+    warnings.filterwarnings("ignore")  # Healpy complains too much
+    # Plot figure
+    ret = temp_projview(
+        params["data"],
+        min=np.min(params["ticks"]),
+        max=np.max(params["ticks"]),
+        cbar_ticks=params["ticks"],
+        cbar=cbar,
+        cmap=cmap,
+        unit=params["unit"],
+        llabel=params["llabel"],
+        rlabel=params["rlabel"],
+        norm=params["norm"],
+        norm_dict=params["norm_dict"],
+        override_plot_properties=override_plot_properties,
+        show_tickmarkers=True,
+        width=width,
+        # unedited params
+        remove_dip=remove_dip,
+        remove_mono=remove_mono,
+        xsize=xsize,
+        title=title,
+        rot=rot,
+        coord=coord,
+        nest=nest,
+        flip=flip,
+        graticule=graticule,
+        graticule_labels=graticule_labels,
+        return_only_data=return_only_data,
+        projection_type=projection_type,
+        cb_orientation=cb_orientation,
+        xlabel=xlabel,
+        ylabel=ylabel,
+        longitude_grid_spacing=longitude_grid_spacing,
+        latitude_grid_spacing=latitude_grid_spacing,
+        xtick_label_color=xtick_label_color,
+        ytick_label_color=ytick_label_color,
+        graticule_color=graticule_color,
+        fontsize=fontsize,
+        phi_convention=phi_convention,
+        custom_xtick_labels=custom_xtick_labels,
+        custom_ytick_labels=custom_ytick_labels,
+        **kwargs
+    )
 
     return ret, params

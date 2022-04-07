@@ -3,7 +3,7 @@
         "rlabel": "A_{\\mathrm{CMB}}^{ }",
         "unit": "\\mu\\mathrm{K}_{\\mathrm{CMB}}",
         "cmap": ["planck"],
-        "ticks": [[-300,0,300], [-10,0,10]],
+        "ticks": [[-300,0,300], [-30,0,30]],
         "freq_ref": [null,null],
         "norm": null,
         "norm_dict": null
@@ -164,10 +164,10 @@
     "freqmap": {
         "rlabel": "A_",
         "unit": "\\mu\\mathrm{K}",
-        "cmap": ["planck", "planck"], 
-        "ticks": [[-300,0, 300], [-30,0,30]],
+        "cmap": ["planck_log", "planck_log"], 
+        "ticks": [[-1e3, -10, 0, 10, 1e3, 1e7], [-1e2, -10, 0, 10, 1e3, 1e6]],
         "freq_ref": [null, null],
-        "norm": null,
+        "norm": "symlog2",
         "norm_dict": null
     },
     "bpcorr": {
