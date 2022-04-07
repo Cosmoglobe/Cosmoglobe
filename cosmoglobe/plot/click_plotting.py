@@ -124,21 +124,27 @@ def commands_plotting():
     help="Sets the full figure title. Has LaTeX functionaliity (ex. $A_{s}$.)",
 )
 @click.option(
-    "-right_label",
+    "-rlabel",
     default=None,
     type=click.STRING,
     help="Sets the upper right title. Has LaTeX functionaliity (ex. $A_{s}$.)",
 )
 @click.option(
-    "-left_label",
+    "-llabel",
     default=None,
     type=click.STRING,
     help="Sets the upper left title. Has LaTeX functionaliity (ex. $A_{s}$.)",
 )
 @click.option(
     "-width",
-    default=4.7,
-    help="Size: in inches OR 1/3, 1/2 and full page width (8.8/12/18cm) [ex. x, s, m or l, or ex. slm for all], m by default",
+    default=None,
+    help="Size in inches. Default is fraction=0.5",
+)
+@click.option(
+    "-fraction",
+    default=0.5,
+    type=click.FLOAT,
+    help="Fraction of latex page width",
 )
 @click.option(
     "-xsize",
@@ -316,128 +322,33 @@ def commands_plotting():
     type=click.INT,
     help="DPI of output file. 300 by default.",
 )
-def plot(
-    input,
-    sig,
-    comp,
-    freq,
-    ticks,
-    min,
-    max,
-    rng,
-    nocbar,
-    unit,
-    fwhm,
-    nside,
-    sample,
-    mask,
-    maskfill,
-    cmap,
-    norm,
-    remove_dip,
-    remove_mono,
-    title,
-    right_label,
-    left_label,
-    width,
-    xsize,
-    darkmode,
-    interactive,
-    rot,
-    coord,
-    nest,
-    flip,
-    graticule,
-    graticule_labels,
-    return_only_data,
-    projection_type,
-    cb_orientation,
-    xlabel,
-    ylabel,
-    longitude_grid_spacing,
-    latitude_grid_spacing,
-    override_plot_properties,
-    xtick_label_color,
-    ytick_label_color,
-    graticule_color,
-    fontsize,
-    phi_convention,
-    custom_xtick_labels,
-    custom_ytick_labels,
-    white_background,
-    png,
-    outdir,
-    outname,
-    show,
-    gif,
-    fps,
-    dpi,
-):
+def plot(input, **kwargs):
     """
     Invokes the plot function from the command line
     input: filename of fits or h5 file, optional plotting paramameters
     """
+    kwargs["cbar"] = not kwargs.pop("nocbar")
+    kwargs["freq"] = None if kwargs["freq"] is None else kwargs["freq"] * u.GHz
+    kwargs["fwhm"] = None if kwargs["fwhm"] is None else kwargs["fwhm"] * u.arcmin
+
+    # Pop click-specific arguments
+    gif = kwargs.pop("gif")
+    show = kwargs.pop("show")
+    dpi = kwargs.pop("dpi")
+    fps = kwargs.pop("fps")
+    png = kwargs.pop("png")
+    white_background = kwargs.pop("white_background")
+    outdir = kwargs.pop("outdir")
+    outname = kwargs.pop("outname")
+
     imgs = []  # Container for images used with gif
     for i, filename in enumerate(input):
-        cbar = False if nocbar else True
-        freq_ = None if freq is None else freq * u.GHz
-        fwhm_ = None if fwhm is None else fwhm * u.arcmin
-        comps = comp
-
         # Super hacky gif fix because "hold" is not implemented in newvisufunc
         if gif and i > 0:
-            return_only_data = True
+            kwargs["return_only_data"] = True
 
         # Actually plot the stuff
-        img, params = cplot(
-            filename,
-            sig=sig,
-            comp=comps,
-            freq=freq_,
-            ticks=ticks,
-            min=min,
-            max=max,
-            rng=rng,
-            cbar=cbar,
-            unit=unit,
-            fwhm=fwhm_,
-            nside=nside,
-            sample=sample,
-            mask=mask,
-            maskfill=maskfill,
-            cmap=cmap,
-            norm=norm,
-            remove_dip=remove_dip,
-            remove_mono=remove_mono,
-            title=title,
-            right_label=right_label,
-            left_label=left_label,
-            width=width,
-            xsize=xsize,
-            darkmode=darkmode,
-            interactive=interactive,
-            rot=rot,
-            coord=coord,
-            nest=nest,
-            flip=flip,
-            graticule=graticule,
-            graticule_labels=graticule_labels,
-            return_only_data=return_only_data,
-            projection_type=projection_type,
-            cb_orientation=cb_orientation,
-            xlabel=xlabel,
-            ylabel=ylabel,
-            longitude_grid_spacing=longitude_grid_spacing,
-            latitude_grid_spacing=latitude_grid_spacing,
-            override_plot_properties=override_plot_properties,
-            xtick_label_color=xtick_label_color,
-            ytick_label_color=ytick_label_color,
-            graticule_color=graticule_color,
-            fontsize=fontsize,
-            phi_convention=phi_convention,
-            custom_xtick_labels=custom_xtick_labels,
-            custom_ytick_labels=custom_ytick_labels,
-        )
+        img, params = cplot(filename, **kwargs)
 
         # Super hacky gif fix because "hold" is not implemented in newvisufunc
         if gif:
@@ -470,23 +381,26 @@ def plot(
         """
         *path, fn = os.path.split(filename)
         fn, ftype = os.path.splitext(fn)
+
+        comp = kwargs["comp"]
+        freq = kwargs["freq"]
+        fwhm = kwargs["fwhm"]
+
         if ftype == ".h5":
             fn += "_" + comp
 
         fn = fn.replace("_IQU_", "_").replace("_I_", "_")
-        if freq_ is not None:
-            fn = fn.replace(comp, f"{comp}-{int(freq_.value)}GHz")
+        if freq is not None:
+            fn = fn.replace(comp, f"{comp}-{int(freq.value)}GHz")
         if outdir:
             path = outdir
 
         tags = []
-        tags.append(f"{str(int(fwhm_.value))}arcmin") if float(
-            fwhm_.value
-        ) > 0 else None
-        tags.append("cb") if cbar else None
-        tags.append("masked") if mask else None
-        tags.append("nodip") if remove_dip else None
-        tags.append("dark") if darkmode else None
+        tags.append(f"{str(int(fwhm.value))}arcmin") if float(fwhm.value) > 0 else None
+        tags.append("cb") if kwargs["cbar"] else None
+        tags.append("masked") if kwargs["mask"] else None
+        tags.append("nodip") if kwargs["remove_dip"] else None
+        tags.append("dark") if kwargs["darkmode"] else None
         if params["cmap"] is None:
             params["cmap"] = "planck"
         tags.append(f'c-{params["cmap"]}')
@@ -495,12 +409,9 @@ def plot(
         if nside_tag in fn:
             fn = fn.replace(nside_tag, "")
 
-        if params["width"] is None:
-            width = 8.5
-
-        if isinstance(sig, int):
-            sig = ["I", "Q", "U"][sig]
-        fn = fn + f"_{sig}_w{str(int(width))}" + nside_tag
+        if isinstance(kwargs["sig"], int):
+            sig = ["I", "Q", "U"][kwargs["sig"]]
+        fn = fn + f'_{sig}_w{str(int(params["width"]))}' + nside_tag
 
         for i in tags:
             fn += f"_{i}"
@@ -597,13 +508,13 @@ def plot(
 )
 @click.option("-range", "rng", default=None, type=click.FLOAT, help="Color bar range")
 @click.option(
-    "-left_label",
+    "-llabel",
     default=None,
     type=click.STRING,
     help="Set title, has LaTeX functionality. Ex. $\mu$",
 )
 @click.option(
-    "-right_label",
+    "-rlabel",
     default=None,
     type=click.STRING,
     help="Set title, has LaTeX functionality. Ex. $\mu$",
@@ -681,15 +592,9 @@ def plot(
     help="Turn on darkmode",
 )
 @click.option(
-    "-fignum",
+    "-sub",
     default=None,
-    type=click.INT,
-    help="Figure number",
-)
-@click.option(
-    "-subplot",
-    default=None,
-    help="Subplot (ex. (2,1,2))",
+    help="sub (ex. (2,1,2))",
 )
 @click.option(
     "-hold",
@@ -731,84 +636,27 @@ def plot(
 )
 def gnom(
     input,
-    lon,
-    lat,
-    comp,
-    sig,
-    freq,
-    nside,
-    size,
-    sample,
-    vmin,
-    vmax,
-    ticks,
-    rng,
-    left_label,
-    right_label,
-    unit,
-    cmap,
-    graticule,
-    norm,
-    nocbar,
-    cbar_pad,
-    cbar_shrink,
-    fwhm,
-    remove_dip,
-    remove_mono,
-    fontsize,
-    figsize,
-    darkmode,
-    fignum,
-    subplot,
-    hold,
-    reuse_axes,
-    outdir,
-    outname,
-    show,
-    png,
-    dpi,
+    **kwargs
 ):
     """
     Plots a fits file in gnomonic view.
     It is wrapper on the cosmoglobe "gnom" function.s
     """
-    cbar = False if nocbar else True
-    freq_ = None if freq is None else freq * u.GHz
-    fwhm_ = None if fwhm is None else fwhm * u.arcmin
-    figsize = (3, 4) if figsize is None else figsize
+    kwargs["cbar"] = not kwargs.pop("nocbar")
+    kwargs["freq"] = None if kwargs["freq"] is None else kwargs["freq"] * u.GHz
+    kwargs["fwhm"] = None if kwargs["fwhm"] is None else kwargs["fwhm"] * u.arcmin
+    kwargs["figsize"] = (3,4) if kwargs["figsize"] is None else tuple(kwargs["figsize"])
+    
+    # Pop click-specific arguments
+    show = kwargs.pop("show")
+    dpi = kwargs.pop("dpi")
+    png = kwargs.pop("png")
+    outdir = kwargs.pop("outdir")
+    outname = kwargs.pop("outname")
+
     img, params = cgnom(
         input,
-        lon,
-        lat,
-        comp,
-        sig,
-        freq_,
-        nside,
-        size,
-        sample,
-        vmin,
-        vmax,
-        ticks,
-        rng,
-        left_label,
-        right_label,
-        unit,
-        cmap,
-        graticule,
-        norm,
-        cbar,
-        cbar_pad,
-        cbar_shrink,
-        fwhm_,
-        remove_dip,
-        remove_mono,
-        fontsize,
-        figsize,
-        darkmode,
-        fignum,
-        subplot,
-        hold,
-        reuse_axes,
+        **kwargs
     )
 
     if show:
@@ -818,10 +666,7 @@ def gnom(
         if outname:
             filetype = "png" if outname.endswith(".png") else "pdf"
         else:
-            fn = (
-                os.path.splitext(fn)[0]
-                + f'_gnomonic_{["I","Q","U"][sig]}_{lon}lon{lat}lat_{size}x{size}deg_c-{params["cmap"]}'
-            )
+            fn = os.path.splitext(fn)[0] + f'_gnomonic_{["I","Q","U"][kwargs["sig"]]}_{kwargs["lon"]}lon{kwargs["lat"]}lat_{kwargs["size"]}x{kwargs["size"]}deg_c-{params["cmap"]}'
             filetype = "png" if png else "pdf"
 
         if outname:
@@ -831,10 +676,7 @@ def gnom(
         path = "." if path[0] == "" else path[0]
         fn = os.path.splitext(fn)[0] + f".{filetype}"
         print(f"[bold green]Outputting {fn}[/bold green] to {path}")
-        plt.savefig(
-            f"{path}/{fn}", bbox_inches="tight", pad_inches=0.02, format=filetype, dpi=dpi
-        )
-
+        plt.savefig(f"{path}/{fn}", bbox_inches="tight", pad_inches=0.02, format=filetype, dpi=dpi)
 
 @commands_plotting.command()
 @click.argument(
@@ -903,15 +745,9 @@ def gnom(
     help="Turn on darkmode",
 )
 @click.option(
-    "-fignum",
+    "-sub",
     default=None,
-    type=click.INT,
-    help="Figure number",
-)
-@click.option(
-    "-subplot",
-    default=None,
-    help="Subplot (ex. (2,1,2))",
+    help="sub (ex. (2,1,2))",
 )
 @click.option(
     "-hold",
@@ -953,51 +789,30 @@ def gnom(
 )
 def trace(
     input,
-    dataset,
-    sig,
-    labels,
-    hideval,
-    burnin,
-    xlabel,
-    ylabel,
-    nbins,
-    cmap,
-    figsize,
-    darkmode,
-    fignum,
-    subplot,
-    hold,
-    reuse_axes,
-    outdir,
-    outname,
-    show,
-    png,
-    dpi,
+    **kwargs,
 ):
     """
     Creates a trace plot off data in a HDF file.
     This is a click wrapper the same function in cosmoglobe.
     """
-    labels = labels.split(" ")
-    if figsize is None: figsize = (8, 3)
-    showval=True if not hideval else False
+    kwargs["cbar"] = not kwargs.pop("nocbar")
+    kwargs["freq"] = None if kwargs["freq"] is None else kwargs["freq"] * u.GHz
+    kwargs["fwhm"] = None if kwargs["fwhm"] is None else kwargs["fwhm"] * u.arcmin
+    kwargs["figsize"] = (8,3) if kwargs["figsize"] is None else tuple(kwargs["figsize"])
+    
+    # Pop click-specific arguments
+    show = kwargs.pop("show")
+    dpi = kwargs.pop("dpi")
+    png = kwargs.pop("png")
+    outdir = kwargs.pop("outdir")
+    outname = kwargs.pop("outname")
+
+    kwargs["labels"] = kwargs["labels"].split(" ")
+    kwargs["showval"] = not kwargs.pop("hideval")
+
     ctrace(
         input,
-        dataset,
-        sig,
-        labels,
-        showval,
-        burnin,
-        xlabel,
-        ylabel,
-        nbins,
-        cmap,
-        figsize,
-        darkmode,
-        fignum,
-        subplot,
-        hold,
-        reuse_axes,
+        **kwargs,
     )
 
     if show:
@@ -1016,6 +831,4 @@ def trace(
         path = "." if path[0] == "" else path[0]
         fn = os.path.splitext(fn)[0] + f".{filetype}"
         print(f"[bold green]Outputting {fn}[/bold green] to {path}")
-        plt.savefig(
-            f"{path}/{fn}", bbox_inches="tight", pad_inches=0.02, format=filetype, dpi=dpi
-        )
+        plt.savefig(f"{path}/{fn}", bbox_inches="tight", pad_inches=0.02, format=filetype, dpi=dpi)

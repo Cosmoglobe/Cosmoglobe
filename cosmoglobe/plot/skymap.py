@@ -8,9 +8,11 @@ import astropy.units as u
 import matplotlib.pyplot as plt
 
 from .plottools import *
+from .temp_newvisufunc import projview as temp_projview
 
 # Fix for macos openMP duplicate bug
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
+
 
 @u.quantity_input(freq=u.Hz, fwhm=(u.arcmin, u.rad, u.deg))
 def plot(
@@ -32,15 +34,16 @@ def plot(
     maskfill=None,
     cmap=None,
     norm=None,
+    norm_dict=None,
     remove_dip=False,
     remove_mono=False,
     title=None,
     rlabel=None,
     llabel=None,
-    width=4.7,
+    width=None,
+    fraction=1,
     xsize=1000,
     darkmode=False,
-    interactive=False,
     rot=None,
     coord=None,
     nest=False,
@@ -63,6 +66,7 @@ def plot(
     custom_xtick_labels=None,
     custom_ytick_labels=None,
     ratio=None,
+    **kwargs,
 ):
     """
     General plotting function for healpix maps.
@@ -115,19 +119,19 @@ def plot(
         available as of now. Also supports qualitative plotly map, [ex.
         q-Plotly-4 (q for qualitative 4 for max color)] Sets planck as default.
         default: None
-    norm : str, matplotlib norm object, optional
-        if norm=='linear':
-            normal
-        if norm=='log':
-            Uses log10 scale
-            Normalizes data using a semi-logscale linear between -1 and 1.
-            Autodetector uses this sometimes, you will be warned.
-        SPECIFY linthresh for linear threshold of symlog!
+    norm : {'hist', 'log', 'symlog', 'symlog2', None}
+      Color normalization:
+      hist = histogram equalized color mapping.
+      log = logarithmic color mapping.
+      symlog = symmetric logarithmic, linear between -linthresh and linthresh.
+      symlog2 = similar to symlog, used for plack log colormap.
+      default: None (linear color mapping)
+    norm_dict : dict, optionals
+        Parameters for normalization:
+        default is set to {"linthresh": 1, "base": 10, "linscale": 0.1}
+        where linthresh determines the linear regime of symlog norm,
+        and linscale sets the size of the linear regime on the cbar.
         default: None
-    linthresh : float, optional
-        Linear threshold in symmetric logarithimc scaling.
-        Only used if log-norming
-        default: 1
     remove_dip : bool, optional
         If mdmask is specified, fits and removes a dipole.
         default: True
@@ -146,9 +150,12 @@ def plot(
     llabel : str, optional
         Sets the upper left title. Has LaTeX functionaliity (ex. $A_{s}$.)
         default: None
-    width : str, float, optional
-        Size in inches OR 1/3, 1/2 and full page width (2.75/3.5/4.7/7 inches) [ex. x, s, m or l]
-        default: "m" (4.7 inches)
+    width : float, optional
+        Size in inches default is half latex page, see fraction.
+        default: None
+    fraction : float, optional
+        Fraction of latex page width.
+        default : 1
     darkmode : bool, optional
         Plots all outlines in white for dark backgrounds, and adds 'dark' in
         filename.
@@ -200,6 +207,8 @@ def plot(
         override x-axis tick labels
     custom_ytick_labels : list
         override y-axis tick labels
+    kwargs : keywords
+        passed to projview
     """
 
     if not fontsize:
@@ -209,6 +218,11 @@ def plot(
         for key in fontsize.keys():
             fontsize_[key] = fontsize[key]
         fontsize = fontsize_
+
+    # Get figure width from page fraction
+    if width is None:
+        figsize = get_figure_width(fraction=fraction)
+        width = figsize[0]
 
     set_style(darkmode)
 
@@ -226,12 +240,10 @@ def plot(
 
         m = hp.ma(m)
         if hp.get_nside(mask) != nside:
-            print(
-                "[magenta]Input mask nside is different, ud_grading to output nside.[/magenta]"
-            )
+            print("[magenta]Input mask nside is different, ud_grading to output nside.[/magenta]")
             mask = hp.ud_grade(mask, nside)
         m.mask = np.logical_not(mask)
-    
+
     # Pass all your arguments in, return parsed plotting parameters
     params = get_params(
         data=m,
@@ -245,80 +257,64 @@ def plot(
         max=max,
         rng=rng,
         norm=norm,
+        norm_dict=norm_dict,
         cmap=cmap,
         freq_ref=freq,
         width=width,
         nside=nside,
     )
-    
+
     # Colormap
     cmap = load_cmap(params["cmap"])
     if maskfill:
         cmap.set_bad(maskfill)
 
     if override_plot_properties is None:
-        override_plot_properties={"cbar_tick_direction": "in"}
-    if interactive: # Plot using mollview if interactive mode
-        hp.mollview(
-            params["data"],
-            min=params["ticks"][0],
-            max=params["ticks"][-1],
-            cbar=cbar, 
-            cmap=cmap,
-            unit=params["unit"],
-            title=title,
-            norm=params["norm"],
-            # unedited params
-            rot=rot,
-            coord=coord,
-            nest=nest,
-            flip=flip,
-            return_projected_map=True,
-        )
-        ret=plt.gca().get_images()[0]
+        override_plot_properties = {"cbar_tick_direction": "in"}
 
-    else: # Using fancy projview
-        warnings.filterwarnings("ignore")  # Healpy complains too much
-        # Plot figure
-        ret = hp.newvisufunc.projview(
-            params["data"],
-            min=params["ticks"][0],
-            max=params["ticks"][-1],
-            cbar_ticks=params["ticks"],
-            cbar=cbar,
-            cmap=cmap,
-            llabel=params["llabel"],
-            rlabel=params["rlabel"],
-            norm=params["norm"],
-            override_plot_properties=override_plot_properties,
-            show_tickmarkers=True,
-            width=width,
-            # unedited params
-            remove_dip=remove_dip,
-            remove_mono=remove_mono,
-            xsize=xsize,
-            title=title,
-            rot=rot,
-            coord=coord,
-            nest=nest,
-            flip=flip,
-            graticule=graticule,
-            graticule_labels=graticule_labels,
-            return_only_data=return_only_data,
-            projection_type=projection_type,
-            cb_orientation=cb_orientation,
-            xlabel=xlabel,
-            ylabel=ylabel,
-            longitude_grid_spacing=longitude_grid_spacing,
-            latitude_grid_spacing=latitude_grid_spacing,
-            xtick_label_color=xtick_label_color,
-            ytick_label_color=ytick_label_color,
-            graticule_color=graticule_color,
-            fontsize=fontsize,
-            phi_convention=phi_convention,
-            custom_xtick_labels=custom_xtick_labels,
-            custom_ytick_labels=custom_ytick_labels,
-        )   
-
+    warnings.filterwarnings("ignore")  # Healpy complains too much
+    # Plot figure
+    ret = temp_projview(
+        params["data"],
+        min=np.min(params["ticks"]),
+        max=np.max(params["ticks"]),
+        cbar_ticks=params["ticks"],
+        cbar=cbar,
+        cmap=cmap,
+        unit=params["unit"],
+        llabel=params["llabel"],
+        rlabel=params["rlabel"],
+        norm=params["norm"],
+        norm_dict=params["norm_dict"],
+        override_plot_properties=override_plot_properties,
+        show_tickmarkers=True,
+        width=width,
+        # unedited params
+        remove_dip=remove_dip,
+        remove_mono=remove_mono,
+        xsize=xsize,
+        title=title,
+        rot=rot,
+        coord=coord,
+        nest=nest,
+        flip=flip,
+        graticule=graticule,
+        graticule_labels=graticule_labels,
+        return_only_data=return_only_data,
+        projection_type=projection_type,
+        cb_orientation=cb_orientation,
+        xlabel=xlabel,
+        ylabel=ylabel,
+        longitude_grid_spacing=longitude_grid_spacing,
+        latitude_grid_spacing=latitude_grid_spacing,
+        xtick_label_color=xtick_label_color,
+        ytick_label_color=ytick_label_color,
+        graticule_color=graticule_color,
+        fontsize=fontsize,
+        phi_convention=phi_convention,
+        custom_xtick_labels=custom_xtick_labels,
+        custom_ytick_labels=custom_ytick_labels,
+        **kwargs
+    )
 
     return ret, params

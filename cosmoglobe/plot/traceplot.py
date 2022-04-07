@@ -46,10 +46,10 @@ def trace(
     burnin : int, optional
         Number of burnin samples, used in calculating mean and stddev values
         default: 0
-    xlabel : str, optional 
+    xlabel : str, optional
         label x axis
         default: None
-    ylabel : str, optional 
+    ylabel : str, optional
         label y axis
         default: None
     nbins : int, optional,
@@ -60,10 +60,10 @@ def trace(
         available as of now. Also supports qualitative plotly map, [ex.
         q-Plotly-4 (q for qualitative 4 for max color)] Sets planck as default.
         default: None
-    figsize : touple, optional 
+    figsize : touple, optional
         size of figure
         default: None
-    darkmode : bool, optional 
+    darkmode : bool, optional
         turn all axis elements white for optimal dark visualization
         default: False
     sub : int, scalar or sequence, optional
@@ -72,12 +72,12 @@ def trace(
     hold : bool, optional
         If True, replace the current Axes by a MollweideAxes.
         use this if you want to have multiple maps on the same
-        figure. 
+        figure.
         Default: False
     reuse_axes : bool, optional
         If True, reuse the current Axes (should be a MollweideAxes). This is
         useful if you want to overplot with a partially transparent colormap,
-        such as for plotting a line integral convolution. 
+        such as for plotting a line integral convolution.
         Default: False
     """
     chain = None
@@ -86,7 +86,7 @@ def trace(
             chain = Chain(input)
             if ylabel == None:
                 ylabel = dataset
-            #component, *items = dataset.split("/")
+            # component, *items = dataset.split("/")
 
             input = chain.get(dataset)
 
@@ -102,11 +102,11 @@ def trace(
 
     if input.ndim < 2:
         input.reshape(-1, 1, 1)
-    elif chain is None and input.ndim==2:
-        input = input[:,np.newaxis, :]
+    elif chain is None and input.ndim == 2:
+        input = input[:, np.newaxis, :]
     elif input.ndim == 2:
-        input = input[:,:,np.newaxis]
-    
+        input = input[:, :, np.newaxis]
+
     Nsamp, Nsig, Ncomp = input.shape
 
     cmap = load_cmap(cmap)
