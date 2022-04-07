@@ -487,321 +487,71 @@ def spec(
         wmap = [wmap] * 5
 
     # TODO add these as args?
+    # fmt: off
     databands = {
         "Haslam": {
-            "0.408\nHaslam": {
-                "pol": False,
-                "show": haslam,
-                "position": [0.408, ymin * yscaletextup],
-                "range": [0.406, 0.410],
-                "color": purple,
-            }
+            "0.408\nHaslam": { "pol": False, "show": haslam, "position": [0.408, ymin * yscaletextup], "range": [0.406, 0.410], "color": purple, }
         },
         "S-PASS": {
-            "2.303\nS-PASS": {
-                "pol": True,
-                "show": spass,
-                "position": [2.35, ymax2 * yscaletext],
-                "range": [2.1, 2.4],
-                "color": green,
-            }
+            "2.303\nS-PASS": { "pol": True, "show": spass, "position": [2.35, ymax2 * yscaletext], "range": [2.1, 2.4], "color": green, }
         },
         "C-BASS": {
-            "5.0\nC-BASS": {
-                "pol": True,
-                "show": cbass,
-                "position": [5.0, ymax2 * yscaletext],
-                "range": [4.0, 6.0],
-                "color": blue,
-            }
+            "5.0\nC-BASS": { "pol": True, "show": cbass, "position": [5.0, ymax2 * yscaletext], "range": [4.0, 6.0], "color": blue, }
         },
         "CHI-PASS": {
-            "1.394\nCHI-PASS": {
-                "pol": False,
-                "show": chipass,
-                "position": [1.3945, ymin * yscaletextup],
-                "range": [1.3945 - 0.064 / 2, 1.3945 + 0.064 / 2],
-                "color": lightred,
-            }
+            "1.394\nCHI-PASS": { "pol": False, "show": chipass, "position": [1.3945, ymin * yscaletextup], "range": [1.3945 - 0.064 / 2, 1.3945 + 0.064 / 2], "color": lightred, }
         },
         "QUIJOTE": {
-            "11\nQUIJOTE": {
-                "pol": True,
-                "show": quijote,
-                "position": [11, ymax2 * yscaletext],
-                "range": [10.0, 12.0],
-                "color": red,
-            },
-            "13": {
-                "pol": True,
-                "show": quijote,
-                "position": [13, ymax2 * yscaletext],
-                "range": [12.0, 14.0],
-                "color": red,
-            },
-            "17": {
-                "pol": True,
-                "show": quijote,
-                "position": [17, ymax2 * yscaletext],
-                "range": [16.0, 18.0],
-                "color": red,
-            },
-            "19": {
-                "pol": True,
-                "show": quijote,
-                "position": [20, ymax2 * yscaletext],
-                "range": [18.0, 21.0],
-                "color": red,
-            },
-            ".\n31": {
-                "pol": True,
-                "show": quijote,
-                "position": [31, ymax2 * yscaletext],
-                "range": [26.0, 36.0],
-                "color": red,
-            },
-            ".\n41": {
-                "pol": True,
-                "show": quijote,
-                "position": [42, ymax2 * yscaletext],
-                "range": [35.0, 47.0],
-                "color": red,
-            },
+            "11\nQUIJOTE": { "pol": True, "show": quijote, "position": [11, ymax2 * yscaletext], "range": [10.0, 12.0], "color": red,},
+            "13": { "pol": True, "show": quijote, "position": [13, ymax2 * yscaletext], "range": [12.0, 14.0], "color": red,},
+            "17": { "pol": True, "show": quijote, "position": [17, ymax2 * yscaletext], "range": [16.0, 18.0], "color": red,},
+            "19": { "pol": True, "show": quijote, "position": [20, ymax2 * yscaletext], "range": [18.0, 21.0], "color": red,},
+            ".\n31": { "pol": True, "show": quijote, "position": [31, ymax2 * yscaletext], "range": [26.0, 36.0], "color": red,},
+            ".\n41": { "pol": True, "show": quijote, "position": [42, ymax2 * yscaletext], "range": [35.0, 47.0], "color": red,},
         },
         "Planck": {
-            "30": {
-                "pol": True,
-                "show": planck[0],
-                "position": [28, ymax2 * yscaletext],
-                "range": [23.9, 34.5],
-                "color": orange,
-            },  # Planck 30
-            "44": {
-                "pol": True,
-                "show": planck[1],
-                "position": [44, ymax2 * yscaletext],
-                "range": [39, 50],
-                "color": orange,
-            },  # Planck 44
-            "70": {
-                "pol": True,
-                "show": planck[2],
-                "position": [70, ymax2 * yscaletext],
-                "range": [60, 78],
-                "color": orange,
-            },  # Planck 70
-            "100": {
-                "pol": True,
-                "show": planck[3],
-                "position": [100, ymax2 * yscaletext],
-                "range": [82, 120],
-                "color": orange,
-            },  # Planck 100
-            "143": {
-                "pol": True,
-                "show": planck[4],
-                "position": [145, ymax2 * yscaletext],
-                "range": [125, 170],
-                "color": orange,
-            },  # Planck 143
-            "217": {
-                "pol": True,
-                "show": planck[5],
-                "position": [217, ymax2 * yscaletext],
-                "range": [180, 265],
-                "color": orange,
-            },  # Planck 217
-            "353": {
-                "pol": True,
-                "show": planck[6],
-                "position": [350, ymax2 * yscaletext],
-                "range": [300, 430],
-                "color": orange,
-            },  # Planck 353
-            "545": {
-                "pol": False,
-                "show": planck[7],
-                "position": [540, ymax2 * yscaletext],
-                "range": [450, 650],
-                "color": orange,
-            },  # Planck 545
-            "857": {
-                "pol": False,
-                "show": planck[8],
-                "position": [850, ymax2 * yscaletext],
-                "range": [700, 1020],
-                "color": orange,
-            },
+            "30": { "pol": True, "show": planck[0], "position": [28, ymax2 * yscaletext], "range": [23.9, 34.5], "color": orange,},  # Planck 30
+            "44": { "pol": True, "show": planck[1], "position": [44, ymax2 * yscaletext], "range": [39, 50], "color": orange,},  # Planck 44
+            "70": { "pol": True, "show": planck[2], "position": [70, ymax2 * yscaletext], "range": [60, 78], "color": orange,},  # Planck 70
+            "100": { "pol": True, "show": planck[3], "position": [100, ymax2 * yscaletext], "range": [82, 120], "color": orange,},  # Planck 100
+            "143": { "pol": True, "show": planck[4], "position": [145, ymax2 * yscaletext], "range": [125, 170], "color": orange,},  # Planck 143
+            "217": { "pol": True, "show": planck[5], "position": [217, ymax2 * yscaletext], "range": [180, 265], "color": orange,},  # Planck 217
+            "353": { "pol": True, "show": planck[6], "position": [350, ymax2 * yscaletext], "range": [300, 430], "color": orange,},  # Planck 353
+            "545": { "pol": False, "show": planck[7], "position": [540, ymax2 * yscaletext], "range": [450, 650], "color": orange,},  # Planck 545
+            "857": { "pol": False, "show": planck[8], "position": [850, ymax2 * yscaletext], "range": [700, 1020], "color": orange,},
         },  # Planck 857
         "DIRBE": {
-            "DIRBE\n1250": {
-                "pol": False,
-                "show": dirbe,
-                "position": [1200, ymin * yscaletextup],
-                "range": [1000, 1540],
-                "color": red,
-            },  # DIRBE 1250
-            "2140": {
-                "pol": False,
-                "show": dirbe,
-                "position": [1900, ymin * yscaletextup],
-                "range": [1780, 2500],
-                "color": red,
-            },  # DIRBE 2140
-            "3000": {
-                "pol": False,
-                "show": dirbe,
-                "position": [3000, ymin * yscaletextup],
-                "range": [2600, 3500],
-                "color": red,
-            },
+            "DIRBE\n1250": { "pol": False, "show": dirbe, "position": [1200, ymin * yscaletextup], "range": [1000, 1540], "color": red,},  # DIRBE 1250
+            "2140": { "pol": False, "show": dirbe, "position": [1900, ymin * yscaletextup], "range": [1780, 2500], "color": red,},  # DIRBE 2140
+            "3000": { "pol": False, "show": dirbe, "position": [3000, ymin * yscaletextup], "range": [2600, 3500], "color": red,},
         },  # DIRBE 3000
         "WMAP": {
-            "K": {
-                "pol": True,
-                "show": wmap[0],
-                "position": [23, ymin * yscaletextup],
-                "range": [21, 25.5],
-                "color": teal,
-            },
-            "Ka": {
-                "pol": True,
-                "show": wmap[1],
-                "position": [33, ymin * yscaletextup],
-                "range": [30, 37],
-                "color": teal,
-            },
-            "Q": {
-                "pol": True,
-                "show": wmap[2],
-                "position": [41.0, ymin * yscaletextup],
-                "range": [38, 45],
-                "color": teal,
-            },
-            "V": {
-                "pol": True,
-                "show": wmap[3],
-                "position": [60.0, ymin * yscaletextup],
-                "range": [54, 68],
-                "color": teal,
-            },
-            "W": {
-                "pol": True,
-                "show": wmap[4],
-                "position": [90.0, ymin * yscaletextup],
-                "range": [84, 106],
-                "color": teal,
-            },
+            "K": { "pol": True, "show": wmap[0], "position": [23, ymin * yscaletextup], "range": [21, 25.5], "color": teal,},
+            "Ka": { "pol": True, "show": wmap[1], "position": [33, ymin * yscaletextup], "range": [30, 37], "color": teal,},
+            "Q": { "pol": True, "show": wmap[2], "position": [41.0, ymin * yscaletextup], "range": [38, 45], "color": teal,},
+            "V": { "pol": True, "show": wmap[3], "position": [60.0, ymin * yscaletextup], "range": [54, 68], "color": teal,},
+            "W": { "pol": True, "show": wmap[4], "position": [90.0, ymin * yscaletextup], "range": [84, 106], "color": teal,},
         },
         "LiteBIRD": {
-            "40": {
-                "pol": True,
-                "show": litebird,
-                "position": [40, ymax2 * yscaletext],
-                "range": [34, 46],
-                "color": red,
-            },
-            "50": {
-                "pol": True,
-                "show": litebird,
-                "position": [50, ymax2 * yscaletext],
-                "range": [43, 57],
-                "color": red,
-            },
-            "60": {
-                "pol": True,
-                "show": litebird,
-                "position": [60, ymax2 * yscaletext],
-                "range": [53, 67],
-                "color": red,
-            },
-            "68": {
-                "pol": True,
-                "show": litebird,
-                "position": [68, ymax2 * yscaletext],
-                "range": [60, 76],
-                "color": red,
-            },
-            "78": {
-                "pol": True,
-                "show": litebird,
-                "position": [78, ymax2 * yscaletext],
-                "range": [69, 87],
-                "color": red,
-            },
-            "89": {
-                "pol": True,
-                "show": litebird,
-                "position": [89, ymax2 * yscaletext],
-                "range": [79, 99],
-                "color": red,
-            },
-            "100": {
-                "pol": True,
-                "show": litebird,
-                "position": [100, ymax2 * yscaletext],
-                "range": [89, 111],
-                "color": red,
-            },
-            "119": {
-                "pol": True,
-                "show": litebird,
-                "position": [119, ymax2 * yscaletext],
-                "range": [101, 137],
-                "color": red,
-            },
-            "140": {
-                "pol": True,
-                "show": litebird,
-                "position": [140, ymax2 * yscaletext],
-                "range": [119, 161],
-                "color": red,
-            },
-            "166": {
-                "pol": True,
-                "show": litebird,
-                "position": [166, ymax2 * yscaletext],
-                "range": [141, 191],
-                "color": red,
-            },
-            "195": {
-                "pol": True,
-                "show": litebird,
-                "position": [195, ymax2 * yscaletext],
-                "range": [165, 225],
-                "color": red,
-            },
-            "235": {
-                "pol": True,
-                "show": litebird,
-                "position": [235, ymax2 * yscaletext],
-                "range": [200, 270],
-                "color": red,
-            },
-            "280": {
-                "pol": True,
-                "show": litebird,
-                "position": [280, ymax2 * yscaletext],
-                "range": [238, 322],
-                "color": red,
-            },
-            "337": {
-                "pol": True,
-                "show": litebird,
-                "position": [337, ymax2 * yscaletext],
-                "range": [287, 387],
-                "color": red,
-            },
-            "402\nLiteBIRD": {
-                "pol": True,
-                "show": litebird,
-                "position": [402, ymax2 * yscaletext],
-                "range": [356, 458],
-                "color": red,
-            },
+            "40": { "pol": True, "show": litebird, "position": [40, ymax2 * yscaletext], "range": [34, 46], "color": red,},
+            "50": { "pol": True, "show": litebird, "position": [50, ymax2 * yscaletext], "range": [43, 57], "color": red,},
+            "60": { "pol": True, "show": litebird, "position": [60, ymax2 * yscaletext], "range": [53, 67], "color": red,},
+            "68": { "pol": True, "show": litebird, "position": [68, ymax2 * yscaletext], "range": [60, 76], "color": red,},
+            "78": { "pol": True, "show": litebird, "position": [78, ymax2 * yscaletext], "range": [69, 87], "color": red,},
+            "89": { "pol": True, "show": litebird, "position": [89, ymax2 * yscaletext], "range": [79, 99], "color": red,},
+            "100": { "pol": True, "show": litebird, "position": [100, ymax2 * yscaletext], "range": [89, 111], "color": red,},
+            "119": { "pol": True, "show": litebird, "position": [119, ymax2 * yscaletext], "range": [101, 137], "color": red,},
+            "140": { "pol": True, "show": litebird, "position": [140, ymax2 * yscaletext], "range": [119, 161], "color": red,},
+            "166": { "pol": True, "show": litebird, "position": [166, ymax2 * yscaletext], "range": [141, 191], "color": red,},
+            "195": { "pol": True, "show": litebird, "position": [195, ymax2 * yscaletext], "range": [165, 225], "color": red,},
+            "235": { "pol": True, "show": litebird, "position": [235, ymax2 * yscaletext], "range": [200, 270], "color": red,},
+            "280": { "pol": True, "show": litebird, "position": [280, ymax2 * yscaletext], "range": [238, 322], "color": red,},
+            "337": { "pol": True, "show": litebird, "position": [337, ymax2 * yscaletext], "range": [287, 387], "color": red,},
+            "402\nLiteBIRD": { "pol": True, "show": litebird, "position": [402, ymax2 * yscaletext], "range": [356, 458], "color": red,},
         },
     }
-
+    # fmt: on
+    
     # If band is not included, label another band:
     if planck[4]:
         oldkey = list(databands["Planck"].keys())[3]

@@ -47,11 +47,13 @@ def rmcolumn(input, output, columns):
             hdu.data.del_col(columns)        
         hdulist.writeto(output, overwrite=True)
         
+# fmt: off
 @commands_fits.command()
 @click.argument("input", type=click.STRING)
 @click.option("-mask", type=click.STRING, help="Mask for dipole removal, 30deg sky cut by default")
 @click.option("-gal_cut", default=30, type=click.FLOAT, help="Latitude cut if no mask is provided")
 @click.option("-sig", type=click.INT, multiple=True, help="fields to calculate, [0,1,2 by default]")
+# fmt: on
 def rmmd(input, mask, sig, gal_cut):
     """
     removes the dipole and mask of input fits file
@@ -91,13 +93,14 @@ def rmmd(input, mask, sig, gal_cut):
     hp.write_map(input.replace(".fits", "_no-md.fits"), m, dtype=None, overwrite=True)
 
 
-
+# fmt: off
 @commands_fits.command()
 @click.argument("input", type=click.STRING)
 @click.argument("template", nargs=-1, type=click.STRING)
 @click.option("-mask", type=click.STRING)
 @click.option("-noise", type=click.STRING)
 @click.option("-res", type=click.STRING)
+# fmt: on
 def fittemp(input, template, mask, noise, res):
     """
     Takes a fits map and fits the templates to it. 
