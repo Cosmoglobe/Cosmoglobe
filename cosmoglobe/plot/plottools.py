@@ -647,6 +647,7 @@ def get_data(input, sig, comp, freq, fwhm, nside=None, sample=-1):
         else:
             m = m[sig]
 
+
     # Convert astropy map to numpy array
     if isinstance(m, u.Quantity):
         m = m.value

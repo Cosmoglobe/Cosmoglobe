@@ -102,7 +102,7 @@
         "unit": "\\mu\\mathrm{K}_{\\mathrm{RJ}}",
         "rlabel": "A_{\\mathrm{ptsrc}}",
         "cmap": ["CMRmap"],
-        "ticks": ["auto"],
+        "ticks": [["auto"],[0,1]],
         "freq_ref": [30.0],
         "norm": "symlog2",
         "norm_dict": {"linthresh": 5}
