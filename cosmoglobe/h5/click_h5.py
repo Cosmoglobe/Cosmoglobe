@@ -10,30 +10,14 @@ from cosmoglobe.h5.chain import Chain
 def commands_h5():
     pass
 
+# fmt: off
 @commands_h5.command()
 @click.argument("chain", type=click.Path(exists=True),)
-@click.option(
-    "-samples",
-    default=[-1],
-    multiple=True,
-    help="",
-)
-@click.option(
-    "-new_name",
-    type=click.Path(exists=True),
-    default=None,
-    help="Name of the chain copy. If None, a default is [chain_name]_copy.h5",
-)
-@click.option(
-    "-min",
-    type=click.INT,
-    help="Min sample number for range",
-)
-@click.option(
-    "-max",
-    type=click.INT,
-    help="Max sample number",
-)
+@click.option( "-samples", default=[-1], multiple=True, help="",)
+@click.option( "-new_name", type=click.Path(exists=True), default=None, help="Name of the chain copy. If None, a default is [chain_name]_copy.h5",)
+@click.option( "-min", type=click.INT, help="Min sample number for range",)
+@click.option( "-max", type=click.INT, help="Max sample number",)
+# fmt: on
 def copy_chain(**kwargs):
     """Creates a copy of the chain with a single or multiple samples.
 
@@ -54,21 +38,13 @@ def copy_chain(**kwargs):
     del kwargs['max']
     chain.copy_chain(**kwargs)
 
-
+# fmt: off
 @commands_h5.command()
 @click.argument("chain", type=click.Path(exists=True),)
 @click.argument("other_chain", type=click.Path(exists=True),)
-@click.option(
-    "-group_list",
-    multiple=True,
-    help="List of hdf5 groups that will be overwritten in the new chainfile. Use -group_list thing1 -group_list thing2.",
-)
-@click.option(
-    "-new_name",
-    type=click.Path(exists=True),
-    default=None,
-    help="Name of the chain copy. If None, a default is [chain name]_copy.h5",
-)
+@click.option( "-group_list", multiple=True, help="List of hdf5 groups that will be overwritten in the new chainfile. Use -group_list thing1 -group_list thing2.",)
+@click.option( "-new_name", type=click.Path(exists=True), default=None, help="Name of the chain copy. If None, a default is [chain name]_copy.h5",)
+# fmt: on
 def combine_chains(**kwargs):
     """Creates a new chainfile that combines specific groups from two chains.
 
@@ -91,28 +67,15 @@ def combine_chains(**kwargs):
     """
     chain.combine_chains(**kwargs)
 
+# fmt: off
 @commands_h5.command()
 @click.argument("chain", type=click.Path(exists=True),)
 @click.argument("dataset",)
 @click.argument("outname", )
-@click.option(
-    "-min",
-    type=click.INT,
-    default=0,
-    help="First sample.",
-)
-@click.option(
-    "-max",
-    type=click.INT,
-    default=None, 
-    help="Last sample. If not specified, use last sample of dataset.",
-)
-@click.option(
-    "-nside",
-    type=click.INT,
-    default=None, 
-    help="Output nside of data.",
-)
+@click.option( "-min", type=click.INT, default=0, help="First sample.",)
+@click.option( "-max", type=click.INT, default=None,  help="Last sample. If not specified, use last sample of dataset.",)
+@click.option( "-nside", type=click.INT, default=None,  help="Output nside of data.",)
+# fmt: on
 def mean(chain, dataset, outname, min, max, nside):
     """Calculates the mean of a dataset over a range of samples
 
@@ -149,28 +112,15 @@ def mean(chain, dataset, outname, min, max, nside):
     else:
         np.savetxt(outname, data)
 
+# fmt: off
 @commands_h5.command()
 @click.argument("chain", type=click.Path(exists=True),)
 @click.argument("dataset",)
 @click.argument("outname", )
-@click.option(
-    "-min",
-    type=click.INT,
-    default=0,
-    help="First sample.",
-)
-@click.option(
-    "-max",
-    type=click.INT,
-    default=None, 
-    help="Last sample. If not specified, use last sample of dataset.",
-)
-@click.option(
-    "-nside",
-    type=click.INT,
-    default=None, 
-    help="Output nside of data.",
-)
+@click.option( "-min", type=click.INT, default=0, help="First sample.",)
+@click.option( "-max", type=click.INT, default=None,  help="Last sample. If not specified, use last sample of dataset.",)
+@click.option( "-nside", type=click.INT, default=None,  help="Output nside of data.",)
+# fmt: on
 def stddev(chain, dataset, outname, min, max, nside):
     """Calculates the stddev of a dataset over a range of samples
 
