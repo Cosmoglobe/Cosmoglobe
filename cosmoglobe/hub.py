@@ -3,7 +3,7 @@ from astropy.utils.data import download_file
 from cosmoglobe.h5.chain import Chain
 
 
-DATA_URL = "http://cosmoglobe.uio.no/BeyondPlanck/compsep/"
+DATA_URL = "http://sdc.uio.no/vol/cosmoglobe-data/BeyondPlanck/compsep/"
 
 
 def get_test_chain(cache: bool = True) -> Chain:
