@@ -1,0 +1,159 @@
+**************************************************************
+*                  Commander parameter file                  *
+**************************************************************
+@DEFAULT LFI_tod.defaults
+
+OPERATION                     = sample  # {sample,optimize}
+VERBOSITY                     = 3       # [0,...,3]
+
+##############################################################
+#                   Algorithm specification                  #
+##############################################################
+
+# Monte Carlo options
+NUMCHAIN         = 1       # Number of independent chains
+NUM_GIBBS_ITER   = 10000       # Length of each Markov chain
+CHAIN_STATUS     = append
+NUM_INIT_CHAINS  = 1
+INIT_CHAIN01     = none
+
+SAMPLE_SIGNAL_AMPLITUDES      = .true.
+SAMPLE_SPECTRAL_INDICES       = .true.
+
+ENABLE_TOD_ANALYSIS           = .false.
+# TOD sampling options
+TOD_NUM_BP_PROPOSALS_PER_ITER  = 1    # 1 for sampling; >= 1 for optimize
+
+##############################################################
+#                       Output options                       #
+##############################################################
+
+OUTPUT_DIRECTORY              = chains_test
+
+##############################################################
+#                         Data sets                          #
+##############################################################	
+
+DATA_DIRECTORY                 = /mn/stornext/d16/cmbco/bp/dwatts/npipe/data
+NUMBAND                        = 2
+
+INCLUDE_BAND001                = .true.   # 44 GHz
+INCLUDE_BAND002                = .true.   # 143 GHz
+INCLUDE_BAND003                = .false.   # 353 GHz
+
+# 44 GHz Planck DR4 Map TQU
+@START 001
+@DEFAULT bands/DR4_LFI/LFI_044.defaults
+@END 001
+
+# 143 GHz Planck DR4 Map TQU
+@START 002
+@DEFAULT bands/DR4_HFI/HFI_143.defaults
+@END 002
+
+
+##############################################################
+#                     Model parameters                       #
+##############################################################	
+
+INSTRUMENT_PARAM_FILE         = instrument_params_test.dat
+INIT_INSTRUMENT_FROM_HDF      = default
+ 
+NUM_SIGNAL_COMPONENTS         = 1
+INCLUDE_COMP01                = .true.  # Cmb # CMB; no monopole or dipole
+INCLUDE_COMP02                = .false.  # synch # Synch pow-law
+INCLUDE_COMP03                = .false.  # dust # Thermal dust
+INCLUDE_COMP04                = .false.  # md # Mono and dipoles
+INCLUDE_COMP05                = .false.  # radio # Radio sources
+INCLUDE_COMP06                = .false.  # freefree
+INCLUDE_COMP07                = .false.  # Low-freq AME
+INCLUDE_COMP08                = .false.  # CMB relativistic quadrupole
+
+NUM_CG_SAMPLING_GROUPS = 1
+
+@START 01
+CG_SAMPLING_GROUP&&          = cmb
+CG_SAMPLING_GROUP_MASK&&     = fullsky
+CG_SAMPLING_GROUP_MAXITER&&  = 100
+@END 01
+
+# CMB
+@START 01
+@DEFAULT components/cmb/cmb_LFI.defaults
+COMP_INPUT_AMP_MAP&&          = none init_cmb_amp_BP8.1_v1.fits
+COMP_MONOPOLE_PRIOR&&         = none monopole-dipole:mask_band_monopoles_bp10_chisq_comp_radio_commonDX12_n1024_TQU.fits
+@END 01
+
+# Synchrotron component
+@START 02 
+@DEFAULT components/synch/synch_LFI.defaults
+COMP_INPUT_AMP_MAP&&          = init_synch_amp_BP8.1_v1.fits
+COMP_INPUT_BETA_MAP&&         = init_synch_beta_BP8.1_v1.fits
+COMP_PRIOR_GAUSS_BETA_MEAN&&  = -3.3
+# New Local sampling parameters
+@DEFAULT components/synch/synch_LFI_localsampler.defaults
+COMP_INIT_FROM_HDF&&          = default
+COMP_BETA_POL_FIX_PIXREG&&    = 1,3
+COMP_BETA_POL_PIXREG_PRIOR&&  = '-3.3,-3.3,-3.3,-3.3,'
+COMP_BETA_ALMSAMP_INIT&&      = init_alm_synch_beta_BP10.dat 
+@END 02
+
+# Thermal dust component
+@START 03
+@DEFAULT components/dust/dust_LFI.defaults
+COMP_NU_REF_T&&               = 353
+COMP_INDMASK&&                = mask_dust_beta_BP8_10deg_HKE.fits 
+COMP_INPUT_AMP_MAP&&          = init_dust_amp_BP8.1_v1.fits
+COMP_INPUT_BETA_MAP&&         = init_dust_beta_BP8.1_v1.fits
+COMP_INPUT_T_MAP&&            = init_dust_T_BP8.1_v1.fits
+@DEFAULT components/dust/dust_LFI_localsampler.defaults
+
+# New Local sampling parameters, 'dust'
+COMP_BETA_ALMSAMP_INIT&&      = init_alm_dust_beta.dat
+COMP_BETA_MASK&&              = mask_dust_beta_BP8_10deg_HKE.fits 
+COMP_INIT_FROM_HDF&&          = default
+@END 03
+
+# Mono- and dipole component
+@START 04
+@DEFAULT components/monodipole/md_LFI.defaults
+COMP_MD_MONO_FROM_PRIOR&&     = none
+COMP_MD_DEFINITION_FILE&&     = init_md_BP10_final_v2_c20_sample400.dat
+COMP_INIT_FROM_HDF&&          = default
+@END 04
+
+# Radio sources
+@START 05
+@DEFAULT components/radio/radio_LFI.defaults
+COMP_CATALOG&&                 = COM_AT20G_GB6_NVSS_PCCS2_nothreshold_v8.dat
+COMP_INIT_CATALOG&&            = init_radio_BP8.11.dat
+COMP_PTSRC_TEMPLATE&&          = COM_AT20G_GB6_NVSS_PCCS2_nothreshold_v39.h5
+COMP_INIT_FROM_HDF&&           = default
+@END 05
+
+# freefree component
+@START 06
+@DEFAULT components/freefree/freefree_LFI.defaults
+COMP_INPUT_AMP_MAP&&          = init_ff_amp_BP8.1_v1.fits
+COMP_PRIOR_AMP_MAP&&          = ff_prior_mean_2015_median_90arc.fits none
+# New Local sampling parameters. 'freefree, ff'
+@DEFAULT components/freefree/freefree_LFI_localsampler.defaults
+COMP_T_E_CORRELATION_CONVERGENCE_SAMPLING&& = .false.
+COMP_T_E_COMBINED_MONOPOLE_SAMPLING&& = .false.
+COMP_INIT_FROM_HDF&&          = default
+@END 06
+
+# Low-frequency AME component 
+@START 07
+@DEFAULT components/ame/ame_LFI.defaults
+COMP_SED_TEMPLATE&&           = spdust2_cnm.dat
+COMP_INPUT_AMP_MAP&&          = init_ame_amp_BP8.1_v1.fits
+@DEFAULT components/ame/ame_LFI_localsampler.defaults
+# New Local sampling parameters, 'ame'
+COMP_INIT_FROM_HDF&&          = default
+@END 07
+
+# CMB relativistic quadrupole correction
+@START 08
+@DEFAULT components/cmb/cmb_relquad.defaults
+@END 08
