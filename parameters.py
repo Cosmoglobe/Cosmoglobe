@@ -7,4 +7,5 @@ import pydantic
 class parameter(pydantic.BaseModel):
     cpar: str
     value: Union[int, float, str]
+    nline: int
     comment: Optional[str]

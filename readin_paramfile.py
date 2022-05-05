@@ -9,7 +9,7 @@ from typing import List
 def read_in_paramfile(pfile,params):
 
     with open(pfile) as f:
-        for line in f:
+        for i,line in enumerate(f):
             if line.startswith('#') or line.startswith('\n') or line.startswith(' ') or line.startswith('*'):
                 continue
             elif line.startswith('@'):
@@ -24,13 +24,13 @@ def read_in_paramfile(pfile,params):
                     comment = line_list[1][1]
                     key = key.strip()
                     val = val.strip()
-                    params.append(parameter(cpar=key,value=val,comment=comment))
+                    params.append(parameter(cpar=key,value=val,nline=i,comment=comment))
 
                 else:
                     key, val = line_list[0]
                     key = key.strip()
                     val = val.strip()
-                    params.append(parameter(cpar=key,value=val))
+                    params.append(parameter(cpar=key,value=val,nline=i))
 
 def parse_line(line):
     line_dict = {}
@@ -42,15 +42,14 @@ def parse_line(line):
     key, val = parameters.split('=')
 
     line_dict[key] = val
-    if comments != '':
-        line_dict['comment'] = comments
+    line_dict['comment'] = comments
 
     return line_dict
 
 def main():
     params: List[parameter] = []
     read_in_paramfile('param_test.txt',params)
-    print(type(params[0]))
+    print(params[0])
 
 if __name__ == '__main__':
     main()
