@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from matplotlib.projections.geo import GeoAxes
 from matplotlib.ticker import MultipleLocator
 import warnings
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
 class ThetaFormatterCounterclockwisePhi(GeoAxes.ThetaFormatter):
@@ -290,10 +291,11 @@ def projview(
 
     # do this to find how many decimals are in the colorbar labels, so that the padding in the vertical cbar can done properly
     def find_number_of_decimals(number):
-        try:
-            return len(str(number).split(".")[1])
-        except:
-            return 0
+        #try:
+        #    return len(str(number).split(".")[1])
+        #except:
+        #    return 0
+        return 0
 
     # default font sizes
     fontsize_defaults = {
@@ -329,11 +331,11 @@ def projview(
             width = 14
     if projection_type in geographic_projections:
         if cb_orientation == "vertical":
-            shrink = 0.6
-            pad = 0.01
-            width = 10
+            shrink = 0.1
+            pad = 0.05
+            width = 5
         if cb_orientation == "horizontal":
-            shrink = 0.6
+            shrink = 0.15
             pad = 0.05
             if cbar_ticks is not None:
                 lpad = 0
@@ -676,14 +678,33 @@ def projview(
         ticks = None if show_tickmarkers else cbar_ticks
 
         # Create colorbar
+        figdum, axdum = plt.subplots(1)
+        divider = make_axes_locatable(ax)
+        if cb_orientation == 'vertical':
+            cax = divider.append_axes('right',
+            size=plot_properties['cbar_shrink'],
+            pad=plot_properties['cbar_pad'],
+            axes_class=matplotlib.axes._axes.Axes)
+            shrink = 1
+        elif cb_orientation == 'horizontal':
+            cax = divider.append_axes('bottom',
+            size=plot_properties['cbar_shrink'],
+            pad=plot_properties['cbar_pad'],
+            axes_class=matplotlib.axes._axes.Axes)
+            shrink = 0.5
+        else:
+            print('Made a mistake')
+            return None
+        plt.close(figdum)
         cb = fig.colorbar(
             ret,
-            orientation=cb_orientation,
-            shrink=plot_properties["cbar_shrink"],
-            pad=plot_properties["cbar_pad"],
             ticks=ticks,
             extend=extend,
+            orientation=cb_orientation,
+            cax = cax,
+            shrink = shrink,
         )
+
 
         # Hide all tickslabels not in tick variable. Do not delete tick-markers
         if show_tickmarkers:

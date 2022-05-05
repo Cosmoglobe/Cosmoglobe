@@ -66,6 +66,7 @@ def plot(
     custom_xtick_labels=None,
     custom_ytick_labels=None,
     ratio=None,
+    extend=None,
     **kwargs,
 ):
     """
@@ -314,6 +315,7 @@ def plot(
         phi_convention=phi_convention,
         custom_xtick_labels=custom_xtick_labels,
         custom_ytick_labels=custom_ytick_labels,
+        extend=extend,
         **kwargs
     )
 
