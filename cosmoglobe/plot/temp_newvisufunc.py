@@ -301,6 +301,8 @@ def projview(
     fontsize_defaults = {
         "xlabel": 12,
         "ylabel": 12,
+        "llabel": 12,
+        "rlabel": 12,
         "title": 14,
         "xtick_label": 12,
         "ytick_label": 12,
@@ -396,10 +398,10 @@ def projview(
 
     if override_plot_properties is not None:
         warnings.warn(
-            "\n *** Overriding default plot properies: " + str(plot_properties) + " ***"
+            "\n *** Overriding default plot properties: " + str(plot_properties) + " ***"
         )
         plot_properties = update_dictionary(plot_properties, override_plot_properties)
-        warnings.warn("\n *** New plot properies: " + str(plot_properties) + " ***")
+        warnings.warn("\n *** New plot properties: " + str(plot_properties) + " ***")
 
     g_col = "grey" if graticule_color is None else graticule_color
     rot_graticule_properties = {
@@ -413,7 +415,7 @@ def projview(
 
     if override_rot_graticule_properties is not None:
         warnings.warn(
-            "\n *** Overriding rotated graticule properies: "
+            "\n *** Overriding rotated graticule properties: "
             + str(rot_graticule_properties)
             + " ***"
         )
@@ -421,7 +423,7 @@ def projview(
             rot_graticule_properties, override_rot_graticule_properties
         )
         warnings.warn(
-            "\n *** New rotated graticule properies: "
+            "\n *** New rotated graticule properties: "
             + str(rot_graticule_properties)
             + " ***"
         )
@@ -678,31 +680,26 @@ def projview(
         ticks = None if show_tickmarkers else cbar_ticks
 
         # Create colorbar
-        figdum, axdum = plt.subplots(1)
         divider = make_axes_locatable(ax)
         if cb_orientation == 'vertical':
             cax = divider.append_axes('right',
             size=plot_properties['cbar_shrink'],
             pad=plot_properties['cbar_pad'],
             axes_class=matplotlib.axes._axes.Axes)
-            shrink = 1
         elif cb_orientation == 'horizontal':
             cax = divider.append_axes('bottom',
-            size=plot_properties['cbar_shrink'],
+            size=plot_properties['cbar_shrink']*0.75,
             pad=plot_properties['cbar_pad'],
             axes_class=matplotlib.axes._axes.Axes)
-            shrink = 0.5
         else:
             print('Made a mistake')
             return None
-        plt.close(figdum)
         cb = fig.colorbar(
             ret,
             ticks=ticks,
             extend=extend,
             orientation=cb_orientation,
             cax = cax,
-            shrink = shrink,
         )
 
 
@@ -794,7 +791,7 @@ def projview(
             rlabel,
             ha="right",
             va="center",
-            fontsize=fontsize_defaults["cbar_label"],
+            fontsize=fontsize_defaults["rlabel"],
             fontname=fontname,
             transform=ax.transAxes,
         )
@@ -806,7 +803,7 @@ def projview(
             llabel,
             ha="left",
             va="center",
-            fontsize=fontsize_defaults["cbar_label"],
+            fontsize=fontsize_defaults["llabel"],
             fontname=fontname,
             transform=ax.transAxes,
         )
