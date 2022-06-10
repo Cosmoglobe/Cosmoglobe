@@ -16,7 +16,7 @@ class MjysrConvention(Enum):
     IRAS = 'IRAS'
 
 @dataclass
-class GlobalParameters:
+class GeneralParameters:
     # The global CG parameters are not included as they're apparently outdated,
     # according to HKE. We operate only with CG sampling groups
     operation: Operation
