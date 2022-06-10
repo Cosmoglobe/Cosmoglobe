@@ -11,7 +11,7 @@ class SmoothingScaleParameters:
     pixwin: str
 
 @dataclass
-class GlobalDatasetParameters:
+class DatasetParameters:
     data_directory: str
     include_bands: list[Band]
     processing_maskfile: str

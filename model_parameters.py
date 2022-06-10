@@ -4,7 +4,7 @@ from cg_sampling_group import CGSamplingGroup
 from component import Component
 
 @dataclass
-class GlobalModelParameters:
+class ModelParameters:
     instrument_param_file: str
     init_instrument_from_hdf: str
     cg_sampling_groups: list[CGSamplingGroup]
