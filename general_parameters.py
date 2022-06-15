@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from enum import Enum, unique
 from parameter_collection import ParameterCollection
+from dataset_parameters import DatasetParameters
+from model_parameters import ModelParameters
 
 @unique
 class Operation(Enum):
@@ -65,3 +67,6 @@ class GeneralParameters(ParameterCollection):
     output_signals_per_band: bool = None
     mjysr_convention: MjysrConvention = None
     t_cmb: float = None
+
+    dataset_parameters: DatasetParameters = None
+    model_parameters: ModelParameters = None

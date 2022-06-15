@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum, auto
 from band import Band
+from parameter_collection import ParameterCollection
 
 @dataclass
 class SmoothingScaleParameters:
@@ -11,9 +12,9 @@ class SmoothingScaleParameters:
     pixwin: str
 
 @dataclass
-class DatasetParameters:
-    data_directory: str
-    include_bands: list[Band]
-    processing_maskfile: str
-    source_maskfile: str
-    smoothing_scales: list[SmoothingScaleParameters]
+class DatasetParameters(ParameterCollection):
+    data_directory: str = None
+    include_bands: list[Band] = None
+    processing_maskfile: str = None
+    source_maskfile: str = None
+    smoothing_scales: list[SmoothingScaleParameters] = None
