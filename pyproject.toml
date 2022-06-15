@@ -8,6 +8,7 @@ authors = ["hermda02 <d.c.herman02@gmail.com>"]
 python = "^3.9"
 numpy = "^1.22.3"
 pydantic = "^1.9.0"
+astropy = "^5.1"
 
 [tool.poetry.dev-dependencies]
 black = "^22.3.0"
