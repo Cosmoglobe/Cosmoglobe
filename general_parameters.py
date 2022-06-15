@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from enum import Enum
+from enum import Enum, unique
+from parameter_collection import ParameterCollection
 
 @unique
 class Operation(Enum):
@@ -15,52 +16,52 @@ class ChainStatus(Enum):
 class MjysrConvention(Enum):
     IRAS = 'IRAS'
 
-@dataclass
-class GeneralParameters:
+@dataclass(init=False)
+class GeneralParameters(ParameterCollection):
     # The global CG parameters are not included as they're apparently outdated,
     # according to HKE. We operate only with CG sampling groups
-    operation: Operation
-    chain_status: ChainStatus
+    operation: Operation = None
+    chain_status: ChainStatus = None
 
-    verbosity: int
-    num_gibbs_iter: int
-    chain_status: str
-    init_chains: list[str]
+    verbosity: int = None
+    num_gibbs_iter: int = None
+    chain_status: str = None
+    init_chains: list[str] = None
 
-    base_seed: int
-    num_gibbs_steps_per_tod_sample: int
-    sample_only_polarization: bool
-    sample_signal_amplitudes: bool
-    sample_spectral_indices: bool
-    sample_powspec: bool
-    enable_tod_analysis: bool
-    tod_output_4D_map_every_nth_iter: int
-    tod_output_auxiliary_map_every_nth_iter: int
-    tod_include_zodi: bool
-    tod_num_bp_proposals_per_iter: int
-    fftw3_magic_numbers: str
-    enable_tod_simulations: bool
-    sims_output_directory: str
-    resample_cmb: bool
-    first_sample_for_cmb_resamp: int
-    last_sample_for_cmb_resamp: int
-    num_subsamp_per_main_sample: int
-    set_all_noise_maps_to_mean: bool
-    num_index_cycles_per_iteration: int
-    ignore_gain_and_bandpass_corr: bool
+    base_seed: int = None
+    num_gibbs_steps_per_tod_sample: int = None
+    sample_only_polarization: bool = None
+    sample_signal_amplitudes: bool = None
+    sample_spectral_indices: bool = None
+    sample_powspec: bool = None
+    enable_tod_analysis: bool = None
+    tod_output_4D_map_every_nth_iter: int = None
+    tod_output_auxiliary_map_every_nth_iter: int = None
+    tod_include_zodi: bool = None
+    tod_num_bp_proposals_per_iter: int = None
+    fftw3_magic_numbers: str = None
+    enable_tod_simulations: bool = None
+    sims_output_directory: str = None
+    resample_cmb: bool = None
+    first_sample_for_cmb_resamp: int = None
+    last_sample_for_cmb_resamp: int = None
+    num_subsamp_per_main_sample: int = None
+    set_all_noise_maps_to_mean: bool = None
+    num_index_cycles_per_iteration: int = None
+    ignore_gain_and_bandpass_corr: bool = None
     
     # "Output options"
-    thinning_factor: int
-    nside_chisq: int
-    polarization_chisq: bool
-    output_directory: str
-    output_mixing_matrix: bool
-    output_residual_maps: bool
-    output_chisq_map: bool
+    thinning_factor: int = None
+    nside_chisq: int = None
+    polarization_chisq: bool = None
+    output_directory: str = None
+    output_mixing_matrix: bool = None
+    output_residual_maps: bool = None
+    output_chisq_map: bool = None
 #    output_every_nth_cg_iteration: int # Unclear if needed
 #    output_cg_precond_eigenvals: bool # Unclear if needed
-    output_input_model: bool
-    output_debug_seds: bool
-    output_signals_per_band: bool
-    mjysr_convention: MjysrConvention
-    t_cmb: float
+    output_input_model: bool = None
+    output_debug_seds: bool = None
+    output_signals_per_band: bool = None
+    mjysr_convention: MjysrConvention = None
+    t_cmb: float = None
