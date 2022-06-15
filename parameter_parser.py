@@ -7,26 +7,44 @@ from dataclasses import asdict
 class ParameterParser:
 
     def __init__(self, paramfile, defaults_dir):
-        self.paramfile = paramfile
         self.defaults_dir = defaults_dir
-        self.paramfile_dict = self._paramfile_to_dict()
+        self.paramfile_dict = self._paramfile_to_dict(paramfile=paramfile)
+        self.context = None
 
-    def _paramfile_to_dict(self):
+    def _process_line(self, line):
         params = {}
-        with open(self.paramfile, 'r') as f:
+        if line.strip().startswith('#') or line.strip().startswith('*') or line.strip() == '' or line.strip().startswith('\n'):
+            return params
+        elif line.strip().startswith('@'):
+            if line.strip().startswith('@DEFAULT'):
+                k, v = line.split(' ')[:2]
+                params.update(
+                    self._paramfile_to_dict('{}/{}'.format(self.defaults_dir, v.strip())))
+            elif line.strip().startswith('@START'):
+                k, v = line.split(' ')[:2]
+                self.context = int(v.strip())
+            elif line.strip().startswith('@END'):
+                self.context = None
+            return params
+
+        k, v = line.split("=")[:2]
+        k = k.strip()
+        v = v.strip().split(' ')[0]
+        if k.endswith('&&'):
+            if k.endswith('&&&'):
+                k = '{}{:03d}'.format(k[:-3], self.context)
+            else:
+                k = '{}{:02d}'.format(k[:-2], self.context)
+        params[k] = v
+        return params
+
+
+    def _paramfile_to_dict(self, paramfile):
+        params = {}
+        with open(paramfile, 'r') as f:
             line = f.readline()
             while line:
-                if line.startswith('#') or line.startswith('*') or line.strip() == '' or line.startswith('\n'):
-                    line = f.readline()
-                    continue
-                elif line.startswith('@'):
-                    line = f.readline()
-                    continue
-                print(line)
-                k, v = line.split("=")[:2]
-                k = k.strip()
-                v = v.strip().split(' ')[0]
-                params[k] = v
+                params.update(self._process_line(line))
                 line = f.readline()
         return params
 
@@ -54,8 +72,10 @@ class ParameterParser:
                 continue
             elif collection_param == 'model_parameters':
                 gen_params.set_param(collection_param, self.create_model_params())
+                continue
             elif collection_param == 'dataset_parameters':
                 gen_params.set_param(collection_param, self.create_dataset_params())
+                continue
             try:
                 gen_params.set_param(collection_param, self.paramfile_dict[paramfile_param])
             except KeyError as e:
@@ -78,6 +98,7 @@ class ParameterParser:
                 print("Warning: Model parameter {} not found in parameter file".format(e))
 
         return model_params
+
 
     def create_dataset_params(self):
         dataset_params = DatasetParameters()
