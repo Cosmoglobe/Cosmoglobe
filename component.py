@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Any
-from enum import Enum, auto
-import astropy
+from enum import Enum, auto, unique
+from astropy.units import Unit
 
 @unique
 class ComponentLabel(Enum):
@@ -60,7 +60,9 @@ class UniformPrior:
 
 
 class GaussPrior:
-    def __init__(self, mean: float, rms: float)
+    def __init__(self, mean: float, rms: float):
+        self.mean = mean
+        self.rms = rms
 
 
 class MonopolePrior:
@@ -68,14 +70,14 @@ class MonopolePrior:
         self.type = m_type
 
         if self.type == MonopolePriorType.BANDMONO:
-            self.label = **kwargs['label'] 
+            self.label = kwargs['label'] 
         elif self.type == MonopolePriorType.CROSSCORR:
-            self.corrmap = **kwargs['corrmap']
-            self.nside = **kwargs['nside']
-            self.fwhm = **kwargs['fwhm']
-            self.thresholds = **kwargs['thresholds']
+            self.corrmap = kwargs['corrmap']
+            self.nside = kwargs['nside']
+            self.fwhm = kwargs['fwhm']
+            self.thresholds = kwargs['thresholds']
         elif self.type == MonopolePriorType.MONOPOLE_MINUS_DIPOLE:
-            self.mask = **kwargs['mask']
+            self.mask = kwargs['mask']
 
 @dataclass
 class Component:
@@ -103,7 +105,7 @@ class Component:
     lmax_amp: int # Only in synch, dust, freefree, cmb, ame
     lmax_ind: int # Only in synch, dust, freefree, cmb, ame
     output_fwhm: float # Only in synch, dust, freefree, cmb, ame
-    unit: astropy.units.Unit # Only in synch, dust, freefree, cmb, ame
+    unit: Unit # Only in synch, dust, freefree, cmb, ame
     mask: str # Only in synch, dust, freefree, cmb, ame
     cl_type: ClType # Only in synch, dust, freefree, cmb, ame
     cl_beta_prior_mean: float # Only in synch, dust, freefree, cmb, ame

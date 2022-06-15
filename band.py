@@ -1,5 +1,6 @@
+from __future__ import annotations
 from dataclasses import dataclass
-from enum import Enum, auto
+from enum import Enum, auto, unique
 
 @unique
 class BandpassModel(Enum):
@@ -37,12 +38,10 @@ class Band:
     beam_type: BeamType
     beam_b_l_file: str
     beam_b_ptsrc_file: str
-    component_sensitivity: str = "broadband" # Only option found in the files
     default_bp_delta: float
     default_gain: float
     default_noiseamp: float
     gain_apod_fwhm: float
-    gain_apod_mask: str = "fullsky" # Only option found in the files
     gain_calib_comp: str
     gain_lmax: int
     gain_lmin: int
@@ -77,3 +76,5 @@ class Band:
     tod_flag: int
     tod_rimo: str
     include_band: bool
+    component_sensitivity: str = "broadband" # Only option found in the files
+    gain_apod_mask: str = "fullsky" # Only option found in the files
