@@ -1,6 +1,10 @@
 from __future__ import annotations
-from dataclasses import dataclass
+
 from enum import Enum, auto, unique
+from typing import Union
+
+from parameter_collection import ParameterCollection
+from unit import Unit
 
 @unique
 class BandpassModel(Enum):
@@ -25,13 +29,7 @@ class NoiseFormat(Enum):
     RMS = auto()
     QUCOV = auto()
 
-@unique
-class Unit(Enum):
-    MK_CMB: auto()
-    UK_CMB: auto()
-
-@dataclass
-class Band:
+class Band(ParameterCollection):
     bandpass_model: BandpassModel
     bandpass_type: BandpassType
     bandpass_file: str
@@ -67,7 +65,7 @@ class Band:
     tod_bp_init_prop: str
     tod_detector_list: list[str]
     tod_filelist: str
-    tod_init_from_hdf: str | bool
+    tod_init_from_hdf: Union[str, bool]
     tod_main_procmask: str
     tod_small_procmask: str
     tod_start_scanid: int 

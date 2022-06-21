@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from enum import Enum, unique
 from parameter_collection import ParameterCollection
 from dataset_parameters import DatasetParameters
@@ -18,7 +17,6 @@ class ChainStatus(Enum):
 class MjysrConvention(Enum):
     IRAS = 'IRAS'
 
-@dataclass(init=False)
 class GeneralParameters(ParameterCollection):
     # The global CG parameters are not included as they're apparently outdated,
     # according to HKE. We operate only with CG sampling groups

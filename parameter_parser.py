@@ -51,7 +51,11 @@ class ParameterParser:
 
     def get_collection_to_paramfile_mapping(self, parameter_collection):
         parameter_mapping = {}
-        parameter_list = asdict(parameter_collection).keys()
+#        print(parameter_collection.__fields__.keys())
+#        1/0
+#        parameter_list = parameter_collection.__fields__()
+#        parameter_list = asdict(parameter_collection).keys()
+        parameter_list = (parameter_collection.__fields__.keys())
 
         for parameter in parameter_list:
             parameter_mapping[parameter] = parameter.upper()
@@ -60,28 +64,33 @@ class ParameterParser:
 
 
     def create_gen_params(self):
-        gen_params = GeneralParameters()
-        param_mapping = self.get_collection_to_paramfile_mapping(gen_params)
+        param_mapping = self.get_collection_to_paramfile_mapping(GeneralParameters)
+        param_vals = {}
+#        gen_params = GeneralParameters()
         for collection_param, paramfile_param in param_mapping.items():
             if collection_param == 'init_chains':
                 num_init_chains = self.paramfile_dict['NUM_INIT_CHAINS']
                 init_chain_list = []
                 for i in range(int(num_init_chains)):
                     init_chain_list.append(self.paramfile_dict['INIT_CHAIN{:02d}'.format(i+1)])
-                gen_params.set_param(collection_param, init_chain_list)
+#                gen_params.set_param(collection_param, init_chain_list)
+                param_vals[collection_param] = init_chain_list
                 continue
             elif collection_param == 'model_parameters':
-                gen_params.set_param(collection_param, self.create_model_params())
+#                gen_params.set_param(collection_param, self.create_model_params())
+                param_vals[collection_param] = self.create_model_params()
                 continue
             elif collection_param == 'dataset_parameters':
-                gen_params.set_param(collection_param, self.create_dataset_params())
+#                gen_params.set_param(collection_param, self.create_dataset_params())
+                param_vals[collection_param] = self.create_dataset_params()
                 continue
             try:
-                gen_params.set_param(collection_param, self.paramfile_dict[paramfile_param])
+#                gen_params.set_param(collection_param, self.paramfile_dict[paramfile_param])
+                param_vals[collection_param] = self.paramfile_dict[paramfile_param]
             except KeyError as e:
                 print("Warning: General parameter {} not found in parameter file".format(e))
 
-        return gen_params
+        return GeneralParameters(**param_vals)
 
 
     def create_model_params(self):

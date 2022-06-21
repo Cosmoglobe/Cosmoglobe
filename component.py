@@ -1,7 +1,10 @@
-from dataclasses import dataclass
-from typing import Any
+from __future__ import annotations
+
 from enum import Enum, auto, unique
-from astropy.units import Unit
+from pydantic import BaseModel
+
+from parameter_collection import ParameterCollection
+from unit import Unit
 
 @unique
 class ComponentLabel(Enum):
@@ -53,19 +56,19 @@ class PolType(Enum):
     T_E_B = 3 # None joint
 
 
-class UniformPrior:
+class UniformPrior(BaseModel):
     def __init__(self, low: float, high: float):
         self.low = low
         self.high = high
 
 
-class GaussPrior:
+class GaussPrior(BaseModel):
     def __init__(self, mean: float, rms: float):
         self.mean = mean
         self.rms = rms
 
 
-class MonopolePrior:
+class MonopolePrior(BaseModel):
     def __init__(self, m_type: MonopolePriorType, **kwargs):
         self.type = m_type
 
@@ -79,8 +82,7 @@ class MonopolePrior:
         elif self.type == MonopolePriorType.MONOPOLE_MINUS_DIPOLE:
             self.mask = kwargs['mask']
 
-@dataclass
-class Component:
+class Component(ParameterCollection):
     # Note: The comp_CG parameters are, according to HKE, outdated, and because
     # it messes with a potential future CG class if we include them, I will
     # leave them out.  Components checked so far: Synch, dust, freefree, cmb, ame, monodipole, radio

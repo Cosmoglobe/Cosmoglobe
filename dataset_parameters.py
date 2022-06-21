@@ -1,17 +1,18 @@
-from dataclasses import dataclass
+from __future__ import annotations
+
 from enum import Enum, auto
+from pydantic import BaseModel
+
 from band import Band
 from parameter_collection import ParameterCollection
 
-@dataclass
-class SmoothingScaleParameters:
+class SmoothingScaleParameters(BaseModel):
     fwhm: float
     fwhm_postproc: float
     lmax: int
     nside: int
     pixwin: str
 
-@dataclass
 class DatasetParameters(ParameterCollection):
     data_directory: str = None
     include_bands: list[Band] = None
