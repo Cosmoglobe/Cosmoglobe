@@ -3,7 +3,6 @@ from __future__ import annotations
 from enum import Enum, auto, unique
 from pydantic import BaseModel
 
-from parameter_collection import ParameterCollection
 from unit import Unit
 
 @unique
@@ -82,7 +81,7 @@ class MonopolePrior(BaseModel):
         elif self.type == MonopolePriorType.MONOPOLE_MINUS_DIPOLE:
             self.mask = kwargs['mask']
 
-class Component(ParameterCollection):
+class Component(BaseModel):
     # Note: The comp_CG parameters are, according to HKE, outdated, and because
     # it messes with a potential future CG class if we include them, I will
     # leave them out.  Components checked so far: Synch, dust, freefree, cmb, ame, monodipole, radio

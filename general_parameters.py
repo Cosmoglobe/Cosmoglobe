@@ -1,5 +1,7 @@
 from enum import Enum, unique
-from parameter_collection import ParameterCollection
+
+from pydantic import BaseModel
+
 from dataset_parameters import DatasetParameters
 from model_parameters import ModelParameters
 
@@ -17,7 +19,7 @@ class ChainStatus(Enum):
 class MjysrConvention(Enum):
     IRAS = 'IRAS'
 
-class GeneralParameters(ParameterCollection):
+class GeneralParameters(BaseModel):
     # The global CG parameters are not included as they're apparently outdated,
     # according to HKE. We operate only with CG sampling groups
     operation: Operation = None

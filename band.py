@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from enum import Enum, auto, unique
 from typing import Union
+from pydantic import BaseModel
 
-from parameter_collection import ParameterCollection
 from unit import Unit
 
 @unique
@@ -29,7 +29,7 @@ class NoiseFormat(Enum):
     RMS = auto()
     QUCOV = auto()
 
-class Band(ParameterCollection):
+class Band(BaseModel):
     bandpass_model: BandpassModel
     bandpass_type: BandpassType
     bandpass_file: str
