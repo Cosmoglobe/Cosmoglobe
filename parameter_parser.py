@@ -31,11 +31,10 @@ class ParameterParser:
         k, v = line.split("=")[:2]
         k = k.strip()
         v = v.strip().split(' ')[0]
-        if k.endswith('&&'):
-            if k.endswith('&&&'):
-                k = '{}{:03d}'.format(k[:-3], self.context)
-            else:
-                k = '{}{:02d}'.format(k[:-2], self.context)
+        if '&&&' in k:
+            k = k.replace('&&&', '{:03d}'.format(self.context))
+        elif '&&' in k:
+            k = k.replace('&&', '{:02d}'.format(self.context))
         # Changing fortran-style bools to something that can be parsed by pydantic
         if v.startswith('.') and v.endswith('.'):
             v = v[1:-1]
@@ -136,9 +135,18 @@ class ParameterParser:
     def create_band_params(self, band_num):
         param_vals = {}
 
-        param_mapping = self.get_collection_to_paramfile_mapping(Band, 'BAND_', '{:03d}'.format(band_num))
+        param_mapping = self.get_collection_to_paramfile_mapping(
+            Band, 'BAND_', '{:03d}'.format(band_num))
         for collection_param, paramfile_param in param_mapping.items():
             if collection_param == 'noise_rms_smooth':
+                i = 1
+                param_vals[collection_param] = []
+                while ('BAND_NOISE_RMS{:03d}_SMOOTH{:02d}'.format(band_num, i)
+                       in self.paramfile_dict.keys()):
+                    param_vals[collection_param].append(
+                        self.paramfile_dict[
+                            'BAND_NOISE_RMS{:03d}_SMOOTH{:02d}'.format(band_num, i)])
+                    i+=1
                 continue
             if collection_param == 'tod_detector_list':
                 param_vals[collection_param] = self.paramfile_dict[paramfile_param].split(',')
