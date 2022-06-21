@@ -1,6 +1,7 @@
 from general_parameters import GeneralParameters
 from dataset_parameters import DatasetParameters
 from model_parameters import ModelParameters
+from band import Band
 from dataclasses import asdict
 
 
@@ -56,16 +57,17 @@ class ParameterParser:
         return params
 
 
-    def get_collection_to_paramfile_mapping(self, parameter_collection):
+    def get_collection_to_paramfile_mapping(self,
+                                            parameter_collection,
+                                            prepend_string='',
+                                            append_string=''):
         parameter_mapping = {}
-#        print(parameter_collection.__fields__.keys())
-#        1/0
-#        parameter_list = parameter_collection.__fields__()
-#        parameter_list = asdict(parameter_collection).keys()
         parameter_list = (parameter_collection.__fields__.keys())
 
         for parameter in parameter_list:
-            parameter_mapping[parameter] = parameter.upper()
+            parameter_mapping[parameter] = (prepend_string +
+                                            parameter.upper() +
+                                            append_string)
 
         return parameter_mapping
 
@@ -116,6 +118,10 @@ class ParameterParser:
         param_mapping = self.get_collection_to_paramfile_mapping(DatasetParameters)
         for collection_param, paramfile_param in param_mapping.items():
             if collection_param == 'include_bands':
+                param_vals['include_bands'] = []
+                num_bands = int(self.paramfile_dict['NUMBAND'])
+                for i in range(1, num_bands+1):
+                    param_vals['include_bands'].append(self.create_band_params(i))
                 continue
             if collection_param == 'smoothing_scales':
                 continue
@@ -125,3 +131,23 @@ class ParameterParser:
                 print("Warning: Dataset parameter {} not found in parameter file".format(e))
 
         return DatasetParameters(**param_vals)
+    
+
+    def create_band_params(self, band_num):
+        param_vals = {}
+
+        param_mapping = self.get_collection_to_paramfile_mapping(Band, 'BAND_', '{:03d}'.format(band_num))
+        for collection_param, paramfile_param in param_mapping.items():
+            if collection_param == 'noise_rms_smooth':
+                continue
+            if collection_param == 'tod_detector_list':
+                param_vals[collection_param] = self.paramfile_dict[paramfile_param].split(',')
+                continue
+            if collection_param == 'include_band':
+                param_vals[collection_param] = self.paramfile_dict['INCLUDE_BAND{:03d}'.format(band_num)]
+                continue
+            try:
+                param_vals[collection_param] = self.paramfile_dict[paramfile_param]
+            except KeyError as e:
+                print("Warning: Band parameter {} not found in parameter file".format(e))
+        return Band(**param_vals)

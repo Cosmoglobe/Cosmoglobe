@@ -8,32 +8,33 @@ from unit import Unit
 
 @unique
 class BandpassModel(Enum):
-    POWLAW_TILT = auto()
-    ADDITIVE_SHIFT = auto()
+    POWLAW_TILT = 'powlaw_tilt'
+    ADDITIVE_SHIFT = 'additive_shift' 
 
 @unique
 class BandpassType(Enum):
-    LFI = auto()
-    HFI_CMB = auto()
-    QUIET = auto()
-    WMAP = auto()
-    DELTA = auto()
+    LFI = 'LFI'
+    HFI_CMB = 'HFI_CMB'
+    HFI = 'HFI'
+    QUIET = 'QUIET'
+    WMAP = 'WMAP'
+    DELTA = 'DELTA'
 
 @unique
 class BeamType(Enum):
-    B_L = auto()
-    FEBECOP = auto()
+    B_L = 'b_l' 
+    FEBECOP = 'febecop'
 
 @unique
 class NoiseFormat(Enum):
-    RMS = auto()
-    QUCOV = auto()
+    RMS = 'rms'
+    QUCOV = 'qucov'
 
 class Band(BaseModel):
     bandpass_model: BandpassModel
     bandpass_type: BandpassType
-    bandpass_file: str
-    beam_type: BeamType
+    bandpassfile: str
+    beamtype: BeamType
     beam_b_l_file: str
     beam_b_ptsrc_file: str
     default_bp_delta: float
@@ -52,7 +53,7 @@ class Band(BaseModel):
     noise_uniformize_fsky: float
     noisefile: str
     reg_noisefile: str
-    noise_rms_smooth: list[str]
+    noise_rms_smooth: list[str] = None
     nside: int
     nominal_freq: float
     obs_period: int
