@@ -4,3 +4,4 @@ from enum import Enum, unique
 class Unit(Enum):
     MK_CMB = 'mK_CMB' 
     UK_CMB = 'uK_cmb'
+    UK_RJ = 'uK_RJ'

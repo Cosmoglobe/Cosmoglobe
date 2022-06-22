@@ -59,7 +59,7 @@ INCLUDE_BAND003                = .false.   # 353 GHz
 INSTRUMENT_PARAM_FILE         = instrument_params_test.dat
 INIT_INSTRUMENT_FROM_HDF      = default
  
-NUM_SIGNAL_COMPONENTS         = 1
+NUM_SIGNAL_COMPONENTS         = 8
 INCLUDE_COMP01                = .true.  # Cmb # CMB; no monopole or dipole
 INCLUDE_COMP02                = .false.  # synch # Synch pow-law
 INCLUDE_COMP03                = .false.  # dust # Thermal dust

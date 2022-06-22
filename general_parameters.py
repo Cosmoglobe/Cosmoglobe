@@ -1,4 +1,5 @@
 from enum import Enum, unique
+from typing import Union
 
 from pydantic import BaseModel
 
@@ -28,7 +29,7 @@ class GeneralParameters(BaseModel):
     verbosity: int = None
     num_gibbs_iter: int = None
     chain_status: str = None
-    init_chains: list[str] = None
+    init_chains: Union[list[str], list[None]] = None
 
     base_seed: int = None
     num_gibbs_steps_per_tod_sample: int = None

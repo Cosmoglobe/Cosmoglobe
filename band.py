@@ -36,7 +36,7 @@ class Band(BaseModel):
     bandpassfile: str
     beamtype: BeamType
     beam_b_l_file: str
-    beam_b_ptsrc_file: str
+    beam_b_ptsrc_file: Union[str, None]
     default_bp_delta: float
     default_gain: float
     default_noiseamp: float
@@ -52,7 +52,7 @@ class Band(BaseModel):
     noise_format: NoiseFormat
     noise_uniformize_fsky: float
     noisefile: str
-    reg_noisefile: str
+    reg_noisefile: Union[str, None]
     noise_rms_smooth: list[str] = None
     nside: int
     nominal_freq: float

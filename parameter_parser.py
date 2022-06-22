@@ -2,7 +2,7 @@ from general_parameters import GeneralParameters
 from dataset_parameters import DatasetParameters
 from model_parameters import ModelParameters
 from band import Band
-from dataclasses import asdict
+from component import Component, MonopolePrior, MonopolePriorType
 
 
 class ParameterParser:
@@ -42,6 +42,8 @@ class ParameterParser:
         # parsed by pydantic
         if len(v) > 2 and 'd' in v.lower() and (v[0].isdigit() or v[1].isdigit()):
             v = v.lower().replace('d', 'e')
+        if v.lower() == 'none':
+            v = None
         params[k] = v
         return params
 
@@ -103,6 +105,11 @@ class ParameterParser:
             if collection_param == 'cg_sampling_groups':
                 continue
             if collection_param == 'signal_components':
+                param_vals['signal_components'] = []
+                num_components = int(self.paramfile_dict['NUM_SIGNAL_COMPONENTS'])
+                for i in range(1, num_components+1):
+                    param_vals['signal_components'].append(
+                        self.create_component_params(i))
                 continue
             try:
                 param_vals[collection_param] = self.paramfile_dict[paramfile_param]
@@ -159,3 +166,52 @@ class ParameterParser:
             except KeyError as e:
                 print("Warning: Band parameter {} not found in parameter file".format(e))
         return Band(**param_vals)
+
+
+    def _parse_monoprior_params(self, monoprior_string):
+        if monoprior_string == 'none' or monoprior_string is None:
+            return None
+        monoprior_type, monoprior_params = monoprior_string.split(':')
+        monoprior_params = monoprior_params.split(',')
+        monoprior_type = MonopolePriorType(monoprior_type)
+        if monoprior_type == MonopolePriorType.BANDMONO:
+            monopole_prior = MonopolePrior(type=monoprior_type,
+                                           label=monoprior_params[0])
+        elif monoprior_type == MonopolePriorType.CROSSCORR:
+            monopole_prior = MonopolePrior(type=monoprior_type,
+                                           corrmap=monoprior_params[0],
+                                           nside=monoprior_params[1],
+                                           fwhm=monoprior_params[2].replace('d', 'e'),
+                                           thresholds=monoprior_params[3:])
+        elif monoprior_type == MonopolePriorType.MONOPOLE_MINUS_DIPOLE:
+            monopole_prior = MonopolePrior(type=monoprior_type,
+                                           mask=monoprior_params[0])
+        return monopole_prior
+
+
+    def create_component_params(self, component_num):
+        param_vals = {}
+
+        param_mapping = self.get_collection_to_paramfile_mapping(
+            Component, 'COMP_', '{:02d}'.format(component_num))
+        for collection_param, paramfile_param in param_mapping.items():
+            if collection_param == 'ctype':
+                param_vals[collection_param] = self.paramfile_dict[
+                    "COMP_TYPE{:02d}".format(component_num)]
+                continue
+            if collection_param == 'cclass':
+                param_vals[collection_param] = self.paramfile_dict[
+                    "COMP_CLASS{:02d}".format(component_num)]
+                continue
+            if collection_param == 'monopole_prior':
+                try:
+                    param_vals[collection_param] = self._parse_monoprior_params(
+                        self.paramfile_dict[paramfile_param])
+                except KeyError as e:
+                    print("Warning: Component parameter {} not found in parameter file".format(e))
+                continue
+            try:
+                param_vals[collection_param] = self.paramfile_dict[paramfile_param]
+            except KeyError as e:
+                print("Warning: Component parameter {} not found in parameter file".format(e))
+        return Component(**param_vals)
