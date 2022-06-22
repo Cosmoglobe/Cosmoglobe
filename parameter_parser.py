@@ -1,3 +1,5 @@
+from typing import Union
+
 from general_parameters import GeneralParameters
 from dataset_parameters import DatasetParameters
 from model_parameters import ModelParameters
@@ -6,13 +8,74 @@ from component import Component, MonopolePrior, MonopolePriorType
 
 
 class ParameterParser:
+    """
+    This class is responsible for a) parsing a native Commander parameter file
+    and b) generating an instantiated data structure which contains the
+    information in the parameter file.
+
+    The way the data structures currently work is that the top parameter
+    container is a GeneralParameters instance. This contains parameters
+    represented as floats and strings etc, as well as other, more specialized
+    parameter containers:
+
+                        GeneralParameters
+                          /          \
+                         /            \
+                        /              \
+            ModelParameters       DatasetParameters
+                 /                          \
+                /                            \
+          Component 1                      Band 1
+          Component 2                      Band 2
+          Component 3                      Band 3
+           .                                 .
+           .                                 .
+           .                                 .
+
+    Each of these nodes contain parameters specific to them, in addition to
+    point to the nodes further down, and are implemented as inheritors of the
+    pydantic BaseModels. The Component and Band classes are parameter
+    containers that will typically have more than one instance. Some of the
+    parameters are small-ish classes in their own right, not detailed here. For
+    example, there is a MonopolePrior class used by the Component classes that
+    contain all the information for monopole priors.
+    """
 
     def __init__(self, paramfile, defaults_dir):
         self.defaults_dir = defaults_dir
         self.paramfile_dict = self._paramfile_to_dict(paramfile=paramfile)
         self.context = None
 
-    def _process_line(self, line):
+    def _process_line(self, line: str) -> dict[str, Union[str, None]]:
+        """
+        Turn a single line from a Commander parameter file into a key, value
+        pair.
+
+        If the line is empty, or a comment, an empty dict is returned.
+        If the line is an '@' directive, either
+            - an empty dict is returned if the directive is START or END
+            - a dict containing all parameters in the indicated defaults file
+              if the directive is DEFAULT
+        The key, value pairs are generally the same as the input lines,
+        verbatim, with these exceptions:
+         -  If the value would be '.true.' or '.false.' (i.e a Fortran bool), it will
+            output 'true' and 'false', respectively.
+         -  If the value would be 'none', it will output a python None
+         -  If the value would be a float containing a 'd', it will output the
+            same float but with an 'e' instead (e.g "2.7d0" -> "2.7e0")
+         -  If the key contains '&&' or '&&&', it will replace those with the
+            current directive context (indicated by @START).
+        The above replacements are mostly done in order to make these strings
+        cooperate with the pydantic type converter/validator.
+
+        Input:
+            line (str): A single line from a Commander parameter file.
+
+        Output:
+            dict[Str, Str|None]: A dict where the keys are the parameter names
+                and the values are their values. See above for details on what
+                exactly will be output.
+        """
         params = {}
         if line.strip().startswith('#') or line.strip().startswith('*') or line.strip() == '' or line.strip().startswith('\n'):
             return params
@@ -48,7 +111,19 @@ class ParameterParser:
         return params
 
 
-    def _paramfile_to_dict(self, paramfile):
+    def _paramfile_to_dict(self, paramfile: str) -> dict[str, Union[str, None]]:
+        """
+        Creates a dictionary from a Commander parameter file.
+
+        Input:
+            paramfile (str): The full path to the parameter file.
+        Output:
+            dict[str, str|None]: A mapping of all parameters (anything marked
+                with a '=') in the parameter file to their values. Any @DEFAULT
+                directives are followed, and @START and @END contexts are used
+                to replace ampersands. See the docs for
+                ParameterParser._process_line for more info.
+        """
         params = {}
         with open(paramfile, 'r') as f:
             line = f.readline()
@@ -61,7 +136,30 @@ class ParameterParser:
     def get_collection_to_paramfile_mapping(self,
                                             parameter_collection,
                                             prepend_string='',
-                                            append_string=''):
+                                            append_string='') -> dict[str, str]:
+        """
+        Get a mapping of internal parameter collection parameters to
+        parameterfile parameters.
+
+        Generally, we assume that the names of the fields in the parameter
+        collections are the same as the parameter file names in uppercase. It
+        is possible to prepend and append this with custom strings.
+
+        Input:
+            parameter_collection: An BaseModel instance representing some
+                parameter collection (see the documentation for the
+                ParameterParser class).
+            prepend_string (str): String to be prepended to the parameter file
+                parameter string.
+            append_string (str): String to be appended to the parameter file
+                parameter string.
+
+        Output:
+            dict[str, str]: A mapping from the collection field name to the
+                parameterfile parameter name, with the optional strings
+                pre-or-appended to the latter.
+
+        """
         parameter_mapping = {}
         parameter_list = (parameter_collection.__fields__.keys())
 
@@ -74,6 +172,16 @@ class ParameterParser:
 
 
     def create_gen_params(self):
+        """
+        Creates a GeneralParameters instance given the parameter file provided
+        when the ParameterParser was instantiated.
+
+
+        Output:
+            GeneralParameters: Container of the top-level Commander
+                parameterfile parameters, as well as the lower-level parameter
+                containers. See the ParameterParser docs for more information.
+        """
         param_mapping = self.get_collection_to_paramfile_mapping(GeneralParameters)
         param_vals = {}
         for collection_param, paramfile_param in param_mapping.items():
@@ -99,6 +207,18 @@ class ParameterParser:
 
 
     def create_model_params(self):
+        """
+        Creates a ModelParameters instance given the parameter file provided
+        when the ParameterParser was instantiated.
+
+
+        Output:
+            ModelParameters: Container of the model-specific Commander
+                parameterfile parameters, as well as the Component parameter
+                containers that belong to it. See the ParameterParser docs for
+                more information.
+        """
+
         param_vals = {}
         param_mapping = self.get_collection_to_paramfile_mapping(ModelParameters)
         for collection_param, paramfile_param in param_mapping.items():
@@ -120,6 +240,17 @@ class ParameterParser:
 
 
     def create_dataset_params(self):
+        """
+        Creates a DatasetParameters instance given the parameter file provided
+        when the ParameterParser was instantiated.
+
+        Output:
+            DatasetParameters: Container of the dataset-specific Commander
+                parameterfile parameters, as well as the Band parameter
+                containers that belong to it. See the ParameterParser docs for
+                more information.
+        """
+
         param_vals = {}
         param_mapping = self.get_collection_to_paramfile_mapping(DatasetParameters)
         for collection_param, paramfile_param in param_mapping.items():
@@ -140,6 +271,16 @@ class ParameterParser:
     
 
     def create_band_params(self, band_num):
+        """
+        Creates a Band instance given the parameter file provided when the
+        ParameterParser was instantiated.
+
+        Output:
+            Band: Container of Commander parameterfile parameters pertaining to
+                a specific band (typically indicated by BAND_***_&&& parameter
+                names).
+        """
+
         param_vals = {}
 
         param_mapping = self.get_collection_to_paramfile_mapping(
@@ -169,6 +310,14 @@ class ParameterParser:
 
 
     def _parse_monoprior_params(self, monoprior_string):
+        """
+        Creates a MonopolePrior instance given the monopole prior parameter
+        string found in a Commander parameter file.
+
+        Output:
+            MonopolePrior: Contains the parameters relevant for a single
+                MonopolePrior definition in the Commander parameter file.
+        """
         if monoprior_string == 'none' or monoprior_string is None:
             return None
         monoprior_type, monoprior_params = monoprior_string.split(':')
@@ -190,6 +339,16 @@ class ParameterParser:
 
 
     def create_component_params(self, component_num):
+        """
+        Creates a Component instance given the parameter file provided when the
+        ParameterParser was instantiated.
+
+        Output:
+            Component: Container of Commander parameterfile parameters
+                pertaining to a specific component (typically indicated by
+                COMP_***_&& parameter names).
+        """
+
         param_vals = {}
 
         param_mapping = self.get_collection_to_paramfile_mapping(
