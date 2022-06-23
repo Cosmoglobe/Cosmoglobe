@@ -4,6 +4,7 @@ from general_parameters import GeneralParameters
 from dataset_parameters import DatasetParameters
 from model_parameters import ModelParameters
 from band import Band
+from cg_sampling_group import CGSamplingGroup
 from component import Component, MonopolePrior, MonopolePriorType
 
 
@@ -223,6 +224,8 @@ class ParameterParser:
         param_mapping = self.get_collection_to_paramfile_mapping(ModelParameters)
         for collection_param, paramfile_param in param_mapping.items():
             if collection_param == 'cg_sampling_groups':
+                # This must be done *after* the components have been created and
+                # populated in order to point to them.
                 continue
             if collection_param == 'signal_components':
                 param_vals['signal_components'] = []
@@ -236,7 +239,61 @@ class ParameterParser:
             except KeyError as e:
                 print("Warning: Model parameter {} not found in parameter file".format(e))
 
+        # Populate CG sampling groups
+        param_vals['cg_sampling_groups'] = []
+        num_sampling_groups = int(self.paramfile_dict['NUM_CG_SAMPLING_GROUPS'])
+        for i in range(1, num_sampling_groups+1):
+            param_vals['cg_sampling_groups'].append(
+                self.create_cg_sampling_group(i, param_vals['signal_components']))
+
         return ModelParameters(**param_vals)
+
+
+    def create_cg_sampling_group(self,
+                                 cg_sampling_group_num: int,
+                                 components: list[Component]) -> CGSamplingGroup:
+        """
+        Creates a CG sampling group instance given the parameter file provided
+        when the ParameterParser was instantiated.
+
+        Input:
+            cg_sampling_group_num (int): The number associated with this group
+                in the parameter file
+            components list[Component]: An already instantiated list of
+                Component parameter containers. The output CGSamplingGroup
+                instance will link to the relevant components in this list.
+
+        Output:
+            CGSamplingGroup: Container of Commander parameterfile parameters
+                pertaining to a specific cg sampling group (typically indicated by
+                CG_SAMPLING_GROUP_***_&& parameter names).
+        """
+
+        param_vals = {}
+
+        param_mapping = self.get_collection_to_paramfile_mapping(
+            CGSamplingGroup,
+            'CG_SAMPLING_GROUP_', '{:02d}'.format(cg_sampling_group_num))
+
+        for collection_param, paramfile_param in param_mapping.items():
+            if collection_param == 'components': continue
+            try:
+                param_vals[collection_param] = self.paramfile_dict[paramfile_param]
+            except KeyError as e:
+                print("Warning: CG sampling group parameter {} not found in parameter file".format(e))
+        # Link the components to the sampling groups
+        compnames = self.paramfile_dict['CG_SAMPLING_GROUP{:02d}'.format(cg_sampling_group_num)]
+        compnames = compnames.replace("'", "")
+        compnames = compnames.split(',')
+        param_vals['components'] = []
+        for compname in compnames:
+            for component in components:
+                if component.label == compname:
+                    param_vals['components'].append(component)
+                    break
+            else:
+                raise ValueError("Component {} specified in CG sampling group but is not defined in parameter file")
+        return CGSamplingGroup(**param_vals)
 
 
     def create_dataset_params(self):

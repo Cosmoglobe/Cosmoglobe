@@ -1,9 +1,9 @@
-from dataclasses import dataclass
 from enum import Enum, auto
+from pydantic import BaseModel
+
 from component import Component
 
-@dataclass
-class CGSamplingGroup:
+class CGSamplingGroup(BaseModel):
     mask: str
     maxiter: int
     components: list[Component]
