@@ -47,15 +47,13 @@ class PolType(Enum):
 
 
 class UniformPrior(BaseModel):
-    def __init__(self, low: float, high: float):
-        self.low = low
-        self.high = high
+    low: float
+    high: float
 
 
 class GaussPrior(BaseModel):
-    def __init__(self, mean: float, rms: float):
-        self.mean = mean
-        self.rms = rms
+    mean: float
+    rms: float
 
 
 class MonopolePrior(BaseModel):
@@ -68,6 +66,11 @@ class MonopolePrior(BaseModel):
     mask: str = None # Needed for MonopolePriorType.MONOPOLE_MINUS_DIPOLE
 
 class Component(BaseModel):
+    """
+    A container for the parameters that define a given component used in Commander.
+    Typically these are the ones called COMP_***_&&& where &&& is replaced by
+    the band number in question.
+    """
     # Note: The comp_CG parameters are, according to HKE, outdated, and because
     # it messes with a potential future CG class if we include them, I will
     # leave them out.  Components checked so far: Synch, dust, freefree, cmb, ame, monodipole, radio

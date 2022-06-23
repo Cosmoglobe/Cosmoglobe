@@ -21,6 +21,15 @@ class MjysrConvention(Enum):
     IRAS = 'IRAS'
 
 class GeneralParameters(BaseModel):
+    """
+    A container for general parameters needed by Commander.
+
+    By "general" parameters is meant parameters that control the overall
+    operation of the run, and output options. In addition the container will
+    point to a DatasetParameters instance and a ModelParameters instance, which
+    in turn contain all other parameters in them (or in their subclasses).
+    """
+
     # The global CG parameters are not included as they're apparently outdated,
     # according to HKE. We operate only with CG sampling groups
     operation: Operation = None

@@ -31,6 +31,11 @@ class NoiseFormat(Enum):
     QUCOV = 'qucov'
 
 class Band(BaseModel):
+    """
+    A container for the parameters that define a given band used in Commander.
+    Typically these are the ones called BAND_***_&&& where &&& is replaced by
+    the band number in question.
+    """
     bandpass_model: BandpassModel
     bandpass_type: BandpassType
     bandpassfile: str
