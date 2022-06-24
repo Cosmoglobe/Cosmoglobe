@@ -194,10 +194,14 @@ class Component(BaseModel):
     t_nu_min: float = None # Only dust
 
     @classmethod
-    def _create_monoprior_params(cls, monoprior_string):
+    def _create_monoprior_params(cls, monoprior_string: str):
         """
         Creates a MonopolePrior instance given the monopole prior parameter
         string found in a Commander parameter file.
+
+        Input:
+            monoprior_string (str): The Commander parameterfile value
+                specifying the monopole prior.
 
         Output:
             MonopolePrior: Contains the parameters relevant for a single
@@ -224,6 +228,17 @@ class Component(BaseModel):
 
     @classmethod
     def _get_parameter_handling_dict(cls):
+        """
+        Create a mapping between the container field names and the appropriate
+        functions to handle those fields.
+
+        The functions in the output dict will take a parameter file dictionary
+        and the component number as arguments, and will return whatever is
+        appropriate for that field.
+
+        Output:
+            dict[str, Callable]: Mapping between field names and their handlers.
+        """
 
         def default_handler(field_name, paramfile_dict, component_num):
             base = field_name[1:] if field_name in ('ctype', 'cclass') else field_name
@@ -254,6 +269,20 @@ class Component(BaseModel):
 
     @classmethod
     def create_component_params(cls, paramfile_dict, component_num):
+        """
+        Factory class method for a Component instance.
+
+        Input:
+            paramfile_dict[str, str]: A dict (typically created by
+                parameter_parser._paramfile_to_dict) mapping the keys found in
+                a Commander parameter file to the values found in that same
+                file.
+            component_num (int): The number of the component to be instantiated.
+        Output:
+            Component: Parameter container for a component-specific set of
+                Commander parameters.
+        """
+
         handling_dict = cls._get_parameter_handling_dict()
         param_vals = {}
         for field_name, handling_function in handling_dict.items():

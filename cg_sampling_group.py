@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from enum import Enum, auto
 from pydantic import BaseModel
 from functools import partial
@@ -11,6 +13,18 @@ class CGSamplingGroup(BaseModel):
 
     @classmethod
     def _get_parameter_handling_dict(cls):
+        """
+        Create a mapping between the container field names and the appropriate
+        functions to handle those fields.
+
+        The functions in the output dict will take a parameter file dictionary,
+        the cg sampling group number, and a list of instantiated Component
+        instances as arguments, and will return whatever is appropriate for
+        that field.
+
+        Output:
+            dict[str, Callable]: Mapping between field names and their handlers.
+        """
 
         def default_handler(field_name, paramfile_dict, cg_sampling_group_num,
                             components):
@@ -52,8 +66,28 @@ class CGSamplingGroup(BaseModel):
         return handling_dict
 
     @classmethod
-    def create_cg_sampling_group(cls, paramfile_dict, cg_sampling_group_num,
-                                 components):
+    def create_cg_sampling_group(cls,
+                                 paramfile_dict: dict[str, str],
+                                 cg_sampling_group_num: int,
+                                 components: list[Component]) -> CGSamplingGroup:
+        """
+        Factory class method for a CGSamplingGroup instance.
+
+        Input:
+            paramfile_dict[str, str]: A dict (typically created by
+                parameter_parser._paramfile_to_dict) mapping the keys found in
+                a Commander parameter file to the values found in that same
+                file.
+            cg_sampling_group_num (int): The number of the CG sampling group to
+                be instantiated.
+            components (list[Component]): The Components to which the parent
+                ModelParameters instance of the CG sampling group is pointing,
+                in order to link a CG sampling group with the right components.
+        Output:
+            CGSamplingGroup: Parameter container for a CG sampling
+                group-specific set of Commander parameters.
+        """
+
         handling_dict = cls._get_parameter_handling_dict()
         param_vals = {}
         for field_name, handling_function in handling_dict.items():

@@ -1,7 +1,11 @@
-from pydantic import BaseModel
+from __future__ import annotations
 
+
+from pydantic import BaseModel
 from enum import Enum, auto
+from typing import Callable
 from functools import partial
+
 from cg_sampling_group import CGSamplingGroup
 from component import Component
 
@@ -18,7 +22,20 @@ class ModelParameters(BaseModel):
     signal_components: list[Component] = None
 
     @classmethod
-    def _get_parameter_handling_dict(cls):
+    def _get_parameter_handling_dict(cls) -> dict[str, Callable]:
+        """
+        Create a mapping between the container field names and the appropriate
+        functions to handle those fields.
+
+        The functions in the output dict will take a parameter file dictionary
+        as the only argument (with the exception of the handling of
+        the 'cg_sampling_groups' field, which also will take an instantiated
+        list of Component instances), and will return whatever is appropriate
+        for that field.
+
+        Output:
+            dict[str, Callable]: Mapping between field names and their handlers.
+        """
 
         def default_handler(field_name, paramfile_dict):
             paramfile_param = field_name.upper()
@@ -60,7 +77,23 @@ class ModelParameters(BaseModel):
         return handling_dict
 
     @classmethod
-    def create_model_params(cls, paramfile_dict):
+    def create_model_params(cls,
+                            paramfile_dict: dict[str, str]) -> ModelParameters:
+        """
+        Factory class method for a ModelParameters instance.
+
+        Input:
+            paramfile_dict[str, str]: A dict (typically created by
+                parameter_parser._paramfile_to_dict) mapping the keys found in
+                a Commander parameter file to the values found in that same
+                file.
+        Output:
+            ModelParameters: Parameter container for the model-specific
+                Commander parameters. It will also point to a list of Component
+                parameter collection instances, as well as a list of
+                CGSamplingGroup instances.
+        """
+
         handling_dict = cls._get_parameter_handling_dict()
         param_vals = {}
         for field_name, handling_function in handling_dict.items():

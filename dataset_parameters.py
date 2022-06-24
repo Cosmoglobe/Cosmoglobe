@@ -26,7 +26,18 @@ class DatasetParameters(BaseModel):
     smoothing_scales: list[SmoothingScaleParameters] = None
 
     @classmethod
-    def _get_parameter_handling_dict(cls):
+    def _get_parameter_handling_dict(cls) -> dict[str, Callable]:
+        """
+        Create a mapping between the container field names and the appropriate
+        functions to handle those fields.
+
+        The functions in the output dict will take a parameter file dictionary
+        as the only argument, and will return whatever is appropriate for that
+        field.
+
+        Output:
+            dict[str, Callable]: Mapping between field names and their handlers.
+        """
 
         def default_handler(field_name, paramfile_dict):
             paramfile_param = field_name.upper()
@@ -44,7 +55,7 @@ class DatasetParameters(BaseModel):
             return bands
 
         def smoothing_scale_handler(field_name, paramfile_dict):
-            pass
+            return None
 
         field_names = cls.__fields__.keys()
         handling_dict = {}
@@ -60,7 +71,22 @@ class DatasetParameters(BaseModel):
         return handling_dict
 
     @classmethod
-    def create_dataset_params(cls, paramfile_dict):
+    def create_dataset_params(cls,
+                              paramfile_dict: dict[str, str]) -> DatasetParameters:
+        """
+        Factory class method for a DatasetParameters instance.
+
+        Input:
+            paramfile_dict[str, str]: A dict (typically created by
+                parameter_parser._paramfile_to_dict) mapping the keys found in
+                a Commander parameter file to the values found in that same
+                file.
+        Output:
+            DatasetParameters: Parameter container for the dataset-specific
+                Commander parameters. It will also point to a list of Band
+                parameter collection instances.
+        """
+
         handling_dict = cls._get_parameter_handling_dict()
         param_vals = {}
         for field_name, handling_function in handling_dict.items():

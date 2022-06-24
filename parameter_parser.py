@@ -105,7 +105,6 @@ class ParameterParser:
         params[k] = v
         return params
 
-
     def _paramfile_to_dict(self, paramfile: str) -> dict[str, Union[str, None]]:
         """
         Creates a dictionary from a Commander parameter file.
@@ -127,5 +126,16 @@ class ParameterParser:
                 line = f.readline()
         return params
 
-    def classify_params(self):
+    def classify_params(self) -> GeneralParameters:
+        """
+        Create a class structure of the parameters in the Commander parameter file.
+
+        Initiates the top-level parameter structure factory which will then
+        initiate all lower-level factories.
+
+        Output:
+            GeneralParameters: Parameter container for the general Commander
+                parameters, as well as lower-level parameter containers such as
+                ModelParameters and DatasetParameters.
+        """
         return GeneralParameters.create_gen_params(self.paramfile_dict)

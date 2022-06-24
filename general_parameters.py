@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from enum import Enum, unique
-from typing import Union
+from typing import Union, Callable
 from functools import partial
 
 from pydantic import BaseModel
@@ -83,9 +85,20 @@ class GeneralParameters(BaseModel):
     model_parameters: ModelParameters = None
 
     @classmethod
-    def get_parameter_handling_dict(cls):
+    def _get_parameter_handling_dict(cls) -> dict[str, Callable]:
+        """
+        Create a mapping between the container field names and the appropriate
+        functions to handle those fields.
 
-        def default_handler(field_name, paramfile_dict):
+        The functions in the output dict will take a parameter file dictionary
+        as the only argument, and will return whatever is appropriate for that
+        field.
+
+        Output:
+            dict[str, Callable]: Mapping between field names and their handlers.
+        """
+
+        def default_handler(field_name: str, paramfile_dict: dict[str, str]) -> str:
             paramfile_param = field_name.upper()
             try:
                 return paramfile_dict[paramfile_param]
@@ -124,8 +137,22 @@ class GeneralParameters(BaseModel):
         return handling_dict
 
     @classmethod
-    def create_gen_params(cls, paramfile_dict):
-        handling_dict = cls.get_parameter_handling_dict()
+    def create_gen_params(cls,
+                          paramfile_dict: dict[str, str]) -> GeneralParameters:
+        """
+        Factory class method for a GeneralParameters instance.
+
+        Input:
+            paramfile_dict[str, str]: A dict (typically created by
+                parameter_parser._paramfile_to_dict) mapping the keys found in
+                a Commander parameter file to the values found in that same
+                file.
+        Output:
+            GeneralParameters: Parameter container for the general Commander
+                parameters, as well as lower-level parameter containers such as
+                ModelParameters and DatasetParameters.
+        """
+        handling_dict = cls._get_parameter_handling_dict()
         param_vals = {}
         for field_name, handling_function in handling_dict.items():
             param_vals[field_name] = handling_function(paramfile_dict)

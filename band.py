@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from enum import Enum, auto, unique
 from functools import partial
-from typing import Union
+from typing import Union, Callable
 from pydantic import BaseModel
 
 from unit import Unit
@@ -85,7 +85,18 @@ class Band(BaseModel):
     gain_apod_mask: str = "fullsky" # Only option found in the files
 
     @classmethod
-    def _get_parameter_handling_dict(cls):
+    def _get_parameter_handling_dict(cls) -> dict[str, Callable]:
+        """
+        Create a mapping between the container field names and the appropriate
+        functions to handle those fields.
+
+        The functions in the output dict will take a parameter file dictionary
+        and the band number as arguments, and will return whatever is
+        appropriate for that field.
+
+        Output:
+            dict[str, Callable]: Mapping between field names and their handlers.
+        """
 
         def default_handler(field_name, paramfile_dict, band_num):
             paramfile_param = field_name.upper() + '{:03d}'.format(band_num)
@@ -129,7 +140,23 @@ class Band(BaseModel):
         return handling_dict
 
     @classmethod
-    def create_band_params(cls, paramfile_dict, band_num):
+    def create_band_params(cls,
+                           paramfile_dict: dict[str, str],
+                           band_num: int) -> Band:
+        """
+        Factory class method for a Band instance.
+
+        Input:
+            paramfile_dict[str, str]: A dict (typically created by
+                parameter_parser._paramfile_to_dict) mapping the keys found in
+                a Commander parameter file to the values found in that same
+                file.
+            band_num (int): The number of the band to be instantiated.
+        Output:
+            Band: Parameter container for a band-specific set of
+                Commander parameters.
+        """
+
         handling_dict = cls._get_parameter_handling_dict()
         param_vals = {}
         for field_name, handling_function in handling_dict.items():
