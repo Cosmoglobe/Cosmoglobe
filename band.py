@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum, auto, unique
+from functools import partial
 from typing import Union
 from pydantic import BaseModel
 
@@ -82,3 +83,55 @@ class Band(BaseModel):
     include_band: bool
     component_sensitivity: str = "broadband" # Only option found in the files
     gain_apod_mask: str = "fullsky" # Only option found in the files
+
+    @classmethod
+    def _get_parameter_handling_dict(cls):
+
+        def default_handler(field_name, paramfile_dict, band_num):
+            paramfile_param = field_name.upper() + '{:03d}'.format(band_num)
+            if field_name != 'include_band':
+                paramfile_param = 'BAND_' + paramfile_param
+            try:
+                return paramfile_dict[paramfile_param]
+            except KeyError as e:
+                print("Warning: Band parameter {} not found in parameter file".format(e))
+                return None
+
+        def noise_rms_smooth_handler(field_name, paramfile_dict, band_num):
+            i = 1
+            noise_rms_smooth = []
+            while True:
+                try:
+                    noise_rms_smooth.append(
+                        paramfile_dict[
+                            'BAND_NOISE_RMS{:03d}_SMOOTH{:02d}'.format(band_num, i)])
+                    i+= 1
+                except KeyError:
+                    break
+            return noise_rms_smooth
+
+        def tod_detector_list_handler(field_name, paramfile_dict, band_num):
+            paramfile_param = 'BAND_' + field_name.upper() + '{:03d}'.format(band_num)
+            return paramfile_dict[paramfile_param].split(',')
+
+        field_names = cls.__fields__.keys()
+        handling_dict = {}
+        for field_name in field_names:
+            if field_name == 'noise_rms_smooth':
+                handling_dict[field_name] = partial(
+                    noise_rms_smooth_handler, field_name)
+            elif field_name == 'tod_detector_list':
+                handling_dict[field_name] = partial(
+                    tod_detector_list_handler, field_name)
+            else:
+                handling_dict[field_name] = partial(
+                    default_handler, field_name)
+        return handling_dict
+
+    @classmethod
+    def create_band_params(cls, paramfile_dict, band_num):
+        handling_dict = cls._get_parameter_handling_dict()
+        param_vals = {}
+        for field_name, handling_function in handling_dict.items():
+            param_vals[field_name] = handling_function(paramfile_dict, band_num)
+        return Band(**param_vals)

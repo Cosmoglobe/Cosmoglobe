@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum, auto, unique
+from functools import partial
 from pydantic import BaseModel
 from typing import Union
 
@@ -191,3 +192,70 @@ class Component(BaseModel):
     t_poltype: PolType = None # Only dust
     t_nu_max: float = None # Only dust
     t_nu_min: float = None # Only dust
+
+    @classmethod
+    def _create_monoprior_params(cls, monoprior_string):
+        """
+        Creates a MonopolePrior instance given the monopole prior parameter
+        string found in a Commander parameter file.
+
+        Output:
+            MonopolePrior: Contains the parameters relevant for a single
+                MonopolePrior definition in the Commander parameter file.
+        """
+        if monoprior_string == 'none' or monoprior_string is None:
+            return None
+        monoprior_type, monoprior_params = monoprior_string.split(':')
+        monoprior_params = monoprior_params.split(',')
+        monoprior_type = MonopolePriorType(monoprior_type)
+        if monoprior_type == MonopolePriorType.BANDMONO:
+            monopole_prior = MonopolePrior(type=monoprior_type,
+                                           label=monoprior_params[0])
+        elif monoprior_type == MonopolePriorType.CROSSCORR:
+            monopole_prior = MonopolePrior(type=monoprior_type,
+                                           corrmap=monoprior_params[0],
+                                           nside=monoprior_params[1],
+                                           fwhm=monoprior_params[2].replace('d', 'e'),
+                                           thresholds=monoprior_params[3:])
+        elif monoprior_type == MonopolePriorType.MONOPOLE_MINUS_DIPOLE:
+            monopole_prior = MonopolePrior(type=monoprior_type,
+                                           mask=monoprior_params[0])
+        return monopole_prior
+
+    @classmethod
+    def _get_parameter_handling_dict(cls):
+
+        def default_handler(field_name, paramfile_dict, component_num):
+            base = field_name[1:] if field_name in ('ctype', 'cclass') else field_name
+            paramfile_param = 'COMP_' + base.upper() + '{:02d}'.format(component_num)
+            try:
+                return paramfile_dict[paramfile_param]
+            except KeyError as e:
+                print("Warning: Component parameter {} not found in parameter file".format(e))
+                return None
+
+        def monopole_prior_handler(field_name, paramfile_dict, component_num):
+            paramfile_param = 'COMP_' + field_name.upper() + '{:02d}'.format(component_num)
+            try:
+                return cls._create_monoprior_params(paramfile_dict[paramfile_param])
+            except KeyError as e:
+                print("Warning: Component parameter {} not found in parameter file".format(e))
+
+        field_names = cls.__fields__.keys()
+        handling_dict = {}
+        for field_name in field_names:
+            if field_name == 'monopole_prior':
+                handling_dict[field_name] = partial(
+                    monopole_prior_handler, field_name)
+            else:
+                handling_dict[field_name] = partial(
+                    default_handler, field_name)
+        return handling_dict
+
+    @classmethod
+    def create_component_params(cls, paramfile_dict, component_num):
+        handling_dict = cls._get_parameter_handling_dict()
+        param_vals = {}
+        for field_name, handling_function in handling_dict.items():
+            param_vals[field_name] = handling_function(paramfile_dict, component_num)
+        return Component(**param_vals)

@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 
 from enum import Enum, auto
+from functools import partial
 from cg_sampling_group import CGSamplingGroup
 from component import Component
 
@@ -15,3 +16,59 @@ class ModelParameters(BaseModel):
     init_instrument_from_hdf: str = None
     cg_sampling_groups: list[CGSamplingGroup] = None
     signal_components: list[Component] = None
+
+    @classmethod
+    def _get_parameter_handling_dict(cls):
+
+        def default_handler(field_name, paramfile_dict):
+            paramfile_param = field_name.upper()
+            try:
+                return paramfile_dict[paramfile_param]
+            except KeyError as e:
+                print("Warning: Model parameter {} not found in parameter file".format(e))
+                return None
+
+        def signal_component_handler(field_name, paramfile_dict):
+            signal_components = []
+            num_components = int(paramfile_dict['NUM_SIGNAL_COMPONENTS'])
+            for i in range(1, num_components+1):
+                signal_components.append(
+                    Component.create_component_params(paramfile_dict, i))
+            return signal_components
+
+        def cg_sampling_group_handler(field_name, paramfile_dict, signal_components):
+            cg_sampling_groups = []
+            num_sampling_groups = int(paramfile_dict['NUM_CG_SAMPLING_GROUPS'])
+            for i in range(1, num_sampling_groups + 1):
+                cg_sampling_groups.append(
+                    CGSamplingGroup.create_cg_sampling_group(
+                        paramfile_dict, i, signal_components))
+            return cg_sampling_groups
+
+        field_names = cls.__fields__.keys()
+        handling_dict = {}
+        for field_name in field_names:
+            if field_name == 'cg_sampling_groups':
+                handling_dict[field_name] = partial(
+                    cg_sampling_group_handler, field_name)
+            elif field_name == 'signal_components':
+                handling_dict[field_name] = partial(
+                    signal_component_handler, field_name)
+            else:
+                handling_dict[field_name] = partial(
+                    default_handler, field_name)
+        return handling_dict
+
+    @classmethod
+    def create_model_params(cls, paramfile_dict):
+        handling_dict = cls._get_parameter_handling_dict()
+        param_vals = {}
+        for field_name, handling_function in handling_dict.items():
+            if field_name == 'cg_sampling_groups':
+                # This must be done *after* the components have been created and
+                # populated in order to point to them.
+                continue
+            param_vals[field_name] = handling_function(paramfile_dict)
+        param_vals['cg_sampling_groups'] = handling_dict['cg_sampling_groups'](
+            paramfile_dict, param_vals['signal_components'])
+        return ModelParameters(**param_vals)

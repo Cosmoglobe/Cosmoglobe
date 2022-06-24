@@ -1,5 +1,6 @@
 from enum import Enum, unique
 from typing import Union
+from functools import partial
 
 from pydantic import BaseModel
 
@@ -80,3 +81,52 @@ class GeneralParameters(BaseModel):
 
     dataset_parameters: DatasetParameters = None
     model_parameters: ModelParameters = None
+
+    @classmethod
+    def get_parameter_handling_dict(cls):
+
+        def default_handler(field_name, paramfile_dict):
+            paramfile_param = field_name.upper()
+            try:
+                return paramfile_dict[paramfile_param]
+            except KeyError as e:
+                print("Warning: General parameter {} not found in parameter file".format(e))
+                return None
+
+        def model_param_handler(field_name, paramfile_dict):
+            return ModelParameters.create_model_params(paramfile_dict)
+
+        def dataset_param_handler(field_name, paramfile_dict):
+            return DatasetParameters.create_dataset_params(paramfile_dict)
+
+        def init_chain_handler(field_name, paramfile_dict):
+            num_init_chains = paramfile_dict['NUM_INIT_CHAINS']
+            init_chain_list = []
+            for i in range(int(num_init_chains)):
+                init_chain_list.append(paramfile_dict['INIT_CHAIN{:02d}'.format(i+1)])
+            return init_chain_list
+
+        field_names = cls.__fields__.keys()
+        handling_dict = {}
+        for field_name in field_names:
+            if field_name == 'init_chains':
+                handling_dict[field_name] = partial(
+                    init_chain_handler, field_name)
+            elif field_name == 'model_parameters':
+                handling_dict[field_name] = partial(
+                    model_param_handler, field_name)
+            elif field_name == 'dataset_parameters':
+                handling_dict[field_name] = partial(
+                    dataset_param_handler, field_name)
+            else:
+                handling_dict[field_name] = partial(
+                    default_handler, field_name)
+        return handling_dict
+
+    @classmethod
+    def create_gen_params(cls, paramfile_dict):
+        handling_dict = cls.get_parameter_handling_dict()
+        param_vals = {}
+        for field_name, handling_function in handling_dict.items():
+            param_vals[field_name] = handling_function(paramfile_dict)
+        return GeneralParameters(**param_vals)
