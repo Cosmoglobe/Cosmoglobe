@@ -256,12 +256,45 @@ class Component(BaseModel):
             except KeyError as e:
                 print("Warning: Component parameter {} not found in parameter file".format(e))
 
+        def gauss_prior_handler(field_name, paramfile_dict, component_num):
+            paramfile_param_mean = (
+                'COMP_' + field_name.upper() + '_MEAN{:02d}'.format(component_num))
+            paramfile_param_rms = (
+                'COMP_' + field_name.upper() + '_RMS{:02d}'.format(component_num))
+            try:
+                mean = paramfile_dict[paramfile_param_mean]
+                rms = paramfile_dict[paramfile_param_rms]
+            except KeyError as e:
+                print("Warning: Component parameter {} not found in parameter file".format(e))
+                return None
+            return GaussPrior(mean=mean, rms=rms)
+
+        def uni_prior_handler(field_name, paramfile_dict, component_num):
+            paramfile_param_low = (
+                'COMP_' + field_name.upper() + '_LOW{:02d}'.format(component_num))
+            paramfile_param_high = (
+                'COMP_' + field_name.upper() + '_HIGH{:02d}'.format(component_num))
+            try:
+                low = paramfile_dict[paramfile_param_low]
+                high = paramfile_dict[paramfile_param_high]
+            except KeyError as e:
+                print("Warning: Component parameter {} not found in parameter file".format(e))
+                return None
+            return UniformPrior(low=low, high=high)
+
+
         field_names = cls.__fields__.keys()
         handling_dict = {}
         for field_name in field_names:
             if field_name == 'monopole_prior':
                 handling_dict[field_name] = partial(
                     monopole_prior_handler, field_name)
+            elif 'prior_gauss' in field_name:
+                handling_dict[field_name] = partial(
+                    gauss_prior_handler, field_name)
+            elif 'prior_uni' in field_name:
+                handling_dict[field_name] = partial(
+                    uni_prior_handler, field_name)
             else:
                 handling_dict[field_name] = partial(
                     default_handler, field_name)
