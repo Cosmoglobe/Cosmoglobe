@@ -5,13 +5,7 @@ from functools import partial
 from pydantic import BaseModel
 
 from band import Band
-
-class SmoothingScaleParameters(BaseModel):
-    fwhm: float
-    fwhm_postproc: float
-    lmax: int
-    nside: int
-    pixwin: str
+from smoothing_scale_parameters import SmoothingScaleParameters
 
 class DatasetParameters(BaseModel):
     """
@@ -55,7 +49,13 @@ class DatasetParameters(BaseModel):
             return bands
 
         def smoothing_scale_handler(field_name, paramfile_dict):
-            return None
+            num_smoothing_scales = int(paramfile_dict['NUM_SMOOTHING_SCALES'])
+            smoothing_scales = []
+            for i in range(1, num_smoothing_scales+1):
+                smoothing_scales.append(
+                    SmoothingScaleParameters.create_smoothing_scale_params(
+                        paramfile_dict, i))
+            return smoothing_scales
 
         field_names = cls.__fields__.keys()
         handling_dict = {}
