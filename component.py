@@ -74,10 +74,13 @@ class Component(BaseModel):
     """
     # Note: The comp_CG parameters are, according to HKE, outdated, and because
     # it messes with a potential future CG class if we include them, I will
-    # leave them out.  Components checked so far: Synch, dust, freefree, cmb, ame, monodipole, radio
+    # leave them out.  Components checked so far: Synch, dust, freefree, cmb,
+    # ame, monodipole, radio
 
-    # All 'pixreg' parameters I have encountered are not in the code, so I don't include them here.
+    # All 'pixreg' parameters I have encountered are not in the code, so I
+    # don't include them here.
 
+    include_comp: bool
     label: str
     ctype: ComponentType
     cclass: ComponentClass
@@ -226,6 +229,31 @@ class Component(BaseModel):
                                            mask=monoprior_params[0])
         return monopole_prior
 
+
+    def _serialize_monopole_prior(self, monopole_prior):
+        """
+        Serializes a MonopolePrior instance into a Commander-style string.
+
+        Input:
+            monopole_prior (MonopolePrior): The monopole prior structure.
+
+        Output:
+            string representing the prior for a Commander-style parameter file.
+        """
+        if monopole_prior is None:
+            return None
+        if monopole_prior.type == MonopolePriorType.BANDMONO:
+            return 'bandmono:{}'.format(monopole_prior.label)
+        elif monopole_prior.type == MonopolePriorType.CROSSCORR:
+            return 'crosscorr:{},{},{},{}'.format(
+                monopole_prior.corrmap,
+                monopole_prior.nside,
+                monopole_prior.fwhm,
+                ','.join(map(str,monopole_prior.thresholds)))
+        elif monopole_prior.type == MonopolePriorType.MONOPOLE_MINUS_DIPOLE:
+            return 'monopole-dipole:{}'.format(monopole_prior.mask)
+
+
     @classmethod
     def _get_parameter_handling_dict(cls):
         """
@@ -282,6 +310,13 @@ class Component(BaseModel):
                 return None
             return UniformPrior(low=low, high=high)
 
+        def include_comp_handler(field_name, paramfile_dict, component_num):
+            paramfile_param = 'INCLUDE_COMP{:02d}'.format(component_num)
+            try:
+                return paramfile_dict[paramfile_param]
+            except KeyError as e:
+                print("Warning: Component parameter {} not found in parameter file".format(e))
+                return False
 
         field_names = cls.__fields__.keys()
         handling_dict = {}
@@ -295,6 +330,9 @@ class Component(BaseModel):
             elif 'prior_uni' in field_name:
                 handling_dict[field_name] = partial(
                     uni_prior_handler, field_name)
+            elif field_name == 'include_comp':
+                handling_dict[field_name] = partial(
+                    include_comp_handler, field_name)
             else:
                 handling_dict[field_name] = partial(
                     default_handler, field_name)
@@ -321,3 +359,55 @@ class Component(BaseModel):
         for field_name, handling_function in handling_dict.items():
             param_vals[field_name] = handling_function(paramfile_dict, component_num)
         return Component(**param_vals)
+
+    def serialize_to_paramfile_dict(self, component_num):
+        """
+        Creates a mapping from Commander parameter names to the values in the
+        Component instance, with all lower-level parameter collections
+        similarly serialized.
+
+        Note the values in this mapping are basic types, not strings. This
+        means they will have to be processed further before they are ready for
+        a Commander parameter file. The keys, however, need no more processing.
+
+        Input:
+            component_num[int]: The number of the component instance in the Commander
+            file context.
+
+        Output:
+            dict[str, Any]: Mapping from Commander parameter file names to the
+                parameter values.
+        """
+
+        paramfile_dict = {}
+        for field_name, value in self.__dict__.items():
+            if field_name == 'monopole_prior':
+                paramfile_dict['COMP_{}{:02}'.format(
+                    field_name.upper(), component_num)] = (
+                        self._serialize_monopole_prior(value))
+            elif 'prior_gauss' in field_name:
+                if value is None:
+                    continue
+                paramfile_dict[
+                    'COMP_{}_MEAN{:02d}'.format(
+                        field_name.upper(), component_num)] = value.mean
+                paramfile_dict[
+                    'COMP_{}_RMS{:02d}'.format(
+                        field_name.upper(), component_num)] = value.rms
+            elif 'prior_uni' in field_name:
+                if value is None:
+                    continue
+                paramfile_dict[
+                    'COMP_{}_LOW{:02d}'.format(
+                        field_name.upper(), component_num)] = value.low
+                paramfile_dict[
+                    'COMP_{}_HIGH{:02d}'.format(
+                        field_name.upper(), component_num)] = value.high
+            elif field_name == 'include_comp':
+                paramfile_dict['INCLUDE_COMP{:02d}'.format(component_num)] = value
+            else:
+                base = field_name[1:] if field_name in ('ctype', 'cclass') else field_name
+                paramfile_dict[
+                    'COMP_{}{:02d}'.format(
+                        base.upper(), component_num)] = value
+        return paramfile_dict

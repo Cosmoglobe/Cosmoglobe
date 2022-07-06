@@ -86,9 +86,10 @@ class GeneralParameters(BaseModel):
 
     @classmethod
     def _get_parameter_handling_dict(cls) -> dict[str, Callable]:
+
         """
         Create a mapping between the container field names and the appropriate
-        functions to handle those fields.
+        functions to read those fields.
 
         The functions in the output dict will take a parameter file dictionary
         as the only argument, and will return whatever is appropriate for that
@@ -120,21 +121,22 @@ class GeneralParameters(BaseModel):
             return init_chain_list
 
         field_names = cls.__fields__.keys()
-        handling_dict = {}
+        reading_dict = {}
         for field_name in field_names:
             if field_name == 'init_chains':
-                handling_dict[field_name] = partial(
+                reading_dict[field_name] = partial(
                     init_chain_handler, field_name)
             elif field_name == 'model_parameters':
-                handling_dict[field_name] = partial(
+                reading_dict[field_name] = partial(
                     model_param_handler, field_name)
             elif field_name == 'dataset_parameters':
-                handling_dict[field_name] = partial(
+                reading_dict[field_name] = partial(
                     dataset_param_handler, field_name)
             else:
-                handling_dict[field_name] = partial(
+                reading_dict[field_name] = partial(
                     default_handler, field_name)
-        return handling_dict
+        return reading_dict
+
 
     @classmethod
     def create_gen_params(cls,
@@ -157,3 +159,32 @@ class GeneralParameters(BaseModel):
         for field_name, handling_function in handling_dict.items():
             param_vals[field_name] = handling_function(paramfile_dict)
         return GeneralParameters(**param_vals)
+
+
+    def serialize_to_paramfile_dict(self) -> dict[str, Any]:
+        """
+        Creates a mapping from Commander parameter names to the values in the
+        GeneralParameters instance, with all lower-level parameter collections
+        similarly serialized.
+
+        Note the values in this mapping are basic types, not strings. This
+        means they will have to be processed further before they are ready for
+        a Commander parameter file. The keys, however, need no more processing.
+
+        Output:
+            dict[str, Any]: Mapping from Commander parameter file names to the
+                parameter values.
+        """
+        paramfile_dict = {}
+        for field_name, value in self.__dict__.items():
+            if field_name == 'init_chains':
+                num_init_chains = len(value)
+                paramfile_dict['NUM_INIT_CHAINS'] = num_init_chains
+                for i, init_chain in enumerate(value):
+                    paramfile_dict['INIT_CHAINS{:02d}'.format(i+1)] = init_chain
+            elif field_name in ('model_parameters', 'dataset_parameters'):
+                paramfile_dict.update(
+                    value.serialize_to_paramfile_dict())
+            else:
+                paramfile_dict[field_name.upper()] = value
+        return paramfile_dict

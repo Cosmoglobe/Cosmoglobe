@@ -44,7 +44,7 @@ class SmoothingScaleParameters(BaseModel):
     @classmethod
     def create_smoothing_scale_params(
             cls,
-            paramfile_dict: dict[str, str],
+            paramfile_dict: dict[str, Any],
             smoothing_scale_num: int) -> SmoothingScaleParameters:
         """
         Factory class method for a SmoothingScaleParameters instance.
@@ -64,3 +64,29 @@ class SmoothingScaleParameters(BaseModel):
             param_vals[field_name] = handling_function(paramfile_dict,
                                                        smoothing_scale_num)
         return SmoothingScaleParameters(**param_vals)
+
+    def serialize_to_paramfile_dict(self, smoothing_scale_num):
+        """
+        Creates a mapping from Commander parameter names to the values in the
+        SmoothingScaleParameters instance, with all lower-level parameter
+        collections similarly serialized.
+
+        Note the values in this mapping are basic types, not strings. This
+        means they will have to be processed further before they are ready for
+        a Commander parameter file. The keys, however, need no more processing.
+
+        Input:
+            smoothing_scale_num[int]: The number of the smoothing scale
+            instance in the Commander file context.
+
+        Output:
+            dict[str, Any]: Mapping from Commander parameter file names to the
+                parameter values.
+        """
+
+        paramfile_dict = {}
+        for field_name, value in self.__dict__.items():
+            paramfile_dict[
+                'SMOOTHING_SCALE_{}{:02}'.format(field_name.upper(),
+                                                 smoothing_scale_num)] = value
+        return paramfile_dict

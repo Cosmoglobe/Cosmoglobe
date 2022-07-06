@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-
 from pydantic import BaseModel
 from enum import Enum, auto
 from typing import Callable
@@ -78,7 +77,7 @@ class ModelParameters(BaseModel):
 
     @classmethod
     def create_model_params(cls,
-                            paramfile_dict: dict[str, str]) -> ModelParameters:
+                            paramfile_dict: dict[str, Any]) -> ModelParameters:
         """
         Factory class method for a ModelParameters instance.
 
@@ -105,3 +104,35 @@ class ModelParameters(BaseModel):
         param_vals['cg_sampling_groups'] = handling_dict['cg_sampling_groups'](
             paramfile_dict, param_vals['signal_components'])
         return ModelParameters(**param_vals)
+
+    def serialize_to_paramfile_dict(self):
+        """
+        Creates a mapping from Commander parameter names to the values in the
+        ModelParameters instance, with all lower-level parameter collections
+        similarly serialized.
+
+        Note the values in this mapping are basic types, not strings. This
+        means they will have to be processed further before they are ready for
+        a Commander parameter file. The keys, however, need no more processing.
+
+        Output:
+            dict[str, Any]: Mapping from Commander parameter file names to the
+                parameter values.
+        """
+        paramfile_dict = {}
+        for field_name, value in self.__dict__.items():
+            if field_name == 'cg_sampling_groups':
+                num_cg_sampling_groups = len(value)
+                paramfile_dict['NUM_CG_SAMPLING_GROUPS'] = num_cg_sampling_groups
+                for i, cg_sampling_group in enumerate(value):
+                    paramfile_dict.update(
+                        cg_sampling_group.serialize_to_paramfile_dict(i+1))
+            elif field_name == 'signal_components':
+                num_signal_components = len(value)
+                paramfile_dict['NUM_SIGNAL_COMPONENTS'] = num_signal_components
+                for i, component in enumerate(value):
+                    paramfile_dict.update(
+                        component.serialize_to_paramfile_dict(i+1))
+            else:
+                paramfile_dict[field_name.upper()] = value
+        return paramfile_dict

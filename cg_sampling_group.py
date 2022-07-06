@@ -67,7 +67,7 @@ class CGSamplingGroup(BaseModel):
 
     @classmethod
     def create_cg_sampling_group(cls,
-                                 paramfile_dict: dict[str, str],
+                                 paramfile_dict: dict[str, Any],
                                  cg_sampling_group_num: int,
                                  components: list[Component]) -> CGSamplingGroup:
         """
@@ -95,3 +95,37 @@ class CGSamplingGroup(BaseModel):
                                                        cg_sampling_group_num,
                                                        components)
         return CGSamplingGroup(**param_vals)
+
+    def serialize_to_paramfile_dict(self, cg_sampling_group_num):
+        """
+        Creates a mapping from Commander parameter names to the values in the
+        CGSamplingGroup instance, with all lower-level parameter collections
+        similarly serialized.
+
+        Note the values in this mapping are basic types, not strings. This
+        means they will have to be processed further before they are ready for
+        a Commander parameter file. The keys, however, need no more processing.
+
+        Input:
+            cg_sampling_group_num[int]: The number of the cg sampling group
+            instance in the Commander file context.
+
+        Output:
+            dict[str, Any]: Mapping from Commander parameter file names to the
+                parameter values.
+        """
+
+        paramfile_dict = {}
+        for field_name, value in self.__dict__.items():
+            if field_name == 'components':
+                comp_name_list = []
+                for component in value:
+                    comp_name_list.append(component.label)
+                paramfile_dict[
+                    'CG_SAMPLING_GROUP{:02}'.format(cg_sampling_group_num)] = (
+                        ','.join(comp_name_list))
+            else:
+                paramfile_dict[
+                    'CG_SAMPLING_GROUP_{}{:02}'.format(
+                        field_name.upper(), cg_sampling_group_num)] = value
+        return paramfile_dict

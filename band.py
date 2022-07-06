@@ -141,7 +141,7 @@ class Band(BaseModel):
 
     @classmethod
     def create_band_params(cls,
-                           paramfile_dict: dict[str, str],
+                           paramfile_dict: dict[str, Any],
                            band_num: int) -> Band:
         """
         Factory class method for a Band instance.
@@ -162,3 +162,39 @@ class Band(BaseModel):
         for field_name, handling_function in handling_dict.items():
             param_vals[field_name] = handling_function(paramfile_dict, band_num)
         return Band(**param_vals)
+
+
+    def serialize_to_paramfile_dict(self, band_num: int) -> dict[str, Any]:
+        """
+        Creates a mapping from Commander parameter names to the values in the
+        Band instance, with all lower-level parameter collections
+        similarly serialized.
+
+        Note the values in this mapping are basic types, not strings. This
+        means they will have to be processed further before they are ready for
+        a Commander parameter file. The keys, however, need no more processing.
+
+        Input:
+            band_num[int]: The number of the band instance in the Commander
+            file context.
+
+        Output:
+            dict[str, Any]: Mapping from Commander parameter file names to the
+                parameter values.
+        """
+        paramfile_dict = {}
+        for field_name, value in self.__dict__.items():
+            if field_name == 'noise_rms_smooth':
+                for i, band_noise_rms_smooth in enumerate(value):
+                    paramfile_dict[
+                        'BAND_NOISE_RMS{:03d}_SMOOTH{:02d}'.format(
+                            band_num, i+1)] = band_noise_rms_smooth
+            elif field_name == 'tod_detector_list':
+                paramfile_dict[
+                    'BAND_{}{:03d}'.format(field_name.upper(), band_num)] = (
+                        ','.join(value)
+                    )
+            else:
+                paramfile_dict[
+                    'BAND_{}'.format(field_name.upper())] = value
+        return paramfile_dict

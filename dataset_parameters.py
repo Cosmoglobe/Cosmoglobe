@@ -72,7 +72,7 @@ class DatasetParameters(BaseModel):
 
     @classmethod
     def create_dataset_params(cls,
-                              paramfile_dict: dict[str, str]) -> DatasetParameters:
+                              paramfile_dict: dict[str, Any]) -> DatasetParameters:
         """
         Factory class method for a DatasetParameters instance.
 
@@ -92,3 +92,36 @@ class DatasetParameters(BaseModel):
         for field_name, handling_function in handling_dict.items():
             param_vals[field_name] = handling_function(paramfile_dict)
         return DatasetParameters(**param_vals)
+
+
+    def serialize_to_paramfile_dict(self):
+        """
+        Creates a mapping from Commander parameter names to the values in the
+        DatasetParameters instance, with all lower-level parameter collections
+        similarly serialized.
+
+        Note the values in this mapping are basic types, not strings. This
+        means they will have to be processed further before they are ready for
+        a Commander parameter file. The keys, however, need no more processing.
+
+        Output:
+            dict[str, Any]: Mapping from Commander parameter file names to the
+                parameter values.
+        """
+        paramfile_dict = {}
+        for field_name, value in self.__dict__.items():
+            if field_name == 'include_bands':
+                num_bands = len(value)
+                paramfile_dict['NUMBAND'] = num_bands
+                for i, band in enumerate(value):
+                    paramfile_dict.update(
+                        band.serialize_to_paramfile_dict(i+1))
+            elif field_name == 'smoothing_scales':
+                num_smoothing_scales = len(value)
+                paramfile_dict['NUM_SMOOTHING_SCALES'] = num_smoothing_scales
+                for i, smoothing_scale in enumerate(value):
+                    paramfile_dict.update(
+                        smoothing_scale.serialize_to_paramfile_dict(i+1))
+            else:
+                paramfile_dict[field_name.upper()] = value
+        return paramfile_dict
