@@ -3,7 +3,7 @@ import os
 import numpy as np
 import sys
 import click
-from src.tools import *
+from cosmoglobe.release.tools import *
 
 
 @click.group()
@@ -102,7 +102,7 @@ def specplot(input,cmap,long,lambdacdm,min_,max_, lmax):
         scaling_EE = [1e-1] #-1*reg.coef_
 
         scaling_TE = [1e-3] #-1*reg.coef_
-        from src.spectrum import fmt
+        from cosmoglobe.release.spectrum import fmt
         ax1.loglog(ell,scaling_TT[0]*TT_lcdm, linewidth=2, ls=":", label=r"TT $\lambda$CDM"+f" - scaled by "+fmt(scaling_TT[0],1))
         ax1.loglog(ell,scaling_EE[0]*EE_lcdm, linewidth=2, ls=":", label=r"EE $\lambda$CDM"+f" - scaled by "+fmt(scaling_EE[0],1))
         ax1.loglog(ell,scaling_TE[0]*np.abs(TE_lcdm), linewidth=2, ls=":", label=r"TE $\lambda$CDM"+f" - scaled by "+fmt(scaling_TE[0],1))
@@ -198,7 +198,7 @@ def plot(input, dataset, nside, auto, min, max, mid, range, colorbar, graticule,
     """
     if min is None: min = False
     if max is None: max = False
-    from src.plotter import trygveplot
+    from cosmoglobe.release.plotter import trygveplot
     trygveplot(input, dataset, nside, auto, min, max, mid, range, colorbar, graticule,
                 lmax, fwhm, mask, mfill, sig, remove_dipole, remove_monopole, logscale, 
                 size, white_background, darkmode, png, cmap, title, ltitle, unit, scale, 
@@ -230,7 +230,7 @@ def gnomplot(filename, lon, lat, sig, size, min_, max_, rng, title, unit, cmap, 
     """
     import healpy as hp
     import matplotlib.pyplot as plt
-    from src.plotter import fmt, remove_md
+    from cosmoglobe.release.plotter import fmt, remove_md
     from functools import partial
     
     plt.rcParams["backend"] = "pdf"
@@ -321,7 +321,7 @@ def cartplot(filename, sig, size, min_, max_, rng, title, unit, cmap, graticule,
     #c3pp cartplot BP_dust_IQU_n1024_v1.fits -sig 2 -range 50 -cmap iceburn -nobar
     import healpy as hp
     import matplotlib.pyplot as plt
-    from src.plotter import fmt, apply_logscale, get_percentile
+    from cosmoglobe.release.plotter import fmt, apply_logscale, get_percentile
     from functools import partial
     
     from matplotlib import rcParams, rc
@@ -1184,7 +1184,7 @@ def make_diff_plots(ctx, dir1, dir2, type1, type2):
 
         diff_map = map1 - map2 
   
-        from src.plotter import trygveplot
+        from cosmoglobe.release.plotter import trygveplot
  
         size = 'm'
         if comp in ['030', '044', '070']:
@@ -1220,7 +1220,7 @@ def output_sky_model(pol, long, darkmode, png, nside, a_cmb, a_s, b_s, a_ff, t_e
     Outputs spectrum plots.
     c3pp output-sky-model -a_s synch_c0001_k000100.fits -b_s synch_beta_c0001_k000100.fits -a_d dust_init_kja_n1024.fits -b_d dust_beta_init_kja_n1024.fits -t_d dust_T_init_kja_n1024.fits -a_ame1 ame_c0001_k000100.fits -nup ame_nu_p_c0001_k000100.fits -a_ff ff_c0001_k000100.fits -t_e ff_Te_c0001_k000100.fits -mask1 mask_70GHz_t70.fits -mask2 mask_70GHz_t7.fits -nside 16
     """
-    from src.spectrum import Spectrum
+    from cosmoglobe.release.spectrum import Spectrum
     """
     if not a_cmb:
         a_cmb = 0.67 if pol else 45

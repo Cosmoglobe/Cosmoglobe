@@ -3,7 +3,7 @@ import sys
 import os
 import numpy as np
 import healpy as hp
-from src.tools import *
+from cosmoglobe.release.tools import *
 
 
 def format_fits(chain, extname, types, units, nside, burnin, maxchain, polar, component, fwhm, nu_ref_t, nu_ref_p, procver, filename, bndctr, restfreq, bndwid, cmin=1, cmax=None, chdir=None, fields=None, scale=1.):

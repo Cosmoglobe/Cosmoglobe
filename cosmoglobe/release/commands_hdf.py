@@ -3,8 +3,9 @@ import os
 import numpy as np
 import sys
 import click
-from src.tools import *
-from src.commands_plotting import *
+from cosmoglobe.release.tools import *
+from cosmoglobe.release.commands_plotting import *
+from cosmoglobe.release.fitsformatter import format_fits, get_data, get_header
 
 @click.group()
 def commands_hdf():
@@ -268,7 +269,6 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
     # Use proper masks for output of CMB component
     # Use inpainted data as well in CMB component
 
-    from src.fitsformatter import format_fits, get_data, get_header
     from pathlib import Path
     import shutil
 

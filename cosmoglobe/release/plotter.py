@@ -8,7 +8,7 @@ import healpy as hp
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as col
-from src.tools import arcmin2rad
+from cosmoglobe.release.tools import arcmin2rad
 import os
 # Fix for macos openMP duplicate bug
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
@@ -559,8 +559,8 @@ def get_map(input, sig, dataset, nside, lmax, fwhm,):
                 maps_ = input_
 
         elif input_.endswith(".h5"):
-            from src.commands_hdf import h5map2fits
-            from src.tools import alm2fits_tool
+            from cosmoglobe.release.commands_hdf import h5map2fits
+            from cosmoglobe.release.tools import alm2fits_tool
             # Get maps from alm data in .h5
             if dataset.endswith("alm"):
                 if not nside:

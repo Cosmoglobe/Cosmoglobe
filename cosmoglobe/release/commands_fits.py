@@ -3,7 +3,7 @@ import os
 import numpy as np
 import sys
 import click
-from src.tools import *
+from cosmoglobe.release.tools import *
 
 @click.group()
 def commands_fits():

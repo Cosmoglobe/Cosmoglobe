@@ -7,7 +7,7 @@ from tqdm import tqdm
 import numpy as np
 import healpy as hp
 
-import src.tools as tls
+import cosmoglobe.release.tools as tls
 def Spectrum(pol, long, darkmode, png, foregrounds, masks, nside, cmap="Plotly"):
     params = {'savefig.dpi'        : 300, # save figures to 300 dpi
               'xtick.top'          : False,
