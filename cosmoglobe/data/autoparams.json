@@ -1,0 +1,200 @@
+{
+    "cmb": {
+        "rlabel": "A_{\\mathrm{CMB}}^{ }",
+        "unit": "\\mu\\mathrm{K}_{\\mathrm{CMB}}",
+        "cmap": ["planck"],
+        "ticks": [[-300,0,300], [-30,0,30]],
+        "freq_ref": [null,null],
+        "norm": null,
+        "norm_dict": null
+    },
+    "chisq": {
+        "rlabel": "\\chi^2",
+        "unit": "",
+        "cmap": ["RdBu_r"],
+        "ticks": [[-3, 0, 3]],
+        "freq_ref": [null,null],
+        "norm": null,
+        "norm_dict": null
+    },
+    "synch beta": {
+        "rlabel": "\\beta_s",
+        "unit": "",
+        "cmap": ["fusion"],
+        "ticks": [[-3.2, -3.15, -3.1]],
+        "freq_ref": [null,null],
+        "norm": null,
+        "norm_dict": null
+    },
+    "synch": {
+        "rlabel": "A_s",
+        "unit": "\\mu\\mathrm{K}_{\\mathrm{RJ}}",
+        "cmap": ["swamp", "wildfire"],
+        "ticks": [[1e7,1e8],[-100, 0, 100]],
+        "freq_ref": [0.408,30],
+        "norm": "symlog2",
+        "norm_dict": {"linthresh": 5}
+    },
+    "dust beta": {
+        "rlabel": "\\beta_d",
+        "unit": "",
+        "cmap": ["fusion"],
+        "ticks": [[1.3,1.55,1.8]],
+        "freq_ref": [null,null],
+        "norm": null,
+        "norm_dict": null
+    },
+    "dust T": {
+        "rlabel": "T_d",
+        "unit": "\\mathrm{K}",
+        "cmap": ["fusion"],
+        "ticks": [[14,22,30]],
+        "freq_ref": [null,null],
+        "norm": null,
+        "norm_dict": null
+    },
+    "dust": {
+        "rlabel": "A_d",
+        "unit": "\\mu\\mathrm{K}_{\\mathrm{RJ}}",
+        "cmap": ["sunburst", "iceburn"],
+        "ticks": [[30,300,3000],[-100,0,100]],
+        "freq_ref": [545.0,353.0],
+        "norm": "symlog2",
+        "norm_dict": {"linthresh": 5}
+    },
+    "ff Te": {
+        "rlabel": "T_{e}",
+        "unit": "\\mathrm{K}",
+        "cmap": ["fusion"],
+        "ticks": [[5000, 8000]],
+        "freq_ref": [null],
+        "norm": null,
+        "norm_dict": null
+    },
+    "ff": {
+        "unit": "\\mu\\mathrm{K}_{\\mathrm{RJ}}",
+        "rlabel": "A_{ff}",
+        "cmap": ["freeze"],
+        "ticks": [[40, 400, 2000]],
+        "freq_ref": [40.0],
+        "norm": "symlog2",
+        "norm_dict": {"linthresh": 5}
+    },
+    "ame nup": {
+        "unit": "\\mathrm{GHz}",
+        "rlabel": "\\nu_{p}",
+        "cmap": ["fusion"],
+        "ticks": [[17, 23]],
+        "freq_ref": [null],
+        "norm": null,
+        "norm_dict": null
+    },
+    "ame": {
+        "unit": "\\mu\\mathrm{K}_{\\mathrm{RJ}}",
+        "rlabel": "A_{ame}",
+        "cmap": ["amber"],
+        "ticks": [[30, 300, 3000]],
+        "freq_ref": [22.0],
+        "norm": "symlog2",
+        "norm_dict": {"linthresh": 5}
+    },
+    "radio": {
+        "unit": "\\mu\\mathrm{K}_{\\mathrm{RJ}}",
+        "rlabel": "A_{\\mathrm{ptsrc}}",
+        "cmap": ["CMRmap"],
+        "ticks": [["auto"],[0,1]],
+        "freq_ref": [30.0],
+        "norm": "symlog2",
+        "norm_dict": {"linthresh": 5}
+    },
+    "co10": {
+        "unit": "\\mathrm{K}_{\\mathrm{RJ}}\\, \\mathrm{km}/\\mathrm{s}",
+        "rlabel": "A_{CO10}",
+        "cmap": ["arctic"],
+        "ticks": [[0, 10, 100]],
+        "freq_ref": [115],
+        "norm": "symlog2",
+        "norm_dict": {"linthresh": 5}
+    },
+    "co21": {
+        "rlabel": "A_{CO21}",
+        "unit": "\\mathrm{K}_{\\mathrm{RJ}}\\, \\mathrm{km}/\\mathrm{s}",
+        "cmap": ["arctic"],
+        "ticks": [[0, 10, 100]],
+        "freq_ref": [230],
+        "norm": "symlog2",
+        "norm_dict": {"linthresh": 5}
+    },
+    "co32": {
+        "rlabel": "A_{CO21}",
+        "unit": "\\mathrm{K}_{\\mathrm{RJ}}\\, \\mathrm{km}/\\mathrm{s}",
+        "cmap": ["arctic"],
+        "ticks": [[0, 10, 100]],
+        "freq_ref": [345],
+        "norm": "symlog2",
+        "norm_dict": {"linthresh": 5}
+    },
+    "hcn": {
+        "rlabel": "A_HCN",
+        "unit": "\\mathrm{K}_{\\mathrm{RJ}}\\, \\mathrm{km}/\\mathrm{s}",
+        "cmap": ["arctic"],
+        "ticks": [[0.01, 100]],
+        "freq_ref": [null],
+        "norm": "symlog2",
+        "norm_dict": {"linthresh": 5}
+    },
+    "residual": {
+        "rlabel": "r_",
+        "unit": "\\mu\\mathrm{K}",
+        "cmap": ["planck"],
+        "ticks": [[-3, 0, 3]],
+        "freq_ref": [null],
+        "norm": null,
+        "norm_dict": null
+    },
+    "smap": {
+        "unit": "\\mu\\mathrm{K}",
+        "rlabel": "s_",
+        "cmap": ["planck"], 
+        "ticks": [[-0.2, 0, 0.2]],
+        "freq_ref": [null],
+        "norm": null,
+        "norm_dict": null
+    },
+    "freqmap": {
+        "rlabel": "A_",
+        "unit": "\\mu\\mathrm{K}",
+        "cmap": ["planck_log", "planck_log"], 
+        "ticks": [[-1e3, -10, 0, 10, 1e3, 1e7], [-1e2, -10, 0, 10, 1e3, 1e6]],
+        "freq_ref": [null, null],
+        "norm": "symlog2",
+        "norm_dict": null
+    },
+    "bpcorr": {
+        "rlabel": "s_",
+        "unit": "\\mu\\mathrm{K}",
+        "cmap": ["planck"], 
+        "ticks": [[-30,0,30]],
+        "freq_ref": [null],
+        "norm": null,
+        "norm_dict": null
+    },
+    "mask": {
+        "rlabel": "\\mathrm{Mask}", 
+        "unit": "",
+        "cmap": ["neutral"], 
+        "ticks": [[0, 1]],
+        "freq_ref": [null],
+        "norm": null,
+        "norm_dict": null
+    },
+    "unidentified": {
+        "rlabel": null,
+        "unit": "",
+        "cmap": ["planck"], 
+        "ticks": [null],
+        "freq_ref": [null],
+        "norm": null,
+        "norm_dict": null
+    }
+}
