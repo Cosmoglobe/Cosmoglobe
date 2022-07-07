@@ -10,17 +10,17 @@ repository = "https://github.com/Cosmoglobe/Cosmoglobe"
 documentation = "https://cosmoglobe.readthedocs.io"
 
 [tool.poetry.dependencies]
-python = ">=3.8,<=3.10"
+python = ">=3.8"
 h5py = ">=3.0.0"
 numpy = ">=1.21"
-numba = "^0.55.1"
+numba = {version = "^0.55.1", python = ">=3.8, <3.11"}
 astropy = ">=5.0.1"
 healpy = "^1.15.2"
 tqdm = "^4.62.3"
-rich = "^10.14.0"
-cmasher = "^1.6.3"
+rich = {version = "^12.3.0", python = ">= 3.8, <4.0.0"}
+cmasher = {version = "^1.6.3", python = ">=3.8, <4.0"}
 click = ">=8.0.1"
-Pillow = ">=9.0.1"
+textual = {version = "^0.1.18", python = ">=3.8, <4.0"}
 
 [tool.poetry.dev-dependencies]
 Sphinx = "^4.3.0"
