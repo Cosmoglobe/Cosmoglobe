@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "cosmoglobe"
-version = "0.9.60"
+version = "0.9.61"
 description = "A Python package for interfacing the Cosmoglobe Sky Model with commander3 outputs for the purpose of producing astrophysical sky maps."
 authors = ["Metin San <metinisan@gmail.com>", "Trygve Leithe Svalheim <t.l.svalheim@astro.uio.no>"]
 maintainers = ["Metin San <metinisan@gmail.com>", "Trygve Leithe Svalheim <t.l.svalheim@astro.uio.no>"]
@@ -10,17 +10,18 @@ repository = "https://github.com/Cosmoglobe/Cosmoglobe"
 documentation = "https://cosmoglobe.readthedocs.io"
 
 [tool.poetry.dependencies]
-python = ">=3.8,<=3.10"
+python = ">=3.8"
 h5py = ">=3.0.0"
-numpy = ">=1.21"
-numba = "^0.55.1"
+numpy = "^1.22.3"
+numba = {version = "^0.55.1", python = ">=3.8,<3.11"}
 astropy = ">=5.0.1"
 healpy = "^1.15.2"
 tqdm = "^4.62.3"
-rich = "^10.14.0"
-cmasher = "^1.6.3"
-click = ">=8.0.1"
-Pillow = ">=9.0.1"
+rich = {version = "^10.14.0", python = ">=3.8,<4.0.0"}
+cmasher = {version = "^1.6.3", python = ">=3.6, <4"}
+click = "^8.0.1"
+setuptools = "<60.0"
+scipy = {version = "^1.9", python = ">=3.8,<3.12"}
 
 [tool.poetry.dev-dependencies]
 Sphinx = "^4.3.0"
@@ -28,9 +29,9 @@ nbsphinx = "^0.8.7"
 pydata-sphinx-theme = "^0.7.2"
 pytest = "^7.0.1"
 mypy = "^0.931"
-ipython = ">=7.31.1"
+ipython = "^7.31.1"
 sphinx-autodoc-typehints = "^1.17.0"
-Jinja2 = "<3.1.0"
+Jinja2 = "^3.1.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
