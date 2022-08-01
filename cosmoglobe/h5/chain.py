@@ -137,6 +137,7 @@ class Chain:
         key: str,
         *,
         samples: Optional[range | int | Sequence[int]] = None,
+        unpack: bool = True,
     ) -> Any:
         """Returns the value of an key for all samples.
 
@@ -148,6 +149,9 @@ class Chain:
         samples
             An int or a range of samples for which to return the value. If
             None, all samples in the chain are used.
+        unpack
+            If True, alms are unpacked from Commander format to healpy format.
+            Default is True
 
         Returns
         -------
@@ -168,6 +172,7 @@ class Chain:
         key: str,
         *,
         samples: Optional[range | int | Sequence[int]] = None,
+        unpack: bool = True,
     ) -> Any:
         """Returns the mean of an key over all samples.
 
@@ -179,7 +184,10 @@ class Chain:
         samples
             An int or a range of samples to average over. If None, all
             samples in the chain are used.
-
+        unpack
+            If True, alms are unpacked from Commander format to healpy format.
+            Default is True
+            
         Returns
         -------
         value
@@ -287,13 +295,16 @@ class Chain:
 
     @validate_key
     @unpack_alms
-    def __getitem__(self, key: str) -> Any:
+    def __getitem__(self, key: str, *, unpack: bool = True) -> Any:
         """Returns the value of a key from the chain.
 
         Parameters
         ----------
         key
             The *full* path to an item in the chain.
+        unpack
+            If True, alms are unpacked from Commander format to healpy format.
+            Default is True
 
         Returns
         -------
