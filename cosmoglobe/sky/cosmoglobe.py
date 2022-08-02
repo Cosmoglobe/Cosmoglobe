@@ -81,3 +81,4 @@ cosmoglobe_registry.register_model(
 )
 
 DEFAULT_COSMOGLOBE_MODEL = cosmoglobe_registry.get_model("BeyondPlanck")
+

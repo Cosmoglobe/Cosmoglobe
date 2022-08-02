@@ -1,18 +1,20 @@
 from __future__ import annotations
-from pathlib import Path
+
 import textwrap
+from pathlib import Path
 from typing import Any, Generator, Optional, Sequence
 
 import h5py
 import healpy as hp
 import numpy as np
 
-from cosmoglobe.h5 import ChainVersion, PARAMETER_GROUP_NAME
-from cosmoglobe.h5._alms import unpack_alms_from_chain
+from cosmoglobe.h5 import PARAMETER_GROUP_NAME, ChainVersion
 from cosmoglobe.h5._alms import unpack_alms as unpack_alms_
-from cosmoglobe.h5._decorators import validate_key, validate_samples, unpack_alms
-from cosmoglobe.h5._exceptions import ChainFormatError, ChainSampleError, ChainKeyError
+from cosmoglobe.h5._alms import unpack_alms_from_chain
+from cosmoglobe.h5._decorators import unpack_alms, validate_key, validate_samples
+from cosmoglobe.h5._exceptions import ChainFormatError, ChainKeyError, ChainSampleError
 from cosmoglobe.sky.components._labels import SkyComponentLabel
+
 
 class Chain:
     """An interface for Cosmoglobe chainfiles.
