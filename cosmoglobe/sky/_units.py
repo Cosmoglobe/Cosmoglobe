@@ -8,13 +8,13 @@ Reference: https://github.com/galsci/pysm/blob/main/pysm3/__init__.py
 from typing import Any, List
 
 from astropy.units import (
+    Quantity,
+    Unit,
     add_enabled_units,
     brightness_temperature,
     def_unit,
     quantity_input,
-    Quantity,
     thermodynamic_temperature,
-    Unit,
 )
 
 

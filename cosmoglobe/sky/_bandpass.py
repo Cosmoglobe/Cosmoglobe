@@ -1,14 +1,12 @@
-from dataclasses import dataclass
 from typing import Dict, List, Protocol, Union
 
+import numpy as np
 from astropy.units import Quantity, Unit
 from astropy.units.core import UnitBase
-import numpy as np
 from scipy.interpolate import RectBivariateSpline
 
 from cosmoglobe.sky._intensity_derivatives import get_intensity_derivative
 from cosmoglobe.sky._units import cmb_equivalencies
-
 
 # Dict mapping number of grid points to the interpolation dimensin of the
 # bandpass integration.
@@ -16,15 +14,6 @@ N_INTERPOLATION_GRID = {
     1: 1000,
     2: 100,
 }
-
-
-# @dataclass
-# class Bandpass:
-#     """Class representing a *normalized* bandpass."""
-
-#     freqs: Quantity  # [Hz]
-#     weights: Quantity  # [1/Hz]
-
 
 def get_normalized_weights(
     freqs: Quantity,

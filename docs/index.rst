@@ -11,10 +11,6 @@ Welcome to the cosmoglobe documentation
 Model with *commander3* outputs for the purpose of producing astrophysical
 sky maps.
 
-.. note::
-   This project is under active development.
-
-     
 Installation
 ------------
 

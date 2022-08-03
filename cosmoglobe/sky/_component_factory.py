@@ -1,24 +1,24 @@
 import inspect
-from typing import Dict, List, Type, Union, Optional, Literal
 import warnings
+from typing import Dict, List, Literal, Optional, Type, Union
 
-from astropy.units import Quantity, Unit
 import healpy as hp
+from astropy.units import Quantity, Unit
 from tqdm import tqdm
 
-from cosmoglobe.h5.chain import Chain, ChainVersion
 from cosmoglobe.h5._exceptions import (
     ChainComponentNotFoundError,
-    ChainKeyError,
     ChainFormatError,
+    ChainKeyError,
 )
+from cosmoglobe.h5.chain import Chain, ChainVersion
 from cosmoglobe.sky._base_components import (
-    SkyComponent,
     DiffuseComponent,
     PointSourceComponent,
+    SkyComponent,
 )
 from cosmoglobe.sky._chain_context import chain_context_registry
-from cosmoglobe.sky.cosmoglobe import CosmoglobeModel, DEFAULT_COSMOGLOBE_MODEL
+from cosmoglobe.sky.cosmoglobe import DEFAULT_COSMOGLOBE_MODEL, CosmoglobeModel
 
 DEFAULT_SAMPLE = -1
 

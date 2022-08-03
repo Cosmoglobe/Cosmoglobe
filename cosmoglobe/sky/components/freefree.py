@@ -1,5 +1,5 @@
-from astropy.units import Quantity, Unit, quantity_input
 import numpy as np
+from astropy.units import Quantity, Unit, quantity_input
 
 from cosmoglobe.sky._base_components import DiffuseComponent
 from cosmoglobe.sky.components._labels import SkyComponentLabel

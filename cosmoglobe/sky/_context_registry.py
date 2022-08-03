@@ -1,6 +1,7 @@
 from __future__ import annotations
+
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Type, TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, List, Optional, Type
 
 from astropy.units import Unit
 

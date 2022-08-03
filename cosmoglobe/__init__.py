@@ -4,11 +4,11 @@ from astropy.utils.data import download_file
 
 from cosmoglobe.h5.chain import Chain
 from cosmoglobe.plot import gnom, hist, plot, spec, standalone_colorbar, trace
+from cosmoglobe.sky._units import K_CMB, K_RJ
 from cosmoglobe.sky.model import SkyModel
 
 _COMPSEP_DATA_URL = "http://sdc.uio.no/vol/cosmoglobe-data/BeyondPlanck/compsep/"
-_BP_DATA_URL = "http://tsih3.uio.no/www_cmb/metins/"
-# _BP_DATA_URL = "http://sdc.uio.no/vol/cosmoglobe-data/BeyondPlanck/releases/v2/"
+_BP_DATA_URL = "http://sdc.uio.no/vol/cosmoglobe-data/BeyondPlanck/releases/v2/"
 
 def get_test_chain(cache: bool = True) -> Chain:
     """Returns a minimal Cosmoglobe chain.
@@ -32,7 +32,7 @@ def get_test_chain(cache: bool = True) -> Chain:
 
     return Chain(file)
 
-def model_from_chain(
+def sky_model_from_chain(
     chain: Union[str, Chain],
     nside: int,
     components: Optional[List[str]] = None,
@@ -94,7 +94,7 @@ def model_from_chain(
     )
 
 
-def get_sky_model(nside: int, cache: bool = True) -> SkyModel:
+def sky_model(nside: int, cache: bool = True) -> SkyModel:
     """Downloads and caches the Cosmoglobe Sky model. 
     
     The downloaded file is ~700 MB and contains the mean of all parameters
@@ -122,13 +122,15 @@ def get_sky_model(nside: int, cache: bool = True) -> SkyModel:
     )
 
 __all__ = [
-    "get_sky_model", 
+    "sky_model", 
     "get_test_chain", 
-    "model_from_chain", 
+    "sky_model_from_chain", 
     "plot", 
     "spec", 
     "hist", 
     "gnom", 
     "trace", 
     "standalone_colorbar",
+    "K_RJ",
+    "K_CMB",
 ]

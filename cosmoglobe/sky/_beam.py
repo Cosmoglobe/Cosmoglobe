@@ -1,9 +1,9 @@
-from math import pi, log, sqrt
 import warnings
+from math import log, pi, sqrt
 
-from astropy.units import Quantity, Unit, quantity_input
-import numpy as np
 import healpy as hp
+import numpy as np
+from astropy.units import Quantity, Unit, quantity_input
 
 from cosmoglobe.sky._constants import DEFAULT_BEAM_FWHM
 

@@ -1,18 +1,18 @@
-from typing import Dict, List, Type
 from dataclasses import dataclass, field
+from typing import Dict, List, Type
 
 from cosmoglobe.sky._base_components import SkyComponent
 from cosmoglobe.sky._exceptions import (
-    ModelNotFoundError,
     ComponentNotFoundError,
     CosmoglobeModelError,
+    ModelNotFoundError,
 )
 from cosmoglobe.sky.components.ame import SpinningDust
-from cosmoglobe.sky.components.synchrotron import PowerLaw
+from cosmoglobe.sky.components.cmb import CMB
 from cosmoglobe.sky.components.dust import ModifiedBlackbody
 from cosmoglobe.sky.components.freefree import LinearOpticallyThin
-from cosmoglobe.sky.components.cmb import CMB
 from cosmoglobe.sky.components.radio import AGNPowerLaw
+from cosmoglobe.sky.components.synchrotron import PowerLaw
 
 
 @dataclass

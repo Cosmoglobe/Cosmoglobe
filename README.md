@@ -12,14 +12,13 @@
 <img src="imgs/sim.png">
 
 ## Features
-See the **[documentation](https://cosmoglobe.readthedocs.io/en/latest/)** for amore comprehensive guide.
+See the **[documentation](https://cosmoglobe.readthedocs.io/en/latest/)** for a more comprehensive guide.
 
-**Initialize Sky Model from Chain:** 
+**Initialize the Cosmoglobe Sky Model (this downloads and caches a ~800 MB file with the sky model data)** 
 ```python
 import cosmoglobe
 
-chain = cosmoglobe.get_test_chain() # Downloads a minimal Commander chainfile.
-model = cosmoglobe.model_from_chain(chain, nside=256)
+model = cosmoglobe.sky_model(nside=256)
 ```
 
 **Simulate the sky at 150 GHz in units of MJy/sr, smoothed to 40 arcmin with a gaussian beam:** 
