@@ -1,17 +1,16 @@
 import pathlib
 from typing import Generator
 
-import pytest
-import numpy as np
 import healpy as hp
+import numpy as np
+import pytest
 
 from cosmoglobe.h5 import ChainVersion
-from cosmoglobe.h5.chain import Chain
 from cosmoglobe.h5._exceptions import ChainFormatError, ChainKeyError, ChainSampleError
-
+from cosmoglobe.h5.chain import Chain
 
 # This path needs to exist in the test environment
-CHAIN_PATH = "/Users/metinsan/Documents/doktor/Cosmoglobe_test_data/bla.h5"
+CHAIN_PATH = "/Users/metinsan/Documents/doktor/Cosmoglobe_test_data/chain_test.h5"
 
 
 def test_init():
@@ -31,7 +30,7 @@ def test_init_with_burnin():
     with pytest.raises(ChainSampleError):
         Chain(CHAIN_PATH, burn_in=100)
 
-    assert isinstance(Chain(CHAIN_PATH, burn_in=10), Chain)
+    assert isinstance(Chain(CHAIN_PATH, burn_in=1), Chain)
 
 
 @pytest.fixture
@@ -41,7 +40,7 @@ def chain():
 
 @pytest.fixture
 def chain_burn_in():
-    return Chain(CHAIN_PATH, burn_in=10)
+    return Chain(CHAIN_PATH, burn_in=1)
 
 
 def test_samples_type(chain):
@@ -65,7 +64,7 @@ def test_components_type(chain):
 def test_nsamples(chain, chain_burn_in):
     """Tests the number of samples"""
 
-    assert chain.nsamples - chain_burn_in.nsamples == 10
+    assert chain.nsamples - chain_burn_in.nsamples == 1
 
 
 def test_version_type(chain):
@@ -109,8 +108,8 @@ def test_validate_samples(chain):
         chain.load("dust/amp_alm", samples=100)
 
     chain.get("dust/amp_alm", samples=1)
-    chain.mean("dust/amp_alm", samples=range(10))
-    chain.mean("dust/amp_alm", samples=[1,5,10])
+    chain.mean("dust/amp_alm", samples=range(2))
+    chain.mean("dust/amp_alm", samples=[0,1])
     chain.load("dust/amp_alm", samples=-1)
 
 
@@ -210,4 +209,4 @@ def test_getitem(chain):
 def test_format_samples(chain):
     """Tests the _format_samples function of chain."""
 
-    assert chain._format_samples([1, 14]) == ["000001", "000014"]
+    assert chain._format_samples([0, 1]) == ["000000", "000001"]

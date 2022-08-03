@@ -79,7 +79,7 @@ def unpack_alms(func):
         chain, key, *_ = args
         values = func(*args, **kwargs)
 
-        if "alm" in key:
+        if "alm" in key and kwargs.get("unpack") is not False:
             return unpack_alms_from_chain(chain, values, key)
 
         return values

@@ -1,18 +1,20 @@
 from __future__ import annotations
-from pathlib import Path
+
 import textwrap
+from pathlib import Path
 from typing import Any, Generator, Optional, Sequence
 
 import h5py
 import healpy as hp
 import numpy as np
 
-from cosmoglobe.h5 import ChainVersion, PARAMETER_GROUP_NAME
-from cosmoglobe.h5._alms import unpack_alms_from_chain
+from cosmoglobe.h5 import PARAMETER_GROUP_NAME, ChainVersion
 from cosmoglobe.h5._alms import unpack_alms as unpack_alms_
-from cosmoglobe.h5._decorators import validate_key, validate_samples, unpack_alms
-from cosmoglobe.h5._exceptions import ChainFormatError, ChainSampleError, ChainKeyError
+from cosmoglobe.h5._alms import unpack_alms_from_chain
+from cosmoglobe.h5._decorators import unpack_alms, validate_key, validate_samples
+from cosmoglobe.h5._exceptions import ChainFormatError, ChainKeyError, ChainSampleError
 from cosmoglobe.sky.components._labels import SkyComponentLabel
+
 
 class Chain:
     """An interface for Cosmoglobe chainfiles.
@@ -137,6 +139,7 @@ class Chain:
         key: str,
         *,
         samples: Optional[range | int | Sequence[int]] = None,
+        unpack: bool = True,
     ) -> Any:
         """Returns the value of an key for all samples.
 
@@ -148,6 +151,9 @@ class Chain:
         samples
             An int or a range of samples for which to return the value. If
             None, all samples in the chain are used.
+        unpack
+            If True, alms are unpacked from Commander format to healpy format.
+            Default is True
 
         Returns
         -------
@@ -168,6 +174,7 @@ class Chain:
         key: str,
         *,
         samples: Optional[range | int | Sequence[int]] = None,
+        unpack: bool = True,
     ) -> Any:
         """Returns the mean of an key over all samples.
 
@@ -179,7 +186,10 @@ class Chain:
         samples
             An int or a range of samples to average over. If None, all
             samples in the chain are used.
-
+        unpack
+            If True, alms are unpacked from Commander format to healpy format.
+            Default is True
+            
         Returns
         -------
         value
@@ -287,13 +297,16 @@ class Chain:
 
     @validate_key
     @unpack_alms
-    def __getitem__(self, key: str) -> Any:
+    def __getitem__(self, key: str, *, unpack: bool = True) -> Any:
         """Returns the value of a key from the chain.
 
         Parameters
         ----------
         key
             The *full* path to an item in the chain.
+        unpack
+            If True, alms are unpacked from Commander format to healpy format.
+            Default is True
 
         Returns
         -------

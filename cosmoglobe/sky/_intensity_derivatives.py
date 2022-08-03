@@ -1,10 +1,11 @@
-from typing import Protocol, Dict
+from typing import Dict, Protocol
 
-from astropy.units import Quantity
 import numpy as np
+from astropy.units import Quantity
 
 import cosmoglobe.sky._constants as const
 from cosmoglobe.sky._units import *
+
 
 class IntensityDerivative(Protocol):
     """Protocol defining the interface for an intensity derivate."""
