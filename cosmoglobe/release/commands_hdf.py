@@ -334,6 +334,210 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
         chain = f"{procver}/BP_c0001_{procver}.h5"
     if freqmaps:
         try:
+            # Ideally, we would have a way to access this information from the
+            # chain itself, but currently we aren't outputting any of the main
+            # stuff from the parameter file.
+            # A lot of the nu_ref, bandctr, restfreq, bndwid parameters are just
+            # dummies for now.
+            format_fits(
+                chain=chain,
+                extname="FREQMAP",
+                types=["I_MEAN", "Q_MEAN", "U_MEAN", "I_RMS", "Q_RMS", "U_RMS","I_STDDEV", "Q_STDDEV", "U_STDDEV",],
+                units=["mK", "mK", "mK", "mK", "mK", "mK", "mK", "mK", "mK",],
+                nside=512,
+                burnin=burnin,
+                maxchain=maxchain,
+                polar=True,
+                component="023-WMAP_K",
+                fwhm=0.0,
+                nu_ref_t="23 GHz",
+                nu_ref_p="23 GHz",
+                procver=procver,
+                filename=f"BP_023-WMAP_K_IQU_n0512_{procver}.fits",
+                bndctr=23,
+                restfreq=23,
+                bndwid=5,
+            )
+
+            format_fits(
+                chain=chain,
+                extname="FREQMAP",
+                types=["I_MEAN", "Q_MEAN", "U_MEAN", "I_RMS", "Q_RMS", "U_RMS","I_STDDEV", "Q_STDDEV", "U_STDDEV",],
+                units=["mK", "mK", "mK", "mK", "mK", "mK", "mK", "mK", "mK",],
+                nside=512,
+                burnin=burnin,
+                maxchain=maxchain,
+                polar=True,
+                component="030-WMAP_Ka",
+                fwhm=0.0,
+                nu_ref_t="30 GHz",
+                nu_ref_p="30 GHz",
+                procver=procver,
+                filename=f"BP_030-WMAP_Ka_IQU_n0512_{procver}.fits",
+                bndctr=30,
+                restfreq=30,
+                bndwid=5,
+            )
+
+            format_fits(
+                chain=chain,
+                extname="FREQMAP",
+                types=["I_MEAN", "Q_MEAN", "U_MEAN", "I_RMS", "Q_RMS", "U_RMS","I_STDDEV", "Q_STDDEV", "U_STDDEV",],
+                units=["mK", "mK", "mK", "mK", "mK", "mK", "mK", "mK", "mK",],
+                nside=512,
+                burnin=burnin,
+                maxchain=maxchain,
+                polar=True,
+                component="040-WMAP_Q1",
+                fwhm=0.0,
+                nu_ref_t="40 GHz",
+                nu_ref_p="40 GHz",
+                procver=procver,
+                filename=f"BP_040-WMAP_Q1_IQU_n0512_{procver}.fits",
+                bndctr=40,
+                restfreq=40,
+                bndwid=5,
+            )
+
+            format_fits(
+                chain=chain,
+                extname="FREQMAP",
+                types=["I_MEAN", "Q_MEAN", "U_MEAN", "I_RMS", "Q_RMS", "U_RMS","I_STDDEV", "Q_STDDEV", "U_STDDEV",],
+                units=["mK", "mK", "mK", "mK", "mK", "mK", "mK", "mK", "mK",],
+                nside=512,
+                burnin=burnin,
+                maxchain=maxchain,
+                polar=True,
+                component="040-WMAP_Q2",
+                fwhm=0.0,
+                nu_ref_t="40 GHz",
+                nu_ref_p="40 GHz",
+                procver=procver,
+                filename=f"BP_040-WMAP_Q2_IQU_n0512_{procver}.fits",
+                bndctr=40,
+                restfreq=40,
+                bndwid=5,
+            )
+
+            format_fits(
+                chain=chain,
+                extname="FREQMAP",
+                types=["I_MEAN", "Q_MEAN", "U_MEAN", "I_RMS", "Q_RMS", "U_RMS","I_STDDEV", "Q_STDDEV", "U_STDDEV",],
+                units=["mK", "mK", "mK", "mK", "mK", "mK", "mK", "mK", "mK",],
+                nside=512,
+                burnin=burnin,
+                maxchain=maxchain,
+                polar=True,
+                component="060-WMAP_V1",
+                fwhm=0.0,
+                nu_ref_t="60 GHz",
+                nu_ref_p="60 GHz",
+                procver=procver,
+                filename=f"BP_060-WMAP_V1_IQU_n0512_{procver}.fits",
+                bndctr=60,
+                restfreq=60,
+                bndwid=5,
+            )
+
+            format_fits(
+                chain=chain,
+                extname="FREQMAP",
+                types=["I_MEAN", "Q_MEAN", "U_MEAN", "I_RMS", "Q_RMS", "U_RMS","I_STDDEV", "Q_STDDEV", "U_STDDEV",],
+                units=["mK", "mK", "mK", "mK", "mK", "mK", "mK", "mK", "mK",],
+                nside=512,
+                burnin=burnin,
+                maxchain=maxchain,
+                polar=True,
+                component="060-WMAP_V2",
+                fwhm=0.0,
+                nu_ref_t="60 GHz",
+                nu_ref_p="60 GHz",
+                procver=procver,
+                filename=f"BP_060-WMAP_V2_IQU_n0512_{procver}.fits",
+                bndctr=60,
+                restfreq=60,
+                bndwid=5,
+            )
+
+            format_fits(
+                chain=chain,
+                extname="FREQMAP",
+                types=["I_MEAN", "Q_MEAN", "U_MEAN", "I_RMS", "Q_RMS", "U_RMS","I_STDDEV", "Q_STDDEV", "U_STDDEV",],
+                units=["mK", "mK", "mK", "mK", "mK", "mK", "mK", "mK", "mK",],
+                nside=512,
+                burnin=burnin,
+                maxchain=maxchain,
+                polar=True,
+                component="090-WMAP_W1",
+                fwhm=0.0,
+                nu_ref_t="90 GHz",
+                nu_ref_p="90 GHz",
+                procver=procver,
+                filename=f"BP_090-WMAP_W1_IQU_n0512_{procver}.fits",
+                bndctr=90,
+                restfreq=90,
+                bndwid=5,
+            )
+
+            format_fits(
+                chain=chain,
+                extname="FREQMAP",
+                types=["I_MEAN", "Q_MEAN", "U_MEAN", "I_RMS", "Q_RMS", "U_RMS","I_STDDEV", "Q_STDDEV", "U_STDDEV",],
+                units=["mK", "mK", "mK", "mK", "mK", "mK", "mK", "mK", "mK",],
+                nside=512,
+                burnin=burnin,
+                maxchain=maxchain,
+                polar=True,
+                component="090-WMAP_W2",
+                fwhm=0.0,
+                nu_ref_t="90 GHz",
+                nu_ref_p="90 GHz",
+                procver=procver,
+                filename=f"BP_090-WMAP_W2_IQU_n0512_{procver}.fits",
+                bndctr=90,
+                restfreq=90,
+                bndwid=5,
+            )
+            format_fits(
+                chain=chain,
+                extname="FREQMAP",
+                types=["I_MEAN", "Q_MEAN", "U_MEAN", "I_RMS", "Q_RMS", "U_RMS","I_STDDEV", "Q_STDDEV", "U_STDDEV",],
+                units=["mK", "mK", "mK", "mK", "mK", "mK", "mK", "mK", "mK",],
+                nside=512,
+                burnin=burnin,
+                maxchain=maxchain,
+                polar=True,
+                component="090-WMAP_W3",
+                fwhm=0.0,
+                nu_ref_t="90 GHz",
+                nu_ref_p="90 GHz",
+                procver=procver,
+                filename=f"BP_090-WMAP_W3_IQU_n0512_{procver}.fits",
+                bndctr=90,
+                restfreq=90,
+                bndwid=5,
+            )
+
+            format_fits(
+                chain=chain,
+                extname="FREQMAP",
+                types=["I_MEAN", "Q_MEAN", "U_MEAN", "I_RMS", "Q_RMS", "U_RMS","I_STDDEV", "Q_STDDEV", "U_STDDEV",],
+                units=["mK", "mK", "mK", "mK", "mK", "mK", "mK", "mK", "mK",],
+                nside=512,
+                burnin=burnin,
+                maxchain=maxchain,
+                polar=True,
+                component="090-WMAP_W4",
+                fwhm=0.0,
+                nu_ref_t="90 GHz",
+                nu_ref_p="90 GHz",
+                procver=procver,
+                filename=f"BP_090-WMAP_W4_IQU_n0512_{procver}.fits",
+                bndctr=90,
+                restfreq=90,
+                bndwid=5,
+            )
+            
             # Full-mission 30 GHz IQU frequency map
             # BP_030_IQU_n0512_{procver}.fits
             format_fits(
@@ -395,6 +599,7 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
                 restfreq=70.467,
                 bndwid=14.909,
             )
+
 
 
         except Exception as e:
@@ -595,14 +800,17 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
             click.echo("Creating frequency difference maps")
             path_dx12 = "/mn/stornext/u3/trygvels/compsep/cdata/like/BP_releases/dx12"
             path_npipe = "/mn/stornext/u3/trygvels/compsep/cdata/like/BP_releases/npipe"
+            path_BP10 = "/mn/stornext/d16/cmbco/bp/delivery/v10.00/v2"
             maps_dx12 = ["30ghz_2018_n1024_beamscaled_dip.fits","44ghz_2018_n1024_beamscaled_dip.fits","70ghz_2018_n1024_beamscaled_dip.fits"]
             maps_npipe = ["npipe6v20_030_map_uK.fits", "npipe6v20_044_map_uK.fits", "npipe6v20_070_map_uK.fits",]
+            maps_BP10  = ["BP_030_IQU_n0512_v2.fits", "BP_044_IQU_n0512_v2.fits", "BP_070_IQU_n1024_v2.fits"]
             maps_BP = [f"BP_030_IQU_n0512_{procver}.fits", f"BP_044_IQU_n0512_{procver}.fits", f"BP_070_IQU_n1024_{procver}.fits",]
             beamscaling = [9.8961854E-01, 9.9757886E-01, 9.9113965E-01]
             for i, freq in enumerate(["030", "044", "070",]):
                 map_BP    = hp.read_map(f"{procver}/{maps_BP[i]}", field=(0,1,2), verbose=False, dtype=None)
                 map_npipe = hp.read_map(f"{path_npipe}/{maps_npipe[i]}", field=(0,1,2), verbose=False, dtype=None)
                 map_dx12  = hp.read_map(f"{path_dx12}/{maps_dx12[i]}", field=(0,1,2), verbose=False, dtype=None)
+                map_BP10  = hp.read_map(f"{path_BP10}/{maps_BP10[i]}", field=(0,1,2), verbose=False, dtype=None)
                 
                 #dx12 dipole values:
                 # 3362.08 pm 0.99, 264.021 pm 0.011, 48.253 ± 0.005
@@ -614,20 +822,75 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
                 map_BP = hp.smoothing(map_BP, fwhm=arcmin2rad(60.0), verbose=False)
                 map_npipe = hp.smoothing(map_npipe, fwhm=arcmin2rad(60.0), verbose=False)
                 map_dx12 = hp.smoothing(map_dx12, fwhm=arcmin2rad(60.0), verbose=False)
+                map_BP10 = hp.smoothing(map_BP10, fwhm=arcmin2rad(60.0), verbose=False)
 
                 #ud_grade 30 and 44ghz
                 if i<2:
                     map_npipe = hp.ud_grade(map_npipe, nside_out=512,)
                     map_dx12 = hp.ud_grade(map_dx12, nside_out=512,)
+                    map_BP10 = hp.ud_grade(map_BP10, nside_out=512,)
 
                 # Remove monopoles
                 map_BP -= np.mean(map_BP,axis=1).reshape(-1,1)
                 map_npipe -= np.mean(map_npipe,axis=1).reshape(-1,1)
                 map_dx12 -= np.mean(map_dx12,axis=1).reshape(-1,1)
+                map_BP10 -= np.mean(map_BP10,axis=1).reshape(-1,1)
                 click.echo(f"creating {freq} GHz difference")
                 hp.write_map(f"{procver}/diffs/BP_{freq}_diff_npipe_{procver}.fits", np.array(map_BP-map_npipe), overwrite=True, column_names=["I_DIFF", "Q_DIFF", "U_DIFF"], dtype=None)
                 hp.write_map(f"{procver}/diffs/BP_{freq}_diff_dx12_{procver}.fits", np.array(map_BP-map_dx12), overwrite=True, column_names=["I_DIFF", "Q_DIFF", "U_DIFF"], dtype=None)
+                hp.write_map(f"{procver}/diffs/BP_{freq}_diff_BP10_{procver}.fits", np.array(map_BP-map_BP10), overwrite=True, column_names=["I_DIFF", "Q_DIFF", "U_DIFF"], dtype=None)
 
+            path_wmap9 = "/mn/stornext/d16/cmbco/ola/wmap/freq_maps"
+            maps_wmap9  = ["wmap_iqusmap_r9_9yr_K1_v5.fits",
+                           "wmap_iqusmap_r9_9yr_Ka1_v5.fits",
+                           "wmap_iqusmap_r9_9yr_Q1_v5.fits", "wmap_iqusmap_r9_9yr_Q2_v5.fits",
+                           "wmap_iqusmap_r9_9yr_V1_v5.fits", "wmap_iqusmap_r9_9yr_V2_v5.fits",
+                           "wmap_iqusmap_r9_9yr_W1_v5.fits", "wmap_iqusmap_r9_9yr_W2_v5.fits",
+                           "wmap_iqusmap_r9_9yr_W3_v5.fits", "wmap_iqusmap_r9_9yr_W4_v5.fits"]
+            maps_BP     = [f"BP_023-WMAP_K_IQU_n0512_{procver}.fits",
+                           f"BP_030-WMAP_Ka_IQU_n0512_{procver}.fits",
+                           f"BP_040-WMAP_Q1_IQU_n0512_{procver}.fits",
+                           f"BP_040-WMAP_Q2_IQU_n0512_{procver}.fits",
+                           f"BP_060-WMAP_V1_IQU_n0512_{procver}.fits",
+                           f"BP_060-WMAP_V2_IQU_n0512_{procver}.fits",
+                           f"BP_090-WMAP_W1_IQU_n0512_{procver}.fits",
+                           f"BP_090-WMAP_W2_IQU_n0512_{procver}.fits",
+                           f"BP_090-WMAP_W3_IQU_n0512_{procver}.fits",
+                           f"BP_090-WMAP_W4_IQU_n0512_{procver}.fits"]
+                              
+            maps_BP = [f"BP_030_IQU_n0512_{procver}.fits", f"BP_044_IQU_n0512_{procver}.fits", f"BP_070_IQU_n1024_{procver}.fits",]
+            beamscaling = [9.8961854E-01, 9.9757886E-01, 9.9113965E-01]
+
+
+            # WMAP9 maps must have dipole added back in:
+            # Jarosik 2011 gives (unchanged from 5-year release)
+            # d = 3.355, l = 263.99, b = 48.26
+            d_x = -0.233
+            d_y = -2.222
+            d_z = 2.504
+            import healpy as hp
+            x, y, z= hp.pix2vec(512, np.arange(12*512**2))
+            dip = d_x*x + d_y*y + d_z*z
+            for i, freq in enumerate(["023-WMAP_K", "030-WMAP_Ka",
+                "040-WMAP_Q1", "040-WMAP_Q2", "060-WMAP_V1", "060-WMAP_V2",
+                "090-WMAP_W1", "090-WMAP_W2", "090-WMAP_W3", "090-WMAP_W4"]):
+                map_BP    = hp.read_map(f"{procver}/{maps_BP[i]}", field=(0,1,2), verbose=False, dtype=None)
+                map_wmap9 = hp.read_map(f"{path_wmap9}/{maps_wmap9[i]}", field=(0,1,2), verbose=False, dtype=None)
+
+                map_wmap9[0] += dip
+
+                
+
+                #map_dx12  = map_dx12/beamscaling[i]
+                # Smooth to 60 arcmin
+                map_BP = hp.smoothing(map_BP, fwhm=arcmin2rad(60.0), verbose=False)
+                map_wmap9 = hp.smoothing(map_wmap9, fwhm=arcmin2rad(60.0), verbose=False)
+
+                # Remove monopoles
+                map_BP -= np.mean(map_BP,axis=1).reshape(-1,1)
+                map_wmap9 -= np.mean(map_wmap9,axis=1).reshape(-1,1)
+                click.echo(f"creating {freq} GHz difference")
+                hp.write_map(f"{procver}/diffs/BP_{freq}_diff_wmap9_{procver}.fits", np.array(map_BP-map_wmap9), overwrite=True, column_names=["I_DIFF", "Q_DIFF", "U_DIFF"], dtype=None)
         except Exception as e:
             print(e)
             click.secho("Continuing...",fg="yellow")

@@ -4,6 +4,7 @@ import numpy as np
 import sys
 import click
 from cosmoglobe.release.tools import *
+import cosmoglobe.plot
 
 
 @click.group()
@@ -203,6 +204,15 @@ def plot(input, dataset, nside, auto, min, max, mid, range, colorbar, graticule,
                 lmax, fwhm, mask, mfill, sig, remove_dipole, remove_monopole, logscale, 
                 size, white_background, darkmode, png, cmap, title, ltitle, unit, scale, 
                 outdir, outname, verbose, fontsize, gif, oldfont, dpi, xsize, hires)
+    # Mid and range are replaced with ticks in the new version. Also, max is
+    # overwritten. But most importantly, we can just use the comp flag...
+    # I would do a for loop over all the sigs, and save each one after calling
+    # cosmoglobe.plot
+    if hires:
+        xsize=10000
+        dpi=1000
+    cosmoglobe.plot(input, dataset, sig=sig[i], comp=comp, freq=freq,
+        xsize=xsize, darkmode=darkmode)
 
 
 @commands_plotting.command()
