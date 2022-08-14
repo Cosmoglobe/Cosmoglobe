@@ -447,6 +447,9 @@ def fits_handler(input, min, max, minchain, maxchain, chdir, output, fwhm, nside
     from tqdm import tqdm
     import os
 
+    if maxchain is None:
+        maxchain = minchain + 1
+
     if (not input.endswith(".fits")):
         print("Input file must be a '.fits'-file")
         exit()
@@ -481,7 +484,10 @@ def fits_handler(input, min, max, minchain, maxchain, chdir, output, fwhm, nside
         if (chdir==None):
             filename = input.replace("c0001", "c" + str(c).zfill(4))
         else:
-            filename = chdir+'_c%i/'%(c)+input
+            if maxchain > minchain + 1:
+                filename = chdir+'_c%i/'%(c)+input
+            else:
+                filename = f'{chdir}/{input}'
         basefile = filename.split("k000001")
 
         if maxnone:

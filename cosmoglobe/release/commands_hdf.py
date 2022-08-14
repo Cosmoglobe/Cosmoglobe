@@ -228,7 +228,7 @@ def alm2fits(input, dataset, nside, lmax, fwhm):
 @click.option("-synch", is_flag=True, help=" output synchrotron",)
 @click.option("-dust", is_flag=True, help=" output dust",)
 @click.option("-br", is_flag=True, help=" output BR",)
-@click.option("-diff", is_flag=True, help="Creates diff maps to dx12 and npipe")
+@click.option("-diff", is_flag=True, help="Creates diff maps official releases")
 @click.option("-diffcmb", is_flag=True, help="Creates diff maps cmb")
 @click.option("-goodness", is_flag=True, help="Output chisq and residual maps in separate dir")
 @click.option("-chisq", is_flag=True, help="Output chisq ")
@@ -806,11 +806,12 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
             maps_BP10  = ["BP_030_IQU_n0512_v2.fits", "BP_044_IQU_n0512_v2.fits", "BP_070_IQU_n1024_v2.fits"]
             maps_BP = [f"BP_030_IQU_n0512_{procver}.fits", f"BP_044_IQU_n0512_{procver}.fits", f"BP_070_IQU_n1024_{procver}.fits",]
             beamscaling = [9.8961854E-01, 9.9757886E-01, 9.9113965E-01]
+            
             for i, freq in enumerate(["030", "044", "070",]):
-                map_BP    = hp.read_map(f"{procver}/{maps_BP[i]}", field=(0,1,2), verbose=False, dtype=None)
-                map_npipe = hp.read_map(f"{path_npipe}/{maps_npipe[i]}", field=(0,1,2), verbose=False, dtype=None)
-                map_dx12  = hp.read_map(f"{path_dx12}/{maps_dx12[i]}", field=(0,1,2), verbose=False, dtype=None)
-                map_BP10  = hp.read_map(f"{path_BP10}/{maps_BP10[i]}", field=(0,1,2), verbose=False, dtype=None)
+                map_BP    = hp.read_map(f"{procver}/{maps_BP[i]}", field=(0,1,2),   dtype=None)
+                map_npipe = hp.read_map(f"{path_npipe}/{maps_npipe[i]}", field=(0,1,2),   dtype=None)
+                map_dx12  = hp.read_map(f"{path_dx12}/{maps_dx12[i]}", field=(0,1,2),   dtype=None)
+                map_BP10  = hp.read_map(f"{path_BP10}/{maps_BP10[i]}", field=(0,1,2),   dtype=None)
                 
                 #dx12 dipole values:
                 # 3362.08 pm 0.99, 264.021 pm 0.011, 48.253 ± 0.005
@@ -819,10 +820,10 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
 
                 #map_dx12  = map_dx12/beamscaling[i]
                 # Smooth to 60 arcmin
-                map_BP = hp.smoothing(map_BP, fwhm=arcmin2rad(60.0), verbose=False)
-                map_npipe = hp.smoothing(map_npipe, fwhm=arcmin2rad(60.0), verbose=False)
-                map_dx12 = hp.smoothing(map_dx12, fwhm=arcmin2rad(60.0), verbose=False)
-                map_BP10 = hp.smoothing(map_BP10, fwhm=arcmin2rad(60.0), verbose=False)
+                map_BP = hp.smoothing(map_BP, fwhm=arcmin2rad(60.0))
+                map_npipe = hp.smoothing(map_npipe, fwhm=arcmin2rad(60.0))
+                map_dx12 = hp.smoothing(map_dx12, fwhm=arcmin2rad(60.0))
+                map_BP10 = hp.smoothing(map_BP10, fwhm=arcmin2rad(60.0))
 
                 #ud_grade 30 and 44ghz
                 if i<2:
@@ -839,6 +840,7 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
                 hp.write_map(f"{procver}/diffs/BP_{freq}_diff_npipe_{procver}.fits", np.array(map_BP-map_npipe), overwrite=True, column_names=["I_DIFF", "Q_DIFF", "U_DIFF"], dtype=None)
                 hp.write_map(f"{procver}/diffs/BP_{freq}_diff_dx12_{procver}.fits", np.array(map_BP-map_dx12), overwrite=True, column_names=["I_DIFF", "Q_DIFF", "U_DIFF"], dtype=None)
                 hp.write_map(f"{procver}/diffs/BP_{freq}_diff_BP10_{procver}.fits", np.array(map_BP-map_BP10), overwrite=True, column_names=["I_DIFF", "Q_DIFF", "U_DIFF"], dtype=None)
+            
 
             path_wmap9 = "/mn/stornext/d16/cmbco/ola/wmap/freq_maps"
             maps_wmap9  = ["wmap_iqusmap_r9_9yr_K1_v5.fits",
@@ -858,8 +860,6 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
                            f"BP_090-WMAP_W3_IQU_n0512_{procver}.fits",
                            f"BP_090-WMAP_W4_IQU_n0512_{procver}.fits"]
                               
-            maps_BP = [f"BP_030_IQU_n0512_{procver}.fits", f"BP_044_IQU_n0512_{procver}.fits", f"BP_070_IQU_n1024_{procver}.fits",]
-            beamscaling = [9.8961854E-01, 9.9757886E-01, 9.9113965E-01]
 
 
             # WMAP9 maps must have dipole added back in:
@@ -874,8 +874,8 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
             for i, freq in enumerate(["023-WMAP_K", "030-WMAP_Ka",
                 "040-WMAP_Q1", "040-WMAP_Q2", "060-WMAP_V1", "060-WMAP_V2",
                 "090-WMAP_W1", "090-WMAP_W2", "090-WMAP_W3", "090-WMAP_W4"]):
-                map_BP    = hp.read_map(f"{procver}/{maps_BP[i]}", field=(0,1,2), verbose=False, dtype=None)
-                map_wmap9 = hp.read_map(f"{path_wmap9}/{maps_wmap9[i]}", field=(0,1,2), verbose=False, dtype=None)
+                map_BP    = hp.read_map(f"{procver}/{maps_BP[i]}", field=(0,1,2),   dtype=None)
+                map_wmap9 = hp.read_map(f"{path_wmap9}/{maps_wmap9[i]}", field=(0,1,2),   dtype=None)
 
                 map_wmap9[0] += dip
 
@@ -883,8 +883,8 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
 
                 #map_dx12  = map_dx12/beamscaling[i]
                 # Smooth to 60 arcmin
-                map_BP = hp.smoothing(map_BP, fwhm=arcmin2rad(60.0), verbose=False)
-                map_wmap9 = hp.smoothing(map_wmap9, fwhm=arcmin2rad(60.0), verbose=False)
+                map_BP = hp.smoothing(map_BP, fwhm=arcmin2rad(60.0))
+                map_wmap9 = hp.smoothing(map_wmap9, fwhm=arcmin2rad(60.0))
 
                 # Remove monopoles
                 map_BP -= np.mean(map_BP,axis=1).reshape(-1,1)
@@ -902,8 +902,8 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
                 os.mkdir(f"{procver}/diffs")
             click.echo("Creating cmb difference maps")
             path_cmblegacy = "/mn/stornext/u3/trygvels/compsep/cdata/like/BP_releases/cmb-legacy"
-            mask_ = hp.read_map("/mn/stornext/u3/trygvels/compsep/cdata/like/BP_releases/masks/dx12_v3_common_mask_int_005a_1024_TQU.fits", verbose=False, dtype=np.bool,)
-            map_BP = hp.read_map(f"{procver}/BP_cmb_IQU_n1024_{procver}.fits", field=(0,1,2), verbose=False, dtype=None,)
+            mask_ = hp.read_map("/mn/stornext/u3/trygvels/compsep/cdata/like/BP_releases/masks/dx12_v3_common_mask_int_005a_1024_TQU.fits",   dtype=np.bool,)
+            map_BP = hp.read_map(f"{procver}/BP_cmb_IQU_n1024_{procver}.fits", field=(0,1,2),   dtype=None,)
             map_BP_masked = hp.ma(map_BP[0])
             map_BP_masked.mask = np.logical_not(mask_)
             mono, dip = hp.fit_dipole(map_BP_masked)
@@ -912,14 +912,14 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
             vecs = hp.pix2vec(nside, ray)
             dipole = np.dot(dip, vecs)
             map_BP[0] = map_BP[0] - dipole - mono
-            map_BP = hp.smoothing(map_BP, fwhm=arcmin2rad(np.sqrt(60.0**2-14**2)), verbose=False)
+            map_BP = hp.smoothing(map_BP, fwhm=arcmin2rad(np.sqrt(60.0**2-14**2)))
             #map_BP -= np.mean(map_BP,axis=1).reshape(-1,1)
             for i, method in enumerate(["commander", "sevem", "nilc", "smica",]):
 
                 data = f"COM_CMB_IQU-{method}_2048_R3.00_full.fits"
                 click.echo(f"making difference map with {data}")
-                map_cmblegacy  = hp.read_map(f"{path_cmblegacy}/{data}", field=(0,1,2), verbose=False,dtype=None)
-                map_cmblegacy = hp.smoothing(map_cmblegacy, fwhm=arcmin2rad(60.0), verbose=False)
+                map_cmblegacy  = hp.read_map(f"{path_cmblegacy}/{data}", field=(0,1,2),  dtype=None)
+                map_cmblegacy = hp.smoothing(map_cmblegacy, fwhm=arcmin2rad(60.0))
                 map_cmblegacy = hp.ud_grade(map_cmblegacy, nside_out=1024,)
                 map_cmblegacy = map_cmblegacy*1e6
 
@@ -942,9 +942,14 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
         Path(path_goodness).mkdir(parents=True, exist_ok=True)
         print("PATH", path_goodness)
 
-        cmin = int(os.path.split(chains[0])[0].rsplit("_c")[-1])
-        cmax = int(os.path.split(chains[-1])[0].rsplit("_c")[-1])
-        chdir = os.path.split(chains[0])[0].rsplit("_", 1)[0]
+        if len(chains) == 1:
+            cmin = 1 
+            cmax = None
+            chdir = os.path.split(chains[0])[0].rsplit("chain_", 1)[0]
+        else:
+            cmin = int(os.path.split(chains[0])[0].rsplit("_c")[-1])
+            cmax = int(os.path.split(chains[-1])[0].rsplit("_c")[-1])
+            chdir = os.path.split(chains[0])[0].rsplit("_", 1)[0]
  
         if chisq:
             try:
@@ -1001,44 +1006,84 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
                          "unit": "uK",
                          "scale": 1.,
                      },
+                     "023-WMAP_K": {
+                         "nside": 512,
+                         "fwhm": 120,
+                         "sig": "IQU",
+                         "fields": (0,1,2),
+                         "unit": "mK",
+                         "scale": 1,
+                     },
                      "030-WMAP_Ka": {
                          "nside": 512,
                          "fwhm": 120,
-                         "sig": "I",
-                         "fields": (0,),
-                         "unit": "uK",
-                         "scale": 1e3,
+                         "sig": "IQU",
+                         "fields": (0,1,2),
+                         "unit": "mK",
+                         "scale": 1,
                      },
                      "040-WMAP_Q1": {
                          "nside": 512,
                          "fwhm": 120,
-                         "sig": "I",
-                         "fields": (0,),
-                         "unit": "uK",
+                         "sig": "IQU",
+                         "fields": (0,1,2),
+                         "unit": "mK",
                          "scale": 1.,
                      },
                      "040-WMAP_Q2": {
                          "nside": 512,
                          "fwhm": 120,
-                         "sig": "I",
-                         "fields": (0,),
-                         "unit": "uK",
+                         "sig": "IQU",
+                         "fields": (0,1,2,),
+                         "unit": "mK",
                          "scale": 1.,
                      },
                      "060-WMAP_V1": {
                          "nside": 512,
                          "fwhm": 120,
-                         "sig": "I",
-                         "fields": (0,),
-                         "unit": "uK",
+                         "sig": "IQU",
+                         "fields": (0,1,2),
+                         "unit": "mK",
                          "scale": 1.,
                      },
                      "060-WMAP_V2": {
                          "nside": 512,
                          "fwhm": 120,
-                         "sig": "I",
-                         "fields": (0,),
-                         "unit": "uK",
+                         "sig": "IQU",
+                         "fields": (0,1,2),
+                         "unit": "mK",
+                         "scale": 1.,
+                     },
+                     "090-WMAP_W1": {
+                         "nside": 512,
+                         "fwhm": 120,
+                         "sig": "IQU",
+                         "fields": (0,1,2),
+                         "unit": "mK",
+                         "scale": 1.,
+                     },
+                     "090-WMAP_W2": {
+                         "nside": 512,
+                         "fwhm": 120,
+                         "sig": "IQU",
+                         "fields": (0,1,2),
+                         "unit": "mK",
+                         "scale": 1.,
+                     },
+                     "090-WMAP_W3": {
+                         "nside": 512,
+                         "fwhm": 120,
+                         "sig": "IQU",
+                         "fields": (0,1,2),
+                         "unit": "mK",
+                         "scale": 1.,
+                     },
+                     "090-WMAP_W4": {
+                         "nside": 512,
+                         "fwhm": 120,
+                         "sig": "IQU",
+                         "fields": (0,1,2),
+                         "unit": "mK",
                          "scale": 1.,
                      },
                      "0.4-Haslam": {
