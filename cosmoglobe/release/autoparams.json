@@ -170,7 +170,9 @@
         "special": false
     },
     "freqmap": {
-        "tags": ["030", "044", "070"],
+        "tags": ["030", "044", "070", "023-WMAP_K", "030-WMAP_Ka", "040-WMAP_Q1", "040-WMAP_Q2",
+                 "060-WMAP_V1", "060-WMAP_V2", "090-WMAP_W1", "090-WMAP_W2", 
+                 "090-WMAP_W3", "090-WMAP_W4"],
         "unit": "$\\mu\\mathrm{K}$",
         "comp": "",
         "param": "$A$",

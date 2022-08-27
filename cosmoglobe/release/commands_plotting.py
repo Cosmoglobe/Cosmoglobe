@@ -211,8 +211,8 @@ def plot(input, dataset, nside, auto, min, max, mid, range, colorbar, graticule,
     if hires:
         xsize=10000
         dpi=1000
-    cosmoglobe.plot(input, dataset, sig=sig[i], comp=comp, freq=freq,
-        xsize=xsize, darkmode=darkmode)
+    #cosmoglobe.plot(input, dataset, sig=sig[i], comp=comp, freq=freq,
+    #    xsize=xsize, darkmode=darkmode)
 
 
 @commands_plotting.command()
@@ -510,6 +510,25 @@ def plotrelease(ctx, procver, mask, defaultmask, freqmaps, cmb, cmbresamp, synch
                 ctx.invoke(plot, input=f"BP_070_IQU_n1024_{procver}.fits", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[1, 2,],  fwhm=60.0, range=30,)
                 ctx.invoke(plot, input=f"BP_070_IQU_n1024_{procver}.fits", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[3,4,5,], min=0, max=75, title="$A^{\mathrm{RMS}}_{30}/2$",scale=1/2)
                 ctx.invoke(plot, input=f"BP_070_IQU_n1024_{procver}.fits", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[6, 7, 8], min=0, max=2,)
+
+                # WMAP bands
+                bandlabs = ['023-WMAP_K', '030-WMAP_Ka', '040-WMAP_Q1', '40-WMAP_Q2',
+                            '060-WMAP_V1', '060-WMAP_V2', '090-WMAP_W1', '090-WMAP_W2',
+                            '090-WMAP_W3', '090-WMAP_W4']
+                for lab in  bandlabs:
+                    ctx.invoke(plot, input=f"BP_{lab}_IQU_n0512_{procver}.fits",
+                        size=size, outdir=outdir, colorbar=colorbar, auto=True,
+                        sig=[0,],  range=3400, scale=1e3)
+                    ctx.invoke(plot, input=f"BP_{lab}_IQU_n0512_{procver}.fits",
+                        size=size, outdir=outdir, colorbar=colorbar, auto=True,
+                        sig=[1, 2,],  fwhm=60.0, range=30,scale=1e3)
+                    ctx.invoke(plot, input=f"BP_{lab}_IQU_n0512_{procver}.fits",
+                        size=size, outdir=outdir, colorbar=colorbar, auto=True,
+                        sig=[3,4,5,],min=0, max=75, scale=1e3)
+                    ctx.invoke(plot, input=f"BP_{lab}_IQU_n0512_{procver}.fits",
+                        size=size, outdir=outdir, colorbar=colorbar, auto=True,
+                        sig=[6,7,8],min=0, max=2, scale=1e3)
+
 
             except Exception as e:
                 print(e)

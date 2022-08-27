@@ -275,7 +275,7 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
     if all_: # sets all other flags to true
         copy_ = not copy_; freqmaps = not freqmaps; ame = not ame; ff = not ff; cmb = not cmb
         synch = not synch; dust = not dust; br = not br; diff = not diff; diffcmb = not diffcmb
-        goodness = not goodness; res = not res; chisq = not chisq
+        goodness = not goodness; res = not res; chisq = not chisq; plot = not plot
 
     if goodness:
         chisq = res = True

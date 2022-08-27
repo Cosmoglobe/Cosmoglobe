@@ -114,10 +114,10 @@ def trygveplot(input, dataset=None, nside=None, auto=False, min=False, max=False
         Sets uniit under color bar. Has LaTeX functionaliity (ex. $\mu K$".
         default = None
     scale : float
-        Scale data by multiplicatiive factor. [ex. 1e-6 for muK to K
+        Scale data by multiplicative factor. [ex. 1e-6 for muK to K
         default = None
     outdir : path
-        Optiional different output directory.
+        Optional different output directory.
         default = "."
     outname : str
         Output filename. If not specified, descriptive filename will be generated from chosen params.
@@ -337,10 +337,31 @@ def get_params(m, outfile, outname, signal_label,):
                         tit = "70"
                     elif "353" in outfile:
                         tit = "353"
+                    elif '023-WMAP_K' in outfile:
+                        tit = r'\mathit K'
+                    elif '030-WMAP_Ka' in outfile:
+                        tit = r'\mathit{Ka}'
+                    elif '040-WMAP_Q1' in outfile:
+                        tit = r'\mathit Q1'
+                    elif '040-WMAP_Q2' in outfile:
+                        tit = r'\mathit Q2'
+                    elif '060-WMAP_V1' in outfile:
+                        tit = r'\mathit V1'
+                    elif '060-WMAP_V2' in outfile:
+                        tit = r'\mathit V2'
+                    elif '090-WMAP_W1' in outfile:
+                        tit = r'\mathit W1'
+                    elif '090-WMAP_W2' in outfile:
+                        tit = r'\mathit W2'
+                    elif '090-WMAP_W3' in outfile:
+                        tit = r'\mathit W3'
+                    elif '090-WMAP_W4' in outfile:
+                        tit = r'\mathit W4'
                 if label == "bpcorr": 
                     tit = str(findall(r"tod_(.*?)_bpcorr", outfile)[0])
                 if label == "residual":
                     if "WMAP" in outfile:
+                        m   *= 1e3
                         tit = str(findall(r"WMAP_(.*?)_", outfile)[0])
                     elif "Haslam" in outfile:
                         tit = "Haslam"
@@ -518,7 +539,7 @@ def get_title(comp, outfile, signal_label,):
         comp["ticks"] = "auto"
         comp["logscale"] = comp["special"] = False
     elif tag_lookup(["mean"],datastring):
-        ttl = r"$\langle $" + comp["param"] + r"$_{\mathrm{" + comp["comp"] + "}}^{ }$" + r"$\rangle$"
+        ttl = r"$\langle $" + comp["param"] + r"$_{" + comp["comp"] + "}^{ }$" + r"$\rangle$"
     elif tag_lookup(["diff"],datastring):
         if "dx12" in outfile: difflabel = "\mathrm{2018}"
         difflabel = "\mathrm{NPIPE}" if "npipe" in outfile else ""
@@ -761,13 +782,13 @@ def output_map(fig, outfile, png, fwhm, colorbar, mask, remove_dipole, darkmode,
 
     tp = False if white_background else True  
     if gif:
-        click.echo(click.style("Outputing GIF:", fg="green") + f" {fn}")
+        click.echo(click.style("Outputting GIF:", fg="green") + f" {fn}")
         import matplotlib.animation as animation
         interval = 500 #100
         ani = animation.ArtistAnimation(fig, imgs, interval=interval, blit=True, repeat_delay=1000)
         ani.save(fn.replace(filetype,"gif"),dpi=dpi)
     else:
-        click.echo(click.style("Outputin file", fg="green") + f" {fn}")
+        click.echo(click.style("Outputting file", fg="green") + f" {fn}")
         fig.savefig(fn, bbox_inches="tight", pad_inches=0.02, transparent=tp, format=filetype, dpi=dpi)
     click.echo("Savefig", (time.time() - starttime),) if verbose else None
 
