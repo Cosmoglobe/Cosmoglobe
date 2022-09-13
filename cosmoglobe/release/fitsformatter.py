@@ -166,7 +166,9 @@ def get_data(chain, extname, component, burnin, maxchain, fwhm, nside, types, cm
         amp_mean = h5handler(input=chain, dataset=f"tod/{component}/map", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=fwhm, nside=nside, command=np.mean,)
         amp_rms  = h5handler(input=chain, dataset=f"tod/{component}/rms", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=fwhm, nside=nside, command=np.mean,)
         # stddev data
-        amp_stddev = h5handler(input=chain, dataset=f"tod/{component}/map", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=120., nside=nside, command=np.std,)
+        # amp_stddev = h5handler(input=chain, dataset=f"tod/{component}/map", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=120., nside=nside, command=np.std,)
+        # covar data
+        amp_covar = h5handler(input=chain, dataset=f"tod/{component}/map", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=120., nside=nside, command=np.cov,)
 
         # Masks
 
@@ -180,9 +182,18 @@ def get_data(chain, extname, component, burnin, maxchain, fwhm, nside, types, cm
         dset[4] = amp_rms[1, :]
         dset[5] = amp_rms[2, :]
         
-        dset[6] = amp_stddev[0, :]
-        dset[7] = amp_stddev[1, :]
-        dset[8] = amp_stddev[2, :]
+        #dset[6] = amp_stddev[0, :]
+        #dset[7] = amp_stddev[1, :]
+        #dset[8] = amp_stddev[2, :]
+
+        dset[6] = amp_covar[0, 0, :]**0.5
+        dset[7] = amp_covar[1, 1, :]**0.5
+        dset[8] = amp_covar[2, 2, :]**0.5
+
+        dset[9]  = amp_covar[0, 1, :]
+        dset[10] = amp_covar[0, 2, :]
+        dset[11] = amp_covar[1, 2, :]
+
 
     if extname.endswith("RES"):
         N = len(types)

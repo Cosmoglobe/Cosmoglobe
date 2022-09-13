@@ -329,15 +329,7 @@ def get_params(m, outfile, outname, signal_label,):
                 if label == "smap": tit = str(findall(r"tod_(.*?)_Smap", outfile)[0])
                 if label == "freqmap": 
                     #TODO generalize this
-                    if "30" in outfile:
-                        tit = "30"
-                    elif "44" in outfile:
-                        tit = "44"
-                    elif "70" in outfile:
-                        tit = "70"
-                    elif "353" in outfile:
-                        tit = "353"
-                    elif '023-WMAP_K' in outfile:
+                    if '023-WMAP_K' in outfile:
                         tit = r'\mathit K'
                     elif '030-WMAP_Ka' in outfile:
                         tit = r'\mathit{Ka}'
@@ -357,6 +349,14 @@ def get_params(m, outfile, outname, signal_label,):
                         tit = r'\mathit W3'
                     elif '090-WMAP_W4' in outfile:
                         tit = r'\mathit W4'
+                    elif "30" in outfile:
+                        tit = "30"
+                    elif "44" in outfile:
+                        tit = "44"
+                    elif "70" in outfile:
+                        tit = "70"
+                    elif "353" in outfile:
+                        tit = "353"
                 if label == "bpcorr": 
                     tit = str(findall(r"tod_(.*?)_bpcorr", outfile)[0])
                 if label == "residual":

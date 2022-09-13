@@ -185,15 +185,15 @@ def h5handler(input, dataset, min, max, maxchain, output, fwhm, nside, command, 
                 # If data is alm and calculating std. Bin to map and smooth first.
                 if type == "alm" and command == np.std and alm2map:
                     #print(f"#{sample} --- alm2map with {fwhm} arcmin, lmax {lmax_h5} ---")
-                    data = hp.alm2map(data, nside=nside, lmax=lmax_h5, fwhm=arcmin2rad(fwhm), pixwin=True,verbose=False,pol=pol,)
+                    data = hp.alm2map(data, nside=nside, lmax=lmax_h5, fwhm=arcmin2rad(fwhm), pixwin=True,pol=pol,)
 
                 # If data is map, smooth first.
-                elif type == "map" and fwhm > 0.0 and command == np.std:
+                elif type == "map" and fwhm > 0.0 and (command == np.std or command == np.cov):
                     #print(f"#{sample} --- Smoothing map ---")
                     if use_pixweights:
-                        data = hp.sphtfunc.smoothing(data, fwhm=arcmin2rad(fwhm),verbose=False,pol=pol,use_pixel_weights=True,datapath=pixweight)
+                        data = hp.sphtfunc.smoothing(data, fwhm=arcmin2rad(fwhm),pol=pol,use_pixel_weights=True,datapath=pixweight)
                     else: #use ring weights
-                        data = hp.sphtfunc.smoothing(data, fwhm=arcmin2rad(fwhm),verbose=False,pol=pol,use_weights=True)
+                        data = hp.sphtfunc.smoothing(data, fwhm=arcmin2rad(fwhm),pol=pol,use_weights=True)
 
                 if (lowmem):
                     if (first_samp):
@@ -225,7 +225,13 @@ def h5handler(input, dataset, min, max, maxchain, output, fwhm, nside, command, 
         dats = np.array(dats)
         # Calculate std or mean
         print(dats.shape)
-        outdata = command(dats, axis=0) if command else dats
+        if (command == np.cov):
+            N  = dats.shape[0]
+            m1 = dats - dats.sum(axis=0, keepdims=1)/N
+            outdata = np.einsum('ijk,imk->jmk', m1, m1)/N
+        else:
+            outdata = command(dats, axis=0)
+            outdata = command(dats, axis=0) if command else dats
     # Smoothing afterwards when calculating mean
     if type == "alm" and command == np.mean and alm2map:
         print(f"# --- alm2map mean with {fwhm} arcmin, lmax {lmax_h5} ---")
@@ -236,9 +242,9 @@ def h5handler(input, dataset, min, max, maxchain, output, fwhm, nside, command, 
     if type == "map" and fwhm > 0.0 and command == np.mean:
         print(f"--- Smoothing mean map with {fwhm} arcmin,---")
         if use_pixweights:
-            outdata = hp.sphtfunc.smoothing(outdata, fwhm=arcmin2rad(fwhm),verbose=False,pol=pol,use_pixel_weights=True,datapath=pixweight)
+            outdata = hp.sphtfunc.smoothing(outdata, fwhm=arcmin2rad(fwhm),pol=pol,use_pixel_weights=True,datapath=pixweight)
         else: #use ring weights
-            outdata = hp.sphtfunc.smoothing(outdata, fwhm=arcmin2rad(fwhm),verbose=False,pol=pol,use_weights=True)
+            outdata = hp.sphtfunc.smoothing(outdata, fwhm=arcmin2rad(fwhm),pol=pol,use_weights=True)
 
     # Outputs fits map if output name is .fits
     if output.endswith(".fits"):
@@ -537,7 +543,7 @@ def fits_handler(input, min, max, minchain, maxchain, chdir, output, fwhm, nside
                         else:
                             continue
                     
-                    _, header = hp.fitsfunc.read_map(filename, verbose=False, h=True, dtype=None)
+                    _, header = hp.fitsfunc.read_map(filename, h=True, dtype=None)
                     if fields!=None:
                         nfields = 0
                         for par in header:
@@ -581,7 +587,7 @@ def fits_handler(input, min, max, minchain, maxchain, chdir, output, fwhm, nside
                     else:
                         continue
 
-                data = hp.fitsfunc.read_map(filename,field=fields,verbose=False,h=False, nest=nest, dtype=None)
+                data = hp.fitsfunc.read_map(filename,field=fields,h=False, nest=nest, dtype=None)
                 if (nest): #need to reorder to ring-ordering
                     data = hp.pixelfunc.reorder(data,n2r=True)
 
@@ -599,9 +605,9 @@ def fits_handler(input, min, max, minchain, maxchain, chdir, output, fwhm, nside
                 if fwhm > 0.0 and command == np.std:
                     #print(f"#{sample} --- Smoothing map ---")
                     if use_pixweights:
-                        data = hp.sphtfunc.smoothing(data, fwhm=arcmin2rad(fwhm),verbose=False,pol=pol,use_pixel_weights=True,datapath=pixweight)
+                        data = hp.sphtfunc.smoothing(data, fwhm=arcmin2rad(fwhm),pol=pol,use_pixel_weights=True,datapath=pixweight)
                     else: #use ring weights
-                        data = hp.sphtfunc.smoothing(data, fwhm=arcmin2rad(fwhm),verbose=False,pol=pol,use_weights=True)
+                        data = hp.sphtfunc.smoothing(data, fwhm=arcmin2rad(fwhm),pol=pol,use_weights=True)
                     
                 if (lowmem):
                     if (first_samp):
@@ -632,15 +638,20 @@ def fits_handler(input, min, max, minchain, maxchain, chdir, output, fwhm, nside
         # Convert list to array
         dats = np.array(dats)
         # Calculate std or mean
-        outdata = command(dats, axis=0)
+        if (command == np.cov):
+            N  = dats.shape[0]
+            m1 = dats - dats.sum(axis=0, keepdims=1)/N
+            outdata = np.einsum('ijk,imk->jmk', m1, m1)/N
+        else:
+            outdata = command(dats, axis=0)
 
     # Smoothing afterwards when calculating mean
     if fwhm > 0.0 and command == np.mean:
         print(f"--- Smoothing mean map with {fwhm} arcmin,---")
         if use_pixweights:
-            outdata = hp.sphtfunc.smoothing(outdata, fwhm=arcmin2rad(fwhm),verbose=False,pol=pol,use_pixel_weights=True,datapath=pixweight)
+            outdata = hp.sphtfunc.smoothing(outdata, fwhm=arcmin2rad(fwhm),pol=pol,use_pixel_weights=True,datapath=pixweight)
         else: #use ring weights
-            outdata = hp.sphtfunc.smoothing(outdata, fwhm=arcmin2rad(fwhm),verbose=False,pol=pol,use_weights=True)
+            outdata = hp.sphtfunc.smoothing(outdata, fwhm=arcmin2rad(fwhm),pol=pol,use_weights=True)
     # Outputs fits map if output name is .fits
     if write:
         print("debug 3")

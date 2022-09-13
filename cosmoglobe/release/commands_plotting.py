@@ -512,7 +512,7 @@ def plotrelease(ctx, procver, mask, defaultmask, freqmaps, cmb, cmbresamp, synch
                 ctx.invoke(plot, input=f"BP_070_IQU_n1024_{procver}.fits", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[6, 7, 8], min=0, max=2,)
 
                 # WMAP bands
-                bandlabs = ['023-WMAP_K', '030-WMAP_Ka', '040-WMAP_Q1', '40-WMAP_Q2',
+                bandlabs = ['023-WMAP_K',  '030-WMAP_Ka', '040-WMAP_Q1', '040-WMAP_Q2',
                             '060-WMAP_V1', '060-WMAP_V2', '090-WMAP_W1', '090-WMAP_W2',
                             '090-WMAP_W3', '090-WMAP_W4']
                 for lab in  bandlabs:
