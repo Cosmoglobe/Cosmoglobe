@@ -426,6 +426,8 @@ def plotrelease(ctx, procver, mask, defaultmask, freqmaps, cmb, cmbresamp, synch
         goodness_temp = goodness_pol = chisq = True
 
 
+
+
     size = "mls"
     for colorbar in [True, False]:
         if (cmbresamp and mask) or (cmbresamp and defaultmask):
@@ -515,7 +517,10 @@ def plotrelease(ctx, procver, mask, defaultmask, freqmaps, cmb, cmbresamp, synch
                 bandlabs = ['023-WMAP_K',  '030-WMAP_Ka', '040-WMAP_Q1', '040-WMAP_Q2',
                             '060-WMAP_V1', '060-WMAP_V2', '090-WMAP_W1', '090-WMAP_W2',
                             '090-WMAP_W3', '090-WMAP_W4']
-                for lab in  bandlabs:
+                rms_lims = [150, 120, 160, 150, 
+                            220, 200, 350, 370,
+                            400, 380]
+                for rms, lab in  zip(rms_lims, bandlabs):
                     ctx.invoke(plot, input=f"BP_{lab}_IQU_n0512_{procver}.fits",
                         size=size, outdir=outdir, colorbar=colorbar, auto=True,
                         sig=[0,],  range=3400, scale=1e3)
@@ -524,7 +529,7 @@ def plotrelease(ctx, procver, mask, defaultmask, freqmaps, cmb, cmbresamp, synch
                         sig=[1, 2,],  fwhm=60.0, range=30,scale=1e3)
                     ctx.invoke(plot, input=f"BP_{lab}_IQU_n0512_{procver}.fits",
                         size=size, outdir=outdir, colorbar=colorbar, auto=True,
-                        sig=[3,4,5,],min=0, max=75, scale=1e3)
+                        sig=[3,4,5,],min=0, max=rms, scale=1e3)
                     ctx.invoke(plot, input=f"BP_{lab}_IQU_n0512_{procver}.fits",
                         size=size, outdir=outdir, colorbar=colorbar, auto=True,
                         sig=[6,7,8],min=0, max=2, scale=1e3)
@@ -608,21 +613,41 @@ def plotrelease(ctx, procver, mask, defaultmask, freqmaps, cmb, cmbresamp, synch
                 os.mkdir(outdir)
                 
             try:
-                # Plot difference to npipe and dx12
+                # Plot difference to npipe, dx12, BP10, and WMAP9
                 ctx.invoke(plot, input=f"diffs/BP_030_diff_npipe_{procver}.fits", title="$\Delta A_{30}^{\mathrm{DR4}}$", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[0,],  range=10)
                 ctx.invoke(plot, input=f"diffs/BP_030_diff_npipe_{procver}.fits", title="$\Delta A_{30}^{\mathrm{DR4}}$", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[1, 2,],  range=4)
                 ctx.invoke(plot, input=f"diffs/BP_030_diff_dx12_{procver}.fits",title="$\Delta A_{30}^{\mathrm{2018}}$", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[0,],  range=10)
                 ctx.invoke(plot, input=f"diffs/BP_030_diff_dx12_{procver}.fits",title="$\Delta A_{30}^{\mathrm{2018}}$", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[1, 2,],  range=4)
+                ctx.invoke(plot, input=f"diffs/BP_030_diff_BP10_{procver}.fits",title="$\Delta A_{30}^{\mathrm{BP10}}$", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[0,],  range=10)
+                ctx.invoke(plot, input=f"diffs/BP_030_diff_BP10_{procver}.fits",title="$\Delta A_{30}^{\mathrm{BP10}}$", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[1, 2,],  range=4)
 
                 ctx.invoke(plot, input=f"diffs/BP_044_diff_npipe_{procver}.fits", title="$\Delta A_{44}^{\mathrm{DR4}}$", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[0,],  range=10)
                 ctx.invoke(plot, input=f"diffs/BP_044_diff_npipe_{procver}.fits", title="$\Delta A_{44}^{\mathrm{DR4}}$", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[1, 2,],  range=4)
                 ctx.invoke(plot, input=f"diffs/BP_044_diff_dx12_{procver}.fits",  title="$\Delta A_{44}^{\mathrm{2018}}$", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[0,],  range=10)
                 ctx.invoke(plot, input=f"diffs/BP_044_diff_dx12_{procver}.fits",  title="$\Delta A_{44}^{\mathrm{2018}}$", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[1, 2,],  range=4)
+                ctx.invoke(plot, input=f"diffs/BP_044_diff_BP10_{procver}.fits",  title="$\Delta A_{44}^{\mathrm{BP10}}$", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[0,],  range=10)
+                ctx.invoke(plot, input=f"diffs/BP_044_diff_BP10_{procver}.fits",  title="$\Delta A_{44}^{\mathrm{BP10}}$", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[1, 2,],  range=4)
             
                 ctx.invoke(plot, input=f"diffs/BP_070_diff_npipe_{procver}.fits", title="$\Delta A_{70}^{\mathrm{DR4}}$", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[0,],  range=10)
                 ctx.invoke(plot, input=f"diffs/BP_070_diff_npipe_{procver}.fits", title="$\Delta A_{70}^{\mathrm{DR4}}$", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[1, 2,],  range=4)
                 ctx.invoke(plot, input=f"diffs/BP_070_diff_dx12_{procver}.fits",  title="$\Delta A_{70}^{\mathrm{2018}}$", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[0,],  range=10)
                 ctx.invoke(plot, input=f"diffs/BP_070_diff_dx12_{procver}.fits",  title="$\Delta A_{70}^{\mathrm{2018}}$", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[1, 2,],  range=4)
+                ctx.invoke(plot, input=f"diffs/BP_070_diff_BP10_{procver}.fits",  title="$\Delta A_{70}^{\mathrm{BP10}}$", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[0,],  range=10)
+                ctx.invoke(plot, input=f"diffs/BP_070_diff_BP10_{procver}.fits",  title="$\Delta A_{70}^{\mathrm{BP10}}$", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[1, 2,],  range=4)
+
+                wbands = ["023-WMAP_K", "030-WMAP_Ka","040-WMAP_Q1","040-WMAP_Q2","060-WMAP_V1",
+                          "060-WMAP_V2","090-WMAP_W1","090-WMAP_W2","090-WMAP_W3","090-WMAP_W4"]
+                for wb in wbands:
+                    lab = wb.split('_')[-1]
+                    ctx.invoke(plot, input=f"diffs/BP_{wb}_diff_wmap9_{procver}.fits",title="$\Delta A_{" + lab + "}^{\mathit{WMAP9}}$", 
+                        size=size, outdir=outdir, colorbar=colorbar, auto=True,
+                        sig=[0,],  range=10, scale=1e3)
+                    ctx.invoke(plot, input=f"diffs/BP_{wb}_diff_wmap9_{procver}.fits",title="$\Delta A_{" + lab + "}^{\mathit{WMAP9}}$", 
+
+                        size=size, outdir=outdir, colorbar=colorbar, auto=True,
+                        sig=[1,2,],  range=4, scale=1e3)
+
+
             except Exception as e:
                 print(e)
                 click.secho("Continuing...", fg="yellow")
@@ -655,7 +680,10 @@ def plotrelease(ctx, procver, mask, defaultmask, freqmaps, cmb, cmbresamp, synch
                 os.mkdir(outdir)
                            
             if goodness_temp:
-                tbands = ["030_IQU", "044_IQU", "070_IQU", "030-WMAP_Ka", "040-WMAP_Q1","040-WMAP_Q2","060-WMAP_V1","060-WMAP_V1", "0.4-Haslam", "857",]
+                tbands = ["030_IQU", "044_IQU", "070_IQU", "023-WMAP_K",
+                    "030-WMAP_Ka","040-WMAP_Q1","040-WMAP_Q2","060-WMAP_V1",
+                    "060-WMAP_V2","090-WMAP_W1","090-WMAP_W2","090-WMAP_W3", 
+                    "090-WMAP_W4","0.4-Haslam", "857",]
                 
                 for band in tbands:
                     try:
@@ -667,13 +695,19 @@ def plotrelease(ctx, procver, mask, defaultmask, freqmaps, cmb, cmbresamp, synch
                         click.secho("Continuing...", fg="yellow")
 
             if goodness_pol:
-                pbands = [ "033-WMAP_Ka_P", "041-WMAP_Q_P", "061-WMAP_V_P", "030_IQU", "044_IQU", "070_IQU", "353"]
+                pbands = ["030_IQU", "044_IQU", "070_IQU", "023-WMAP_K",
+                    "030-WMAP_Ka","040-WMAP_Q1","040-WMAP_Q2","060-WMAP_V1",
+                    "060-WMAP_V2","090-WMAP_W1","090-WMAP_W2","090-WMAP_W3", 
+                    "090-WMAP_W4","353"]
                 mask_path='/mn/stornext/u3/trygvels/compsep/cdata/like/paper_workdir/synch/wmap_masks/'
                 masks = ['wmap_processing_mask_Ka_r4_9yr_v5_TQU_chisq50.fits',  'wmap_processing_mask_Q_r4_9yr_v5_TQU_chisq50.fits', 'wmap_processing_mask_V_r4_9yr_v5_TQU_chisq50.fits',]
                 m = 0
                 for band in pbands:
                     try:
-                        sig = [0,1,2,3] if not band in ["030_IQU","044_IQU","070_IQU"] else [1,2,4,5]
+                        if (band in ["030_IQU","044_IQU","070_IQU"]) or ("WMAP" in band):
+                             sig = [1,2,4,5]
+                        else:
+                             sig = [0,1,2,3]
                         b = glob.glob(f'goodness/BP_res_{band}*fits')[0]
                         if band in ["033-WMAP_Ka_P", "041-WMAP_Q_P", "061-WMAP_V_P",]:
                             ctx.invoke(plot, input=b, size="msx", outdir=outdir, colorbar=colorbar, auto=True, sig=sig, mask=mask_path+masks[m], mfill="gray")                
@@ -707,23 +741,23 @@ def plotrelease(ctx, procver, mask, defaultmask, freqmaps, cmb, cmbresamp, synch
         
         a_cmb = None
         #BP_synch_IQU_n1024_BP8_noMedianFilter.fits
-        a_s = hp.read_map(f"BP_synch_IQU_n1024_{procver}.fits", field=(0,1,2), dtype=None, verbose=False)
-        b_s = hp.read_map(f"BP_synch_IQU_n1024_{procver}.fits", field=(4,5), dtype=None, verbose=False)
+        a_s = hp.read_map(f"BP_synch_IQU_n1024_{procver}.fits", field=(0,1,2), dtype=None)
+        b_s = hp.read_map(f"BP_synch_IQU_n1024_{procver}.fits", field=(4,5), dtype=None)
         
-        a_ff = hp.read_map(f"BP_freefree_I_n1024_{procver}.fits", field=(0,), dtype=None, verbose=False)
-        a_ff = hp.smoothing(a_ff, fwhm=arcmin2rad(np.sqrt(60.0**2-30**2)), verbose=False)
-        t_e  = hp.read_map(f"BP_freefree_I_n1024_{procver}.fits", field=(1,), dtype=None, verbose=False)
+        a_ff = hp.read_map(f"BP_freefree_I_n1024_{procver}.fits", field=(0,), dtype=None)
+        a_ff = hp.smoothing(a_ff, fwhm=arcmin2rad(np.sqrt(60.0**2-30**2)))
+        t_e  = hp.read_map(f"BP_freefree_I_n1024_{procver}.fits", field=(1,), dtype=None)
         
-        a_ame1 = hp.read_map(f"BP_ame_I_n1024_{procver}.fits", field=(0,), dtype=None, verbose=False)
-        #a_ame1 = hp.smoothing(a_ame1, fwhm=arcmin2rad(np.sqrt(60.0**2-30**2)), verbose=False)
-        nup    = hp.read_map(f"BP_ame_I_n1024_{procver}.fits", field=(1,), dtype=None, verbose=False)                
+        a_ame1 = hp.read_map(f"BP_ame_I_n1024_{procver}.fits", field=(0,), dtype=None)
+        #a_ame1 = hp.smoothing(a_ame1, fwhm=arcmin2rad(np.sqrt(60.0**2-30**2)))
+        nup    = hp.read_map(f"BP_ame_I_n1024_{procver}.fits", field=(1,), dtype=None)
         polfrac = 0.01
         a_ame2 = None
         
-        a_d = hp.read_map(f"BP_dust_IQU_n1024_{procver}.fits", field=(0,1,2), dtype=None, verbose=False)
-        a_d = hp.smoothing(a_d, fwhm=arcmin2rad(np.sqrt(60.0**2-10**2)), verbose=False)
-        b_d = hp.read_map(f"BP_dust_IQU_n1024_{procver}.fits", field=(4,5,), dtype=None, verbose=False)                                
-        t_d = hp.read_map(f"BP_dust_IQU_n1024_{procver}.fits", field=(6,7,), dtype=None, verbose=False)                                
+        a_d = hp.read_map(f"BP_dust_IQU_n1024_{procver}.fits", field=(0,1,2), dtype=None)
+        a_d = hp.smoothing(a_d, fwhm=arcmin2rad(np.sqrt(60.0**2-10**2)))
+        b_d = hp.read_map(f"BP_dust_IQU_n1024_{procver}.fits", field=(4,5,), dtype=None)
+        t_d = hp.read_map(f"BP_dust_IQU_n1024_{procver}.fits", field=(6,7,), dtype=None)
         
         a_co10=f"{fg_path}/co10_npipe_60arcmin.fits"
         a_co21=f"{fg_path}/co21_npipe_60arcmin.fits"

@@ -363,6 +363,7 @@ def get_params(m, outfile, outname, signal_label,):
                     if "WMAP" in outfile:
                         m   *= 1e3
                         tit = str(findall(r"WMAP_(.*?)_", outfile)[0])
+                        comp["ticks"] = [[-6, 0, 6]]
                     elif "Haslam" in outfile:
                         tit = "Haslam"
                     else:
@@ -605,7 +606,7 @@ def get_map(input, sig, dataset, nside, lmax, fwhm,):
                 sys.exit()
 
         elif input_.endswith(".fits"):
-            maps_, header = hp.read_map(input_, field=sig, verbose=False, h=True, dtype=None,)
+            maps_, header = hp.read_map(input_, field=sig, h=True, dtype=None,)
             header = dict(header)
             signal_labels = []
             for i in range(int(header["TFIELDS"])):
@@ -669,7 +670,7 @@ def apply_mask(m, mask, grid_pix, mfill, polt, cmap):
     # Apply mask
     hp.ma(m)
     mask_field = polt-3 if polt>2 else polt
-    m.mask = np.logical_not(hp.read_map(mask, field=mask_field, verbose=False, dtype=None))
+    m.mask = np.logical_not(hp.read_map(mask, field=mask_field, dtype=None))
 
     # Don't know what this does, from paperplots by Zonca.
     grid_mask = m.mask[grid_pix]
@@ -838,7 +839,7 @@ def remove_md(m, remove_dipole, remove_monopole, nside):
         mono, dip = hp.fit_dipole(m, gal_cut=30)
     else:
         m_masked = hp.ma(m)
-        m_masked.mask = np.logical_not(hp.read_map(dip_mask_name,verbose=False,dtype=None,))
+        m_masked.mask = np.logical_not(hp.read_map(dip_mask_name,dtype=None,))
 
         # Fit dipole to masked map
         mono, dip = hp.fit_dipole(m_masked)
