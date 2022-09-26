@@ -67,6 +67,7 @@ def plot(
     custom_ytick_labels=None,
     ratio=None,
     extend=None,
+    scale=1,
     **kwargs,
 ):
     """
@@ -208,6 +209,8 @@ def plot(
         override x-axis tick labels
     custom_ytick_labels : list
         override y-axis tick labels
+    scale : float
+        rescales data by factor scale
     kwargs : keywords
         passed to projview
     """
@@ -276,7 +279,7 @@ def plot(
     warnings.filterwarnings("ignore")  # Healpy complains too much
     # Plot figure
     ret = temp_projview(
-        params["data"],
+        params["data"]*scale,
         min=np.min(params["ticks"]),
         max=np.max(params["ticks"]),
         cbar_ticks=params["ticks"],
