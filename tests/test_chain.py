@@ -11,7 +11,7 @@ from cosmoglobe.h5._exceptions import ChainFormatError, ChainKeyError, ChainSamp
 
 
 # This path needs to exist in the test environment
-CHAIN_PATH = "/Users/metinsan/Documents/doktor/Cosmoglobe_test_data/bla.h5"
+CHAIN_PATH = "/Users/metinsan/Documents/doktor/Cosmoglobe_test_data/chain_test.h5"
 
 
 def test_init():
