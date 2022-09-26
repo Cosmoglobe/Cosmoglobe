@@ -161,6 +161,7 @@ class SkyComponent(ABC):
                 "output unit must be one of "
                 f"{', '.join(unit.to_string() for unit in SIGNAL_UNITS)}"
             )
+        
 
         # If the emission from the sky component is negligable at the
         # frequencies given by `freqs`, we simply return 0.

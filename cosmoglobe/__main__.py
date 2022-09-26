@@ -1,8 +1,9 @@
 import click
-from cosmoglobe.plot.click_plotting import commands_plotting
-from cosmoglobe.h5.click_h5 import commands_h5
+
 from cosmoglobe.fits.click_fits import commands_fits
 from cosmoglobe.release.commands_hdf import commands_hdf
+from cosmoglobe.h5.click_h5 import commands_h5
+from cosmoglobe.plot.click_plotting import commands_plotting
 
 CONTEXT_SETTINGS = dict(max_content_width=100)
 

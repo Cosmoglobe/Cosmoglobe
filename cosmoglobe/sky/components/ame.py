@@ -1,7 +1,7 @@
 from typing import Tuple
 
-from astropy.units import Quantity, Unit
 import numpy as np
+from astropy.units import Quantity, Unit
 
 from cosmoglobe.data import DATA_DIR
 from cosmoglobe.sky._base_components import DiffuseComponent

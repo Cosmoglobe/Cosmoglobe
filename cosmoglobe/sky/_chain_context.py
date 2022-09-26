@@ -1,16 +1,17 @@
 from typing import Dict, Protocol
 
-from astropy.units import Quantity
 import numpy as np
+from astropy.units import Quantity
 
 from cosmoglobe.sky._context_registry import ChainContextRegistry
+from cosmoglobe.sky._units import *
 from cosmoglobe.sky.components.ame import SpinningDust
 from cosmoglobe.sky.components.cmb import CMB
 from cosmoglobe.sky.components.dust import ModifiedBlackbody
 from cosmoglobe.sky.components.freefree import LinearOpticallyThin
 from cosmoglobe.sky.components.radio import AGNPowerLaw
 from cosmoglobe.sky.components.synchrotron import PowerLaw
-from cosmoglobe.sky._units import *
+
 
 class ChainContext(Protocol):
     """Protocol defining the interface for a chain context.

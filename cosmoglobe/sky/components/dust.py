@@ -1,9 +1,9 @@
-from astropy.units import Quantity, Unit, quantity_input
 import numpy as np
+from astropy.units import Quantity, Unit, quantity_input
 
+import cosmoglobe.sky._constants as const
 from cosmoglobe.sky._base_components import DiffuseComponent
 from cosmoglobe.sky.components._labels import SkyComponentLabel
-import cosmoglobe.sky._constants as const
 
 
 class ModifiedBlackbody(DiffuseComponent):

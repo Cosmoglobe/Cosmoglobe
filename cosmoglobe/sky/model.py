@@ -1,32 +1,33 @@
 from __future__ import annotations
+
 from typing import Dict, Iterator, List, Literal, Optional, Union
 
-from astropy.units import Quantity
-from astropy.units.core import UnitsError
 import healpy as hp
 import numpy as np
+from astropy.units import Quantity
+from astropy.units.core import UnitsError
 
+from cosmoglobe.h5.chain import Chain
 from cosmoglobe.sky._base_components import (
     DiffuseComponent,
     LineComponent,
     PointSourceComponent,
     SkyComponent,
 )
-from cosmoglobe.sky.components._labels import SkyComponentLabel
 from cosmoglobe.sky._component_factory import get_components_from_chain
 from cosmoglobe.sky._constants import (
-    DEFAULT_OUTPUT_UNIT_STR,
     DEFAULT_BEAM_FWHM,
     DEFAULT_GAL_CUT,
+    DEFAULT_OUTPUT_UNIT_STR,
 )
 from cosmoglobe.sky._exceptions import (
-    NsideError,
     ComponentError,
     ComponentNotFoundError,
+    NsideError,
 )
 from cosmoglobe.sky._units import Unit
+from cosmoglobe.sky.components._labels import SkyComponentLabel
 from cosmoglobe.sky.cosmoglobe import cosmoglobe_registry
-from cosmoglobe.h5.chain import Chain
 
 
 class SkyModel:

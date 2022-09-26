@@ -1,6 +1,8 @@
 from typing import Tuple
+
 import astropy.constants as const
 from astropy.units import Quantity
+
 from cosmoglobe.sky._units import Unit
 
 DEFAULT_BEAM_FWHM: Quantity = 0.0 * Unit("arcmin")

@@ -1,11 +1,12 @@
 from __future__ import annotations
+
 from abc import ABC
 from dataclasses import dataclass
 from typing import Protocol
 
-from astropy.units import Quantity
 import astropy.units as u
 import numpy as np
+from astropy.units import Quantity
 from numpy.typing import NDArray
 
 
