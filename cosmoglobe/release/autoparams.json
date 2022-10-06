@@ -1,0 +1,215 @@
+{
+    "cmb": {
+        "tags": ["CMB","cmb","BP_cmb"],
+        "unit": "$\\mu\\mathrm{K}_{\\mathrm{CMB}}$",
+        "comp": "cmb",
+        "param": "$A$",
+        "cmap": ["planck","planck"],
+        "ticks": [[-300,0,300], [-10,0,10]],
+        "logscale": false,
+        "special": false
+    },
+    "chisq": {
+        "tags": ["chisq"],
+        "unit": "",
+        "comp": "",
+        "param": "$\\chi^2$",
+        "cmap": ["RdBu_r"],
+        "ticks": [[-3, 0, 3]],
+        "logscale": false,
+        "special": true
+    },
+    "synch_beta": {
+        "tags": ["synch_beta"],
+        "unit": "",
+        "comp": "s",
+        "param": "$\\beta$",
+        "cmap": ["planck"],
+        "ticks": [[-3.3, -3.2, -3.1, -3.0]],
+        "logscale": false,
+        "special": false
+    },
+    "synch": {
+        "tags": ["synch"],
+        "unit": "$\\mu\\mathrm{K}_{\\mathrm{RJ}}$",
+        "comp": "s",
+        "param": "$A$",
+        "cmap": ["swamp", "wildfire"],
+        "ticks": [[1e6, 1e7, 1e8],[-100, 0, 100],[5, 10, 25, 50]],
+        "logscale": true,
+        "special": false
+    },
+    "dust_beta": {
+        "tags": ["dust_beta"],
+        "unit": "",
+        "comp": "d",
+        "param": "$\\beta$",
+        "cmap": ["fusion"],
+        "ticks": [[1.3, 1.8]],
+        "logscale": false,
+        "special": false
+    },
+    "dust_T": {
+        "tags": ["dust_T_", "dust_Td"],
+        "unit": "$\\mathrm{K}$",
+        "comp": "d",
+        "param": "$T$",
+        "cmap": ["fusion"],
+        "ticks": [[14, 30]],
+        "logscale": false,
+        "special": false
+    },
+    "dust": {
+        "tags": ["dust"],
+        "unit": "$\\mu\\mathrm{K}_{\\mathrm{RJ}}$",
+        "comp": "d",
+        "param": "$A$",
+        "cmap": ["sunburst", "iceburn"],
+        "ticks": [[30, 300, 3000],[-100, 0, 100],[5, 10, 25, 50]],
+        "logscale": true,
+        "special": false
+    },
+    "freefree_Te": {
+        "tags": ["ff_Te","ff_Te","ff_TE_","ff_T_E","freefree_Te","freefree_Te","freefree_TE_","freefree_T_E"],
+        "unit": "$\\mathrm{K}$",
+        "comp": "ff",
+        "param": "$T_{e}$",
+        "cmap": ["fusion"],
+        "ticks": [[5000, 8000]],
+        "logscale": false,
+        "special": false
+    },
+    "freefree": {
+        "tags": ["ff_", "freefree"],
+        "unit": "$\\mu\\mathrm{K}_{\\mathrm{RJ}}$",
+        "comp": "ff",
+        "param": "$A$",
+        "cmap": ["freeze"],
+        "ticks": [[40, 100, 400, 2000]],
+        "logscale": true,
+        "special": false
+    },
+    "ame_nup": {
+        "tags": ["ame_nup", "ame_nu_p", "ame_NU_P","ame1_nup", "ame1_nu_p", "ame1_NU_P","ame2_nup", "ame2_nu_p", "ame2_NU_P"],
+        "unit": "$\\mathrm{GHz}$",
+        "comp": "ff",
+        "param": "$\\nu_{p}$",
+        "cmap": ["fusion"],
+        "ticks": [[17, 23]],
+        "logscale": false,
+        "special": false
+    },
+    "ame": {
+        "tags": ["ame_", "ame1", "ame2"],
+        "unit": "$\\mu\\mathrm{K}_{\\mathrm{RJ}}$",
+        "comp": "ame",
+        "param": "$A$",
+        "cmap": ["amber"],
+        "ticks": [[30, 300, 3000]],
+        "logscale": true,
+        "special": false
+    },
+    "co10": {
+        "tags": ["co10", "co-100"],
+        "unit": "$\\mathrm{K}_{\\mathrm{RJ}}\\, \\mathrm{km}/\\mathrm{s}$",
+        "comp": "co10",
+        "param": "$A$",
+        "cmap": ["arctic"],
+        "ticks": [[0, 10, 100]],
+        "logscale": true,
+        "special": false
+    },
+    "co21": {
+        "tags": ["co21", "co-217"],
+        "unit": "$\\mathrm{K}_{\\mathrm{RJ}}\\, \\mathrm{km}/\\mathrm{s}$",
+        "comp": "co21",
+        "param": "$A$",
+        "cmap": ["arctic"],
+        "ticks": [[0, 10, 100]],
+        "logscale": true,
+        "special": false
+    },
+    "co32": {
+        "tags": ["co32", "co-353"],
+        "unit": "$\\mathrm{K}_{\\mathrm{RJ}}\\, \\mathrm{km}/\\mathrm{s}$",
+        "comp": "co32",
+        "param": "$A$",
+        "cmap": ["arctic"],
+        "ticks": [[0, 10, 100]],
+        "logscale": true,
+        "special": false
+    },
+    "hcn": {
+        "tags": ["hcn"],
+        "unit": "$\\mathrm{K}_{\\mathrm{RJ}}\\, \\mathrm{km}/\\mathrm{s}$",
+        "comp": "hcn",
+        "param": "$A$",
+        "cmap": ["arctic"],
+        "ticks": [[0.01, 100]],
+        "logscale": true,
+        "special": false
+    },
+    "residual": {
+        "tags": ["residual_", "res_"],
+        "unit": "$\\mu\\mathrm{K}$",
+        "comp": "",
+        "param": "$r$",
+        "cmap": ["planck"],
+        "ticks": [[-3, 0, 3]],
+        "logscale": false,
+        "special": false
+    },
+    "smap": {
+        "tags": ["Smap"],
+        "unit": "$\\mu\\mathrm{K}$",
+        "comp": "",
+        "param": "$smap$",
+        "cmap": ["planck"], 
+        "ticks": [[-0.2, 0, 0.2]],
+        "logscale": false,
+        "special": false
+    },
+    "freqmap": {
+        "tags": ["030", "044", "070", "023-WMAP_K", "030-WMAP_Ka", "040-WMAP_Q1", "040-WMAP_Q2",
+                 "060-WMAP_V1", "060-WMAP_V2", "090-WMAP_W1", "090-WMAP_W2", 
+                 "090-WMAP_W3", "090-WMAP_W4"],
+        "unit": "$\\mu\\mathrm{K}$",
+        "comp": "",
+        "param": "$A$",
+        "cmap": ["planck", "planck"], 
+        "ticks": ["auto", "auto"],
+        "logscale": false,
+        "special": false
+    },
+    "bpcorr": {
+        "tags": ["_bpcorr_"],
+        "unit": "$\\mu\\mathrm{K}$",
+        "comp": "",
+        "param": "$s$",
+        "cmap": ["planck"], 
+        "ticks": [[-30,0,30]],
+        "logscale": false,
+        "special": false,
+        "custom": ""
+    },
+    "mask": {
+        "tags": ["mask"],
+        "unit": "",
+        "comp": "$\\mathrm{Mask}$",
+        "param": "",
+        "cmap": ["neutral"], 
+        "ticks": [ [0, 1]],
+        "logscale": false,
+        "special": false
+    },
+    "unidentified": {
+        "tags": ["unidentifiedmapsgetthisthing"],
+        "unit": "",
+        "comp": "",
+        "param": "",
+        "cmap": ["planck"], 
+        "ticks": ["auto"],
+        "logscale": false,
+        "special": false
+    }
+}
