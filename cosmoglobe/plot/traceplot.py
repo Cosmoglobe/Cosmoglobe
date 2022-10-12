@@ -11,6 +11,7 @@ def trace(
     sig=0,
     labels=None,
     showval=True,
+    display_prec=2,
     burnin=0,
     xlabel=None,
     ylabel=None,
@@ -43,6 +44,9 @@ def trace(
     showval : bool, optional
         display the mean and stddev of the distribution next to label
         default: True
+    display_prec : int, optional
+        sets precision of the mean and stddev of distribution.
+        default: 2
     burnin : int, optional
         Number of burnin samples, used in calculating mean and stddev values
         default: 0
@@ -135,7 +139,7 @@ def trace(
         if showval:
             mean = np.mean(input[burnin:, sig, i])
             std = np.std(input[burnin:, sig, i])
-            label2 = rf"{mean:.2f}$\pm${std:.2f}"
+            label2 = rf"{mean:.{display_prec}f}$\pm${std:.{display_prec}f}"
             valpos = Nsamp * 1.01 if labels is None else Nsamp * 1.1
             plt.text(valpos, positions[i], label2, color=cmap(i), fontweight="normal")
 
