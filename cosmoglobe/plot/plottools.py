@@ -364,6 +364,7 @@ def standalone_colorbar(
     shrink=0.3,
     darkmode=False,
     width=2,
+    extend=None,
 ):
 
     fig = plt.figure(figsize=(width, width / 4))
@@ -391,6 +392,7 @@ def standalone_colorbar(
         cbar_shrink=shrink,
         cbar_pad=0.0,
         cmap=cmap,
+        extend=extend
     )
 
 
@@ -408,6 +410,7 @@ def apply_colorbar(
     cbar_shrink=0.3,
     cmap=None,
     orientation="horizontal",
+    extend=None
 ):
     """
     This function applies a colorbar to the figure and formats the ticks.
@@ -421,6 +424,8 @@ def apply_colorbar(
             norm=norm,
             orientation=orientation,
             ticks=ticks,
+            label=unit,
+            extend=extend
         )
     else:
         cb = fig.colorbar(
@@ -434,12 +439,12 @@ def apply_colorbar(
         fontsize = DEFAULT_FONTSIZES
     if isinstance(unit, u.UnitBase):
         unit = unit.to_string("latex")
-    # if orientation == 'horizontal':
-    #    cb.ax.set_xticklabels(ticklabels, size=fontsize["cbar_tick_label"])
-    #    cb.ax.xaxis.set_label_text(unit, size=fontsize["cbar_label"])
-    # elif orientation == 'vertical':
-    #    cb.ax.set_yticklabels(ticklabels, size=fontsize["cbar_tick_label"])
-    #    cb.ax.yaxis.set_label_text(unit, size=fontsize["cbar_label"])
+    #if orientation == 'horizontal':
+    #   cb.ax.set_xticklabels(ticklabels, size=fontsize["cbar_tick_label"])
+    #   cb.ax.xaxis.set_label_text(unit, size=fontsize["cbar_label"])
+    #elif orientation == 'vertical':
+    #   cb.ax.set_yticklabels(ticklabels, size=fontsize["cbar_tick_label"])
+    #   cb.ax.yaxis.set_label_text(unit, size=fontsize["cbar_label"])
 
     # cb = plt.gca().collections[-1].colorbar
     # labels = cb.ax.xaxis.get_ticklabels()
