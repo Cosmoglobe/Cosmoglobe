@@ -3,6 +3,7 @@ import warnings
 from typing import Dict, List, Literal, Optional, Type, Union
 
 import healpy as hp
+import numpy as np
 from astropy.units import Quantity, Unit
 from tqdm import tqdm
 
@@ -150,12 +151,24 @@ def get_comp_from_chain(
         if chain_arg in chain_params:
             value = chain_params[chain_arg]
         else:
-            try:
-                value = chain.mean(
-                    f"{component_label}/{chain_arg}_alm", samples=samples
-                )
-                is_alm = True
-            except ChainKeyError:
+            is_alm = True if chain_arg == "amp" else False
+            if is_alm:
+                try:
+                    value = chain.mean(
+                        f"{component_label}/{chain_arg}_alm", samples=samples
+                    )
+                except ChainKeyError:
+                    # Component is radio
+                    try:
+                        value = chain.mean(
+                            f"{component_label}/{chain_arg}", samples=samples
+                        )
+                    except ChainKeyError:
+                        value = chain.mean(
+                            f"{component_label}/{chain_arg}_map", samples=samples
+                        )
+                    is_alm = False
+            else:
                 try:
                     value = chain.mean(
                         f"{component_label}/{chain_arg}", samples=samples
@@ -164,18 +177,32 @@ def get_comp_from_chain(
                     value = chain.mean(
                         f"{component_label}/{chain_arg}_map", samples=samples
                     )
-                is_alm = False
 
+            nside_out = nside if nside is not None else chain_params["nside"]
             if is_alm:
                 pol = True if arg == "amp" and value.shape[0] == 3 else False
                 lmax = chain.get(f"{component_label}/{chain_arg}_lmax", samples=0)
                 value = hp.alm2map(
                     value,
-                    nside=nside if nside is not None else chain_params["nside"],
+                    nside=nside_out,
                     lmax=lmax,
                     fwhm=(chain_params["fwhm"] * Unit("arcmin")).to("rad").value,
                     pol=pol,
                 )
+            else:
+                try:
+                    hp.npix2nside(value[0].size)
+                    value = np.asarray(
+                        [
+                            hp.ud_grade(
+                                value[IQU], nside_out=nside_out
+                            )
+                            for IQU in range(value.shape[0])
+                        ]
+                    )
+                except ValueError:
+                    pass
+
 
         args[arg] = Quantity(value, unit=units[arg] if arg in units else None)
 
