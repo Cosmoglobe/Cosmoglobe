@@ -22,14 +22,11 @@
 
 import h5py
 from cosmoglobe.tod_tools import huffman, rice
-import healpy as hp
 import numpy as np
-import multiprocessing as mp
 import os
-import sys
 
 
-class commander_tod:
+class TODLoader:
     def __init__(self, outPath, name, version=None, dicts=None, overwrite=False):
         self.outPath = outPath
         self.filelists = dicts
