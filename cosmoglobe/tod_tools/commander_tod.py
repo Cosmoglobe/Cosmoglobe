@@ -429,7 +429,7 @@ class TODLoader:
                     nmax = self.outFile[field].attrs["max"]
 
                     bins = np.linspace(nmin, nmax, num=nbins)
-                    dataBuf = bins[dataBuf]
+                    dataBuf = bins[dataBuf.astype('int')]
 
                 elif comp == "huffman":
                     pid = field.split("/")[1]
