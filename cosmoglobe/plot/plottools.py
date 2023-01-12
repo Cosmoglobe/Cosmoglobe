@@ -374,9 +374,6 @@ def standalone_colorbar(
     plt.gca().set_visible(False)
     ax = plt.axes([0.1, 0.7, 0.8, 0.2])  # LBWH
 
-    if fontsize is None:
-        fontsize = DEFAULT_FONTSIZES
-
     if ticklabels is None:
         ticklabels = format_list(ticks)
 
@@ -419,7 +416,7 @@ def apply_colorbar(
         unit = unit.to_string("latex")
 
     if fontsize is None:
-        fontsize = DEFAULT_FONTSIZES
+        fontsize = DEFAULT_FONTSIZES['cbar_label']
 
     if image is None and cmap is not None:
         norm = mpl.colors.Normalize(vmin=ticks[0], vmax=ticks[-1])
