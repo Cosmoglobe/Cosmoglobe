@@ -11,6 +11,7 @@ class SkyComponentLabel(Enum):
     AME = "ame"
     CIB = "cib"
     CMB = "cmb"
+    CMB_LOWL = 'cmb_lowl'
     CO = "co"
     DUST = "dust"
     FF = "ff"

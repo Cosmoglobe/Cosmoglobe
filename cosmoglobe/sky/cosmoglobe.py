@@ -8,7 +8,7 @@ from cosmoglobe.sky._exceptions import (
     ModelNotFoundError,
 )
 from cosmoglobe.sky.components.ame import SpinningDust
-from cosmoglobe.sky.components.cmb import CMB
+from cosmoglobe.sky.components.cmb import CMB, CMB_LOWL
 from cosmoglobe.sky.components.dust import ModifiedBlackbody
 from cosmoglobe.sky.components.freefree import LinearOpticallyThin
 from cosmoglobe.sky.components.radio import AGNPowerLaw
@@ -35,6 +35,7 @@ class CosmoglobeModel:
         """Returns a sky component from the cosmoglobe model."""
 
         for component in self.components:
+            print(component.label.value)
             if component.label.value == component_name:
                 return component
         raise ComponentNotFoundError(f"component {component_name} not found in model.")
@@ -72,6 +73,7 @@ cosmoglobe_registry.register_model(
         components=[
             SpinningDust,
             CMB,
+            CMB_LOWL,
             ModifiedBlackbody,
             LinearOpticallyThin,
             AGNPowerLaw,

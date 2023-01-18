@@ -10,6 +10,8 @@ import matplotlib.pyplot as plt
 from .plottools import *
 from .temp_newvisufunc import projview as temp_projview
 
+
+
 # Fix for macos openMP duplicate bug
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
@@ -215,6 +217,7 @@ def plot(
         passed to projview
     """
 
+
     if not fontsize:
         fontsize = DEFAULT_FONTSIZES
     else:
@@ -235,7 +238,9 @@ def plot(
         sig = STOKES.index(sig)
 
     # Get data
-    m, comp, freq, nside = get_data(input, sig, comp, freq, fwhm, nside=nside, sample=sample)
+    m, comp, freq, nside = get_data(input, sig, comp, freq, fwhm, nside=nside,
+        sample=sample, scale=scale, remove_dip=remove_dip,
+        remove_mono=remove_mono)
 
     # Mask map
     if mask is not None:
@@ -279,7 +284,7 @@ def plot(
     warnings.filterwarnings("ignore")  # Healpy complains too much
     # Plot figure
     ret = temp_projview(
-        params["data"]*scale,
+        params["data"],
         min=np.min(params["ticks"]),
         max=np.max(params["ticks"]),
         cbar_ticks=params["ticks"],
@@ -294,8 +299,6 @@ def plot(
         show_tickmarkers=True,
         width=width,
         # unedited params
-        remove_dip=remove_dip,
-        remove_mono=remove_mono,
         xsize=xsize,
         title=title,
         rot=rot,

@@ -555,7 +555,8 @@ def load_cmap(cmap):
     return cmap
 
 
-def get_data(input, sig, comp, freq, fwhm, nside=None, sample=-1):
+def get_data(input, sig, comp, freq, fwhm, nside=None, sample=-1, scale=1,
+    remove_mono=None, remove_dip=None, nest=False, gal_cut=0):
     # Parsing component string
     fwhm_ = None
     specparam = "amp"
@@ -665,6 +666,20 @@ def get_data(input, sig, comp, freq, fwhm, nside=None, sample=-1):
     # Smooth map
     if fwhm > 0.0 and fwhm_ is None:
         m = hp.smoothing(m, fwhm.to(u.rad).value)
+
+    # Rescale map
+    m = m * scale
+
+    # Remove monopole and dipole
+    if remove_dip:
+        if remove_dip == 'auto':
+           gal_cut = 30
+        m = hp.remove_dipole(m, gal_cut=gal_cut, nest=nest, copy=True)
+    elif remove_mono:
+        if remove_mono == 'auto':
+           gal_cut = 30
+        m = hp.remove_monopole(m, gal_cut=gal_cut, nest=nest, copy=True)
+
 
     return m, comp, freq, hp.get_nside(m)
 
@@ -907,7 +922,7 @@ def seds_from_model(nu, model, nside=None, pol=False, sky_fractions=(25, 85)):
                     amp_pol = rms_amp(np.sqrt(amp[1] ** 2 + amp[2] ** 2))
             amp = rms_amp(amp[0])
 
-            if key == "cmb":
+            if key == "cmb" or key == "cmb_lowl":
                 freq_scaling = (np.ones(len(nu)) * Unit("uK_CMB")).to("uK_RJ", equivalencies=cmb_equivalencies(nu * u.GHz))
                 seds[key][0, i, :] = 45 * freq_scaling  # TEMP
                 seds[key][1, i, :] = 0.67 * freq_scaling  # POL
