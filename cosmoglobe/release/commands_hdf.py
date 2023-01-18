@@ -242,28 +242,28 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
     Creates a release file-set on the BeyondPlanck format.
     https://gitlab.com/BeyondPlanck/repo/-/wikis/BeyondPlanck-Release-Candidate-2
 
-    ex. c3pp release chains_v1_c{1,2}/chain_c000{1,2}.h5 30 BP_r1
+    ex. c3pp release chains_v1_c{1,2}/chain_c000{1,2}.h5 30 CG_r1
     Will output formatted files using all chains specified,
-    with a burnin of 30 to a directory called BP_r1
+    with a burnin of 30 to a directory called CG_r1
 
     This function outputs the following files to the {procver} directory:
-    BP_chain01_{procver}.h5
-    BP_resamp_chain01_Cl_{procver}.h5
-    BP_resamp_chain01_noCl_{procver}.h5
-    BP_param_v1.txt
-    BP_param_resamp_Cl_v1.txt
-    BP_param_resamp_noCl_v1.txt
+    CG_chain01_{procver}.h5
+    CG_resamp_chain01_Cl_{procver}.h5
+    CG_resamp_chain01_noCl_{procver}.h5
+    CG_param_v1.txt
+    CG_param_resamp_Cl_v1.txt
+    CG_param_resamp_noCl_v1.txt
 
-    BP_030_IQU_n0512_{procver}.fits
-    BP_044_IQU_n0512_{procver}.fits
-    BP_070_IQU_n1024_{procver}.fits
+    CG_030_IQU_n0512_{procver}.fits
+    CG_044_IQU_n0512_{procver}.fits
+    CG_070_IQU_n1024_{procver}.fits
 
-    BP_cmb_IQU_n1024_{procver}.fits
-    BP_synch_IQU_n1024_{procver}.fits
-    BP_freefree_I_n1024_{procver}.fits
-    BP_ame_I_n1024_{procver}.fits
+    CG_cmb_IQU_n1024_{procver}.fits
+    CG_synch_IQU_n1024_{procver}.fits
+    CG_freefree_I_n1024_{procver}.fits
+    CG_ame_I_n1024_{procver}.fits
 
-    BP_cmb_GBRlike_{procver}.fits
+    CG_cmb_GBRlike_{procver}.fits
     """
     # TODO
     # Use proper masks for output of CMB component
@@ -302,36 +302,36 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
             path = os.path.split(chainfile)[0]
             for file in os.listdir(path):
                 if file.startswith("param") and i == 1:  # Copy only first
-                    click.echo(f"Copying {path}/{file} to {procver}/BP_param_c" + str(i).zfill(4) + f"_{procver}.txt")
+                    click.echo(f"Copying {path}/{file} to {procver}/CG_param_c" + str(i).zfill(4) + f"_{procver}.txt")
                     if resamp:
-                        shutil.copyfile(f"{path}/{file}", f"{procver}/BP_param_c" + str(i).zfill(4) + f"_{pol}resamp_{procver}.txt")
+                        shutil.copyfile(f"{path}/{file}", f"{procver}/CG_param_c" + str(i).zfill(4) + f"_{pol}resamp_{procver}.txt")
                     else:
-                        shutil.copyfile(f"{path}/{file}", f"{procver}/BP_param_c" + str(i).zfill(4) + f"_{procver}.txt")
+                        shutil.copyfile(f"{path}/{file}", f"{procver}/CG_param_c" + str(i).zfill(4) + f"_{procver}.txt")
 
             if resamp:
                 # Resampled CMB-only full-mission Gibbs chain file with Cls (for BR estimator)
-                click.echo(f"Copying {chainfile} to {procver}/BP_c" + str(i).zfill(4) + f"_{pol}resamp_{procver}.h5")
-                shutil.copyfile(chainfile, f"{procver}/BP_c" + str(i).zfill(4) + f"_{pol}resamp_{procver}.h5",)
+                click.echo(f"Copying {chainfile} to {procver}/CG_c" + str(i).zfill(4) + f"_{pol}resamp_{procver}.h5")
+                shutil.copyfile(chainfile, f"{procver}/CG_c" + str(i).zfill(4) + f"_{pol}resamp_{procver}.h5",)
             else:
                 # Full-mission Gibbs chain file
-                click.echo(f"Copying {chainfile} to {procver}/BP_c" + str(i).zfill(4) + f"_{procver}.h5")
-                shutil.copyfile(chainfile, f"{procver}/BP_c" + str(i).zfill(4) + f"_{procver}.h5",)
+                click.echo(f"Copying {chainfile} to {procver}/CG_c" + str(i).zfill(4) + f"_{procver}.h5")
+                shutil.copyfile(chainfile, f"{procver}/CG_c" + str(i).zfill(4) + f"_{procver}.h5",)
 
      #if halfring:
      #   # Copy halfring files
      #   for i, chainfile in enumerate([halfring], 1):
      #       # Copy halfring files
-     #       click.echo(f"Copying {resamp} to {procver}/BP_halfring_c" + str(i).zfill(4) + f"_{procver}.h5")
-     #       shutil.copyfile(halfring, f"{procver}/BP_halfring_c" + str(i).zfill(4) + f"_{procver}.h5",)
+     #       click.echo(f"Copying {resamp} to {procver}/CG_halfring_c" + str(i).zfill(4) + f"_{procver}.h5")
+     #       shutil.copyfile(halfring, f"{procver}/CG_halfring_c" + str(i).zfill(4) + f"_{procver}.h5",)
 
     """
     IQU mean, IQU stdev, (Masks for cmb)
     Run mean and stddev from min to max sample (Choose min manually or start at 1?)
     """
     if resamp:
-        chain = f"{procver}/BP_c0001_{pol}resamp_{procver}.h5"
+        chain = f"{procver}/CG_c0001_{pol}resamp_{procver}.h5"
     else:
-        chain = f"{procver}/BP_c0001_{procver}.h5"
+        chain = f"{procver}/CG_c0001_{procver}.h5"
 
     chain_bla = cosmoglobe.Chain(chain, burn_in=1)
     bands = chain_bla["000001/tod"]
@@ -359,7 +359,7 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
                     nu_ref_t="30 GHz",
                     nu_ref_p="30 GHz",
                     procver=procver,
-                    filename=f"BP_030-WMAP_Ka_IQU_n0512_{procver}.fits",
+                    filename=f"CG_030-WMAP_Ka_IQU_n0512_{procver}.fits",
                     bndctr=30,
                     restfreq=30,
                     bndwid=5,
@@ -379,7 +379,7 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
                     nu_ref_t="40 GHz",
                     nu_ref_p="40 GHz",
                     procver=procver,
-                    filename=f"BP_040-WMAP_Q1_IQU_n0512_{procver}.fits",
+                    filename=f"CG_040-WMAP_Q1_IQU_n0512_{procver}.fits",
                     bndctr=40,
                     restfreq=40,
                     bndwid=5,
@@ -399,7 +399,7 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
                     nu_ref_t="40 GHz",
                     nu_ref_p="40 GHz",
                     procver=procver,
-                    filename=f"BP_040-WMAP_Q2_IQU_n0512_{procver}.fits",
+                    filename=f"CG_040-WMAP_Q2_IQU_n0512_{procver}.fits",
                     bndctr=40,
                     restfreq=40,
                     bndwid=5,
@@ -419,7 +419,7 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
                     nu_ref_t="60 GHz",
                     nu_ref_p="60 GHz",
                     procver=procver,
-                    filename=f"BP_060-WMAP_V1_IQU_n0512_{procver}.fits",
+                    filename=f"CG_060-WMAP_V1_IQU_n0512_{procver}.fits",
                     bndctr=60,
                     restfreq=60,
                     bndwid=5,
@@ -440,7 +440,7 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
                     nu_ref_t="60 GHz",
                     nu_ref_p="60 GHz",
                     procver=procver,
-                    filename=f"BP_060-WMAP_V2_IQU_n0512_{procver}.fits",
+                    filename=f"CG_060-WMAP_V2_IQU_n0512_{procver}.fits",
                     bndctr=60,
                     restfreq=60,
                     bndwid=5,
@@ -448,7 +448,7 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
 
             
             # Full-mission 30 GHz IQU frequency map
-            # BP_030_IQU_n0512_{procver}.fits
+            # CG_030_IQU_n0512_{procver}.fits
             if '030' in bands:
                 format_fits(
                     chain=chain,
@@ -464,7 +464,7 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
                     nu_ref_t="30.0 GHz",
                     nu_ref_p="30.0 GHz",
                     procver=procver,
-                    filename=f"BP_030_IQU_n0512_{procver}.fits",
+                    filename=f"CG_030_IQU_n0512_{procver}.fits",
                     bndctr=30,
                     restfreq=28.456,
                     bndwid=9.899,
@@ -485,7 +485,7 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
                     nu_ref_t="44.0 GHz",
                     nu_ref_p="44.0 GHz",
                     procver=procver,
-                    filename=f"BP_044_IQU_n0512_{procver}.fits",
+                    filename=f"CG_044_IQU_n0512_{procver}.fits",
                     bndctr=44,
                     restfreq=44.121,
                     bndwid=10.719,
@@ -506,7 +506,7 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
                     nu_ref_t="70.0 GHz",
                     nu_ref_p="70.0 GHz",
                     procver=procver,
-                    filename=f"BP_070_IQU_n1024_{procver}.fits",
+                    filename=f"CG_070_IQU_n1024_{procver}.fits",
                     bndctr=70,
                     restfreq=70.467,
                     bndwid=14.909,
@@ -527,7 +527,7 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
                     nu_ref_t="90 GHz",
                     nu_ref_p="90 GHz",
                     procver=procver,
-                    filename=f"BP_090-WMAP_W1_IQU_n0512_{procver}.fits",
+                    filename=f"CG_090-WMAP_W1_IQU_n0512_{procver}.fits",
                     bndctr=90,
                     restfreq=90,
                     bndwid=5,
@@ -548,7 +548,7 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
                     nu_ref_t="90 GHz",
                     nu_ref_p="90 GHz",
                     procver=procver,
-                    filename=f"BP_090-WMAP_W2_IQU_n0512_{procver}.fits",
+                    filename=f"CG_090-WMAP_W2_IQU_n0512_{procver}.fits",
                     bndctr=90,
                     restfreq=90,
                     bndwid=5,
@@ -568,7 +568,7 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
                     nu_ref_t="90 GHz",
                     nu_ref_p="90 GHz",
                     procver=procver,
-                    filename=f"BP_090-WMAP_W3_IQU_n0512_{procver}.fits",
+                    filename=f"CG_090-WMAP_W3_IQU_n0512_{procver}.fits",
                     bndctr=90,
                     restfreq=90,
                     bndwid=5,
@@ -589,7 +589,7 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
                     nu_ref_t="90 GHz",
                     nu_ref_p="90 GHz",
                     procver=procver,
-                    filename=f"BP_090-WMAP_W4_IQU_n0512_{procver}.fits",
+                    filename=f"CG_090-WMAP_W4_IQU_n0512_{procver}.fits",
                     bndctr=90,
                     restfreq=90,
                     bndwid=5,
@@ -610,7 +610,7 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
                     nu_ref_t="23 GHz",
                     nu_ref_p="23 GHz",
                     procver=procver,
-                    filename=f"BP_023-WMAP_K_IQU_n0512_{procver}.fits",
+                    filename=f"CG_023-WMAP_K_IQU_n0512_{procver}.fits",
                     bndctr=23,
                     restfreq=23,
                     bndwid=5,
@@ -644,7 +644,7 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
                         nu_ref_t="NONE",
                         nu_ref_p="NONE",
                         procver=procver,
-                        filename=f"BP_cmb_resamp_QU_n1024_{procver}.fits",
+                        filename=f"CG_cmb_resamp_QU_n1024_{procver}.fits",
                         bndctr=None,
                         restfreq=None,
                         bndwid=None,
@@ -669,7 +669,7 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
                         nu_ref_t="NONE",
                         nu_ref_p="NONE",
                         procver=procver,
-                        filename=f"BP_cmb_resamp_I_n1024_{procver}.fits",
+                        filename=f"CG_cmb_resamp_I_n1024_{procver}.fits",
                         bndctr=None,
                         restfreq=None,
                         bndwid=None,
@@ -694,7 +694,7 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
                     nu_ref_t="NONE",
                     nu_ref_p="NONE",
                     procver=procver,
-                    filename=f"BP_cmb_IQU_n1024_{procver}.fits",
+                    filename=f"CG_cmb_IQU_n1024_{procver}.fits",
                     bndctr=None,
                     restfreq=None,
                     bndwid=None,
@@ -720,7 +720,7 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
                 nu_ref_t="40.0 GHz",
                 nu_ref_p="40.0 GHz",
                 procver=procver,
-                filename=f"BP_freefree_I_n1024_{procver}.fits",
+                filename=f"CG_freefree_I_n1024_{procver}.fits",
                 bndctr=None,
                 restfreq=None,
                 bndwid=None,
@@ -746,7 +746,7 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
                 nu_ref_t="22.0 GHz",
                 nu_ref_p="22.0 GHz",
                 procver=procver,
-                filename=f"BP_ame_I_n1024_{procver}.fits",
+                filename=f"CG_ame_I_n1024_{procver}.fits",
                 bndctr=None,
                 restfreq=None,
                 bndwid=None,
@@ -772,7 +772,7 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
                 nu_ref_t="0.408 GHz",
                 nu_ref_p="30.0 GHz",
                 procver=procver,
-                filename=f"BP_synch_IQU_n1024_{procver}.fits",
+                filename=f"CG_synch_IQU_n1024_{procver}.fits",
                 bndctr=None,
                 restfreq=None,
                 bndwid=None,
@@ -798,7 +798,7 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
                 nu_ref_t="545 GHz",
                 nu_ref_p="353 GHz",
                 procver=procver,
-                filename=f"BP_dust_IQU_n1024_{procver}.fits",
+                filename=f"CG_dust_IQU_n1024_{procver}.fits",
                 bndctr=None,
                 restfreq=None,
                 bndwid=None,
@@ -819,11 +819,11 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
             maps_dx12 = ["30ghz_2018_n1024_beamscaled_dip.fits","44ghz_2018_n1024_beamscaled_dip.fits","70ghz_2018_n1024_beamscaled_dip.fits"]
             maps_npipe = ["npipe6v20_030_map_uK.fits", "npipe6v20_044_map_uK.fits", "npipe6v20_070_map_uK.fits",]
             maps_BP10  = ["BP_030_IQU_n0512_v2.fits", "BP_044_IQU_n0512_v2.fits", "BP_070_IQU_n1024_v2.fits"]
-            maps_BP = [f"BP_030_IQU_n0512_{procver}.fits", f"BP_044_IQU_n0512_{procver}.fits", f"BP_070_IQU_n1024_{procver}.fits",]
+            maps_CG = [f"CG_030_IQU_n0512_{procver}.fits", f"CG_044_IQU_n0512_{procver}.fits", f"CG_070_IQU_n1024_{procver}.fits",]
             beamscaling = [9.8961854E-01, 9.9757886E-01, 9.9113965E-01]
             
             for i, freq in enumerate(["030", "044", "070",]):
-                map_BP    = hp.read_map(f"{procver}/{maps_BP[i]}", field=(0,1,2),   dtype=None)
+                map_CG    = hp.read_map(f"{procver}/{maps_CG[i]}", field=(0,1,2),   dtype=None)
                 map_npipe = hp.read_map(f"{path_npipe}/{maps_npipe[i]}", field=(0,1,2),   dtype=None)
                 map_dx12  = hp.read_map(f"{path_dx12}/{maps_dx12[i]}", field=(0,1,2),   dtype=None)
                 map_BP10  = hp.read_map(f"{path_BP10}/{maps_BP10[i]}", field=(0,1,2),   dtype=None)
@@ -835,7 +835,7 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
 
                 #map_dx12  = map_dx12/beamscaling[i]
                 # Smooth to 60 arcmin
-                map_BP = hp.smoothing(map_BP, fwhm=arcmin2rad(60.0))
+                map_CG = hp.smoothing(map_CG, fwhm=arcmin2rad(60.0))
                 map_npipe = hp.smoothing(map_npipe, fwhm=arcmin2rad(60.0))
                 map_dx12 = hp.smoothing(map_dx12, fwhm=arcmin2rad(60.0))
                 map_BP10 = hp.smoothing(map_BP10, fwhm=arcmin2rad(60.0))
@@ -847,14 +847,14 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
                     map_BP10 = hp.ud_grade(map_BP10, nside_out=512,)
 
                 # Remove monopoles
-                map_BP -= np.mean(map_BP,axis=1).reshape(-1,1)
+                map_CG -= np.mean(map_CG,axis=1).reshape(-1,1)
                 map_npipe -= np.mean(map_npipe,axis=1).reshape(-1,1)
                 map_dx12 -= np.mean(map_dx12,axis=1).reshape(-1,1)
                 map_BP10 -= np.mean(map_BP10,axis=1).reshape(-1,1)
                 click.echo(f"creating {freq} GHz difference")
-                hp.write_map(f"{procver}/diffs/BP_{freq}_diff_npipe_{procver}.fits", np.array(map_BP-map_npipe), overwrite=True, column_names=["I_DIFF", "Q_DIFF", "U_DIFF"], dtype=None)
-                hp.write_map(f"{procver}/diffs/BP_{freq}_diff_dx12_{procver}.fits", np.array(map_BP-map_dx12), overwrite=True, column_names=["I_DIFF", "Q_DIFF", "U_DIFF"], dtype=None)
-                hp.write_map(f"{procver}/diffs/BP_{freq}_diff_BP10_{procver}.fits", np.array(map_BP-map_BP10), overwrite=True, column_names=["I_DIFF", "Q_DIFF", "U_DIFF"], dtype=None)
+                hp.write_map(f"{procver}/diffs/CG_{freq}_diff_npipe_{procver}.fits", np.array(map_CG-map_npipe), overwrite=True, column_names=["I_DIFF", "Q_DIFF", "U_DIFF"], dtype=None)
+                hp.write_map(f"{procver}/diffs/CG_{freq}_diff_dx12_{procver}.fits", np.array(map_CG-map_dx12), overwrite=True, column_names=["I_DIFF", "Q_DIFF", "U_DIFF"], dtype=None)
+                hp.write_map(f"{procver}/diffs/CG_{freq}_diff_BP10_{procver}.fits", np.array(map_CG-map_BP10), overwrite=True, column_names=["I_DIFF", "Q_DIFF", "U_DIFF"], dtype=None)
             
 
             path_wmap9 = "/mn/stornext/d16/cmbco/ola/wmap/freq_maps"
@@ -864,16 +864,16 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
                            "wmap_iqusmap_r9_9yr_K1_v5.fits",
                            "wmap_iqusmap_r9_9yr_W1_v5.fits", "wmap_iqusmap_r9_9yr_W2_v5.fits",
                            "wmap_iqusmap_r9_9yr_W3_v5.fits", "wmap_iqusmap_r9_9yr_W4_v5.fits"]
-            maps_BP     = [ f"BP_030-WMAP_Ka_IQU_n0512_{procver}.fits",
-                            f"BP_040-WMAP_Q1_IQU_n0512_{procver}.fits",
-                            f"BP_040-WMAP_Q2_IQU_n0512_{procver}.fits",
-                            f"BP_060-WMAP_V1_IQU_n0512_{procver}.fits",
-                            f"BP_060-WMAP_V2_IQU_n0512_{procver}.fits",
-                            f"BP_023-WMAP_K_IQU_n0512_{procver}.fits",
-                            f"BP_090-WMAP_W1_IQU_n0512_{procver}.fits",
-                            f"BP_090-WMAP_W2_IQU_n0512_{procver}.fits",
-                            f"BP_090-WMAP_W3_IQU_n0512_{procver}.fits",
-                            f"BP_090-WMAP_W4_IQU_n0512_{procver}.fits"]
+            maps_CG     = [ f"CG_030-WMAP_Ka_IQU_n0512_{procver}.fits",
+                            f"CG_040-WMAP_Q1_IQU_n0512_{procver}.fits",
+                            f"CG_040-WMAP_Q2_IQU_n0512_{procver}.fits",
+                            f"CG_060-WMAP_V1_IQU_n0512_{procver}.fits",
+                            f"CG_060-WMAP_V2_IQU_n0512_{procver}.fits",
+                            f"CG_023-WMAP_K_IQU_n0512_{procver}.fits",
+                            f"CG_090-WMAP_W1_IQU_n0512_{procver}.fits",
+                            f"CG_090-WMAP_W2_IQU_n0512_{procver}.fits",
+                            f"CG_090-WMAP_W3_IQU_n0512_{procver}.fits",
+                            f"CG_090-WMAP_W4_IQU_n0512_{procver}.fits"]
                               
 
 
@@ -889,7 +889,7 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
             for i, freq in enumerate(["023-WMAP_K", "030-WMAP_Ka",
                 "040-WMAP_Q1", "040-WMAP_Q2", "060-WMAP_V1", "060-WMAP_V2",
                 "090-WMAP_W1", "090-WMAP_W2", "090-WMAP_W3", "090-WMAP_W4"]):
-                map_BP    = hp.read_map(f"{procver}/{maps_BP[i]}", field=(0,1,2),   dtype=None)
+                map_CG    = hp.read_map(f"{procver}/{maps_CG[i]}", field=(0,1,2),   dtype=None)
                 map_wmap9 = hp.read_map(f"{path_wmap9}/{maps_wmap9[i]}", field=(0,1,2),   dtype=None)
 
                 map_wmap9[0] += dip
@@ -898,14 +898,14 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
 
                 #map_dx12  = map_dx12/beamscaling[i]
                 # Smooth to 60 arcmin
-                map_BP = hp.smoothing(map_BP, fwhm=arcmin2rad(60.0))
+                map_CG = hp.smoothing(map_CG, fwhm=arcmin2rad(60.0))
                 map_wmap9 = hp.smoothing(map_wmap9, fwhm=arcmin2rad(60.0))
 
                 # Remove monopoles
-                map_BP -= np.mean(map_BP,axis=1).reshape(-1,1)
+                map_CG -= np.mean(map_CG,axis=1).reshape(-1,1)
                 map_wmap9 -= np.mean(map_wmap9,axis=1).reshape(-1,1)
                 click.echo(f"creating {freq} GHz difference")
-                hp.write_map(f"{procver}/diffs/BP_{freq}_diff_wmap9_{procver}.fits", np.array(map_BP-map_wmap9), overwrite=True, column_names=["I_DIFF", "Q_DIFF", "U_DIFF"], dtype=None)
+                hp.write_map(f"{procver}/diffs/CG_{freq}_diff_wmap9_{procver}.fits", np.array(map_CG-map_wmap9), overwrite=True, column_names=["I_DIFF", "Q_DIFF", "U_DIFF"], dtype=None)
         except Exception as e:
             print(e)
             click.secho("Continuing...",fg="yellow")
@@ -918,17 +918,17 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
             click.echo("Creating cmb difference maps")
             path_cmblegacy = "/mn/stornext/u3/trygvels/compsep/cdata/like/BP_releases/cmb-legacy"
             mask_ = hp.read_map("/mn/stornext/u3/trygvels/compsep/cdata/like/BP_releases/masks/dx12_v3_common_mask_int_005a_1024_TQU.fits",   dtype=np.bool,)
-            map_BP = hp.read_map(f"{procver}/BP_cmb_IQU_n1024_{procver}.fits", field=(0,1,2),   dtype=None,)
-            map_BP_masked = hp.ma(map_BP[0])
-            map_BP_masked.mask = np.logical_not(mask_)
-            mono, dip = hp.fit_dipole(map_BP_masked)
+            map_CG = hp.read_map(f"{procver}/CG_cmb_IQU_n1024_{procver}.fits", field=(0,1,2),   dtype=None,)
+            map_CG_masked = hp.ma(map_CG[0])
+            map_CG_masked.mask = np.logical_not(mask_)
+            mono, dip = hp.fit_dipole(map_CG_masked)
             nside = 1024
             ray = range(hp.nside2npix(nside))
             vecs = hp.pix2vec(nside, ray)
             dipole = np.dot(dip, vecs)
-            map_BP[0] = map_BP[0] - dipole - mono
-            map_BP = hp.smoothing(map_BP, fwhm=arcmin2rad(np.sqrt(60.0**2-14**2)))
-            #map_BP -= np.mean(map_BP,axis=1).reshape(-1,1)
+            map_CG[0] = map_CG[0] - dipole - mono
+            map_CG = hp.smoothing(map_CG, fwhm=arcmin2rad(np.sqrt(60.0**2-14**2)))
+            #map_CG -= np.mean(map_CG,axis=1).reshape(-1,1)
             for i, method in enumerate(["commander", "sevem", "nilc", "smica",]):
 
                 data = f"COM_CMB_IQU-{method}_2048_R3.00_full.fits"
@@ -945,7 +945,7 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
                 click.echo(f"{method} subtracting monopole {mono}")
                 map_cmblegacy[0] = map_cmblegacy[0] - mono #np.mean(map_cmblegacy,axis=1).reshape(-1,1)
 
-                hp.write_map(f"{procver}/diffs/BP_cmb_diff_{method}_{procver}.fits", np.array(map_BP-map_cmblegacy), overwrite=True, column_names=["I_DIFF", "Q_DIFF", "U_DIFF"], dtype=None)
+                hp.write_map(f"{procver}/diffs/CG_cmb_diff_{method}_{procver}.fits", np.array(map_CG-map_cmblegacy), overwrite=True, column_names=["I_DIFF", "Q_DIFF", "U_DIFF"], dtype=None)
 
         except Exception as e:
             print(e)
@@ -982,7 +982,7 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
                     nu_ref_t="NONE",
                     nu_ref_p="NONE",
                     procver=procver,
-                    filename=f'goodness/BP_chisq_n16_{procver}.fits',
+                    filename=f'goodness/CG_chisq_n16_{procver}.fits',
                     bndctr=None,
                     restfreq=None,
                     bndwid=None,
@@ -1177,7 +1177,7 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
                         nu_ref_t="NONE",
                         nu_ref_p="NONE",
                         procver=procver,
-                        filename=f'goodness/BP_res_{label}_{b["sig"]}_n{b["nside"]}_{b["fwhm"]}arcmin_{b["unit"]}_{procver}.fits',
+                        filename=f'goodness/CG_res_{label}_{b["sig"]}_n{b["nside"]}_{b["fwhm"]}arcmin_{b["unit"]}_{procver}.fits',
                         bndctr=None,
                         restfreq=None,
                         bndwid=None,
@@ -1197,27 +1197,27 @@ def release(ctx, chain, burnin, procver, resamp, copy_, freqmaps, ame, ff, cmb, 
     if br and resamp:
         # Gaussianized TT Blackwell-Rao input file
         click.echo("{:-^50}".format("CMB GBR"))
-        ctx.invoke(sigma_l2fits, filename=resamp, nchains=1, burnin=burnin, path="cmb/sigma_l", outname=f"{procver}/BP_cmb_GBRlike_{procver}.fits", save=True,)
+        ctx.invoke(sigma_l2fits, filename=resamp, nchains=1, burnin=burnin, path="cmb/sigma_l", outname=f"{procver}/CG_cmb_GBRlike_{procver}.fits", save=True,)
 
     """
     TODO Generalize this so that they can be generated by Elina and Anna-Stiina
     """
     # Full-mission 30 GHz IQU beam symmetrized frequency map
-    # BP_030_IQUdeconv_n0512_{procver}.fits
+    # CG_030_IQUdeconv_n0512_{procver}.fits
     # Full-mission 44 GHz IQU beam symmetrized frequency map
-    # BP_044_IQUdeconv_n0512_{procver}.fits
+    # CG_044_IQUdeconv_n0512_{procver}.fits
     # Full-mission 70 GHz IQU beam symmetrized frequency map
-    # BP_070_IQUdeconv_n1024_{procver}.fits
+    # CG_070_IQUdeconv_n1024_{procver}.fits
 
     """ Both sigma_l's and Dl's re in the h5. (Which one do we use?)
     """
     # CMB TT, TE, EE power spectrum
-    # BP_cmb_{procver}.txt
+    # CG_cmb_{procver}.txt
 
     """ Just get this from somewhere
     """
     # Best-fit LCDM CMB TT, TE, EE power spectrum
-    # BP_cmb_bfLCDM_{procver}.txt
+    # CG_cmb_bfLCDM_{procver}.txt
 
     if plot:
         os.chdir(procver)
