@@ -374,9 +374,6 @@ def standalone_colorbar(
     plt.gca().set_visible(False)
     ax = plt.axes([0.1, 0.7, 0.8, 0.2])  # LBWH
 
-    if fontsize is None:
-        fontsize = DEFAULT_FONTSIZES
-
     if ticklabels is None:
         ticklabels = format_list(ticks)
 
@@ -415,6 +412,11 @@ def apply_colorbar(
     """
     This function applies a colorbar to the figure and formats the ticks.
     """
+    if isinstance(unit, u.UnitBase):
+        unit = unit.to_string("latex")
+
+    if fontsize is None:
+        fontsize = DEFAULT_FONTSIZES['cbar_label']
 
     if image is None and cmap is not None:
         norm = mpl.colors.Normalize(vmin=ticks[0], vmax=ticks[-1])
@@ -424,9 +426,9 @@ def apply_colorbar(
             norm=norm,
             orientation=orientation,
             ticks=ticks,
-            label=unit,
-            extend=extend
+            extend=extend,
         )
+        cb.set_label(label=unit, size=fontsize)
     else:
         cb = fig.colorbar(
             image,
@@ -435,10 +437,6 @@ def apply_colorbar(
             shrink=cbar_shrink,
             pad=cbar_pad,
         )
-    if fontsize is None:
-        fontsize = DEFAULT_FONTSIZES
-    if isinstance(unit, u.UnitBase):
-        unit = unit.to_string("latex")
     #if orientation == 'horizontal':
     #   cb.ax.set_xticklabels(ticklabels, size=fontsize["cbar_tick_label"])
     #   cb.ax.xaxis.set_label_text(unit, size=fontsize["cbar_label"])
@@ -455,6 +453,7 @@ def apply_colorbar(
     #        continue
     #    label.set_visible(False)
 
+
     if norm in ["linlog", "log"]:
         """
         Make logarithmic tick markers manually
@@ -470,12 +469,11 @@ def apply_colorbar(
         logticks = symlog(ticks_, linthresh)
         logticks = [x for x in logticks if x not in ticks]
         if orientation == "horizontal":
-            cb.set_ticks(np.concatenate((ticks, logticks)))  # Set major ticks
-            cb.ax.set_xticklabels(ticklabels + [""] * len(logticks))
+            cb.set_xticks(np.concatenate((ticks, logticks)))  # Set major ticks
+            cb.ax.set_xticklabels(ticklabels + [""] * len(logticks), ha='center')
         elif orientation == "vertical":
-            # cb.ax.yaxis.set_ticks(np.concatenate((ticks, logticks)))  # Set major ticks
-            # cb.ax.set_yticklabels(ticklabels + [""] * len(logticks))
-            pass
+            cb.ax.yaxis.set_ticks(np.concatenate((ticks, logticks)))  # Set major ticks
+            cb.ax.set_yticklabels(ticklabels + [""] * len(logticks))
 
         # Minor tick log markers
 
@@ -505,12 +503,18 @@ def apply_colorbar(
             cb.ax.yaxis.set_ticks(minorticks, minor=True)
     # workaround for issue with viewers, see colorbar docstring
     cb.solids.set_edgecolor("face")
+    bbox = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+    bwidth, bheight = bbox.width, bbox.height
+    points_per_inch = 72
     if orientation == "horizontal":
         cb.ax.tick_params(
             which="both",
             axis="x",
             direction="in",
             color="#3d3d3d",
+            labelsize=fontsize,
+            width=fontsize/10,
+            length=bheight*points_per_inch*0.75,
         )
         cb.ax.xaxis.labelpad = 0
     elif orientation == "vertical":
@@ -519,6 +523,9 @@ def apply_colorbar(
             axis="y",
             direction="in",
             color="#3d3d3d",
+            labelsize=fontsize,
+            width=fontsize/10,
+            length=bheight*points_per_inch*0.75,
         )
         cb.ax.yaxis.labelpad = 0
 
