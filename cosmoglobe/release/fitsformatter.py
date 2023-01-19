@@ -4,6 +4,7 @@ import os
 import numpy as np
 import healpy as hp
 from cosmoglobe.release.tools import *
+import cosmoglobe as cg
 
 
 def format_fits(chain, extname, types, units, nside, burnin, maxchain, polar, component, fwhm, nu_ref_t, nu_ref_p, procver, filename, bndctr, restfreq, bndwid, cmin=1, cmax=None, chdir=None, fields=None, scale=1.):
@@ -29,6 +30,7 @@ def get_data(chain, extname, component, burnin, maxchain, fwhm, nside, types, cm
 
         # Masks
         mask1 = np.zeros((hp.nside2npix(nside)))
+
         mask2 = np.zeros((hp.nside2npix(nside)))
 
         dset = np.zeros((len(types), hp.nside2npix(nside)))
@@ -145,21 +147,29 @@ def get_data(chain, extname, component, burnin, maxchain, fwhm, nside, types, cm
         dset[3] = Te_stddev
 
     elif extname.endswith("AME"):
-        # Mean data
+        # Mean/std amplitude 
         amp_mean = h5handler(input=chain, dataset="ame/amp_alm", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=fwhm, nside=nside, command=np.mean,)
-        nu_p_mean = h5handler(input=chain, dataset="ame/nu_p_map", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=0.0, nside=nside, command=np.mean,)
-
-        # stddev data
         amp_stddev = h5handler(input=chain, dataset="ame/amp_alm", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=fwhm, nside=nside, command=np.std,)
-        nu_p_stddev = h5handler(input=chain, dataset="ame/nu_p_map", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=0.0, nside=nside, command=np.std,)
+
+        # Mean/std spectral parameters
+        c = cg.Chain(chain)
+        comp_type = c.parameters['ame']['type']
+        if comp_type == 'exponential':
+            sed_mean = h5handler(input=chain, dataset="ame/beta_map", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=0.0, nside=nside, command=np.mean,)
+            sed_stddev = h5handler(input=chain, dataset="ame/beta_map", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=0.0, nside=nside, command=np.std,)
+        elif comp_type == 'spindust2':
+            sed_mean = h5handler(input=chain, dataset="ame/nu_p_map", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=0.0, nside=nside, command=np.mean,)
+            sed_stddev = h5handler(input=chain, dataset="ame/nu_p_map", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=0.0, nside=nside, command=np.std,)
+        else:
+            print(f'Component type {comp_type} not supported')
 
         dset = np.zeros((len(types), hp.nside2npix(nside)))
 
         dset[0] = amp_mean
-        dset[1] = nu_p_mean
+        dset[1] = sed_mean
 
         dset[2] = amp_stddev
-        dset[3] = nu_p_stddev
+        dset[3] = sed_stddev
 
     if extname.endswith("FREQMAP"):
         # Mean data
@@ -168,7 +178,8 @@ def get_data(chain, extname, component, burnin, maxchain, fwhm, nside, types, cm
         # stddev data
         # amp_stddev = h5handler(input=chain, dataset=f"tod/{component}/map", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=120., nside=nside, command=np.std,)
         # covar data
-        amp_covar = h5handler(input=chain, dataset=f"tod/{component}/map", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=120., nside=nside, command=np.cov,)
+        print("Covariance data")
+        amp_covar = h5handler(input=chain, dataset=f"tod/{component}/map", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=120., nside=nside, command=np.cov, remove_mono=True)
 
         # Masks
 
@@ -178,21 +189,16 @@ def get_data(chain, extname, component, burnin, maxchain, fwhm, nside, types, cm
         dset[1] = amp_mean[1, :]
         dset[2] = amp_mean[2, :]
 
-        dset[3] = amp_rms[0, :]
-        dset[4] = amp_rms[1, :]
-        dset[5] = amp_rms[2, :]
+        dset[3] = amp_rms[0, :]**0.5
+        dset[4] = amp_rms[1, :]**0.5
+        dset[5] = amp_rms[2, :]**0.5
+        dset[6] = amp_rms[3, :]
         
-        #dset[6] = amp_stddev[0, :]
-        #dset[7] = amp_stddev[1, :]
-        #dset[8] = amp_stddev[2, :]
 
-        dset[6] = amp_covar[0, 0, :]**0.5
-        dset[7] = amp_covar[1, 1, :]**0.5
-        dset[8] = amp_covar[2, 2, :]**0.5
-
-        dset[9]  = amp_covar[0, 1, :]
-        dset[10] = amp_covar[0, 2, :]
-        dset[11] = amp_covar[1, 2, :]
+        dset[7] = amp_covar[0, 0, :]**0.5
+        dset[8] = amp_covar[1, 1, :]**0.5
+        dset[9] = amp_covar[2, 2, :]**0.5
+        dset[10] = amp_covar[1, 2, :]
 
 
     if extname.endswith("RES"):
