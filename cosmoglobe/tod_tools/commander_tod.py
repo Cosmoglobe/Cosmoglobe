@@ -53,8 +53,10 @@ class TODLoader:
             if not self.name:
                 self.outName = os.path.join(self.outPath, sfreq + ".h5")
             else:
+                #self.outName = os.path.join(
+                #    self.outPath, self.name + "_" + sfreq + ".h5"
                 self.outName = os.path.join(
-                    self.outPath, self.name + "_" + sfreq + ".h5"
+                    self.outPath, self.name + sfreq + ".h5"
                 )
         else:
             self.outName = os.path.join(
