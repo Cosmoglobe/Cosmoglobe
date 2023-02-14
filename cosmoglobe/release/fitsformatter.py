@@ -178,7 +178,6 @@ def get_data(chain, extname, component, burnin, maxchain, fwhm, nside, types, cm
         # stddev data
         # amp_stddev = h5handler(input=chain, dataset=f"tod/{component}/map", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=120., nside=nside, command=np.std,)
         # covar data
-        print("Covariance data")
         amp_covar = h5handler(input=chain, dataset=f"tod/{component}/map", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=120., nside=nside, command=np.cov, remove_mono=True)
 
         # Masks
@@ -206,7 +205,6 @@ def get_data(chain, extname, component, burnin, maxchain, fwhm, nside, types, cm
         amp_mean = fits_handler(input=f"res_{component}_c0001_k000001.fits", min=burnin, max=None, minchain=cmin, maxchain=cmax, chdir=chdir, output="map", fwhm=fwhm, nside=nside, zerospin=False, drop_missing=True, pixweight=None, command=np.mean, lowmem=False, fields=fields, write=False)
         amp_stddev = fits_handler(input=f"res_{component}_c0001_k000001.fits", min=burnin, max=None, minchain=cmin, maxchain=cmax, chdir=chdir, output="map", fwhm=fwhm, nside=nside, zerospin=False, drop_missing=True, pixweight=None, command=np.std, lowmem=False, fields=fields, write=False)
         dset = np.zeros((N, hp.nside2npix(nside)))
-        print(amp_mean.shape, amp_stddev.shape)
         if len(fields)>1:
             dset[:N//2] = amp_mean[fields, :]*scale
             dset[N//2:] = amp_stddev[fields, :]*scale

@@ -83,7 +83,7 @@ def alm2fits_tool(input, dataset, nside, lmax, fwhm, save=True,):
         hp.write_map(outfile + f"_n{str(nside)}_lmax{lmax}.fits", maps, overwrite=True, dtype=None)
     return maps, nside, lmax, fwhm, outfile
 
-def h5handler(input, dataset, min, max, maxchain, output, fwhm, nside, command, pixweight=None, zerospin=False, lowmem=False, notchain=False):
+def h5handler(input, dataset, min, max, maxchain, output, fwhm, nside, command, pixweight=None, zerospin=False, lowmem=False, notchain=False, remove_mono=False):
     """
     Function for calculating mean and stddev of signals in hdf file
     """
@@ -93,7 +93,8 @@ def h5handler(input, dataset, min, max, maxchain, output, fwhm, nside, command, 
     from tqdm import tqdm
 
     if (lowmem and command == np.std): #need to compute mean first
-        mean_data = h5handler(input, dataset, min, max, maxchain, output, fwhm, nside, np.mean, pixweight, zerospin, lowmem,)
+        mean_data = h5handler(input, dataset, min, max, maxchain, output, fwhm,
+            nside, np.mean, pixweight, zerospin, lowmem, remove_mono=remove_mono)
 
     print()
     if command: print("{:-^50}".format(f" {dataset} calculating {command.__name__} "))
@@ -195,6 +196,10 @@ def h5handler(input, dataset, min, max, maxchain, output, fwhm, nside, command, 
                     else: #use ring weights
                         data = hp.sphtfunc.smoothing(data, fwhm=arcmin2rad(fwhm),pol=pol,use_weights=True)
 
+                # Removing monopole - test
+                if remove_mono:
+                    data[0], mono = hp.remove_monopole(data[0], gal_cut=30, fitval=True)
+
                 if (lowmem):
                     if (first_samp):
                         first_samp=False
@@ -224,7 +229,6 @@ def h5handler(input, dataset, min, max, maxchain, output, fwhm, nside, command, 
         # Convert list to array
         dats = np.array(dats)
         # Calculate std or mean
-        print(dats.shape)
         if (command == np.cov):
             N  = dats.shape[0]
             m1 = dats - dats.sum(axis=0, keepdims=1)/N
@@ -253,7 +257,6 @@ def h5handler(input, dataset, min, max, maxchain, output, fwhm, nside, command, 
         while np.ndim(outdata)>2: 
             if outdata.shape[-1]==4:
                 tdata = outdata[:,0,0]
-                print(tdata)
                 outdata = outdata[:,:,3]
                 outdata[:,0] = tdata
             else:
@@ -591,6 +594,7 @@ def fits_handler(input, min, max, minchain, maxchain, chdir, output, fwhm, nside
                 if (nest): #need to reorder to ring-ordering
                     data = hp.pixelfunc.reorder(data,n2r=True)
 
+
                 # degrading if relevant
                 if (not nside == None):
                     if (nside < nside_map):
@@ -602,7 +606,7 @@ def fits_handler(input, min, max, minchain, maxchain, chdir, output, fwhm, nside
                     data = data.ravel()
 
                 # If smoothing applied and calculating stddev, smooth first.
-                if fwhm > 0.0 and command == np.std:
+                if fwhm > 0.0 and (command == np.std or command == np.cov):
                     #print(f"#{sample} --- Smoothing map ---")
                     if use_pixweights:
                         data = hp.sphtfunc.smoothing(data, fwhm=arcmin2rad(fwhm),pol=pol,use_pixel_weights=True,datapath=pixweight)
