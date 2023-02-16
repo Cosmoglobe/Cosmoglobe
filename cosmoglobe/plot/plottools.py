@@ -769,9 +769,20 @@ def get_params(**params):
     # If ticks is not set automatically, try inputs
     if params["ticks"] is None:
         params["ticks"] = [params["min"], params["max"]]
+    # Ticks and ticklabels
+    elif type(params["ticks"]) == str:
+        if params["ticks"] == 0:
+            params["ticks"] = get_percentile(params["data"], 99)
+    elif None in params["ticks"]:
+        pmin, pmax = get_percentile(params["data"], 99)
+        if params["ticks"][0] is None:
+            params["ticks"][0] = pmin
+        if params["ticks"][-1] is None:
+            params["ticks"][-1] = pmax
 
     # if ticks is not specified to be auto in function call
-    if params["ticks"] != "auto":
+    #if params["ticks"] != "auto":
+    else:
         # If range is not specified in function call
         if params["rng"] is not None:
             params["ticks"] = [-params["rng"], 0.0, params["rng"]]
@@ -789,15 +800,6 @@ def get_params(**params):
                     params["ticks"] = [None, None]  # (These will be set later)
                 params["ticks"][-1] = params["max"]
 
-    # Ticks and ticklabels
-    if params["ticks"] == "auto" or "auto" in params["ticks"]:
-        params["ticks"] = get_percentile(params["data"], 99)
-    elif None in params["ticks"]:
-        pmin, pmax = get_percentile(params["data"], 99)
-        if params["ticks"][0] is None:
-            params["ticks"][0] = pmin
-        if params["ticks"][-1] is None:
-            params["ticks"][-1] = pmax
 
     # Math text in labels
     for key in ["rlabel", "llabel", "unit"]:

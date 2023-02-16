@@ -69,6 +69,7 @@ def plot(
     custom_ytick_labels=None,
     ratio=None,
     extend=None,
+    return_figure=False,
     scale=1,
     **kwargs,
 ):
@@ -325,4 +326,5 @@ def plot(
         **kwargs
     )
 
-    return ret, params
+    if return_figure:
+       return ret, params

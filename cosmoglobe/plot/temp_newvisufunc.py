@@ -337,7 +337,7 @@ def projview(
             pad = 0.05
             width = 5
         if cb_orientation == "horizontal":
-            shrink = 0.15
+            shrink = 0.4
             pad = 0.05
             if cbar_ticks is not None:
                 lpad = 0
@@ -680,6 +680,7 @@ def projview(
         ticks = None if show_tickmarkers else cbar_ticks
 
         # Create colorbar
+        '''
         divider = make_axes_locatable(ax)
         if cb_orientation == 'vertical':
             cax = divider.append_axes('right',
@@ -688,12 +689,17 @@ def projview(
             axes_class=matplotlib.axes._axes.Axes)
         elif cb_orientation == 'horizontal':
             cax = divider.append_axes('bottom',
-            size=plot_properties['cbar_shrink']*0.75,
+            size=plot_properties['cbar_shrink'],
             pad=plot_properties['cbar_pad'],
             axes_class=matplotlib.axes._axes.Axes)
         else:
             print('Made a mistake')
             return None
+        '''
+        if cb_orientation == 'horizontal':
+            cax = fig.add_axes([0.25, 0.03, 0.5, 0.05])
+        elif cb_orientation == 'vertical':
+            cax = fig.add_axes([1.0, 0.25, 0.03, 0.5])
         cb = fig.colorbar(
             ret,
             ticks=ticks,
