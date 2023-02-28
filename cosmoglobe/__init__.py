@@ -1,3 +1,4 @@
+import pkg_resources
 from typing import List, Literal, Optional, Union
 
 from astropy.utils.data import download_file
@@ -6,6 +7,11 @@ from cosmoglobe.h5.chain import Chain
 from cosmoglobe.plot import gnom, hist, plot, spec, standalone_colorbar, trace
 from cosmoglobe.sky._units import K_CMB, K_RJ
 from cosmoglobe.sky.model import SkyModel
+
+try:
+    __version__ = pkg_resources.get_distribution(__name__).version
+except pkg_resources.DistributionNotFound:  # pragma: no cover
+    ...
 
 _COMPSEP_DATA_URL = "http://sdc.uio.no/vol/cosmoglobe-data/BeyondPlanck/compsep/"
 _BP_DATA_URL = "http://sdc.uio.no/vol/cosmoglobe-data/BeyondPlanck/releases/v2/"
