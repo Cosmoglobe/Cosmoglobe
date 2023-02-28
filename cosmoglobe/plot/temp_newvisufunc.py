@@ -320,6 +320,7 @@ def projview(
         lpad = -9 * decs
 
     ratio = 0.63
+    ratio = 0.6
     custom_width = width
     if projection_type == "3d":
         if cb_orientation == "vertical":
@@ -506,8 +507,8 @@ def projview(
     # Parameters for subplots
     left = 0.02
     right = 0.98
-    top = 0.95
-    bottom = 0.05
+    top = 0.98
+    bottom = 0.08
 
     # end if not
     if graticule and graticule_labels:
@@ -698,7 +699,7 @@ def projview(
             return None
         '''
         if cb_orientation == 'horizontal':
-            cax = fig.add_axes([0.25, 0.03, 0.5, 0.05])
+            cax = fig.add_axes([0.25, 0.065, 0.5, 0.04])
         elif cb_orientation == 'vertical':
             cax = fig.add_axes([1.0, 0.25, 0.03, 0.5])
         cb = fig.colorbar(
