@@ -720,7 +720,6 @@ def projview(
 
             cb.set_ticks(ticks)
             cb.set_ticklabels(labels)
-            print('am I even here though')
         else:
             labels = [format % tick for tick in cbar_ticks]
 
