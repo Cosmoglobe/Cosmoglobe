@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "cosmoglobe"
-version = "0.9.77"
+version = "0.9.78"
 description = "A Python package for interfacing the Cosmoglobe Sky Model with commander3 outputs for the purpose of producing astrophysical sky maps."
 authors = ["Metin San <metinisan@gmail.com>", "Trygve Leithe Svalheim <t.l.svalheim@astro.uio.no>"]
 maintainers = ["Metin San <metinisan@gmail.com>", "Trygve Leithe Svalheim <t.l.svalheim@astro.uio.no>"]
