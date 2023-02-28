@@ -1814,9 +1814,17 @@ def release(
             cmax = None
             chdir = os.path.split(chains[0])[0].rsplit("chain_", 1)[0]
         else:
-            cmin = int(os.path.split(chains[0])[0].rsplit("_c")[-1])
-            cmax = int(os.path.split(chains[-1])[0].rsplit("_c")[-1])
-            chdir = os.path.split(chains[0])[0].rsplit("_", 1)[0]
+            #print(chains[0])
+            #print(os.path.split(chains[0]))
+            #print(os.path.split(chains[0])[-1])
+            #print(os.path.split(chains[0])[-1][-1])
+            #cmin = int(os.path.split(chains[0])[0].rsplit("_c")[-1])
+            #cmax = int(os.path.split(chains[-1])[0].rsplit("_c")[-1])
+            cmin = 1
+            cmax = len(chains)
+            chdir = os.path.split(chains[0])[0]
+            #chdir = os.path.split(chains[0])[0].rsplit("_", 1)[0]
+            #print(chdir)
 
         if chisq:
             try:

@@ -484,8 +484,9 @@ def plotrelease(ctx, procver, mask, defaultmask, freqmaps, cmb, cmbresamp, synch
                     ctx.invoke(plot, input=f"CG_cmb_IQU_n1024_{procver}.fits", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[1, 2,], fwhm=fwhm, range=rng)
 
                 # RMS maps
+                print('rms 30')
                 ctx.invoke(plot, input=f"CG_cmb_IQU_n1024_{procver}.fits", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[3,], min=0, max=30)
-                ctx.invoke(plot, input=f"CG_cmb_IQU_n1024_{procver}.fits", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[4, 5,], min=0, max=10)
+                ctx.invoke(plot, input=f"CG_cmb_IQU_n1024_{procver}.fits", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[4, 5,], min=0, max=30)
             except Exception as e:
                 print(e)
                 click.secho("Continuing...", fg="yellow")
