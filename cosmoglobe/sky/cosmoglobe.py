@@ -35,7 +35,6 @@ class CosmoglobeModel:
         """Returns a sky component from the cosmoglobe model."""
 
         for component in self.components:
-            print(component.label.value)
             if component.label.value == component_name:
                 return component
         raise ComponentNotFoundError(f"component {component_name} not found in model.")
