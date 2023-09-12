@@ -706,7 +706,7 @@ python-versions = ">=3.5"
 
 [[package]]
 name = "numba"
-version = "0.56.2"
+version = "0.56.4"
 description = "compiling Python code using LLVM"
 category = "main"
 optional = false

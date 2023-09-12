@@ -391,6 +391,9 @@ class TODLoader:
     def read_across_files(self, fieldName):
         return
 
+    def close(self):
+        self.outFile.close()
+
     def decompress(self, field, compression=""):
         comps = compression.split(" ")
         ndim = 1

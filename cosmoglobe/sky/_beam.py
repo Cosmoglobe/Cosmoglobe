@@ -40,7 +40,7 @@ def gaussian_beam_2D(r: np.ndarray, sigma: float) -> np.ndarray:
         Gaussian beam.
     """
 
-    return r * np.exp(-(r ** 2) / (2 * sigma ** 2)) / (sigma * np.sqrt(2 * np.pi))
+    return np.exp(-(r ** 2) / (2 * sigma ** 2)) / (sigma * np.sqrt(2 * np.pi))
 
 
 def pointsources_to_healpix(
