@@ -53,10 +53,10 @@ class TODLoader:
             if not self.name:
                 self.outName = os.path.join(self.outPath, sfreq + ".h5")
             else:
-                #self.outName = os.path.join(
-                #    self.outPath, self.name + "_" + sfreq + ".h5"
                 self.outName = os.path.join(
-                    self.outPath, self.name + sfreq + ".h5"
+                    self.outPath, self.name + "_" + sfreq + ".h5"
+                #self.outName = os.path.join(
+                #    self.outPath, self.name + sfreq + ".h5"
                 )
         else:
             self.outName = os.path.join(
@@ -377,12 +377,13 @@ class TODLoader:
     def load_field(self, fieldName):
         if fieldName[0] != "/":  # catch common user error
             fieldName = "/" + fieldName
-        try:
+
+        if 'compression' in self.outFile[fieldName].attrs.keys():
             compStr = self.outFile[fieldName].attrs["compression"]
-        except KeyError:
+            return self.decompress(fieldName, compression=compStr)
+        else:
             return self.outFile[fieldName]
 
-        return self.decompress(fieldName, compression=compStr)
 
     def load_all_fields(self):
         return
