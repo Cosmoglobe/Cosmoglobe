@@ -332,7 +332,7 @@ def projview(
             pad = 0
             lpad = -10
             width = 14
-    if projection_type in geographic_projections:
+    elif projection_type in geographic_projections:
         if cb_orientation == "vertical":
             shrink = 0.1
             pad = 0.05
@@ -345,7 +345,7 @@ def projview(
             else:
                 lpad = -8
             width = 8.5
-    if projection_type == "cart":
+    elif projection_type == "cart":
         if cb_orientation == "vertical":
             shrink = 1
             pad = 0.01
@@ -359,7 +359,7 @@ def projview(
             if xlabel == None:
                 pad = 0.01
                 ratio = 0.63
-    if projection_type == "polar":
+    elif projection_type == "polar":
         if cb_orientation == "vertical":
             shrink = 1
             pad = 0.01
@@ -369,6 +369,8 @@ def projview(
             pad = 0.01
             lpad = 0
             width = 12
+    else:
+        print('Projection type not supported')
 
     # If width was passed as an input argument
     if custom_width is not None:
@@ -699,7 +701,7 @@ def projview(
             return None
         '''
         if cb_orientation == 'horizontal':
-            cax = fig.add_axes([0.25, 0.065, 0.5, 0.04])
+            cax = fig.add_axes([0.25, 0.055, 0.5, 0.04])
         elif cb_orientation == 'vertical':
             cax = fig.add_axes([1.0, 0.25, 0.03, 0.5])
         cb = fig.colorbar(
@@ -804,17 +806,31 @@ def projview(
             transform=ax.transAxes,
         )
     # Top left label
+    #if llabel is not None:
+    #    plt.text(
+    #        #0.025,
+    #        #-0.03,
+    #        0.15,
+    #        0.925,
+    #        llabel,
+    #        ha="right",
+    #        va="center",
+    #        fontsize=fontsize_defaults["llabel"],
+    #        fontname=fontname,
+    #        transform=ax.transAxes,
+    #    )
     if llabel is not None:
         plt.text(
             0.025,
             0.925,
             llabel,
             ha="left",
+            #ha="right",
             va="center",
             fontsize=fontsize_defaults["llabel"],
             fontname=fontname,
             transform=ax.transAxes,
-        )
+            )
 
     plt.draw()
     return ret

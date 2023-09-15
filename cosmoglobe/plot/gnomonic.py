@@ -16,8 +16,8 @@ def gnom(
     nside=None,
     size=20,
     sample=-1,
-    vmin=None,
-    vmax=None,
+    min=None,
+    max=None,
     ticks=None,
     rng=None,
     llabel=None,
@@ -74,10 +74,10 @@ def gnom(
     sample : float, optional
         Specify sample if passing chain
         default: -1
-    vmin : float, optional
+    min : float, optional
         Min value
         default: None
-    vmax : float, optional
+    max : float, optional
         Max value
         default: None
     ticks : list or str, optional
@@ -177,6 +177,7 @@ def gnom(
 
     # Get data
     m, comp, freq, nside = get_data(input, sig, comp, freq, fwhm, nside=nside, sample=sample)
+    m = hp.ma(m)
     if remove_dip:
         m = hp.remove_dipole(m, gal_cut=30, copy=True, verbose=True)
     if remove_mono:
@@ -184,6 +185,8 @@ def gnom(
 
     proj = hp.projector.GnomonicProj(rot=[lon, lat, 0.0], coord="G", xsize=xsize, ysize=xsize, reso=reso)
     reproj_im = proj.projmap(m, vec2pix_func=partial(hp.vec2pix, nside))
+    mask = (reproj_im == hp.UNSEEN)
+    reproj_im = np.ma.masked_array(reproj_im, mask=mask)
 
     # Pass all your arguments in, return parsed plotting parameters
     params = get_params(
@@ -194,8 +197,8 @@ def gnom(
         llabel=llabel,
         unit=unit,
         ticks=ticks,
-        min=vmin,
-        max=vmax,
+        min=min,
+        max=max,
         rng=rng,
         norm=norm,
         cmap=cmap,
@@ -209,6 +212,7 @@ def gnom(
         params["data"], params["ticks"] = apply_logscale(params["data"], params["ticks"], linthresh=1)
     
     cmap = load_cmap(params["cmap"])
+    cmap.set_bad('gray')
     
     fig, ax = make_fig(figsize, None, hold, sub, reuse_axes)
     image = plt.imshow(
