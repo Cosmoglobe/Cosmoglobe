@@ -517,9 +517,12 @@ def apply_colorbar(
             labelsize=fontsize,
             width=fontsize/10,
             #length=bheight*points_per_inch*0.75,
-            length=bheight*points_per_inch*0.01,
+            length=bheight*points_per_inch*0.5,
         )
         cb.ax.xaxis.labelpad = 0
+        if norm in ["linlog", "log"]:
+            ticklabels = cb.ax.get_xticklabels()
+        cb.ax.set_xticklabels(ticklabels)
     elif orientation == "vertical":
         cb.ax.tick_params(
             which="both",
@@ -532,8 +535,9 @@ def apply_colorbar(
         )
         cb.ax.yaxis.labelpad = 0
 
-        ylabels = cb.ax.get_yticklabels()
-        cb.ax.set_yticklabels(ylabels, Rotation=90)
+        if norm in ["linlog", "log"]:
+            ticklabels = cb.ax.get_yticklabels()
+        cb.ax.set_yticklabels(ticklabels, Rotation=90)
 
     return  # cb
 
