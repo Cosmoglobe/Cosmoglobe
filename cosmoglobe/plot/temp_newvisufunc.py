@@ -303,6 +303,8 @@ def projview(
         "ylabel": 12,
         "llabel": 12,
         "rlabel": 12,
+        "llabel_align": "left",
+        "rlabel_align": "left",
         "title": 14,
         "xtick_label": 12,
         "ytick_label": 12,
@@ -684,26 +686,25 @@ def projview(
         ticks = None if show_tickmarkers else cbar_ticks
 
         # Create colorbar
-        '''
-        divider = make_axes_locatable(ax)
-        if cb_orientation == 'vertical':
-            cax = divider.append_axes('right',
-            size=plot_properties['cbar_shrink'],
-            pad=plot_properties['cbar_pad'],
-            axes_class=matplotlib.axes._axes.Axes)
-        elif cb_orientation == 'horizontal':
-            cax = divider.append_axes('bottom',
-            size=plot_properties['cbar_shrink'],
-            pad=plot_properties['cbar_pad'],
-            axes_class=matplotlib.axes._axes.Axes)
+        if sub == 111:
+            if cb_orientation == 'horizontal':
+                cax = fig.add_axes([0.25, 0.055, 0.5, 0.04])
+            elif cb_orientation == 'vertical':
+                cax = fig.add_axes([1.0, 0.25, 0.03, 0.5])
         else:
-            print('Made a mistake')
-            return None
-        '''
-        if cb_orientation == 'horizontal':
-            cax = fig.add_axes([0.25, 0.055, 0.5, 0.04])
-        elif cb_orientation == 'vertical':
-            cax = fig.add_axes([1.0, 0.25, 0.03, 0.5])
+            bbox = ax.get_position()
+            x0 = bbox.x0
+            y0 = bbox.y0
+            width = bbox.width
+            height = bbox.height
+            new_width = 0.75*width
+            buff = (width - new_width)/2
+            if cb_orientation == 'horizontal':
+                cax = fig.add_axes([x0 + buff, y0 - 0.1*height, new_width, 0.05*height])
+            cax.tick_params(axis="both", which="both",
+                    length=fig.get_size_inches()[0]*72/250)
+            # tick length is in points
+
         cb = fig.colorbar(
             ret,
             ticks=ticks,
@@ -726,6 +727,7 @@ def projview(
         else:
             labels = [format % tick for tick in cbar_ticks]
 
+        print(fontsize_defaults["cbar_tick_label"], "default fontsize")
         if cb_orientation == "horizontal":
             # labels = cb.ax.get_xticklabels() if norm is not None else labels
             cb.ax.set_xticklabels(
@@ -807,30 +809,34 @@ def projview(
         )
     # Top left label
     #if llabel is not None:
-    #    plt.text(
-    #        #0.025,
-    #        #-0.03,
-    #        0.15,
-    #        0.925,
-    #        llabel,
-    #        ha="right",
-    #        va="center",
-    #        fontsize=fontsize_defaults["llabel"],
-    #        fontname=fontname,
-    #        transform=ax.transAxes,
-    #    )
     if llabel is not None:
-        plt.text(
-            0.025,
-            0.925,
-            llabel,
-            ha="left",
-            #ha="right",
-            va="center",
-            fontsize=fontsize_defaults["llabel"],
-            fontname=fontname,
-            transform=ax.transAxes,
+        if fontsize_defaults["llabel_align"] == "left":
+            plt.text(
+                0.025,
+                0.925,
+                llabel,
+                ha="left",
+                #ha="right",
+                va="center",
+                fontsize=fontsize_defaults["llabel"],
+                fontname=fontname,
+                transform=ax.transAxes,
+                )
+        elif fontsize_defaults["llabel_align"] == "right":
+            plt.text(
+                #0.025,
+                #-0.03,
+                0.15,
+                0.925,
+                llabel,
+                ha="right",
+                va="center",
+                fontsize=fontsize_defaults["llabel"],
+                fontname=fontname,
+                transform=ax.transAxes,
             )
+        else:
+            print("llabel_align must be 'left' or 'right'")
 
     plt.draw()
     return ret
