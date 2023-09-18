@@ -242,13 +242,12 @@ def plot(
     m, comp, freq, nside = get_data(input, sig, comp, freq, fwhm, nside=nside,
         sample=sample, scale=scale, remove_dip=remove_dip,
         remove_mono=remove_mono)
+    m = hp.ma(m)
 
-    # Mask map
     if mask is not None:
         if isinstance(mask, str):
             mask = hp.read_map(mask)
 
-        m = hp.ma(m)
         if hp.get_nside(mask) != nside:
             print("[magenta]Input mask nside is different, ud_grading to output nside.[/magenta]")
             mask = hp.ud_grade(mask, nside)

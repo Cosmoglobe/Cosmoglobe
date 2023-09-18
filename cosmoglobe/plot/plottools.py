@@ -178,8 +178,8 @@ def get_percentile(m, percentile):
     This function gets appropriate min and max
     values of the data for a given percentile
     """
-    vmin = np.percentile(m, 100.0 - percentile)
-    vmax = np.percentile(m, percentile)
+    vmin = np.percentile(m[~m.mask], 100.0 - percentile)
+    vmax = np.percentile(m[~m.mask], percentile)
 
     vmin = 0.0 if abs(vmin) < 1e-5 else vmin
     vmax = 0.0 if abs(vmax) < 1e-5 else vmax
@@ -417,6 +417,8 @@ def apply_colorbar(
 
     if fontsize is None:
         fontsize = DEFAULT_FONTSIZES['cbar_label']
+    elif type(fontsize) is dict:
+        fontsize = fontsize['cbar_label']
 
     if image is None and cmap is not None:
         norm = mpl.colors.Normalize(vmin=ticks[0], vmax=ticks[-1])
@@ -514,7 +516,8 @@ def apply_colorbar(
             color="#3d3d3d",
             labelsize=fontsize,
             width=fontsize/10,
-            length=bheight*points_per_inch*0.75,
+            #length=bheight*points_per_inch*0.75,
+            length=bheight*points_per_inch*0.01,
         )
         cb.ax.xaxis.labelpad = 0
     elif orientation == "vertical":
