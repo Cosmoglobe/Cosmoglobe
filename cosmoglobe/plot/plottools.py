@@ -168,7 +168,7 @@ def make_fig(figsize, fignum, hold, sub, reuse_axes, darkmode=False, projection=
     if reuse_axes:
         ax = fig.gca()
     else:
-        ax = fig.add_subplot(int(f"{nrows}{ncols}{idx}"), projection=projection)
+        ax = fig.add_subplot(nrows,ncols,idx, projection=projection)
 
     return fig, ax
 
@@ -517,7 +517,7 @@ def apply_colorbar(
             labelsize=fontsize,
             width=fontsize/10,
             #length=bheight*points_per_inch*0.75,
-            length=bheight*points_per_inch*0.5,
+            length=bheight*points_per_inch*0.025,
         )
         cb.ax.xaxis.labelpad = 0
         if norm in ["linlog", "log"]:
@@ -531,7 +531,7 @@ def apply_colorbar(
             color="#3d3d3d",
             labelsize=fontsize,
             width=fontsize/10,
-            length=bheight*points_per_inch*0.75,
+            length=bheight*points_per_inch*0.025,
         )
         cb.ax.yaxis.labelpad = 0
 
