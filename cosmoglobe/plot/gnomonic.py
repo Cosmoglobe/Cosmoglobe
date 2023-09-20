@@ -39,6 +39,8 @@ def gnom(
     sub=None,
     hold=False,
     reuse_axes=False,
+    gb=False,
+    textbg_alpha=0.9
 ):
     """
     Gnomonic view plotting
@@ -225,9 +227,16 @@ def gnom(
     )
 
     # Galaxy-brain inverse of data color
-    colors = image.cmap(image.norm((params["data"])))
-    llabel_color = (1, 1, 1, 2) - np.mean(colors[int(xsize * 0.9) : int(xsize * 0.95), int(xsize * 0.05) : int(xsize * 0.15)], axis=(0, 1))
-    rlabel_color = (1, 1, 1, 2) - np.mean(colors[int(xsize * 0.9) : int(xsize * 0.95), int(xsize * 0.85) : int(xsize * 0.95)], axis=(0, 1))
+    if gb:
+        colors = image.cmap(image.norm((params["data"])))
+        llabel_color = (1, 1, 1, 2) - np.mean(colors[int(xsize * 0.9) : int(xsize * 0.95), int(xsize * 0.05) : int(xsize * 0.15)], axis=(0, 1))
+        rlabel_color = (1, 1, 1, 2) - np.mean(colors[int(xsize * 0.9) : int(xsize * 0.95), int(xsize * 0.85) : int(xsize * 0.95)], axis=(0, 1))
+        bbox = dict()
+    else:
+        llabel_color = 'k'
+        rlabel_color = 'k'
+        backgroundcolor = 'white'
+        bbox = dict(facecolor='white', alpha=textbg_alpha)
 
     plt.xticks([])
     plt.yticks([])
@@ -240,6 +249,7 @@ def gnom(
         ha="right",
         transform=ax.transAxes,
         fontsize=default_fontsize["title"],
+        bbox=bbox,
     )
     plt.text(
         0.05,
@@ -249,6 +259,7 @@ def gnom(
         va="top",
         transform=ax.transAxes,
         fontsize=default_fontsize["title"],
+        bbox=bbox,
     )
     if cbar:
         apply_colorbar(
