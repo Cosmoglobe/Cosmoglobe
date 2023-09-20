@@ -416,9 +416,9 @@ def apply_colorbar(
         unit = unit.to_string("latex")
 
     if fontsize is None:
-        fontsize = DEFAULT_FONTSIZES['cbar_label']
-    elif type(fontsize) is dict:
-        fontsize = fontsize['cbar_label']
+        fontsize = DEFAULT_FONTSIZES#['cbar_label']
+    #elif type(fontsize) is dict:
+    #    fontsize = fontsize['cbar_label']
 
     if image is None and cmap is not None:
         norm = mpl.colors.Normalize(vmin=ticks[0], vmax=ticks[-1])
@@ -430,7 +430,7 @@ def apply_colorbar(
             ticks=ticks,
             extend=extend,
         )
-        cb.set_label(label=unit, size=fontsize)
+        cb.set_label(label=unit, size=fontsize['cbar_label'])
     else:
         cb = fig.colorbar(
             image,
@@ -439,21 +439,12 @@ def apply_colorbar(
             shrink=cbar_shrink,
             pad=cbar_pad,
         )
-    #if orientation == 'horizontal':
-    #   cb.ax.set_xticklabels(ticklabels, size=fontsize["cbar_tick_label"])
-    #   cb.ax.xaxis.set_label_text(unit, size=fontsize["cbar_label"])
-    #elif orientation == 'vertical':
-    #   cb.ax.set_yticklabels(ticklabels, size=fontsize["cbar_tick_label"])
-    #   cb.ax.yaxis.set_label_text(unit, size=fontsize["cbar_label"])
-
-    # cb = plt.gca().collections[-1].colorbar
-    # labels = cb.ax.xaxis.get_ticklabels()
-    ##ticks = cb.get_ticks()
-    # N = len(labels)
-    # for i, label in enumerate(labels):
-    #    if i in [0, N//2, N-1]:
-    #        continue
-    #    label.set_visible(False)
+    if orientation == 'horizontal':
+       cb.ax.set_xticklabels(ticklabels, size=fontsize["cbar_tick_label"])
+       cb.ax.xaxis.set_label_text(unit, size=fontsize["cbar_label"])
+    elif orientation == 'vertical':
+       cb.ax.set_yticklabels(ticklabels, size=fontsize["cbar_tick_label"])
+       cb.ax.yaxis.set_label_text(unit, size=fontsize["cbar_label"])
 
 
     if norm in ["linlog", "log"]:
@@ -514,8 +505,8 @@ def apply_colorbar(
             axis="x",
             direction="in",
             color="#3d3d3d",
-            labelsize=fontsize,
-            width=fontsize/10,
+            labelsize=fontsize["cbar_tick_label"],
+            width=fontsize['cbar_tick_label']/10,
             #length=bheight*points_per_inch*0.75,
             length=bheight*points_per_inch*0.02,
         )
@@ -530,8 +521,8 @@ def apply_colorbar(
             axis="y",
             direction="in",
             color="#3d3d3d",
-            labelsize=fontsize,
-            width=fontsize/10,
+            labelsize=fontsize["cbar_tick_label"],
+            width=fontsize['cbar_tick_label']/10,
             length=bheight*points_per_inch*0.02,
         )
         cb.ax.yaxis.labelpad = 0
