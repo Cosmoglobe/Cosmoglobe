@@ -83,7 +83,7 @@ def alm2fits_tool(input, dataset, nside, lmax, fwhm, save=True,):
         hp.write_map(outfile + f"_n{str(nside)}_lmax{lmax}.fits", maps, overwrite=True, dtype=None)
     return maps, nside, lmax, fwhm, outfile
 
-def h5handler(input, dataset, min, max, maxchain, output, fwhm, nside, command, pixweight=None, zerospin=False, lowmem=False, notchain=False, remove_mono=False):
+def h5handler(input, dataset, min, max, maxchain, output, fwhm, nside, command, pixweight=None, zerospin=False, lowmem=False, notchain=False, remove_mono=False, coadd=False,):
     """
     Function for calculating mean and stddev of signals in hdf file
     """
@@ -100,16 +100,29 @@ def h5handler(input, dataset, min, max, maxchain, output, fwhm, nside, command, 
     if command: print("{:-^50}".format(f" {dataset} calculating {command.__name__} "))
     print("{:-^50}".format(f" nside {nside}, {fwhm} arcmin smoothing "))
 
-    if dataset.endswith("map"):
-        type = "map"
-    elif dataset.endswith("rms"):
-        type = "map"
-    elif dataset.endswith("alm"):
-        type = "alm"
-    elif dataset.endswith("sigma"):
-        type = "sigma"
+
+    if coadd:
+        if dataset[0].endswith("map"):
+            type = "map"
+        elif dataset[0].endswith("rms"):
+            type = "map"
+        elif dataset[0].endswith("alm"):
+            type = "alm"
+        elif dataset[0].endswith("sigma"):
+            type = "sigma"
+        else:
+            type = "data"
     else:
-        type = "data"
+        if dataset.endswith("map"):
+            type = "map"
+        elif dataset.endswith("rms"):
+            type = "map"
+        elif dataset.endswith("alm"):
+            type = "alm"
+        elif dataset.endswith("sigma"):
+            type = "sigma"
+        else:
+            type = "data"
 
     if (lowmem):
         nsamp = 0 #track number of samples
@@ -127,7 +140,7 @@ def h5handler(input, dataset, min, max, maxchain, output, fwhm, nside, command, 
             if notchain:
                 data = f[dataset][()]
                 if data.shape[0] == 1:
-                    # Make sure its interprated as I by healpy
+                    # Make sure its interpreted as I by healpy
                     # For non-polarization data, (1,npix) is not accepted by healpy
                     data = data.ravel()
                 dats.append(data)
@@ -150,28 +163,52 @@ def h5handler(input, dataset, min, max, maxchain, output, fwhm, nside, command, 
                 s = str(sample).zfill(6)
 
                 # Sets tag with type
-                tag = f"{s}/{dataset}"
-                #print(f"Reading c{str(c).zfill(4)} {tag}")
+                if coadd:
+                    if pol:
+                        maps = np.zeros((len(dataset)-1, 3, hp.nside2npix(nside)))
+                        rmss = np.zeros((len(dataset)-1, 3, hp.nside2npix(nside)))
+                    else:
+                        maps = np.zeros((len(dataset)-1, 1, hp.nside2npix(nside)))
+                        rmss = np.zeros((len(dataset)-1, 1, hp.nside2npix(nside)))
+                    for i, dset in enumerate(dataset[:-1]):
+                        tag = f"{s}/{dset}"
+                        maps[i,:] = hp.ma(f[tag][()])
+                        rmss[i,:] = hp.ma(f[tag.replace('map', 'rms')][()])
+                    rmss[rmss == 0] = np.inf
+                    mu = np.zeros(maps[0].shape)
+                    den = np.zeros(maps[0].shape)
+                    for i in range(len(maps)):
+                        mu += maps[i]/rmss[i]**2
+                        den += 1/rmss[i]**2
+                    if 'rms' in dataset[0]:
+                        data = 1/den**0.5
+                    else:
+                        data = mu/den
 
-                # Check if map is available, if not, use alms.
-                # If alms is already chosen, no problem
-                try:
-                    data = f[tag][()]
-                    if len(data[0]) == 0:
-                        tag = f"{tag[:-3]}map"
-                        print(f"WARNING! No {type} data found, switching to map.")
-                        data = f[tag][()]
-                        type = "map"
-                except:
-                    print(f"Found no dataset called {dataset}")
-                    print(f"Trying alms instead {tag}")
+
+                else:
+                    tag = f"{s}/{dataset}"
+                    #print(f"Reading c{str(c).zfill(4)} {tag}")
+
+                    # Check if map is available, if not, use alms.
+                    # If alms is already chosen, no problem
                     try:
-                        # Use alms instead (This takes longer and is not preferred)
-                        tag = f"{tag[:-3]}alm"
-                        type = "alm"
                         data = f[tag][()]
+                        if len(data[0]) == 0:
+                            tag = f"{tag[:-3]}map"
+                            print(f"WARNING! No {type} data found, switching to map.")
+                            data = f[tag][()]
+                            type = "map"
                     except:
-                        print("Dataset not found.")
+                        print(f"Found no dataset called {dataset}")
+                        print(f"Trying alms instead {tag}")
+                        try:
+                            # Use alms instead (This takes longer and is not preferred)
+                            tag = f"{tag[:-3]}alm"
+                            type = "alm"
+                            data = f[tag][()]
+                        except:
+                            print("Dataset not found.")
 
                 # If data is alm, unpack.
                 if type == "alm":

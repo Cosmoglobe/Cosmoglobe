@@ -7,20 +7,23 @@ from cosmoglobe.release.tools import *
 import cosmoglobe as cg
 
 
-def format_fits(chain, extname, types, units, nside, burnin, maxchain, polar, component, fwhm, nu_ref_t, nu_ref_p, procver, filename, bndctr, restfreq, bndwid, cmin=1, cmax=None, chdir=None, fields=None, scale=1.):
+def format_fits(chain, extname, types, units, nside, burnin, maxchain, polar, component, fwhm, nu_ref_t, nu_ref_p, procver, filename, bndctr, restfreq, bndwid, cmin=1, cmax=None, chdir=None, fields=None, scale=1., coadd=False):
     print()
     print("{:#^80}".format(""))
     print("{:#^80}".format(f" Formatting and outputting {filename} "))
     print("{:#^80}".format(""))
-
-    header = get_header(extname, types, units, nside, polar, component, fwhm, nu_ref_t, nu_ref_p, procver, filename, bndctr, restfreq, bndwid,)
-    dset = get_data(chain, extname, component, burnin, maxchain, fwhm, nside, types, cmin, cmax, chdir, fields, scale, polar,)
+    
+    if coadd:
+        header = get_header(extname, types, units, nside, polar, component[0], fwhm, nu_ref_t, nu_ref_p, procver, filename, bndctr, restfreq, bndwid,)
+    else:
+        header = get_header(extname, types, units, nside, polar, component, fwhm, nu_ref_t, nu_ref_p, procver, filename, bndctr, restfreq, bndwid,)
+    dset = get_data(chain, extname, component, burnin, maxchain, fwhm, nside, types, cmin, cmax, chdir, fields, scale, polar, coadd,)
 
     print(f"{procver}/{filename}", dset.shape)
     hp.write_map(f"{procver}/{filename}", dset, column_names=types, column_units=units, coord="G", overwrite=True, extra_header=header, dtype=None)
 
 
-def get_data(chain, extname, component, burnin, maxchain, fwhm, nside, types, cmin, cmax, chdir, fields=None, scale=1.0, polar=True):
+def get_data(chain, extname, component, burnin, maxchain, fwhm, nside, types, cmin, cmax, chdir, fields=None, scale=1.0, polar=True, coadd=False,):
 
     if extname.endswith("CMB"):
         # Mean data
@@ -178,15 +181,25 @@ def get_data(chain, extname, component, burnin, maxchain, fwhm, nside, types, cm
         else:
             zerospin=True
         # Mean data
-        amp_mean = h5handler(input=chain, dataset=f"tod/{component}/map", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=fwhm, nside=nside, command=np.mean, zerospin=zerospin,)
-        amp_rms  = h5handler(input=chain, dataset=f"tod/{component}/rms", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=fwhm, nside=nside, command=np.mean, zerospin=zerospin,)
-        # stddev data
-        # amp_stddev = h5handler(input=chain, dataset=f"tod/{component}/map", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=120., nside=nside, command=np.std,)
-        # covar data
-        if polar:
-            amp_covar = h5handler(input=chain, dataset=f"tod/{component}/map", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=120., nside=nside, command=np.cov, remove_mono=True, zerospin=zerospin,)
+        if coadd:
+            datasets = [f"tod/{comp}/map" for comp in component]
+            amp_mean = h5handler(input=chain, dataset=datasets, min=burnin, max=None, maxchain=maxchain, output="map", fwhm=fwhm, nside=nside, command=np.mean, zerospin=zerospin, coadd=coadd, )
+
+            if polar:
+                amp_covar = h5handler(input=chain, dataset=datasets, min=burnin, max=None, maxchain=maxchain, output="map", fwhm=120., nside=nside, command=np.cov, remove_mono=True, zerospin=zerospin, coadd=coadd,)
+            else:
+                amp_stddev = h5handler(input=chain, dataset=datasets, min=burnin, max=None, maxchain=maxchain, output="map", fwhm=120., nside=nside, command=np.std, remove_mono=True, zerospin=zerospin, coadd=coadd,)
+
+            datasets = [f"tod/{comp}/rms" for comp in component]
+            amp_rms  = h5handler(input=chain, dataset=datasets, min=burnin, max=None, maxchain=maxchain, output="map", fwhm=fwhm, nside=nside, command=np.mean, zerospin=zerospin, coadd=coadd,)
+
         else:
-            amp_stddev = h5handler(input=chain, dataset=f"tod/{component}/map", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=120., nside=nside, command=np.std, remove_mono=True, zerospin=zerospin,)
+            amp_mean = h5handler(input=chain, dataset=f"tod/{component}/map", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=fwhm, nside=nside, command=np.mean, zerospin=zerospin,)
+            amp_rms  = h5handler(input=chain, dataset=f"tod/{component}/rms", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=fwhm, nside=nside, command=np.mean, zerospin=zerospin,)
+            if polar:
+                amp_covar = h5handler(input=chain, dataset=f"tod/{component}/map", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=120., nside=nside, command=np.cov, remove_mono=True, zerospin=zerospin,)
+            else:
+                amp_stddev = h5handler(input=chain, dataset=f"tod/{component}/map", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=120., nside=nside, command=np.std, remove_mono=True, zerospin=zerospin,)
 
         # Masks
 
