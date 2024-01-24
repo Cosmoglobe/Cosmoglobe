@@ -172,14 +172,16 @@ def h5handler(input, dataset, min, max, maxchain, output, fwhm, nside, command, 
                         rmss = np.zeros((len(dataset)-1, 1, hp.nside2npix(nside)))
                     for i, dset in enumerate(dataset[:-1]):
                         tag = f"{s}/{dset}"
-                        maps[i,:] = hp.ma(f[tag][()])
-                        rmss[i,:] = hp.ma(f[tag.replace('map', 'rms')][()])
+                        maps[i,:] = f[tag][()]
+                        rmss[i,:] = f[tag.replace('map', 'rms')][()]
                     rmss[rmss == 0] = np.inf
                     mu = np.zeros(maps[0].shape)
                     den = np.zeros(maps[0].shape)
                     for i in range(len(maps)):
                         mu += maps[i]/rmss[i]**2
                         den += 1/rmss[i]**2
+                    mu = hp.ma(mu)
+                    den = hp.ma(den)
                     if 'rms' in dataset[0]:
                         data = 1/den**0.5
                     else:

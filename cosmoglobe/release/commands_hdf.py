@@ -1242,93 +1242,94 @@ def release(
                     bndwid=14.909,
                 )
 
-            # Half-mission DIRBE band 10 frequency map
-            if ("10a" in bands) & ("10b" in bands):
+            # DIRBE bands
+            for b in range(1, 11):
+                if (f"{b:02}a" in bands) & (f"{b:02}b" in bands):
 
-                format_fits(
-                    chain=chain,
-                    extname="FREQMAP",
-                    types=[
-                        "I_MEAN",
-                        "I_RMS",
-                        "I_STDDEV",
-                    ],
-                    units=[
-                        "MJy/sr",
-                        "MJy/sr",
-                        "MJy/sr",
-                    ],
-                    nside=512,
-                    burnin=burnin,
-                    maxchain=maxchain,
-                    polar=False,
-                    component=["10a", "10b", "10"],
-                    fwhm=0.0,
-                    nu_ref_t="1249 GHz",
-                    nu_ref_p=None,
-                    procver=procver,
-                    filename=f"CG_10_I_n512_{procver}.fits",
-                    bndctr=1249,
-                    restfreq=1249,
-                    bndwid=100,
-                    coadd=True,
-                )
+                    format_fits(
+                        chain=chain,
+                        extname="FREQMAP",
+                        types=[
+                            "I_MEAN",
+                            "I_RMS",
+                            "I_STDDEV",
+                        ],
+                        units=[
+                            "MJy/sr",
+                            "MJy/sr",
+                            "MJy/sr",
+                        ],
+                        nside=512,
+                        burnin=burnin,
+                        maxchain=maxchain,
+                        polar=False,
+                        component=[f"{b:02}a", f"{b:02}b", f"{b:02}"],
+                        fwhm=0.0,
+                        nu_ref_t="1249 GHz",
+                        nu_ref_p=None,
+                        procver=procver,
+                        filename=f"CG_{b:02}_I_n512_{procver}.fits",
+                        bndctr=1249,
+                        restfreq=1249,
+                        bndwid=100,
+                        coadd=True,
+                    )
 
-                format_fits(
-                    chain=chain,
-                    extname="FREQMAP",
-                    types=[
-                        "I_MEAN",
-                        "I_RMS",
-                        "I_STDDEV",
-                    ],
-                    units=[
-                        "MJy/sr",
-                        "MJy/sr",
-                        "MJy/sr",
-                    ],
-                    nside=512,
-                    burnin=burnin,
-                    maxchain=maxchain,
-                    polar=False,
-                    component="10a",
-                    fwhm=0.0,
-                    nu_ref_t="1249 GHz",
-                    nu_ref_p=None,
-                    procver=procver,
-                    filename=f"CG_10a_I_n512_{procver}.fits",
-                    bndctr=1249,
-                    restfreq=1249,
-                    bndwid=100,
-                )
+                    format_fits(
+                        chain=chain,
+                        extname="FREQMAP",
+                        types=[
+                            "I_MEAN",
+                            "I_RMS",
+                            "I_STDDEV",
+                        ],
+                        units=[
+                            "MJy/sr",
+                            "MJy/sr",
+                            "MJy/sr",
+                        ],
+                        nside=512,
+                        burnin=burnin,
+                        maxchain=maxchain,
+                        polar=False,
+                        component=f"{b:02}a",
+                        fwhm=0.0,
+                        nu_ref_t="1249 GHz",
+                        nu_ref_p=None,
+                        procver=procver,
+                        filename=f"CG_{b:02}a_I_n512_{procver}.fits",
+                        bndctr=1249,
+                        restfreq=1249,
+                        bndwid=100,
+                    )
 
-                format_fits(
-                    chain=chain,
-                    extname="FREQMAP",
-                    types=[
-                        "I_MEAN",
-                        "I_RMS",
-                        "I_STDDEV",
-                    ],
-                    units=[
-                        "MJy/sr",
-                        "MJy/sr",
-                        "MJy/sr",
-                    ],
-                    nside=512,
-                    burnin=burnin,
-                    maxchain=maxchain,
-                    polar=False,
-                    component="10b",
-                    fwhm=0.0,
-                    nu_ref_t="1249 GHz",
-                    nu_ref_p=None,
-                    procver=procver,
-                    filename=f"CG_10b_I_n512_{procver}.fits",
-                    bndctr=1249,
-                    restfreq=1249,
-                    bndwid=100,
-                )
+                    format_fits(
+                        chain=chain,
+                        extname="FREQMAP",
+                        types=[
+                            "I_MEAN",
+                            "I_RMS",
+                            "I_STDDEV",
+                        ],
+                        units=[
+                            "MJy/sr",
+                            "MJy/sr",
+                            "MJy/sr",
+                        ],
+                        nside=512,
+                        burnin=burnin,
+                        maxchain=maxchain,
+                        polar=False,
+                        component=f"{b:02}b",
+                        fwhm=0.0,
+                        nu_ref_t="1249 GHz",
+                        nu_ref_p=None,
+                        procver=procver,
+                        filename=f"CG_{b:02}b_I_n512_{procver}.fits",
+                        bndctr=1249,
+                        restfreq=1249,
+                        bndwid=100,
+                    )
 
 
         except Exception as e:
