@@ -25,6 +25,8 @@ def format_fits(chain, extname, types, units, nside, burnin, maxchain, polar, co
 
 def get_data(chain, extname, component, burnin, maxchain, fwhm, nside, types, cmin, cmax, chdir, fields=None, scale=1.0, polar=True, coadd=False,):
 
+
+
     if extname.endswith("CMB"):
         # Mean data
         amp_mean = h5handler(input=chain, dataset="cmb/amp_alm", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=fwhm, nside=nside, command=np.mean,)
@@ -111,27 +113,42 @@ def get_data(chain, extname, component, burnin, maxchain, fwhm, nside, types, cm
 
         dset = np.zeros((len(types), hp.nside2npix(nside)))
 
-        dset[0] = amp_mean[0, :]
-        dset[1] = amp_mean[1, :]
-        dset[2] = amp_mean[2, :]
-        dset[3] = np.sqrt(amp_mean[1, :]**2 + amp_mean[2, :]**2)
+        if len(types) == 6:
 
-        dset[4] = beta_mean[0, :]
-        dset[5] = beta_mean[1, :]
+            dset[0] = amp_mean[0, :]
 
-        dset[6] = T_mean[0, :]
-        dset[7] = T_mean[1, :]
+            dset[1] = beta_mean[0, :]
 
-        dset[8] = amp_stddev[0, :]
-        dset[9] = amp_stddev[1, :]
-        dset[10] = amp_stddev[2, :]
-        dset[11] = np.sqrt(amp_stddev[1, :]**2 + amp_stddev[2, :]**2)
+            dset[2] = T_mean[0, :]
 
-        dset[12] = beta_stddev[0, :]
-        dset[13] = beta_stddev[1, :]
+            dset[3] = amp_stddev[0, :]
 
-        dset[14] = T_stddev[0, :]
-        dset[15] = T_stddev[1, :]
+            dset[4] = beta_stddev[0, :]
+
+            dset[5] = T_stddev[0, :]
+        else:
+
+            dset[0] = amp_mean[0, :]
+            dset[1] = amp_mean[1, :]
+            dset[2] = amp_mean[2, :]
+            dset[3] = np.sqrt(amp_mean[1, :]**2 + amp_mean[2, :]**2)
+
+            dset[4] = beta_mean[0, :]
+            dset[5] = beta_mean[1, :]
+
+            dset[6] = T_mean[0, :]
+            dset[7] = T_mean[1, :]
+
+            dset[8] = amp_stddev[0, :]
+            dset[9] = amp_stddev[1, :]
+            dset[10] = amp_stddev[2, :]
+            dset[11] = np.sqrt(amp_stddev[1, :]**2 + amp_stddev[2, :]**2)
+
+            dset[12] = beta_stddev[0, :]
+            dset[13] = beta_stddev[1, :]
+
+            dset[14] = T_stddev[0, :]
+            dset[15] = T_stddev[1, :]
 
     elif extname.endswith("FREE-FREE"):
         # Mean data
@@ -175,7 +192,36 @@ def get_data(chain, extname, component, burnin, maxchain, fwhm, nside, types, cm
         dset[2] = amp_stddev
         dset[3] = sed_stddev
 
-    if extname.endswith("FREQMAP"):
+    elif extname.endswith("CII-line"):
+        # Mean/std amplitude 
+        amp_mean = h5handler(input=chain, dataset="dust_cii/amp_alm", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=fwhm, nside=nside, command=np.mean,)
+        amp_stddev = h5handler(input=chain, dataset="dust_cii/amp_alm", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=fwhm, nside=nside, command=np.std,)
+
+        dset = np.zeros((len(types), hp.nside2npix(nside)))
+
+        dset[0] = amp_mean
+        dset[1] = amp_stddev
+
+    elif extname.endswith("PAH"):
+        # Mean/std amplitude 
+        amp_mean = h5handler(input=chain, dataset="hotPAH/amp_alm", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=fwhm, nside=nside, command=np.mean,)
+        amp_stddev = h5handler(input=chain, dataset="hotPAH/amp_alm", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=fwhm, nside=nside, command=np.std,)
+
+        dset = np.zeros((len(types), hp.nside2npix(nside)))
+
+        dset[0] = amp_mean
+        dset[1] = amp_stddev
+    elif extname.endswith("CO_tot"):
+        # Mean/std amplitude 
+        amp_mean = h5handler(input=chain, dataset="co_tot/amp_alm", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=fwhm, nside=nside, command=np.mean,)
+        amp_stddev = h5handler(input=chain, dataset="co_tot/amp_alm", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=fwhm, nside=nside, command=np.std,)
+
+        dset = np.zeros((len(types), hp.nside2npix(nside)))
+
+        dset[0] = amp_mean
+        dset[1] = amp_stddev
+
+    elif extname.endswith("FREQMAP"):
         if polar:
             zerospin=False
         else:
@@ -226,10 +272,28 @@ def get_data(chain, extname, component, burnin, maxchain, fwhm, nside, types, cm
             dset[2] = amp_stddev
 
 
-    if extname.endswith("RES"):
+    elif extname.endswith("RES"):
         N = len(types)
-        amp_mean = fits_handler(input=f"res_{component}_c0001_k000001.fits", min=burnin, max=None, minchain=cmin, maxchain=cmax, chdir=chdir, output="map", fwhm=fwhm, nside=nside, zerospin=False, drop_missing=True, pixweight=None, command=np.mean, lowmem=False, fields=fields, write=False)
-        amp_stddev = fits_handler(input=f"res_{component}_c0001_k000001.fits", min=burnin, max=None, minchain=cmin, maxchain=cmax, chdir=chdir, output="map", fwhm=fwhm, nside=nside, zerospin=False, drop_missing=True, pixweight=None, command=np.std, lowmem=False, fields=fields, write=False)
+        if polar:
+            zerospin=False
+        else:
+            zerospin=True
+        if coadd:
+        #    datasets = [f"tod/{comp}/map" for comp in component]
+        #    amp_mean = h5handler(input=chain, dataset=datasets, min=burnin, max=None, maxchain=maxchain, output="map", fwhm=fwhm, nside=nside, command=np.mean, zerospin=zerospin, coadd=coadd, )
+
+        #    amp_stddev = h5handler(input=chain, dataset=datasets, min=burnin, max=None, maxchain=maxchain, output="map", fwhm=120., nside=nside, command=np.std, remove_mono=True, zerospin=zerospin, coadd=coadd,)
+            # component is a list that looks like
+            # 10a, 10b, 10
+
+            inputs = [f"res_{c}_c0001_k000001.fits" for c in component]
+            rms_maps = [f"tod_{c}_rms_c0001_k000001.fits" for c in component[:-1]]
+            amp_mean = fits_handler(input=inputs, min=burnin, max=None, minchain=cmin, maxchain=cmax, chdir=chdir, output="map", fwhm=fwhm, nside=nside, zerospin=zerospin, drop_missing=True, pixweight=None, command=np.mean, lowmem=False, fields=fields, write=False, coadd=True, rms_maps=rms_maps)
+            amp_stddev = fits_handler(input=inputs, min=burnin, max=None, minchain=cmin, maxchain=cmax, chdir=chdir, output="map", fwhm=fwhm, nside=nside, zerospin=zerospin, drop_missing=True, pixweight=None, command=np.std, lowmem=False, fields=fields, write=False, coadd=True, rms_maps=rms_maps)
+
+        else:
+            amp_mean = fits_handler(input=f"res_{component}_c0001_k000001.fits", min=burnin, max=None, minchain=cmin, maxchain=cmax, chdir=chdir, output="map", fwhm=fwhm, nside=nside, zerospin=zerospin, drop_missing=True, pixweight=None, command=np.mean, lowmem=False, fields=fields, write=False)
+            amp_stddev = fits_handler(input=f"res_{component}_c0001_k000001.fits", min=burnin, max=None, minchain=cmin, maxchain=cmax, chdir=chdir, output="map", fwhm=fwhm, nside=nside, zerospin=zerospin, drop_missing=True, pixweight=None, command=np.std, lowmem=False, fields=fields, write=False)
         dset = np.zeros((N, hp.nside2npix(nside)))
         if len(fields)>1:
             dset[:N//2] = amp_mean[fields, :]*scale
@@ -238,7 +302,7 @@ def get_data(chain, extname, component, burnin, maxchain, fwhm, nside, types, cm
             dset[0] = amp_mean*scale
             dset[1] = amp_stddev*scale
 
-    if extname.endswith("CHISQ"):
+    elif extname.endswith("CHISQ"):
         
         amp_mean = fits_handler(input="chisq_c0001_k000001.fits", min=burnin, max=None, minchain=cmin, maxchain=cmax, chdir=chdir, output="map", fwhm=fwhm, nside=nside, zerospin=False, drop_missing=True, pixweight=None, command=np.mean, lowmem=False, write=False)
         #amp_stddev = fits_handler(input="chisq_c0001_k000001.fits", min=burnin, max=None, minchain=cmin, maxchain=cmax, chdir=chdir, output="map", fwhm=fwhm, nside=nside, zerospin=False, drop_missing=True, pixweight=None, command=np.std, lowmem=False, write=False)
@@ -247,6 +311,8 @@ def get_data(chain, extname, component, burnin, maxchain, fwhm, nside, types, cm
 
         dset[0] = amp_mean[0, :]
         dset[1] = amp_mean[1, :]+amp_mean[2, :]
+    else:
+        print(f"Have not set up case for {extname}")
 
     #print(f"Shape of dset {dset.shape}")
     return dset

@@ -535,6 +535,10 @@ def plotrelease(ctx, procver, mask, defaultmask, freqmaps, cmb, cmbresamp, synch
                         size=size, outdir=outdir, colorbar=colorbar, auto=True,
                         sig=[6,7,8],min=0, max=2, scale=1e3)
 
+                # DIRBE bands
+                for i in range(1, 11):
+                    ctx.invoke(plot, input=f"CG_DIRBE_{i:02}_I_n0512_{procver}.fits")
+
 
             except Exception as e:
                 print(e)

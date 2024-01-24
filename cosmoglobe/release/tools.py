@@ -489,7 +489,7 @@ def rspectrum(nu, r, sig, scaling=1.0):
     A = np.sqrt(sum( 4*np.pi * cl[2:,signal]*bl[2:,signal]**2/(2*l+1) ))
     return cmb(nu, A*scaling)
 
-def fits_handler(input, min, max, minchain, maxchain, chdir, output, fwhm, nside, zerospin, drop_missing, pixweight, command, lowmem=False, fields=None, write=False):
+def fits_handler(input, min, max, minchain, maxchain, chdir, output, fwhm, nside, zerospin, drop_missing, pixweight, command, lowmem=False, fields=None, write=False, coadd=False, rms_maps=None):
     """
     Function for handling fits files.
     """
@@ -497,6 +497,10 @@ def fits_handler(input, min, max, minchain, maxchain, chdir, output, fwhm, nside
     import healpy as hp
     from tqdm import tqdm
     import os
+
+    if coadd:
+        input_list = input
+        input = input_list[0]
 
     if maxchain is None:
         maxchain = minchain + 1
@@ -506,7 +510,7 @@ def fits_handler(input, min, max, minchain, maxchain, chdir, output, fwhm, nside
         exit()
 
     if (lowmem and command == np.std): #need to compute mean first
-        mean_data = fits_handler(input, min, max, minchain, maxchain, chdir, output, fwhm, nside, zerospin, drop_missing, pixweight, lowmem, np.mean, fields, write=False)
+        mean_data = fits_handler(input, min, max, minchain, maxchain, chdir, output, fwhm, nside, zerospin, drop_missing, pixweight, lowmem, np.mean, fields, write=False, coadd=coadd,)
 
     if (minchain > maxchain):
         print('Minimum chain number larger that maximum chain number. Exiting')
@@ -540,6 +544,19 @@ def fits_handler(input, min, max, minchain, maxchain, chdir, output, fwhm, nside
             else:
                 filename = f'{chdir}/{input}'
         basefile = filename.split("k000001")
+        if coadd:
+            basefiles = []
+            filenames = []
+            for i in range(len(input_list)):
+                if (chdir==None):
+                    filenames.append(input_list[i].replace("c0001", "c" + str(c).zfill(4)))
+                else:
+                    if maxchain > minchain + 1:
+                        filenames.append(chdir+'_c%i/'%(c)+input_list[i])
+                    else:
+                        filenames.append(f'{chdir}/{input_list[i]}')
+                basefiles.append(filenames[i].split("k000001"))
+
 
         if maxnone:
             # If no max is specified, find last sample of chain
@@ -632,7 +649,33 @@ def fits_handler(input, min, max, minchain, maxchain, chdir, output, fwhm, nside
                     else:
                         continue
 
-                data = hp.fitsfunc.read_map(filename,field=fields,h=False, nest=nest, dtype=None)
+                if coadd:
+                    # loop over the bands to weighted average over
+                    # use rms maps
+                    if pol:
+                        maps = np.zeros((len(rms_maps), 3, hp.nside2npix(nside)))
+                        rmss = np.zeros((len(rms_maps), 3, hp.nside2npix(nside)))
+                    else:
+                        maps = np.zeros((len(rms_maps), 1, hp.nside2npix(nside)))
+                        rmss = np.zeros((len(rms_maps), 1, hp.nside2npix(nside)))
+                    for i in range(len(filenames)-1):
+                        filename = basefiles[i][0]+'k'+str(sample).zfill(6)+basefiles[i][1]         
+                        maps[i,:] = hp.read_map(filename, nest=nest)
+                        rmss[i,:] = hp.read_map(f'{chdir}/{rms_maps[i]}', nest=nest)
+                    rmss[rmss == 0] = np.inf
+                    mu = np.zeros(maps[0].shape)
+                    den = np.zeros(maps[0].shape)
+                    for i in range(len(maps)):
+                        mu += maps[i]/rmss[i]**2
+                        den += 1/rmss[i]**2
+                    mu = hp.ma(mu)
+                    den = hp.ma(den)
+                    if 'rms' in dataset[0]:
+                        data = 1/den**0.5
+                    else:
+                        data = mu/den
+                else:
+                    data = hp.fitsfunc.read_map(filename,field=fields,h=False, nest=nest, dtype=None)
                 if (nest): #need to reorder to ring-ordering
                     data = hp.pixelfunc.reorder(data,n2r=True)
 
