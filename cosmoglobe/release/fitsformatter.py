@@ -14,13 +14,14 @@ def format_fits(chain, extname, types, units, nside, burnin, maxchain, polar, co
     print("{:#^80}".format(""))
 
     header = get_header(extname, types, units, nside, polar, component, fwhm, nu_ref_t, nu_ref_p, procver, filename, bndctr, restfreq, bndwid,)
-    dset = get_data(chain, extname, component, burnin, maxchain, fwhm, nside, types, cmin, cmax, chdir, fields, scale)
+    dset = get_data(chain, extname, component, burnin, maxchain, fwhm, nside, types, cmin, cmax, chdir, fields, scale, polar,)
 
     print(f"{procver}/{filename}", dset.shape)
     hp.write_map(f"{procver}/{filename}", dset, column_names=types, column_units=units, coord="G", overwrite=True, extra_header=header, dtype=None)
 
 
-def get_data(chain, extname, component, burnin, maxchain, fwhm, nside, types, cmin, cmax, chdir, fields=None, scale=1.0):
+def get_data(chain, extname, component, burnin, maxchain, fwhm, nside, types, cmin, cmax, chdir, fields=None, scale=1.0, polar=True):
+
     if extname.endswith("CMB"):
         # Mean data
         amp_mean = h5handler(input=chain, dataset="cmb/amp_alm", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=fwhm, nside=nside, command=np.mean,)
@@ -172,32 +173,44 @@ def get_data(chain, extname, component, burnin, maxchain, fwhm, nside, types, cm
         dset[3] = sed_stddev
 
     if extname.endswith("FREQMAP"):
+        if polar:
+            zerospin=False
+        else:
+            zerospin=True
         # Mean data
-        amp_mean = h5handler(input=chain, dataset=f"tod/{component}/map", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=fwhm, nside=nside, command=np.mean,)
-        amp_rms  = h5handler(input=chain, dataset=f"tod/{component}/rms", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=fwhm, nside=nside, command=np.mean,)
+        amp_mean = h5handler(input=chain, dataset=f"tod/{component}/map", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=fwhm, nside=nside, command=np.mean, zerospin=zerospin,)
+        amp_rms  = h5handler(input=chain, dataset=f"tod/{component}/rms", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=fwhm, nside=nside, command=np.mean, zerospin=zerospin,)
         # stddev data
         # amp_stddev = h5handler(input=chain, dataset=f"tod/{component}/map", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=120., nside=nside, command=np.std,)
         # covar data
-        amp_covar = h5handler(input=chain, dataset=f"tod/{component}/map", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=120., nside=nside, command=np.cov, remove_mono=True)
+        if polar:
+            amp_covar = h5handler(input=chain, dataset=f"tod/{component}/map", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=120., nside=nside, command=np.cov, remove_mono=True, zerospin=zerospin,)
+        else:
+            amp_stddev = h5handler(input=chain, dataset=f"tod/{component}/map", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=120., nside=nside, command=np.std, remove_mono=True, zerospin=zerospin,)
 
         # Masks
 
         dset = np.zeros((len(types), hp.nside2npix(nside)))
 
-        dset[0] = amp_mean[0, :]
-        dset[1] = amp_mean[1, :]
-        dset[2] = amp_mean[2, :]
 
-        dset[3] = amp_rms[0, :]**0.5
-        dset[4] = amp_rms[1, :]**0.5
-        dset[5] = amp_rms[2, :]**0.5
-        dset[6] = amp_rms[3, :]
-        
+        if polar:
+            dset[0] = amp_mean[0, :]
+            dset[1] = amp_mean[1, :]
+            dset[2] = amp_mean[2, :]
 
-        dset[7] = amp_covar[0, 0, :]**0.5
-        dset[8] = amp_covar[1, 1, :]**0.5
-        dset[9] = amp_covar[2, 2, :]**0.5
-        dset[10] = amp_covar[1, 2, :]
+            dset[3] = amp_rms[0, :]**0.5
+            dset[4] = amp_rms[1, :]**0.5
+            dset[5] = amp_rms[2, :]**0.5
+            dset[6] = amp_rms[3, :]
+
+            dset[7] = amp_covar[0, 0, :]**0.5
+            dset[8] = amp_covar[1, 1, :]**0.5
+            dset[9] = amp_covar[2, 2, :]**0.5
+            dset[10] = amp_covar[1, 2, :]
+        else:
+            dset[0] = amp_mean
+            dset[1] = amp_rms
+            dset[2] = amp_stddev
 
 
     if extname.endswith("RES"):

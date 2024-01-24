@@ -198,7 +198,10 @@ def h5handler(input, dataset, min, max, maxchain, output, fwhm, nside, command, 
 
                 # Removing monopole - test
                 if remove_mono:
-                    data[0], mono = hp.remove_monopole(data[0], gal_cut=30, fitval=True)
+                    if pol:
+                        data[0], mono = hp.remove_monopole(data[0], gal_cut=30, fitval=True)
+                    else:
+                        data, mono = hp.remove_monopole(data, gal_cut=30, fitval=True)
 
                 if (lowmem):
                     if (first_samp):
