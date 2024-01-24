@@ -248,7 +248,7 @@ def gnom(
         va="top",
         ha="right",
         transform=ax.transAxes,
-        fontsize=default_fontsize["title"],
+        fontsize=default_fontsize["rlabel"],
         bbox=bbox,
     )
     plt.text(
@@ -258,7 +258,7 @@ def gnom(
         color=llabel_color,
         va="top",
         transform=ax.transAxes,
-        fontsize=default_fontsize["title"],
+        fontsize=default_fontsize["llabel"],
         bbox=bbox,
     )
     if cbar:

@@ -657,8 +657,7 @@ def release(
             # A lot of the nu_ref, bandctr, restfreq, bndwid parameters are just
             # dummies for now.
 
-            print("Doing a freqmap thing")
-
+            
             if "023-WMAP_K" in bands:
                 format_fits(
                     chain=chain,
@@ -1196,6 +1195,7 @@ def release(
                     restfreq=44.121,
                     bndwid=10.719,
                 )
+            
             # Full-mission 70 GHz IQU frequency map
             if "070" in bands:
                 format_fits(

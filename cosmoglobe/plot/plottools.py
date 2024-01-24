@@ -660,6 +660,7 @@ def get_data(input, sig, comp, freq, fwhm, nside=None, sample=-1, scale=1,
         else:
             m = m[sig]
 
+    m = hp.ma(m)
 
     # Convert astropy map to numpy array
     if isinstance(m, u.Quantity):
@@ -872,10 +873,10 @@ def create_70GHz_mask(sky_frac, nside=256, pol=False):
     # sky fraction for a range, and interpolate from this table.
     amp_percentages = np.flip(np.arange(1, 101))
     fracs = []
-    mask = np.zeros(len(template), dtype=np.bool)
+    mask = np.zeros(len(template), dtype=bool)
 
     for i in range(len(amp_percentages)):
-        mask = np.zeros(len(template), dtype=np.bool)
+        mask = np.zeros(len(template), dtype=bool)
         masked_template = np.abs(hp.ma(template))
         mask[np.where(np.log(masked_template) > (amp_percentages[i] / 100) * np.nanmax(np.log(masked_template)))] = 1
         masked_template.mask = mask
@@ -885,7 +886,7 @@ def create_70GHz_mask(sky_frac, nside=256, pol=False):
 
     amp_percentage = np.interp(100 - sky_frac, fracs, amp_percentages)
 
-    mask = np.zeros(len(template), dtype=np.bool)
+    mask = np.zeros(len(template), dtype=bool)
     masked_template = np.abs(hp.ma(template))
     mask[np.where(np.log(masked_template) > (amp_percentage / 100) * np.nanmax(np.log(masked_template)))] = 1
 

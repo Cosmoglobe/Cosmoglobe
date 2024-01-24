@@ -54,13 +54,6 @@ def lonlat(theta, phi):
     return longitude, latitude
 
 
-def update_dictionary(main_dict, update_dict):
-    for key, key_val in main_dict.items():
-        if key in update_dict:
-            main_dict[key] = update_dict[key]
-    return main_dict
-
-
 def projview(
     m=None,
     fig=None,
@@ -281,7 +274,7 @@ def projview(
     # Update values for symlog normalization if specified
     norm_dict_defaults = {"linthresh": 1, "base": 10, "linscale": 0.1}
     if norm_dict is not None:
-        norm_dict_defaults = update_dictionary(norm_dict_defaults, norm_dict)
+        norm_dict_defaults.update(norm_dict)
 
     # Remove monopole and dipole
     if remove_dip:
@@ -312,7 +305,7 @@ def projview(
         "cbar_tick_label": 10,
     }
     if fontsize is not None:
-        fontsize_defaults = update_dictionary(fontsize_defaults, fontsize)
+        fontsize_defaults.update(fontsize)
 
     # default plot settings
     decs = np.max([find_number_of_decimals(min), find_number_of_decimals(max)])
@@ -405,7 +398,7 @@ def projview(
         warnings.warn(
             "\n *** Overriding default plot properties: " + str(plot_properties) + " ***"
         )
-        plot_properties = update_dictionary(plot_properties, override_plot_properties)
+        plot_properties.update(override_plot_properties)
         warnings.warn("\n *** New plot properties: " + str(plot_properties) + " ***")
 
     g_col = "grey" if graticule_color is None else graticule_color
@@ -424,9 +417,7 @@ def projview(
             + str(rot_graticule_properties)
             + " ***"
         )
-        rot_graticule_properties = update_dictionary(
-            rot_graticule_properties, override_rot_graticule_properties
-        )
+        rot_graticule_properties.update(override_rot_graticule_properties)
         warnings.warn(
             "\n *** New rotated graticule properties: "
             + str(rot_graticule_properties)
@@ -697,10 +688,14 @@ def projview(
             y0 = bbox.y0
             width = bbox.width
             height = bbox.height
-            new_width = 0.75*width
-            buff = (width - new_width)/2
             if cb_orientation == 'horizontal':
+                new_width = 0.75*width
+                buff = (width - new_width)/2
                 cax = fig.add_axes([x0 + buff, y0 - 0.1*height, new_width, 0.05*height])
+            elif cb_orientation == 'vertical':
+                new_height = 0.75*height
+                buff = (height - new_height)/2
+                cax = fig.add_axes([x0 + 1.05*width, y0 + buff, 0.02*width, new_height])
             cax.tick_params(axis="both", which="both",
                     length=fig.get_size_inches()[0]*72/250)
             # tick length is in points
@@ -727,7 +722,6 @@ def projview(
         else:
             labels = [format % tick for tick in cbar_ticks]
 
-        print(fontsize_defaults["cbar_tick_label"], "default fontsize")
         if cb_orientation == "horizontal":
             # labels = cb.ax.get_xticklabels() if norm is not None else labels
             cb.ax.set_xticklabels(

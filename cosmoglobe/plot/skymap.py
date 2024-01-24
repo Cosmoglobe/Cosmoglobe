@@ -242,7 +242,6 @@ def plot(
     m, comp, freq, nside = get_data(input, sig, comp, freq, fwhm, nside=nside,
         sample=sample, scale=scale, remove_dip=remove_dip,
         remove_mono=remove_mono)
-    m = hp.ma(m)
 
     if mask is not None:
         if isinstance(mask, str):

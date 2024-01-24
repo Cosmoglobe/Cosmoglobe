@@ -23,6 +23,7 @@ import healpy as hp
 import numpy as np
 import heapq
 import os
+from time import time
 
 _node_number = 0
 
@@ -204,11 +205,10 @@ class Huffman:
 
         for b in binary_txt:
             code += b
-            if code in self.decoding:
-                d = self.decoding[code]
-                decoded_arr.append(d)
-                code = ""
 
+            if code in self.decoding:
+                decoded_arr.append(self.decoding[code])
+                code = ""
         decoded_arr = np.cumsum(decoded_arr)
 
         if write:
