@@ -212,6 +212,7 @@ def trygveplot(input, dataset=None, nside=None, auto=False, min=False, max=False
             #### Automatic variables #####
             if auto:
                 (m, ttl, lttl, unt, ticks, cmp, lgscale,) = get_params(m, outfile, outname, signal_label,)
+                symlg = False
                 # Tick bug fix
 
                 mn, md, mx= (ticks[0], None, ticks[-1])
@@ -225,6 +226,7 @@ def trygveplot(input, dataset=None, nside=None, auto=False, min=False, max=False
                 mn = md = mx = None
                 ticks = [False, False]
                 lgscale = False
+                symlg = False
                 cmp = "planck"
 
             #if "diff" in outname+outfile:
@@ -249,8 +251,14 @@ def trygveplot(input, dataset=None, nside=None, auto=False, min=False, max=False
             click.echo(click.style("Title: ", fg="green") + f"{ttl}")
             
             #### Logscale ####
-            if lgscale: m, ticks = apply_logscale(m, ticks, linthresh=1)
-            
+            if lgscale:
+                if ticks[1] < 0:
+                    symlg = True
+                    m, ticks = apply_logscale(m, ticks, linthresh=1)
+                else:
+                    symlg = False
+                    m, ticks = apply_logscale(m, ticks, linthresh=0)
+
             #### Color map #####
             cmap_ = get_cmap(cmap, cmp, logscale=lgscale)
             
@@ -286,7 +294,9 @@ def trygveplot(input, dataset=None, nside=None, auto=False, min=False, max=False
                 ax.xaxis.set_ticklabels([]); ax.yaxis.set_ticklabels([]) # rm lonlat ticklabs
                 
                 #### Colorbar ####
-                if colorbar: apply_colorbar(fig, image, ticks, ticklabels, unt, fontsize, linthresh=1, logscale=lgscale)
+                if colorbar: apply_colorbar(fig, image, ticks, ticklabels, unt,
+                        fontsize, linthresh=1, logscale=lgscale,
+                        symlogscale=symlg)
                 
                 #### Right Title ####
                 plt.text(4.5, 1.1, r"%s" % ttl, ha="center", va="center", fontsize=fontsize,)
@@ -406,10 +416,16 @@ def symlog(m, linthresh=1.0):
 
 def apply_logscale(m, ticks, linthresh=1):
     click.echo(click.style("Applying semi-logscale", fg="yellow", blink=True, bold=True))
-    m = symlog(m,linthresh)
-    new_ticks = []
-    for i in ticks:
-        new_ticks.append(symlog(i,linthresh))
+    if linthresh == 0:
+        inds = (m > 0)
+        m[inds] = np.log10(m[inds])
+        m[~inds] = np.log10(ticks[0])
+        new_ticks = np.log10(ticks)
+    else:
+        m = symlog(m,linthresh)
+        new_ticks = []
+        for i in ticks:
+            new_ticks.append(symlog(i,linthresh))
 
     m = np.maximum(np.minimum(m, new_ticks[-1]), new_ticks[0])
     return m, new_ticks
@@ -683,25 +699,24 @@ def apply_mask(m, mask, grid_pix, mfill, polt, cmap):
 
     return grid_map, cmap
 
-def apply_colorbar(fig, image, ticks, ticklabels, unit, fontsize, linthresh, logscale):
+def apply_colorbar(fig, image, ticks, ticklabels, unit, fontsize, linthresh,
+        logscale, symlogscale):
     click.echo(click.style("Applying colorbar", fg="yellow"))
     from matplotlib.ticker import FuncFormatter
     cb = fig.colorbar(image, orientation="horizontal", shrink=0.4, pad=0.04, ticks=ticks, format=FuncFormatter(fmt),)
-    #colorbar_ticks = np.array([-1e3, -1e2, -10, -1, 0, 1, 10, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7])
-    #colorbar_boundaries = np.concatenate([-1 * np.logspace(0, 3, 80)[::-1], np.linspace(-1, 1, 10), np.logspace(0, 7, 150)])
-    #cb = fig.colorbar(image, orientation='horizontal', format=FuncFormatter(fmt), shrink=1., pad=0.05, boundaries = colorbar_boundaries, ticks=colorbar_ticks)
-    #ticklabels = [fmt(i, 1) for i in colorbar_ticks]
-    #ticklabels = [fmt(i, 1) for i in ticks]
     cb.ax.set_xticklabels(ticklabels)
     cb.ax.xaxis.set_label_text(unit)
     cb.ax.xaxis.label.set_size(fontsize)
-    if logscale:
+
+
+
+    if symlogscale:
         linticks = np.linspace(-1, 1, 3)*linthresh
         logmin = np.round(ticks[0])
         logmax = np.round(ticks[-1])
 
-        logticks_min = -10**np.arange(0, abs(logmin)+1)
-        logticks_max = 10**np.arange(0, logmax+1)
+        logticks_min = -10**np.arange(np.log10(linthresh), abs(logmin)+1)
+        logticks_max = 10**np.arange(np.log10(linthresh), logmax+1)
         ticks_ = np.unique(np.concatenate((logticks_min, linticks, logticks_max)))
         #cb.set_ticks(np.concatenate((ticks,symlog(ticks_))), []) # Set major ticks
 
@@ -721,7 +736,25 @@ def apply_colorbar(fig, image, ticks, ticklabels, unit, fontsize, linthresh, log
         minorticks = symlog(minorticks, linthresh)
         minorticks = minorticks[ (minorticks >= ticks[0]) & ( minorticks<= ticks[-1]) ] 
         cb.ax.xaxis.set_ticks(minorticks, minor=True)
+    elif logscale:
+        logmin = np.round(ticks[0])
+        logmax = np.round(ticks[-1])
 
+        logticks_max = 10**np.arange(logmin, logmax)
+        logticks = np.arange(logmin-1, logmax+2)
+        minorticks = np.array([])
+        minorticks2 = np.arange(1,11)
+        for i in logticks:
+            minorticks = np.concatenate((minorticks, 10**i*minorticks2))
+        minorticks = np.log10(minorticks)
+        minorticks = minorticks[(minorticks > ticks[0]) & (minorticks < ticks[-1])]
+        cb.ax.xaxis.set_ticks(minorticks, minor=True)
+        newlabs = []
+        ticklabs_arr = np.array([t[1:-1] for t in ticklabels]).astype(float)
+        for i in range(len(ticklabs_arr)):
+            newlabs.append(np.log10(ticklabs_arr[i]))
+        cb.ax.xaxis.set_ticks(np.array(newlabs))
+        cb.ax.set_xticklabels(ticklabels)
     cb.ax.tick_params(which="both", axis="x", direction="in", labelsize=fontsize-2,)
     cb.ax.xaxis.labelpad = 0
     # workaround for issue with viewers, see colorbar docstring

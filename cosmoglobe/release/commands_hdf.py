@@ -474,9 +474,14 @@ def alm2fits(input, dataset, nside, lmax, fwhm):
     help=" output dust",
 )
 @click.option(
-    "-dust_cii",
+    "-cii",
     is_flag=True,
     help=" output dust cii",
+)
+@click.option(
+    "-stars",
+    is_flag=True,
+    help=" output dust stars",
 )
 @click.option(
     "-hotpah",
@@ -484,7 +489,7 @@ def alm2fits(input, dataset, nside, lmax, fwhm):
     help=" output hot PAH",
 )
 @click.option(
-    "-co_tot",
+    "-co",
     is_flag=True,
     help=" output hot PAH",
 )
@@ -517,9 +522,10 @@ def release(
     cmb,
     synch,
     dust,
-    dust_cii,
+    co,
+    cii,
+    stars,
     hotpah,
-    co_tot,
     br,
     diff,
     diffcmb,
@@ -575,9 +581,10 @@ def release(
         cmb = not cmb
         synch = not synch
         dust = not dust
-        dust_cii = not dust_cii
+        cii = not cii
+        stars = not stars
         hotpah = not hotpah
-        co_tot = not co_tot
+        co = not co
         br = not br
         diff = not diff
         diffcmb = not diffcmb
@@ -1301,7 +1308,7 @@ def release(
                         nu_ref_t=f'{band_cent} GHz',
                         nu_ref_p=None,
                         procver=procver,
-                        filename=f"CG_DIRBE_{b:02}_I_n512_{procver}.fits",
+                        filename=f"CG_DIRBE_{b:02}_I_n0512_{procver}.fits",
                         bndctr=band_cent,
                         restfreq=band_cent,
                         bndwid=bandwidth,
@@ -1330,7 +1337,7 @@ def release(
                         nu_ref_t=f'{band_cent} GHz',
                         nu_ref_p=None,
                         procver=procver,
-                        filename=f"CG_DIRBE_{b:02}a_I_n512_{procver}.fits",
+                        filename=f"CG_DIRBE_{b:02}a_I_n0512_{procver}.fits",
                         bndctr=band_cent,
                         restfreq=band_cent,
                         bndwid=bandwidth,
@@ -1358,7 +1365,7 @@ def release(
                         nu_ref_t=f'{band_cent} GHz',
                         nu_ref_p=None,
                         procver=procver,
-                        filename=f"CG_DIRBE_{b:02}b_I_n512_{procver}.fits",
+                        filename=f"CG_DIRBE_{b:02}b_I_n0512_{procver}.fits",
                         bndctr=band_cent,
                         restfreq=band_cent,
                         bndwid=bandwidth,
@@ -1629,7 +1636,7 @@ def release(
                     "NONE",
                     "K",
                 ],
-                nside=1024,
+                nside=2048,
                 burnin=burnin,
                 maxchain=maxchain,
                 polar=False,
@@ -1638,7 +1645,7 @@ def release(
                 nu_ref_t="545 GHz",
                 nu_ref_p=None,
                 procver=procver,
-                filename=f"CG_dust_I_n1024_{procver}.fits",
+                filename=f"CG_dust_I_n2048_{procver}.fits",
                 bndctr=None,
                 restfreq=None,
                 bndwid=None,
@@ -1707,7 +1714,7 @@ def release(
             click.secho("Continuing...", fg="yellow")
 
 
-    if dust_cii:
+    if cii:
         try:
             # Full-mission free-free I map
             format_fits(
@@ -1721,12 +1728,12 @@ def release(
                     "MJy/sr",
                     "MJy/sr",
                 ],
-                nside=1024,
+                nside=2048,
                 burnin=burnin,
                 maxchain=maxchain,
                 polar=False,
                 component="CII",
-                fwhm=30.0,
+                fwhm=10.0,
                 nu_ref_t="40.0 GHz",
                 nu_ref_p="40.0 GHz",
                 procver=procver,
@@ -1734,6 +1741,47 @@ def release(
                 bndctr=None,
                 restfreq=None,
                 bndwid=None,
+            )
+        except Exception as e:
+            print(e)
+            click.secho("Continuing...", fg="yellow")
+
+    if stars:
+        # Stars as evaluated at DIRBE 01a
+        try:
+            if len(chains) == 1:
+                cmin = 1
+                cmax = None
+                chdir = os.path.split(chains[0])[0].rsplit("chain_", 1)[0]
+            else:
+                cmin = 1
+                cmax = len(chains)
+                chdir = os.path.split(chains[0])[0]
+            format_fits(
+                chain,
+                extname="COMP-MAP-stars",
+                types=[
+                    "I_MEAN",
+                    "I_STDDEV",
+                ],
+                units=[
+                    "MJy/sr",
+                    "MJy/sr",
+                ],
+                nside=512,
+                burnin=burnin,
+                maxchain=maxchain,
+                polar=False,
+                component="CII",
+                fwhm=10.0,
+                nu_ref_t="40.0 GHz",
+                nu_ref_p="40.0 GHz",
+                procver=procver,
+                filename=f"CG_stars_I_n0512_{procver}.fits",
+                bndctr=None,
+                restfreq=None,
+                bndwid=None,
+                chdir=chdir,
             )
         except Exception as e:
             print(e)
@@ -1753,12 +1801,12 @@ def release(
                     "MJy/sr",
                     "MJy/sr",
                 ],
-                nside=1024,
+                nside=2048,
                 burnin=burnin,
                 maxchain=maxchain,
                 polar=False,
                 component="hotPAH",
-                fwhm=30.0,
+                fwhm=10.0,
                 nu_ref_t="40.0 GHz",
                 nu_ref_p="40.0 GHz",
                 procver=procver,
@@ -1770,7 +1818,7 @@ def release(
         except Exception as e:
             print(e)
             click.secho("Continuing...", fg="yellow")
-    if co_tot:
+    if co:
         try:
             # Full-mission free-free I map
             format_fits(

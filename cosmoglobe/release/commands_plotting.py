@@ -395,6 +395,10 @@ def cartplot(filename, sig, size, min_, max_, rng, title, unit, cmap, graticule,
 @click.option("-ame", is_flag=True, help="Plot ame",)
 @click.option("-ff", is_flag=True, help="Plot ff",)
 @click.option("-dust", is_flag=True, help=" Plot dust",)
+@click.option("-co", is_flag=True, help=" Plot CO",)
+@click.option("-cii", is_flag=True, help=" Plot Cii",)
+@click.option("-stars", is_flag=True, help=" Plot stars",)
+@click.option("-hotpah", is_flag=True, help=" Plot Hot PAH",)
 @click.option("-diff", is_flag=True, help="Creates diff maps to dx12 and npipe")
 @click.option("-diffcmb", is_flag=True, help="Creates diff maps with cmb maps")
 @click.option("-goodness", is_flag=True, help="Plots chisq and residuals")
@@ -404,7 +408,8 @@ def cartplot(filename, sig, size, min_, max_, rng, title, unit, cmap, graticule,
 @click.option("-spec", is_flag=True, help="Creates emission plot")
 @click.option("-all", "all_", is_flag=True, help="Plot all")
 @click.pass_context
-def plotrelease(ctx, procver, mask, defaultmask, freqmaps, cmb, cmbresamp, synch, ame, ff, dust, diff, diffcmb, goodness, goodness_temp, goodness_pol, chisq, spec, all_):
+def plotrelease(ctx, procver, mask, defaultmask, freqmaps, cmb, cmbresamp,
+        synch, ame, ff, dust, co, cii, stars, hotpah, diff, diffcmb, goodness, goodness_temp, goodness_pol, chisq, spec, all_):
     """
     Plots all release files.
     """
@@ -413,20 +418,19 @@ def plotrelease(ctx, procver, mask, defaultmask, freqmaps, cmb, cmbresamp, synch
         os.mkdir("figs")
 
     if all_:
-        freqmaps = not freqmaps; cmb = not cmb; synch = not synch; ame = not ame;
+        freqmaps = not freqmaps; cmb = not cmb; synch = not synch; ame = not ame; co = not co;
+        cii = not cii; hotpah = not hotpah; stars = not stars;
         ff = not ff; dust = not dust; diff = not diff; diffcmb = not diffcmb; spec = not spec
         goodness = not goodness; goodness_temp = not goodness_temp; goodness_pol = not goodness_pol
         chisq = not chisq
 
         defaultmask = True if not mask else False
+    freqmaps = False
 
     if goodness_temp or goodness_pol or chisq:
         goodness = True
     elif goodness:
         goodness_temp = goodness_pol = chisq = True
-
-
-
 
     size = "mls"
     for colorbar in [True, False]:
@@ -497,6 +501,12 @@ def plotrelease(ctx, procver, mask, defaultmask, freqmaps, cmb, cmbresamp, synch
                 os.mkdir(outdir)
     
             try:
+                # DIRBE bands
+                for i in range(1, 11):
+                    ctx.invoke(plot, input=f"CG_DIRBE_{i:02}_I_n0512_{procver}.fits", outdir=outdir, colorbar=colorbar, auto=True, size=size, sig=[0,])
+                    ctx.invoke(plot, input=f"CG_DIRBE_{i:02}_I_n0512_{procver}.fits", outdir=outdir, colorbar=colorbar, auto=True, size=size, sig=[1,])
+                    ctx.invoke(plot, input=f"CG_DIRBE_{i:02}_I_n0512_{procver}.fits", outdir=outdir, colorbar=colorbar, auto=True, size=size, sig=[2,])
+
                 # 030 GHz IQU
                 ctx.invoke(plot, input=f"CG_030_IQU_n0512_{procver}.fits", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[0,],  range=3400,)
                 ctx.invoke(plot, input=f"CG_030_IQU_n0512_{procver}.fits", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[1, 2,],  fwhm=60.0, range=30,)
@@ -535,14 +545,12 @@ def plotrelease(ctx, procver, mask, defaultmask, freqmaps, cmb, cmbresamp, synch
                         size=size, outdir=outdir, colorbar=colorbar, auto=True,
                         sig=[6,7,8],min=0, max=2, scale=1e3)
 
-                # DIRBE bands
-                for i in range(1, 11):
-                    ctx.invoke(plot, input=f"CG_DIRBE_{i:02}_I_n0512_{procver}.fits")
 
 
             except Exception as e:
                 print(e)
                 click.secho("Continuing...", fg="yellow")
+
 
         if synch:
             outdir = "figs/synchrotron/"
@@ -567,6 +575,74 @@ def plotrelease(ctx, procver, mask, defaultmask, freqmaps, cmb, cmbresamp, synch
                 print(e)
                 click.secho("Continuing...", fg="yellow")
 
+        if co:
+            outdir = "figs/co/"
+            if not os.path.exists(outdir):
+                os.mkdir(outdir)
+
+            try:
+                # CO Tot mean and rms
+                ctx.invoke(plot, input=f"CG_CO_tot_I_n1024_{procver}.fits",
+                        size=size, outdir=outdir, colorbar=colorbar, auto=True,
+                        sig=[0])
+                ctx.invoke(plot, input=f"CG_CO_tot_I_n1024_{procver}.fits",
+                        size=size, outdir=outdir, colorbar=colorbar, auto=True,
+                        sig=[1])
+
+            except Exception as e:
+                print(e)
+                click.secho("Continuing...", fg="yellow")
+        if stars:
+            outdir = "figs/stars/"
+            if not os.path.exists(outdir):
+                os.mkdir(outdir)
+
+            try:
+                # CO Tot mean and rms
+                ctx.invoke(plot, input=f"CG_stars_I_n0512_{procver}.fits",
+                        size=size, outdir=outdir, colorbar=colorbar, auto=True,
+                        sig=[0])
+                ctx.invoke(plot, input=f"CG_stars_I_n0512_{procver}.fits",
+                        size=size, outdir=outdir, colorbar=colorbar, auto=True,
+                        sig=[1])
+
+            except Exception as e:
+                print(e)
+                click.secho("Continuing...", fg="yellow")
+        if cii:
+            outdir = "figs/cii/"
+            if not os.path.exists(outdir):
+                os.mkdir(outdir)
+
+            try:
+                # CO Tot mean and rms
+                ctx.invoke(plot, input=f"CG_cii_I_n1024_{procver}.fits",
+                        size=size, outdir=outdir, colorbar=colorbar, auto=True,
+                        sig=[0])
+                ctx.invoke(plot, input=f"CG_cii_I_n1024_{procver}.fits",
+                        size=size, outdir=outdir, colorbar=colorbar, auto=True,
+                        sig=[1])
+
+            except Exception as e:
+                print(e)
+                click.secho("Continuing...", fg="yellow")
+        if hotpah:
+            outdir = "figs/hotPAH/"
+            if not os.path.exists(outdir):
+                os.mkdir(outdir)
+
+            try:
+                # CO Tot mean and rms
+                ctx.invoke(plot, input=f"CG_hotPAH_I_n1024_{procver}.fits",
+                        size=size, outdir=outdir, colorbar=colorbar, auto=True,
+                        sig=[0])
+                ctx.invoke(plot, input=f"CG_hotPAH_I_n1024_{procver}.fits",
+                        size=size, outdir=outdir, colorbar=colorbar, auto=True,
+                        sig=[1])
+
+            except Exception as e:
+                print(e)
+                click.secho("Continuing...", fg="yellow")
         if ff:
             outdir = "figs/freefree/"
             if not os.path.exists(outdir):
@@ -594,9 +670,22 @@ def plotrelease(ctx, procver, mask, defaultmask, freqmaps, cmb, cmbresamp, synch
                 click.secho("Continuing...", fg="yellow")
 
         if dust:
+            print("Trying dust now")
             outdir = "figs/dust/"
             if not os.path.exists(outdir):
                 os.mkdir(outdir)
+
+            try:
+                # I IBETA ITMEAN ISTDDEV IBETASTDDEV ITSTDDEV 
+                # dust I
+                ctx.invoke(plot, input=f"CG_dust_I_n2048_{procver}.fits", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[0, 1, 2,], )
+                ctx.invoke(plot, input=f"CG_dust_I_n2048_{procver}.fits", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[3,], min=0, mid=[10], max=20)
+                ctx.invoke(plot, input=f"CG_dust_I_n2048_{procver}.fits", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[4,5,], min=0, mid=[10], max=20)
+
+            except Exception as e:
+                print(e)
+                click.secho("Continuing...", fg="yellow")
+
     
             try:
                 # I Q U P IBETA QUBETA ITMEAN QUTMEAN   ISTDDEV QSTDDEV USTDDEV PSTDDEV    IBETASTDDEV QUBETASTDDEV ITSTDDEV QUTSTDDEV
@@ -736,7 +825,8 @@ def plotrelease(ctx, procver, mask, defaultmask, freqmaps, cmb, cmbresamp, synch
                 #ctx.invoke(plot, input=f"goodness/CG_chisq_n16_{procver}.fits", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[3,], min=0.001, max=0.01, scale=scale)
 
             
-     
+    
+    '''
     if spec: 
         print("Plotting sky model SED spectrum")
         print("Reading data")
@@ -800,6 +890,7 @@ def plotrelease(ctx, procver, mask, defaultmask, freqmaps, cmb, cmbresamp, synch
         for f in files:
             if f.startswith("spectrum"):
                 os.rename(f, f"{outdir}{f}")
+    '''
 
 
 @commands_plotting.command()

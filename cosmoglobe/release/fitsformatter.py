@@ -104,6 +104,7 @@ def get_data(chain, extname, component, burnin, maxchain, fwhm, nside, types, cm
         # Mean data
         amp_mean = h5handler(input=chain, dataset="dust/amp_alm", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=fwhm, nside=nside, command=np.mean,)
         beta_mean = h5handler(input=chain, dataset="dust/beta_map", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=0.0, nside=nside, command=np.mean,)
+        assert amp_mean.shape == beta_mean.shape, f"SED parameters have different nside"
         T_mean = h5handler(input=chain, dataset="dust/T_map", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=0.0, nside=nside, command=np.mean,)
 
         # stddev data
@@ -111,21 +112,23 @@ def get_data(chain, extname, component, burnin, maxchain, fwhm, nside, types, cm
         beta_stddev = h5handler(input=chain, dataset="dust/beta_map", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=0.0, nside=nside, command=np.std,)
         T_stddev = h5handler(input=chain, dataset="dust/T_map", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=0.0, nside=nside, command=np.std,)
 
+
+
         dset = np.zeros((len(types), hp.nside2npix(nside)))
 
         if len(types) == 6:
 
-            dset[0] = amp_mean[0, :]
+            dset[0] = amp_mean
 
-            dset[1] = beta_mean[0, :]
+            dset[1] = beta_mean
 
-            dset[2] = T_mean[0, :]
+            dset[2] = T_mean
 
-            dset[3] = amp_stddev[0, :]
+            dset[3] = amp_stddev
 
-            dset[4] = beta_stddev[0, :]
+            dset[4] = beta_stddev
 
-            dset[5] = T_stddev[0, :]
+            dset[5] = T_stddev
         else:
 
             dset[0] = amp_mean[0, :]
@@ -196,6 +199,20 @@ def get_data(chain, extname, component, burnin, maxchain, fwhm, nside, types, cm
         # Mean/std amplitude 
         amp_mean = h5handler(input=chain, dataset="dust_cii/amp_alm", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=fwhm, nside=nside, command=np.mean,)
         amp_stddev = h5handler(input=chain, dataset="dust_cii/amp_alm", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=fwhm, nside=nside, command=np.std,)
+
+        dset = np.zeros((len(types), hp.nside2npix(nside)))
+
+        dset[0] = amp_mean
+        dset[1] = amp_stddev
+
+    elif extname.endswith("stars"):
+        # Mean/std amplitude 
+        # amp_mean = h5handler(input=chain, dataset="dust_cii/amp_alm", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=fwhm, nside=nside, command=np.mean,)
+        # amp_stddev = h5handler(input=chain, dataset="dust_cii/amp_alm", min=burnin, max=None, maxchain=maxchain, output="map", fwhm=fwhm, nside=nside, command=np.std,)
+
+        amp_mean = fits_handler(input="stars_01a_c0001_k000001.fits", min=burnin, max=None, minchain=cmin, maxchain=cmax, chdir=chdir, output="map", fwhm=fwhm, nside=nside, drop_missing=True, pixweight=None, command=np.mean, lowmem=False, fields=fields, write=False, zerospin=False)
+        amp_stddev = fits_handler(input="stars_01a_c0001_k000001.fits", min=burnin, max=None, minchain=cmin, maxchain=cmax, chdir=chdir, output="map", fwhm=fwhm, nside=nside, drop_missing=True, pixweight=None, command=np.std, lowmem=False, fields=fields, write=False, zerospin=False)
+        #amp_mean = fits_handler(input="chisq_c0001_k000001.fits", min=burnin, max=None, minchain=cmin, maxchain=cmax, chdir=chdir, output="map", fwhm=fwhm, nside=nside, zerospin=False, drop_missing=True, pixweight=None, command=np.mean, lowmem=False, write=False)
 
         dset = np.zeros((len(types), hp.nside2npix(nside)))
 
