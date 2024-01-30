@@ -6,7 +6,7 @@ import healpy as hp
 import numpy as np
 import astropy.units as u
 import matplotlib.pyplot as plt
-
+import matplotlib.colors as colors
 from .plottools import *
 from .temp_newvisufunc import projview as temp_projview
 
@@ -273,7 +273,8 @@ def plot(
     )
 
     # Colormap
-    cmap = load_cmap(params["cmap"])
+    if not isinstance(cmap, colors.Colormap):
+        cmap = load_cmap(params["cmap"])
     if maskfill:
         cmap.set_bad(maskfill)
 
