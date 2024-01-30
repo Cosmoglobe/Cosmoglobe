@@ -69,6 +69,8 @@ def projview(
     format="%g",
     cbar=True,
     cmap="viridis",
+    badcolor='gray',
+    bgcolor='white',
     norm=None,
     norm_dict=None,
     graticule=False,
@@ -551,6 +553,8 @@ def projview(
             m[w],
             cmap=cmap,
             norm=norm,
+            badcolor=badcolor,
+            bgcolor=bgcolor,
             **norm_dict_defaults,
         )
         grid_pix = ang2pix(nside, THETA, PHI, nest=nest)
