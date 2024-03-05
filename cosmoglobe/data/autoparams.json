@@ -8,6 +8,15 @@
         "norm": null,
         "norm_dict": null
     },
+    "cmb_lowl": {
+        "rlabel": "A_{\\mathrm{CMB}}^{ }",
+        "unit": "\\mu\\mathrm{K}_{\\mathrm{CMB}}",
+        "cmap": ["planck"],
+        "ticks": [[-300,0,300], [-30,0,30]],
+        "freq_ref": [null,null],
+        "norm": null,
+        "norm_dict": null
+    },
     "chisq": {
         "rlabel": "\\chi^2",
         "unit": "",

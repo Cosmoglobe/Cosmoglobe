@@ -168,7 +168,7 @@ def make_fig(figsize, fignum, hold, sub, reuse_axes, darkmode=False, projection=
     if reuse_axes:
         ax = fig.gca()
     else:
-        ax = fig.add_subplot(int(f"{nrows}{ncols}{idx}"), projection=projection)
+        ax = fig.add_subplot(nrows,ncols,idx, projection=projection)
 
     return fig, ax
 
@@ -178,8 +178,8 @@ def get_percentile(m, percentile):
     This function gets appropriate min and max
     values of the data for a given percentile
     """
-    vmin = np.percentile(m, 100.0 - percentile)
-    vmax = np.percentile(m, percentile)
+    vmin = np.percentile(m[~m.mask], 100.0 - percentile)
+    vmax = np.percentile(m[~m.mask], percentile)
 
     vmin = 0.0 if abs(vmin) < 1e-5 else vmin
     vmax = 0.0 if abs(vmax) < 1e-5 else vmax
@@ -364,6 +364,7 @@ def standalone_colorbar(
     shrink=0.3,
     darkmode=False,
     width=2,
+    extend=None,
 ):
 
     fig = plt.figure(figsize=(width, width / 4))
@@ -372,9 +373,6 @@ def standalone_colorbar(
     img = plt.imshow(np.array([[0, 1]]), cmap=cmap)
     plt.gca().set_visible(False)
     ax = plt.axes([0.1, 0.7, 0.8, 0.2])  # LBWH
-
-    if fontsize is None:
-        fontsize = DEFAULT_FONTSIZES
 
     if ticklabels is None:
         ticklabels = format_list(ticks)
@@ -391,6 +389,7 @@ def standalone_colorbar(
         cbar_shrink=shrink,
         cbar_pad=0.0,
         cmap=cmap,
+        extend=extend
     )
 
 
@@ -408,10 +407,18 @@ def apply_colorbar(
     cbar_shrink=0.3,
     cmap=None,
     orientation="horizontal",
+    extend=None
 ):
     """
     This function applies a colorbar to the figure and formats the ticks.
     """
+    if isinstance(unit, u.UnitBase):
+        unit = unit.to_string("latex")
+
+    if fontsize is None:
+        fontsize = DEFAULT_FONTSIZES#['cbar_label']
+    #elif type(fontsize) is dict:
+    #    fontsize = fontsize['cbar_label']
 
     if image is None and cmap is not None:
         norm = mpl.colors.Normalize(vmin=ticks[0], vmax=ticks[-1])
@@ -421,7 +428,9 @@ def apply_colorbar(
             norm=norm,
             orientation=orientation,
             ticks=ticks,
+            extend=extend,
         )
+        cb.set_label(label=unit, size=fontsize['cbar_label'])
     else:
         cb = fig.colorbar(
             image,
@@ -430,25 +439,13 @@ def apply_colorbar(
             shrink=cbar_shrink,
             pad=cbar_pad,
         )
-    if fontsize is None:
-        fontsize = DEFAULT_FONTSIZES
-    if isinstance(unit, u.UnitBase):
-        unit = unit.to_string("latex")
-    # if orientation == 'horizontal':
-    #    cb.ax.set_xticklabels(ticklabels, size=fontsize["cbar_tick_label"])
-    #    cb.ax.xaxis.set_label_text(unit, size=fontsize["cbar_label"])
-    # elif orientation == 'vertical':
-    #    cb.ax.set_yticklabels(ticklabels, size=fontsize["cbar_tick_label"])
-    #    cb.ax.yaxis.set_label_text(unit, size=fontsize["cbar_label"])
+    if orientation == 'horizontal':
+       cb.ax.set_xticklabels(ticklabels, size=fontsize["cbar_tick_label"])
+       cb.ax.xaxis.set_label_text(unit, size=fontsize["cbar_label"])
+    elif orientation == 'vertical':
+       cb.ax.set_yticklabels(ticklabels, size=fontsize["cbar_tick_label"])
+       cb.ax.yaxis.set_label_text(unit, size=fontsize["cbar_label"])
 
-    # cb = plt.gca().collections[-1].colorbar
-    # labels = cb.ax.xaxis.get_ticklabels()
-    ##ticks = cb.get_ticks()
-    # N = len(labels)
-    # for i, label in enumerate(labels):
-    #    if i in [0, N//2, N-1]:
-    #        continue
-    #    label.set_visible(False)
 
     if norm in ["linlog", "log"]:
         """
@@ -465,12 +462,11 @@ def apply_colorbar(
         logticks = symlog(ticks_, linthresh)
         logticks = [x for x in logticks if x not in ticks]
         if orientation == "horizontal":
-            cb.set_ticks(np.concatenate((ticks, logticks)))  # Set major ticks
-            cb.ax.set_xticklabels(ticklabels + [""] * len(logticks))
+            cb.set_xticks(np.concatenate((ticks, logticks)))  # Set major ticks
+            cb.ax.set_xticklabels(ticklabels + [""] * len(logticks), ha='center')
         elif orientation == "vertical":
-            # cb.ax.yaxis.set_ticks(np.concatenate((ticks, logticks)))  # Set major ticks
-            # cb.ax.set_yticklabels(ticklabels + [""] * len(logticks))
-            pass
+            cb.ax.yaxis.set_ticks(np.concatenate((ticks, logticks)))  # Set major ticks
+            cb.ax.set_yticklabels(ticklabels + [""] * len(logticks))
 
         # Minor tick log markers
 
@@ -500,25 +496,41 @@ def apply_colorbar(
             cb.ax.yaxis.set_ticks(minorticks, minor=True)
     # workaround for issue with viewers, see colorbar docstring
     cb.solids.set_edgecolor("face")
+    bbox = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+    bwidth, bheight = bbox.width, bbox.height
+    points_per_inch = 72
     if orientation == "horizontal":
         cb.ax.tick_params(
             which="both",
             axis="x",
             direction="in",
             color="#3d3d3d",
+            labelsize=fontsize["cbar_tick_label"],
+            width=fontsize['cbar_tick_label']/10,
+            #length=bheight*points_per_inch*0.75,
+            length=bheight*points_per_inch*0.02,
         )
         cb.ax.xaxis.labelpad = 0
+        if norm in ["linlog", "log"]:
+            ticklabels = cb.ax.get_xticklabels()
+        cb.ax.set_xticks(ticks)
+        cb.ax.set_xticklabels(ticklabels)
     elif orientation == "vertical":
         cb.ax.tick_params(
             which="both",
             axis="y",
             direction="in",
             color="#3d3d3d",
+            labelsize=fontsize["cbar_tick_label"],
+            width=fontsize['cbar_tick_label']/10,
+            length=bheight*points_per_inch*0.02,
         )
         cb.ax.yaxis.labelpad = 0
 
-        ylabels = cb.ax.get_yticklabels()
-        cb.ax.set_yticklabels(ylabels, Rotation=90)
+        if norm in ["linlog", "log"]:
+            ticklabels = cb.ax.get_yticklabels()
+        cb.ax.set_yticks(ticks)
+        cb.ax.set_yticklabels(ticklabels, Rotation=90)
 
     return  # cb
 
@@ -550,7 +562,8 @@ def load_cmap(cmap):
     return cmap
 
 
-def get_data(input, sig, comp, freq, fwhm, nside=None, sample=-1):
+def get_data(input, sig, comp, freq, fwhm, nside=None, sample=-1, scale=1,
+    remove_mono=None, remove_dip=None, nest=False, gal_cut=0):
     # Parsing component string
     fwhm_ = None
     specparam = "amp"
@@ -647,6 +660,7 @@ def get_data(input, sig, comp, freq, fwhm, nside=None, sample=-1):
         else:
             m = m[sig]
 
+    m = hp.ma(m)
 
     # Convert astropy map to numpy array
     if isinstance(m, u.Quantity):
@@ -660,6 +674,20 @@ def get_data(input, sig, comp, freq, fwhm, nside=None, sample=-1):
     # Smooth map
     if fwhm > 0.0 and fwhm_ is None:
         m = hp.smoothing(m, fwhm.to(u.rad).value)
+
+    # Rescale map
+    m = m * scale
+
+    # Remove monopole and dipole
+    if remove_dip:
+        if remove_dip == 'auto':
+           gal_cut = 30
+        m = hp.remove_dipole(m, gal_cut=gal_cut, nest=nest, copy=True)
+    elif remove_mono:
+        if remove_mono == 'auto':
+           gal_cut = 30
+        m = hp.remove_monopole(m, gal_cut=gal_cut, nest=nest, copy=True)
+
 
     return m, comp, freq, hp.get_nside(m)
 
@@ -845,10 +873,10 @@ def create_70GHz_mask(sky_frac, nside=256, pol=False):
     # sky fraction for a range, and interpolate from this table.
     amp_percentages = np.flip(np.arange(1, 101))
     fracs = []
-    mask = np.zeros(len(template), dtype=np.bool)
+    mask = np.zeros(len(template), dtype=bool)
 
     for i in range(len(amp_percentages)):
-        mask = np.zeros(len(template), dtype=np.bool)
+        mask = np.zeros(len(template), dtype=bool)
         masked_template = np.abs(hp.ma(template))
         mask[np.where(np.log(masked_template) > (amp_percentages[i] / 100) * np.nanmax(np.log(masked_template)))] = 1
         masked_template.mask = mask
@@ -858,7 +886,7 @@ def create_70GHz_mask(sky_frac, nside=256, pol=False):
 
     amp_percentage = np.interp(100 - sky_frac, fracs, amp_percentages)
 
-    mask = np.zeros(len(template), dtype=np.bool)
+    mask = np.zeros(len(template), dtype=bool)
     masked_template = np.abs(hp.ma(template))
     mask[np.where(np.log(masked_template) > (amp_percentage / 100) * np.nanmax(np.log(masked_template)))] = 1
 
@@ -902,7 +930,7 @@ def seds_from_model(nu, model, nside=None, pol=False, sky_fractions=(25, 85)):
                     amp_pol = rms_amp(np.sqrt(amp[1] ** 2 + amp[2] ** 2))
             amp = rms_amp(amp[0])
 
-            if key == "cmb":
+            if key == "cmb" or key == "cmb_lowl":
                 freq_scaling = (np.ones(len(nu)) * Unit("uK_CMB")).to("uK_RJ", equivalencies=cmb_equivalencies(nu * u.GHz))
                 seds[key][0, i, :] = 45 * freq_scaling  # TEMP
                 seds[key][1, i, :] = 0.67 * freq_scaling  # POL

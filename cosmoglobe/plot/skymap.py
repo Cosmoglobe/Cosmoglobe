@@ -6,9 +6,11 @@ import healpy as hp
 import numpy as np
 import astropy.units as u
 import matplotlib.pyplot as plt
-
+import matplotlib.colors as colors
 from .plottools import *
 from .temp_newvisufunc import projview as temp_projview
+
+
 
 # Fix for macos openMP duplicate bug
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
@@ -66,6 +68,9 @@ def plot(
     custom_xtick_labels=None,
     custom_ytick_labels=None,
     ratio=None,
+    extend=None,
+    return_figure=False,
+    scale=1,
     **kwargs,
 ):
     """
@@ -207,9 +212,12 @@ def plot(
         override x-axis tick labels
     custom_ytick_labels : list
         override y-axis tick labels
+    scale : float
+        rescales data by factor scale
     kwargs : keywords
         passed to projview
     """
+
 
     if not fontsize:
         fontsize = DEFAULT_FONTSIZES
@@ -231,14 +239,14 @@ def plot(
         sig = STOKES.index(sig)
 
     # Get data
-    m, comp, freq, nside = get_data(input, sig, comp, freq, fwhm, nside=nside, sample=sample)
+    m, comp, freq, nside = get_data(input, sig, comp, freq, fwhm, nside=nside,
+        sample=sample, scale=scale, remove_dip=remove_dip,
+        remove_mono=remove_mono)
 
-    # Mask map
     if mask is not None:
         if isinstance(mask, str):
             mask = hp.read_map(mask)
 
-        m = hp.ma(m)
         if hp.get_nside(mask) != nside:
             print("[magenta]Input mask nside is different, ud_grading to output nside.[/magenta]")
             mask = hp.ud_grade(mask, nside)
@@ -265,7 +273,8 @@ def plot(
     )
 
     # Colormap
-    cmap = load_cmap(params["cmap"])
+    if not isinstance(cmap, colors.Colormap):
+        cmap = load_cmap(params["cmap"])
     if maskfill:
         cmap.set_bad(maskfill)
 
@@ -290,8 +299,6 @@ def plot(
         show_tickmarkers=True,
         width=width,
         # unedited params
-        remove_dip=remove_dip,
-        remove_mono=remove_mono,
         xsize=xsize,
         title=title,
         rot=rot,
@@ -314,7 +321,9 @@ def plot(
         phi_convention=phi_convention,
         custom_xtick_labels=custom_xtick_labels,
         custom_ytick_labels=custom_ytick_labels,
+        extend=extend,
         **kwargs
     )
 
-    return ret, params
+    if return_figure:
+       return ret, params

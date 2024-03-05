@@ -10,10 +10,15 @@ import matplotlib.pyplot as plt
 from .plottools import *
 
 from cosmoglobe.sky._units import Unit
+import astropy.constants as c
+import astropy.units as u
+
 
 # TODO:
 # CO is currently hardcoded
 # Make better custom band selection
+
+# Convert from RJ to MJy/sr; 2*nu**2*k_B/c**2 * I_nu
 
 
 def spec(
@@ -46,6 +51,7 @@ def spec(
     fsky_pos=500,
     component_options=None,
     text_offset=2,
+    unit='uK_RJ',
 ):
     """
     Generates RMS intensity plot for components in model.
@@ -141,6 +147,7 @@ def spec(
     text_offset : float, optional
         Text offset from lines
         default : 5
+    unit: uK_RJ or MJy/sr
     """
     if fraction is not None:
         figsize = get_figure_width(fraction=fraction)
@@ -234,7 +241,13 @@ def spec(
 
     # Spectrum parameters
     N = 1000
-    nu = np.logspace(np.log10(0.1), np.log10(5000), N)
+    nu = np.logspace(np.log10(0.1), np.log10(300_000), N)
+    
+    if unit == 'uK_RJ':
+        C_fact = 1
+    else:
+        C_fact = (2*(nu*u.GHz)**2*c.k_B/c.c**2).to('MJy uK-1').value
+
     seds = seds_from_model(nu, model, pol=pol, sky_fractions=sky_fractions)
 
     # Get parameters for each component line
@@ -288,7 +301,7 @@ def spec(
     for comp, params in foregrounds.items():  # Plot all fgs except sumf
         if params["spectrum"] is None and not comp.startswith("co"):
             continue
-        if params["gradient"]:
+        if not params["gradient"]:
             k = 1
             gradient_fill_between(
                 ax,
@@ -301,7 +314,7 @@ def spec(
             if comp == "sumfg":
                 ax.loglog(
                     nu,
-                    params["spectrum"][sig][1],
+                    params["spectrum"][sig][1]*C_fact,
                     linestyle=params["linestyle"],
                     linewidth=1.5,
                     color=params["color"],
@@ -309,7 +322,7 @@ def spec(
                 if extend:
                     ax2.loglog(
                         nu,
-                        params["spectrum"][sig][1],
+                        params["spectrum"][sig][1]*C_fact,
                         linestyle=params["linestyle"],
                         linewidth=1.5,
                         color=params["color"],
@@ -318,7 +331,7 @@ def spec(
                 try:
                     ax.loglog(
                         nu,
-                        params["spectrum"][sig][0],
+                        params["spectrum"][sig][0]*C_fact,
                         linestyle=params["linestyle"],
                         linewidth=1.5,
                         color=params["color"],
@@ -326,7 +339,7 @@ def spec(
                     if extend:
                         ax2.loglog(
                             nu,
-                            params["spectrum"][sig][0],
+                            params["spectrum"][sig][0]*C_fact,
                             linestyle=params["linestyle"],
                             linewidth=1.5,
                             color=params["color"],
@@ -354,7 +367,7 @@ def spec(
                 if comp == "cmb":
                     ax.loglog(
                         nu,
-                        params["spectrum"][sig][0],
+                        params["spectrum"][sig][0]*C_fact,
                         linestyle=params["linestyle"],
                         linewidth=2,
                         color=params["color"],
@@ -362,7 +375,7 @@ def spec(
                     if extend:
                         ax2.loglog(
                             nu,
-                            params["spectrum"][sig][0],
+                            params["spectrum"][sig][0]*C_fact,
                             linestyle=params["linestyle"],
                             linewidth=4,
                             color=params["color"],
@@ -371,16 +384,16 @@ def spec(
                 else:
                     ax.fill_between(
                         nu,
-                        params["spectrum"][sig][1],
-                        params["spectrum"][sig][0],
+                        params["spectrum"][sig][1]*C_fact,
+                        params["spectrum"][sig][0]*C_fact,
                         color=params["color"],
                         alpha=0.8,
                     )
                     if extend:
                         ax2.fill_between(
                             nu,
-                            params["spectrum"][sig][1],
-                            params["spectrum"][sig][0],
+                            params["spectrum"][sig][1]*C_fact,
+                            params["spectrum"][sig][0]*C_fact,
                             color=params["color"],
                             alpha=0.8,
                         )
@@ -664,16 +677,17 @@ def spec(
         if ytick >= ymin and ytick <= ymax:
             yticks.append(ytick)
 
-    ax.set(
-        xscale="log",
-        yscale="log",
-        ylim=(ymin, ymax),
-        xlim=(xmin, xmax),
-        yticks=yticks,
-        yticklabels=yticks,
-        xticks=xticks,
-        xticklabels=xticks,
-    )
+    if unit == 'uK_RJ':
+        ax.set(
+            xscale="log",
+            yscale="log",
+            ylim=(ymin, ymax),
+            xlim=(xmin, xmax),
+            yticks=yticks,
+            yticklabels=yticks,
+            xticks=xticks,
+            xticklabels=xticks,
+        )
     formatter = ticker.FuncFormatter(fmt)
     ax.xaxis.set_major_formatter(formatter)
     ax.yaxis.set_major_formatter(formatter)

@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from matplotlib.projections.geo import GeoAxes
 from matplotlib.ticker import MultipleLocator
 import warnings
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
 class ThetaFormatterCounterclockwisePhi(GeoAxes.ThetaFormatter):
@@ -53,13 +54,6 @@ def lonlat(theta, phi):
     return longitude, latitude
 
 
-def update_dictionary(main_dict, update_dict):
-    for key, key_val in main_dict.items():
-        if key in update_dict:
-            main_dict[key] = update_dict[key]
-    return main_dict
-
-
 def projview(
     m=None,
     fig=None,
@@ -75,6 +69,8 @@ def projview(
     format="%g",
     cbar=True,
     cmap="viridis",
+    badcolor='gray',
+    bgcolor='white',
     norm=None,
     norm_dict=None,
     graticule=False,
@@ -280,7 +276,7 @@ def projview(
     # Update values for symlog normalization if specified
     norm_dict_defaults = {"linthresh": 1, "base": 10, "linscale": 0.1}
     if norm_dict is not None:
-        norm_dict_defaults = update_dictionary(norm_dict_defaults, norm_dict)
+        norm_dict_defaults.update(norm_dict)
 
     # Remove monopole and dipole
     if remove_dip:
@@ -290,15 +286,20 @@ def projview(
 
     # do this to find how many decimals are in the colorbar labels, so that the padding in the vertical cbar can done properly
     def find_number_of_decimals(number):
-        try:
-            return len(str(number).split(".")[1])
-        except:
-            return 0
+        #try:
+        #    return len(str(number).split(".")[1])
+        #except:
+        #    return 0
+        return 0
 
     # default font sizes
     fontsize_defaults = {
         "xlabel": 12,
         "ylabel": 12,
+        "llabel": 12,
+        "rlabel": 12,
+        "llabel_align": "left",
+        "rlabel_align": "left",
         "title": 14,
         "xtick_label": 12,
         "ytick_label": 12,
@@ -306,7 +307,7 @@ def projview(
         "cbar_tick_label": 10,
     }
     if fontsize is not None:
-        fontsize_defaults = update_dictionary(fontsize_defaults, fontsize)
+        fontsize_defaults.update(fontsize)
 
     # default plot settings
     decs = np.max([find_number_of_decimals(min), find_number_of_decimals(max)])
@@ -316,6 +317,7 @@ def projview(
         lpad = -9 * decs
 
     ratio = 0.63
+    ratio = 0.6
     custom_width = width
     if projection_type == "3d":
         if cb_orientation == "vertical":
@@ -327,20 +329,20 @@ def projview(
             pad = 0
             lpad = -10
             width = 14
-    if projection_type in geographic_projections:
+    elif projection_type in geographic_projections:
         if cb_orientation == "vertical":
-            shrink = 0.6
-            pad = 0.01
-            width = 10
+            shrink = 0.1
+            pad = 0.05
+            width = 5
         if cb_orientation == "horizontal":
-            shrink = 0.6
+            shrink = 0.4
             pad = 0.05
             if cbar_ticks is not None:
                 lpad = 0
             else:
                 lpad = -8
             width = 8.5
-    if projection_type == "cart":
+    elif projection_type == "cart":
         if cb_orientation == "vertical":
             shrink = 1
             pad = 0.01
@@ -354,7 +356,7 @@ def projview(
             if xlabel == None:
                 pad = 0.01
                 ratio = 0.63
-    if projection_type == "polar":
+    elif projection_type == "polar":
         if cb_orientation == "vertical":
             shrink = 1
             pad = 0.01
@@ -364,6 +366,8 @@ def projview(
             pad = 0.01
             lpad = 0
             width = 12
+    else:
+        print('Projection type not supported')
 
     # If width was passed as an input argument
     if custom_width is not None:
@@ -394,10 +398,10 @@ def projview(
 
     if override_plot_properties is not None:
         warnings.warn(
-            "\n *** Overriding default plot properies: " + str(plot_properties) + " ***"
+            "\n *** Overriding default plot properties: " + str(plot_properties) + " ***"
         )
-        plot_properties = update_dictionary(plot_properties, override_plot_properties)
-        warnings.warn("\n *** New plot properies: " + str(plot_properties) + " ***")
+        plot_properties.update(override_plot_properties)
+        warnings.warn("\n *** New plot properties: " + str(plot_properties) + " ***")
 
     g_col = "grey" if graticule_color is None else graticule_color
     rot_graticule_properties = {
@@ -411,15 +415,13 @@ def projview(
 
     if override_rot_graticule_properties is not None:
         warnings.warn(
-            "\n *** Overriding rotated graticule properies: "
+            "\n *** Overriding rotated graticule properties: "
             + str(rot_graticule_properties)
             + " ***"
         )
-        rot_graticule_properties = update_dictionary(
-            rot_graticule_properties, override_rot_graticule_properties
-        )
+        rot_graticule_properties.update(override_rot_graticule_properties)
         warnings.warn(
-            "\n *** New rotated graticule properies: "
+            "\n *** New rotated graticule properties: "
             + str(rot_graticule_properties)
             + " ***"
         )
@@ -502,8 +504,8 @@ def projview(
     # Parameters for subplots
     left = 0.02
     right = 0.98
-    top = 0.95
-    bottom = 0.05
+    top = 0.98
+    bottom = 0.08
 
     # end if not
     if graticule and graticule_labels:
@@ -551,6 +553,8 @@ def projview(
             m[w],
             cmap=cmap,
             norm=norm,
+            badcolor=badcolor,
+            bgcolor=bgcolor,
             **norm_dict_defaults,
         )
         grid_pix = ang2pix(nside, THETA, PHI, nest=nest)
@@ -568,6 +572,7 @@ def projview(
                 rasterized=True,
                 cmap=cm,
                 shading="auto",
+                #shading="flat",
                 **kwargs,
             )
         elif projection_type == "3d":  # test for 3d plot
@@ -676,14 +681,37 @@ def projview(
         ticks = None if show_tickmarkers else cbar_ticks
 
         # Create colorbar
+        if sub == 111:
+            if cb_orientation == 'horizontal':
+                cax = fig.add_axes([0.25, 0.055, 0.5, 0.04])
+            elif cb_orientation == 'vertical':
+                cax = fig.add_axes([1.0, 0.25, 0.03, 0.5])
+        else:
+            bbox = ax.get_position()
+            x0 = bbox.x0
+            y0 = bbox.y0
+            width = bbox.width
+            height = bbox.height
+            if cb_orientation == 'horizontal':
+                new_width = 0.75*width
+                buff = (width - new_width)/2
+                cax = fig.add_axes([x0 + buff, y0 - 0.1*height, new_width, 0.05*height])
+            elif cb_orientation == 'vertical':
+                new_height = 0.75*height
+                buff = (height - new_height)/2
+                cax = fig.add_axes([x0 + 1.05*width, y0 + buff, 0.02*width, new_height])
+            cax.tick_params(axis="both", which="both",
+                    length=fig.get_size_inches()[0]*72/250)
+            # tick length is in points
+
         cb = fig.colorbar(
             ret,
-            orientation=cb_orientation,
-            shrink=plot_properties["cbar_shrink"],
-            pad=plot_properties["cbar_pad"],
             ticks=ticks,
             extend=extend,
+            orientation=cb_orientation,
+            cax = cax,
         )
+
 
         # Hide all tickslabels not in tick variable. Do not delete tick-markers
         if show_tickmarkers:
@@ -693,7 +721,7 @@ def projview(
             ticks = ticks[ticks<=max]
             labels = [format % tick if tick in cbar_ticks else "" for tick in ticks]
 
-            cb.set_ticks(ticks, labels)
+            cb.set_ticks(ticks)
             cb.set_ticklabels(labels)
         else:
             labels = [format % tick for tick in cbar_ticks]
@@ -773,22 +801,40 @@ def projview(
             rlabel,
             ha="right",
             va="center",
-            fontsize=fontsize_defaults["cbar_label"],
+            fontsize=fontsize_defaults["rlabel"],
             fontname=fontname,
             transform=ax.transAxes,
         )
     # Top left label
+    #if llabel is not None:
     if llabel is not None:
-        plt.text(
-            0.025,
-            0.925,
-            llabel,
-            ha="left",
-            va="center",
-            fontsize=fontsize_defaults["cbar_label"],
-            fontname=fontname,
-            transform=ax.transAxes,
-        )
+        if fontsize_defaults["llabel_align"] == "left":
+            plt.text(
+                0.025,
+                0.925,
+                llabel,
+                ha="left",
+                #ha="right",
+                va="center",
+                fontsize=fontsize_defaults["llabel"],
+                fontname=fontname,
+                transform=ax.transAxes,
+                )
+        elif fontsize_defaults["llabel_align"] == "right":
+            plt.text(
+                #0.025,
+                #-0.03,
+                0.15,
+                0.925,
+                llabel,
+                ha="right",
+                va="center",
+                fontsize=fontsize_defaults["llabel"],
+                fontname=fontname,
+                transform=ax.transAxes,
+            )
+        else:
+            print("llabel_align must be 'left' or 'right'")
 
     plt.draw()
     return ret

@@ -45,7 +45,7 @@ def commands_plotting():
 @click.option("-fraction", default = 0.5,type= click.FLOAT,help="Fraction of latex page width",)
 @click.option("-xsize", default = 1000, type= click.INT,help="figuresize in px",)
 @click.option("-darkmode",is_flag=True,help='Plots all outlines in white for dark bakgrounds ("dark" in filename)',)
-@click.option("-interactive",is_flag=True,help="Uses healpys interactive mode, zooming is possible etc.",)
+#@click.option("-interactive",is_flag=True,help="Uses healpys interactive mode, zooming is possible etc.",)
 @click.option("-rot", default = None, help="Describe the rotation to apply. In the form (lon, lat, psi) (unit: degrees) : the point at longitude *lon* and latitude *lat* will be at the center. An additional rotation of angle *psi* around this direction is applied.",)
 @click.option("-coord", default = None, help="Either one of 'G', 'E' or 'C' to describe the coordinate system of the map,",)
 @click.option("-nest",is_flag=True,help="If True, ordering scheme is NESTED.",)

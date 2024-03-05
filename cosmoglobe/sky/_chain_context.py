@@ -6,7 +6,7 @@ from astropy.units import Quantity
 from cosmoglobe.sky._context_registry import ChainContextRegistry
 from cosmoglobe.sky._units import *
 from cosmoglobe.sky.components.ame import SpinningDust
-from cosmoglobe.sky.components.cmb import CMB
+from cosmoglobe.sky.components.cmb import CMB, CMB_LOWL
 from cosmoglobe.sky.components.dust import ModifiedBlackbody
 from cosmoglobe.sky.components.freefree import LinearOpticallyThin
 from cosmoglobe.sky.components.radio import AGNPowerLaw
@@ -85,6 +85,12 @@ chain_context_registry = ChainContextRegistry()
 
 chain_context_registry.register_class_context(
     CMB,
+    functions=[reshape_freq_ref, map_to_scalar],
+    mappings={"freq_ref": "nu_ref"},
+    units={"freq_ref": Unit("Hz"), "amp": Unit("uK_CMB")},
+)
+chain_context_registry.register_class_context(
+    CMB_LOWL,
     functions=[reshape_freq_ref, map_to_scalar],
     mappings={"freq_ref": "nu_ref"},
     units={"freq_ref": Unit("Hz"), "amp": Unit("uK_CMB")},

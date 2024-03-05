@@ -16,8 +16,8 @@ def gnom(
     nside=None,
     size=20,
     sample=-1,
-    vmin=None,
-    vmax=None,
+    min=None,
+    max=None,
     ticks=None,
     rng=None,
     llabel=None,
@@ -39,6 +39,8 @@ def gnom(
     sub=None,
     hold=False,
     reuse_axes=False,
+    gb=False,
+    textbg_alpha=0.9
 ):
     """
     Gnomonic view plotting
@@ -74,10 +76,10 @@ def gnom(
     sample : float, optional
         Specify sample if passing chain
         default: -1
-    vmin : float, optional
+    min : float, optional
         Min value
         default: None
-    vmax : float, optional
+    max : float, optional
         Max value
         default: None
     ticks : list or str, optional
@@ -177,6 +179,7 @@ def gnom(
 
     # Get data
     m, comp, freq, nside = get_data(input, sig, comp, freq, fwhm, nside=nside, sample=sample)
+    m = hp.ma(m)
     if remove_dip:
         m = hp.remove_dipole(m, gal_cut=30, copy=True, verbose=True)
     if remove_mono:
@@ -184,6 +187,8 @@ def gnom(
 
     proj = hp.projector.GnomonicProj(rot=[lon, lat, 0.0], coord="G", xsize=xsize, ysize=xsize, reso=reso)
     reproj_im = proj.projmap(m, vec2pix_func=partial(hp.vec2pix, nside))
+    mask = (reproj_im == hp.UNSEEN)
+    reproj_im = np.ma.masked_array(reproj_im, mask=mask)
 
     # Pass all your arguments in, return parsed plotting parameters
     params = get_params(
@@ -194,8 +199,8 @@ def gnom(
         llabel=llabel,
         unit=unit,
         ticks=ticks,
-        min=vmin,
-        max=vmax,
+        min=min,
+        max=max,
         rng=rng,
         norm=norm,
         cmap=cmap,
@@ -209,6 +214,7 @@ def gnom(
         params["data"], params["ticks"] = apply_logscale(params["data"], params["ticks"], linthresh=1)
     
     cmap = load_cmap(params["cmap"])
+    cmap.set_bad('gray')
     
     fig, ax = make_fig(figsize, None, hold, sub, reuse_axes)
     image = plt.imshow(
@@ -221,9 +227,16 @@ def gnom(
     )
 
     # Galaxy-brain inverse of data color
-    colors = image.cmap(image.norm((params["data"])))
-    llabel_color = (1, 1, 1, 2) - np.mean(colors[int(xsize * 0.9) : int(xsize * 0.95), int(xsize * 0.05) : int(xsize * 0.15)], axis=(0, 1))
-    rlabel_color = (1, 1, 1, 2) - np.mean(colors[int(xsize * 0.9) : int(xsize * 0.95), int(xsize * 0.85) : int(xsize * 0.95)], axis=(0, 1))
+    if gb:
+        colors = image.cmap(image.norm((params["data"])))
+        llabel_color = (1, 1, 1, 2) - np.mean(colors[int(xsize * 0.9) : int(xsize * 0.95), int(xsize * 0.05) : int(xsize * 0.15)], axis=(0, 1))
+        rlabel_color = (1, 1, 1, 2) - np.mean(colors[int(xsize * 0.9) : int(xsize * 0.95), int(xsize * 0.85) : int(xsize * 0.95)], axis=(0, 1))
+        bbox = dict()
+    else:
+        llabel_color = 'k'
+        rlabel_color = 'k'
+        backgroundcolor = 'white'
+        bbox = dict(facecolor='white', alpha=textbg_alpha)
 
     plt.xticks([])
     plt.yticks([])
@@ -235,7 +248,8 @@ def gnom(
         va="top",
         ha="right",
         transform=ax.transAxes,
-        fontsize=default_fontsize["title"],
+        fontsize=default_fontsize["rlabel"],
+        bbox=bbox,
     )
     plt.text(
         0.05,
@@ -244,7 +258,8 @@ def gnom(
         color=llabel_color,
         va="top",
         transform=ax.transAxes,
-        fontsize=default_fontsize["title"],
+        fontsize=default_fontsize["llabel"],
+        bbox=bbox,
     )
     if cbar:
         apply_colorbar(
