@@ -18,10 +18,7 @@ def validate_key(func):
         if root.startswith(PARAMETER_GROUP_NAME) or root in chain.samples:
             path = key
         else:
-            if len(chain.samples) > 0: 
-                path = f"{chain.samples[1]}/{key}"
-            else:
-                path = f"{chain.samples[0]}/{key}"
+            path = f"{chain.samples[0]}/{key}"
 
         with h5py.File(chain.path, "r") as file:
             try:
