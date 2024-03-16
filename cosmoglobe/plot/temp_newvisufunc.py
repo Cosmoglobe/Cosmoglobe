@@ -54,13 +54,6 @@ def lonlat(theta, phi):
     return longitude, latitude
 
 
-def update_dictionary(main_dict, update_dict):
-    for key, key_val in main_dict.items():
-        if key in update_dict:
-            main_dict[key] = update_dict[key]
-    return main_dict
-
-
 def projview(
     m=None,
     fig=None,
@@ -76,6 +69,8 @@ def projview(
     format="%g",
     cbar=True,
     cmap="viridis",
+    badcolor='gray',
+    bgcolor='white',
     norm=None,
     norm_dict=None,
     graticule=False,
@@ -281,7 +276,7 @@ def projview(
     # Update values for symlog normalization if specified
     norm_dict_defaults = {"linthresh": 1, "base": 10, "linscale": 0.1}
     if norm_dict is not None:
-        norm_dict_defaults = update_dictionary(norm_dict_defaults, norm_dict)
+        norm_dict_defaults.update(norm_dict)
 
     # Remove monopole and dipole
     if remove_dip:
@@ -303,6 +298,8 @@ def projview(
         "ylabel": 12,
         "llabel": 12,
         "rlabel": 12,
+        "llabel_align": "left",
+        "rlabel_align": "left",
         "title": 14,
         "xtick_label": 12,
         "ytick_label": 12,
@@ -310,7 +307,7 @@ def projview(
         "cbar_tick_label": 10,
     }
     if fontsize is not None:
-        fontsize_defaults = update_dictionary(fontsize_defaults, fontsize)
+        fontsize_defaults.update(fontsize)
 
     # default plot settings
     decs = np.max([find_number_of_decimals(min), find_number_of_decimals(max)])
@@ -403,7 +400,7 @@ def projview(
         warnings.warn(
             "\n *** Overriding default plot properties: " + str(plot_properties) + " ***"
         )
-        plot_properties = update_dictionary(plot_properties, override_plot_properties)
+        plot_properties.update(override_plot_properties)
         warnings.warn("\n *** New plot properties: " + str(plot_properties) + " ***")
 
     g_col = "grey" if graticule_color is None else graticule_color
@@ -422,9 +419,7 @@ def projview(
             + str(rot_graticule_properties)
             + " ***"
         )
-        rot_graticule_properties = update_dictionary(
-            rot_graticule_properties, override_rot_graticule_properties
-        )
+        rot_graticule_properties.update(override_rot_graticule_properties)
         warnings.warn(
             "\n *** New rotated graticule properties: "
             + str(rot_graticule_properties)
@@ -558,6 +553,8 @@ def projview(
             m[w],
             cmap=cmap,
             norm=norm,
+            badcolor=badcolor,
+            bgcolor=bgcolor,
             **norm_dict_defaults,
         )
         grid_pix = ang2pix(nside, THETA, PHI, nest=nest)
@@ -684,26 +681,29 @@ def projview(
         ticks = None if show_tickmarkers else cbar_ticks
 
         # Create colorbar
-        '''
-        divider = make_axes_locatable(ax)
-        if cb_orientation == 'vertical':
-            cax = divider.append_axes('right',
-            size=plot_properties['cbar_shrink'],
-            pad=plot_properties['cbar_pad'],
-            axes_class=matplotlib.axes._axes.Axes)
-        elif cb_orientation == 'horizontal':
-            cax = divider.append_axes('bottom',
-            size=plot_properties['cbar_shrink'],
-            pad=plot_properties['cbar_pad'],
-            axes_class=matplotlib.axes._axes.Axes)
+        if sub == 111:
+            if cb_orientation == 'horizontal':
+                cax = fig.add_axes([0.25, 0.055, 0.5, 0.04])
+            elif cb_orientation == 'vertical':
+                cax = fig.add_axes([1.0, 0.25, 0.03, 0.5])
         else:
-            print('Made a mistake')
-            return None
-        '''
-        if cb_orientation == 'horizontal':
-            cax = fig.add_axes([0.25, 0.055, 0.5, 0.04])
-        elif cb_orientation == 'vertical':
-            cax = fig.add_axes([1.0, 0.25, 0.03, 0.5])
+            bbox = ax.get_position()
+            x0 = bbox.x0
+            y0 = bbox.y0
+            width = bbox.width
+            height = bbox.height
+            if cb_orientation == 'horizontal':
+                new_width = 0.75*width
+                buff = (width - new_width)/2
+                cax = fig.add_axes([x0 + buff, y0 - 0.1*height, new_width, 0.05*height])
+            elif cb_orientation == 'vertical':
+                new_height = 0.75*height
+                buff = (height - new_height)/2
+                cax = fig.add_axes([x0 + 1.05*width, y0 + buff, 0.02*width, new_height])
+            cax.tick_params(axis="both", which="both",
+                    length=fig.get_size_inches()[0]*72/250)
+            # tick length is in points
+
         cb = fig.colorbar(
             ret,
             ticks=ticks,
@@ -807,30 +807,34 @@ def projview(
         )
     # Top left label
     #if llabel is not None:
-    #    plt.text(
-    #        #0.025,
-    #        #-0.03,
-    #        0.15,
-    #        0.925,
-    #        llabel,
-    #        ha="right",
-    #        va="center",
-    #        fontsize=fontsize_defaults["llabel"],
-    #        fontname=fontname,
-    #        transform=ax.transAxes,
-    #    )
     if llabel is not None:
-        plt.text(
-            0.025,
-            0.925,
-            llabel,
-            ha="left",
-            #ha="right",
-            va="center",
-            fontsize=fontsize_defaults["llabel"],
-            fontname=fontname,
-            transform=ax.transAxes,
+        if fontsize_defaults["llabel_align"] == "left":
+            plt.text(
+                0.025,
+                0.925,
+                llabel,
+                ha="left",
+                #ha="right",
+                va="center",
+                fontsize=fontsize_defaults["llabel"],
+                fontname=fontname,
+                transform=ax.transAxes,
+                )
+        elif fontsize_defaults["llabel_align"] == "right":
+            plt.text(
+                #0.025,
+                #-0.03,
+                0.15,
+                0.925,
+                llabel,
+                ha="right",
+                va="center",
+                fontsize=fontsize_defaults["llabel"],
+                fontname=fontname,
+                transform=ax.transAxes,
             )
+        else:
+            print("llabel_align must be 'left' or 'right'")
 
     plt.draw()
     return ret

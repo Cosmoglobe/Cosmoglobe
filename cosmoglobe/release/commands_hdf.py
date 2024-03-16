@@ -474,6 +474,26 @@ def alm2fits(input, dataset, nside, lmax, fwhm):
     help=" output dust",
 )
 @click.option(
+    "-cii",
+    is_flag=True,
+    help=" output dust cii",
+)
+@click.option(
+    "-stars",
+    is_flag=True,
+    help=" output dust stars",
+)
+@click.option(
+    "-hotpah",
+    is_flag=True,
+    help=" output hot PAH",
+)
+@click.option(
+    "-co",
+    is_flag=True,
+    help=" output hot PAH",
+)
+@click.option(
     "-br",
     is_flag=True,
     help=" output BR",
@@ -502,6 +522,10 @@ def release(
     cmb,
     synch,
     dust,
+    co,
+    cii,
+    stars,
+    hotpah,
     br,
     diff,
     diffcmb,
@@ -538,6 +562,9 @@ def release(
     CG_ame_I_n1024_{procver}.fits
 
     CG_cmb_GBRlike_{procver}.fits
+
+
+    CG_DR2_{experiment_name}_{channel_id}_I_nside_{procver}
     """
     # TODO
     # Use proper masks for output of CMB component
@@ -554,6 +581,10 @@ def release(
         cmb = not cmb
         synch = not synch
         dust = not dust
+        cii = not cii
+        stars = not stars
+        hotpah = not hotpah
+        co = not co
         br = not br
         diff = not diff
         diffcmb = not diffcmb
@@ -657,8 +688,7 @@ def release(
             # A lot of the nu_ref, bandctr, restfreq, bndwid parameters are just
             # dummies for now.
 
-            print("Doing a freqmap thing")
-
+            
             if "023-WMAP_K" in bands:
                 format_fits(
                     chain=chain,
@@ -1196,6 +1226,7 @@ def release(
                     restfreq=44.121,
                     bndwid=10.719,
                 )
+            
             # Full-mission 70 GHz IQU frequency map
             if "070" in bands:
                 format_fits(
@@ -1242,6 +1273,103 @@ def release(
                     bndwid=14.909,
                 )
 
+            # DIRBE bands
+            for b in range(1, 11):
+                import astropy.units as u
+                import astropy.constants as c
+                wavs = np.array([1.25, 2.2, 3.5, 4.9, 12, 25, 60, 100, 140, 240])*u.micron
+                bw = np.array([59.5, 22.4, 22.0, 8.19, 13.3, 4.13, 2.32, 0.974, 0.605, 0.495])*u.THz
+                bw = bw.to('GHz')
+                freqs = (c.c/wavs).to('GHz')
+                if (f"{b:02}a" in bands) & (f"{b:02}b" in bands):
+
+                    band_cent = int(freqs[b-1].value)
+                    bandwidth = int(bw[b-1].value)
+
+                    format_fits(
+                        chain=chain,
+                        extname="FREQMAP",
+                        types=[
+                            "I_MEAN",
+                            "I_RMS",
+                            "I_STDDEV",
+                        ],
+                        units=[
+                            "MJy/sr",
+                            "MJy/sr",
+                            "MJy/sr",
+                        ],
+                        nside=512,
+                        burnin=burnin,
+                        maxchain=maxchain,
+                        polar=False,
+                        component=[f"{b:02}a", f"{b:02}b", f"{b:02}"],
+                        fwhm=0.0,
+                        nu_ref_t=f'{band_cent} GHz',
+                        nu_ref_p=None,
+                        procver=procver,
+                        filename=f"CG_DIRBE_{b:02}_I_n0512_{procver}.fits",
+                        bndctr=band_cent,
+                        restfreq=band_cent,
+                        bndwid=bandwidth,
+                        coadd=True,
+                    )
+
+                    format_fits(
+                        chain=chain,
+                        extname="FREQMAP",
+                        types=[
+                            "I_MEAN",
+                            "I_RMS",
+                            "I_STDDEV",
+                        ],
+                        units=[
+                            "MJy/sr",
+                            "MJy/sr",
+                            "MJy/sr",
+                        ],
+                        nside=512,
+                        burnin=burnin,
+                        maxchain=maxchain,
+                        polar=False,
+                        component=f"{b:02}a",
+                        fwhm=0.0,
+                        nu_ref_t=f'{band_cent} GHz',
+                        nu_ref_p=None,
+                        procver=procver,
+                        filename=f"CG_DIRBE_{b:02}a_I_n0512_{procver}.fits",
+                        bndctr=band_cent,
+                        restfreq=band_cent,
+                        bndwid=bandwidth,
+                    )
+
+                    format_fits(
+                        chain=chain,
+                        extname="FREQMAP",
+                        types=[
+                            "I_MEAN",
+                            "I_RMS",
+                            "I_STDDEV",
+                        ],
+                        units=[
+                            "MJy/sr",
+                            "MJy/sr",
+                            "MJy/sr",
+                        ],
+                        nside=512,
+                        burnin=burnin,
+                        maxchain=maxchain,
+                        polar=False,
+                        component=f"{b:02}b",
+                        fwhm=0.0,
+                        nu_ref_t=f'{band_cent} GHz',
+                        nu_ref_p=None,
+                        procver=procver,
+                        filename=f"CG_DIRBE_{b:02}b_I_n0512_{procver}.fits",
+                        bndctr=band_cent,
+                        restfreq=band_cent,
+                        bndwid=bandwidth,
+                    )
 
 
         except Exception as e:
@@ -1486,6 +1614,46 @@ def release(
             click.secho("Continuing...", fg="yellow")
 
     if dust:
+        # Need a better way to deal with the temperature-only analyses.
+        try:
+            # Full-mission thermal dust IQU map
+            format_fits(
+                chain,
+                extname="COMP-MAP-DUST",
+                types=[
+                    "I_MEAN",
+                    "I_BETA_MEAN",
+                    "I_T_MEAN",
+                    "I_STDDEV",
+                    "I_BETA_STDDEV",
+                    "I_T_STDDEV",
+                ],
+                units=[
+                    "uK_RJ",
+                    "NONE",
+                    "K",
+                    "uK_RJ",
+                    "NONE",
+                    "K",
+                ],
+                nside=2048,
+                burnin=burnin,
+                maxchain=maxchain,
+                polar=False,
+                component="DUST",
+                fwhm=10.0,  # 60.0,
+                nu_ref_t="545 GHz",
+                nu_ref_p=None,
+                procver=procver,
+                filename=f"CG_dust_I_n2048_{procver}.fits",
+                bndctr=None,
+                restfreq=None,
+                bndwid=None,
+            )
+        except Exception as e:
+            print(e)
+            click.secho("Continuing...", fg="yellow")
+
         try:
             # Full-mission thermal dust IQU map
             format_fits(
@@ -1537,6 +1705,143 @@ def release(
                 nu_ref_p="353 GHz",
                 procver=procver,
                 filename=f"CG_dust_IQU_n1024_{procver}.fits",
+                bndctr=None,
+                restfreq=None,
+                bndwid=None,
+            )
+        except Exception as e:
+            print(e)
+            click.secho("Continuing...", fg="yellow")
+
+
+    if cii:
+        try:
+            # Full-mission free-free I map
+            format_fits(
+                chain,
+                extname="COMP-MAP-CII-line",
+                types=[
+                    "I_MEAN",
+                    "I_STDDEV",
+                ],
+                units=[
+                    "MJy/sr",
+                    "MJy/sr",
+                ],
+                nside=2048,
+                burnin=burnin,
+                maxchain=maxchain,
+                polar=False,
+                component="CII",
+                fwhm=10.0,
+                nu_ref_t="40.0 GHz",
+                nu_ref_p="40.0 GHz",
+                procver=procver,
+                filename=f"CG_cii_I_n1024_{procver}.fits",
+                bndctr=None,
+                restfreq=None,
+                bndwid=None,
+            )
+        except Exception as e:
+            print(e)
+            click.secho("Continuing...", fg="yellow")
+
+    if stars:
+        # Stars as evaluated at DIRBE 01a
+        try:
+            if len(chains) == 1:
+                cmin = 1
+                cmax = None
+                chdir = os.path.split(chains[0])[0].rsplit("chain_", 1)[0]
+            else:
+                cmin = 1
+                cmax = len(chains)
+                chdir = os.path.split(chains[0])[0]
+            format_fits(
+                chain,
+                extname="COMP-MAP-stars",
+                types=[
+                    "I_MEAN",
+                    "I_STDDEV",
+                ],
+                units=[
+                    "MJy/sr",
+                    "MJy/sr",
+                ],
+                nside=512,
+                burnin=burnin,
+                maxchain=maxchain,
+                polar=False,
+                component="CII",
+                fwhm=10.0,
+                nu_ref_t="40.0 GHz",
+                nu_ref_p="40.0 GHz",
+                procver=procver,
+                filename=f"CG_stars_I_n0512_{procver}.fits",
+                bndctr=None,
+                restfreq=None,
+                bndwid=None,
+                chdir=chdir,
+            )
+        except Exception as e:
+            print(e)
+            click.secho("Continuing...", fg="yellow")
+
+    if hotpah:
+        try:
+            # Full-mission free-free I map
+            format_fits(
+                chain,
+                extname="COMP-hotPAH",
+                types=[
+                    "I_MEAN",
+                    "I_STDDEV",
+                ],
+                units=[
+                    "MJy/sr",
+                    "MJy/sr",
+                ],
+                nside=2048,
+                burnin=burnin,
+                maxchain=maxchain,
+                polar=False,
+                component="hotPAH",
+                fwhm=10.0,
+                nu_ref_t="40.0 GHz",
+                nu_ref_p="40.0 GHz",
+                procver=procver,
+                filename=f"CG_hotPAH_I_n1024_{procver}.fits",
+                bndctr=None,
+                restfreq=None,
+                bndwid=None,
+            )
+        except Exception as e:
+            print(e)
+            click.secho("Continuing...", fg="yellow")
+    if co:
+        try:
+            # Full-mission free-free I map
+            format_fits(
+                chain,
+                extname="COMP-CO_tot",
+                types=[
+                    "I_MEAN",
+                    "I_STDDEV",
+                ],
+                units=[
+                    "MJy/sr",
+                    "MJy/sr",
+                ],
+                nside=1024,
+                burnin=burnin,
+                maxchain=maxchain,
+                polar=False,
+                component="co_tot",
+                fwhm=30.0,
+                nu_ref_t="40.0 GHz",
+                nu_ref_p="40.0 GHz",
+                procver=procver,
+                filename=f"CG_CO_tot_I_n1024_{procver}.fits",
                 bndctr=None,
                 restfreq=None,
                 bndwid=None,
@@ -1870,6 +2175,7 @@ def release(
                     "fields": (0, 1, 2),
                     "unit": "uK",
                     "scale": 1.0,
+                    "coadd": False
                 },
                 "044": {
                     "nside": 512,
@@ -1878,6 +2184,7 @@ def release(
                     "fields": (0, 1, 2),
                     "unit": "uK",
                     "scale": 1.0,
+                    "coadd": False
                 },
                 "070": {
                     "nside": 1024,
@@ -1886,6 +2193,7 @@ def release(
                     "fields": (0, 1, 2),
                     "unit": "uK",
                     "scale": 1.0,
+                    "coadd": False
                 },
                 "023-WMAP_K": {
                     "nside": 512,
@@ -1894,6 +2202,7 @@ def release(
                     "fields": (0, 1, 2),
                     "unit": "mK",
                     "scale": 1,
+                    "coadd": False
                 },
                 "030-WMAP_Ka": {
                     "nside": 512,
@@ -1902,6 +2211,7 @@ def release(
                     "fields": (0, 1, 2),
                     "unit": "mK",
                     "scale": 1,
+                    "coadd": False
                 },
                 "040-WMAP_Q1": {
                     "nside": 512,
@@ -1910,6 +2220,7 @@ def release(
                     "fields": (0, 1, 2),
                     "unit": "mK",
                     "scale": 1.0,
+                    "coadd": False
                 },
                 "040-WMAP_Q2": {
                     "nside": 512,
@@ -1922,6 +2233,7 @@ def release(
                     ),
                     "unit": "mK",
                     "scale": 1.0,
+                    "coadd": False
                 },
                 "060-WMAP_V1": {
                     "nside": 512,
@@ -1930,6 +2242,7 @@ def release(
                     "fields": (0, 1, 2),
                     "unit": "mK",
                     "scale": 1.0,
+                    "coadd": False
                 },
                 "060-WMAP_V2": {
                     "nside": 512,
@@ -1938,6 +2251,7 @@ def release(
                     "fields": (0, 1, 2),
                     "unit": "mK",
                     "scale": 1.0,
+                    "coadd": False
                 },
                 "090-WMAP_W1": {
                     "nside": 512,
@@ -1946,6 +2260,7 @@ def release(
                     "fields": (0, 1, 2),
                     "unit": "mK",
                     "scale": 1.0,
+                    "coadd": False
                 },
                 "090-WMAP_W2": {
                     "nside": 512,
@@ -1954,6 +2269,7 @@ def release(
                     "fields": (0, 1, 2),
                     "unit": "mK",
                     "scale": 1.0,
+                    "coadd": False
                 },
                 "090-WMAP_W3": {
                     "nside": 512,
@@ -1962,6 +2278,7 @@ def release(
                     "fields": (0, 1, 2),
                     "unit": "mK",
                     "scale": 1.0,
+                    "coadd": False
                 },
                 "090-WMAP_W4": {
                     "nside": 512,
@@ -1970,6 +2287,7 @@ def release(
                     "fields": (0, 1, 2),
                     "unit": "mK",
                     "scale": 1.0,
+                    "coadd": False
                 },
                 "0.4-Haslam": {
                     "nside": 512,
@@ -1978,50 +2296,59 @@ def release(
                     "fields": (0,),
                     "unit": "uK",
                     "scale": 1.0,
+                    "coadd": False
                 },
-                "857": {
-                    "nside": 1024,
-                    "fwhm": 120,
-                    "sig": "I",
-                    "fields": (0,),
-                    "unit": "uK",
-                    "scale": 1.0,
-                },
-                "033-WMAP_Ka_P": {
-                    "nside": 16,
-                    "fwhm": 0,
-                    "sig": "QU",
-                    "fields": (1, 2),
-                    "unit": "uK",
-                    "scale": 1e3,
-                },
-                "041-WMAP_Q_P": {
-                    "nside": 16,
-                    "fwhm": 0,
-                    "sig": "QU",
-                    "fields": (1, 2),
-                    "unit": "uK",
-                    "scale": 1e3,
-                },
-                "061-WMAP_V_P": {
-                    "nside": 16,
-                    "fwhm": 0,
-                    "sig": "QU",
-                    "fields": (1, 2),
-                    "unit": "uK",
-                    "scale": 1e3,
-                },
-                "353": {
-                    "nside": 1024,
-                    "fwhm": 120,
-                    "sig": "QU",
-                    "fields": (1, 2),
-                    "unit": "uK",
-                    "scale": 1.0,
-                },
+                #"857": {
+                #    "nside": 1024,
+                #    "fwhm": 120,
+                #    "sig": "I",
+                #    "fields": (0,),
+                #    "unit": "uK",
+                #    "scale": 1.0,
+                #},
+                #"353": {
+                #    "nside": 1024,
+                #    "fwhm": 120,
+                #    "sig": "QU",
+                #    "fields": (1, 2),
+                #    "unit": "uK",
+                #    "scale": 1.0,
+                #},
             }
 
-            for label, b in bands.items():
+            for i in range(1, 11):
+                # DIRBE bands
+                bands[f"{i:02}a"] =  {
+                    "nside": 512,
+                    "fwhm": 0,
+                    "sig": "I",
+                    "fields": (0,),
+                    "unit": "MJy/sr",
+                    "scale": 1.0,
+                    "coadd": False
+                }
+                bands[f"{i:02}b"] =  {
+                    "nside": 512,
+                    "fwhm": 0,
+                    "sig": "I",
+                    "fields": (0,),
+                    "unit": "MJy/sr",
+                    "scale": 1.0,
+                    "coadd": False
+                }
+                bands[f"{i:02}"] =  {
+                    "nside": 512,
+                    "fwhm": 0,
+                    "sig": "I",
+                    "fields": (0,),
+                    "unit": "MJy/sr",
+                    "scale": 1.0,
+                    "coadd": True
+                }
+
+            for lab, b in bands.items():
+                print(lab, b)
+                label = lab
 
                 types = []
                 units = []
@@ -2032,6 +2359,10 @@ def release(
                     types.append(f"{l}_STDDEV")
                     units.append(b["unit"])
                 try:
+                    if b['coadd']:
+                        lab = [f'{lab}a', f'{lab}b', f'{lab}']
+                    else:
+                        lab = lab
                     format_fits(
                         chains,
                         extname="FREQBAND_RES",
@@ -2040,13 +2371,13 @@ def release(
                         nside=b["nside"],
                         burnin=burnin,
                         maxchain=maxchain,
-                        polar=True,
-                        component=label,
+                        polar=len(b["fields"]) > 1,
+                        component=lab,
                         fwhm=b["fwhm"],
                         nu_ref_t="NONE",
                         nu_ref_p="NONE",
                         procver=procver,
-                        filename=f'goodness/CG_res_{label}_{b["sig"]}_n{b["nside"]}_{b["fwhm"]}arcmin_{b["unit"]}_{procver}.fits',
+                        filename=f'goodness/CG_res_{label}_{b["sig"]}_n{b["nside"]}_{b["fwhm"]}arcmin_{procver}.fits',
                         bndctr=None,
                         restfreq=None,
                         bndwid=None,
@@ -2055,6 +2386,7 @@ def release(
                         chdir=chdir,
                         fields=b["fields"],
                         scale=b["scale"],
+                        coadd=b['coadd'],
                     )
                 except Exception as e:
                     print(e)

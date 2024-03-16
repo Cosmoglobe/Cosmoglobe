@@ -168,7 +168,7 @@ def make_fig(figsize, fignum, hold, sub, reuse_axes, darkmode=False, projection=
     if reuse_axes:
         ax = fig.gca()
     else:
-        ax = fig.add_subplot(int(f"{nrows}{ncols}{idx}"), projection=projection)
+        ax = fig.add_subplot(nrows,ncols,idx, projection=projection)
 
     return fig, ax
 
@@ -416,9 +416,9 @@ def apply_colorbar(
         unit = unit.to_string("latex")
 
     if fontsize is None:
-        fontsize = DEFAULT_FONTSIZES['cbar_label']
-    elif type(fontsize) is dict:
-        fontsize = fontsize['cbar_label']
+        fontsize = DEFAULT_FONTSIZES#['cbar_label']
+    #elif type(fontsize) is dict:
+    #    fontsize = fontsize['cbar_label']
 
     if image is None and cmap is not None:
         norm = mpl.colors.Normalize(vmin=ticks[0], vmax=ticks[-1])
@@ -430,7 +430,7 @@ def apply_colorbar(
             ticks=ticks,
             extend=extend,
         )
-        cb.set_label(label=unit, size=fontsize)
+        cb.set_label(label=unit, size=fontsize['cbar_label'])
     else:
         cb = fig.colorbar(
             image,
@@ -439,21 +439,12 @@ def apply_colorbar(
             shrink=cbar_shrink,
             pad=cbar_pad,
         )
-    #if orientation == 'horizontal':
-    #   cb.ax.set_xticklabels(ticklabels, size=fontsize["cbar_tick_label"])
-    #   cb.ax.xaxis.set_label_text(unit, size=fontsize["cbar_label"])
-    #elif orientation == 'vertical':
-    #   cb.ax.set_yticklabels(ticklabels, size=fontsize["cbar_tick_label"])
-    #   cb.ax.yaxis.set_label_text(unit, size=fontsize["cbar_label"])
-
-    # cb = plt.gca().collections[-1].colorbar
-    # labels = cb.ax.xaxis.get_ticklabels()
-    ##ticks = cb.get_ticks()
-    # N = len(labels)
-    # for i, label in enumerate(labels):
-    #    if i in [0, N//2, N-1]:
-    #        continue
-    #    label.set_visible(False)
+    if orientation == 'horizontal':
+       cb.ax.set_xticklabels(ticklabels, size=fontsize["cbar_tick_label"])
+       cb.ax.xaxis.set_label_text(unit, size=fontsize["cbar_label"])
+    elif orientation == 'vertical':
+       cb.ax.set_yticklabels(ticklabels, size=fontsize["cbar_tick_label"])
+       cb.ax.yaxis.set_label_text(unit, size=fontsize["cbar_label"])
 
 
     if norm in ["linlog", "log"]:
@@ -514,26 +505,32 @@ def apply_colorbar(
             axis="x",
             direction="in",
             color="#3d3d3d",
-            labelsize=fontsize,
-            width=fontsize/10,
+            labelsize=fontsize["cbar_tick_label"],
+            width=fontsize['cbar_tick_label']/10,
             #length=bheight*points_per_inch*0.75,
-            length=bheight*points_per_inch*0.01,
+            length=bheight*points_per_inch*0.02,
         )
         cb.ax.xaxis.labelpad = 0
+        if norm in ["linlog", "log"]:
+            ticklabels = cb.ax.get_xticklabels()
+        cb.ax.set_xticks(ticks)
+        cb.ax.set_xticklabels(ticklabels)
     elif orientation == "vertical":
         cb.ax.tick_params(
             which="both",
             axis="y",
             direction="in",
             color="#3d3d3d",
-            labelsize=fontsize,
-            width=fontsize/10,
-            length=bheight*points_per_inch*0.75,
+            labelsize=fontsize["cbar_tick_label"],
+            width=fontsize['cbar_tick_label']/10,
+            length=bheight*points_per_inch*0.02,
         )
         cb.ax.yaxis.labelpad = 0
 
-        ylabels = cb.ax.get_yticklabels()
-        cb.ax.set_yticklabels(ylabels, Rotation=90)
+        if norm in ["linlog", "log"]:
+            ticklabels = cb.ax.get_yticklabels()
+        cb.ax.set_yticks(ticks)
+        cb.ax.set_yticklabels(ticklabels, Rotation=90)
 
     return  # cb
 
@@ -663,6 +660,7 @@ def get_data(input, sig, comp, freq, fwhm, nside=None, sample=-1, scale=1,
         else:
             m = m[sig]
 
+    m = hp.ma(m)
 
     # Convert astropy map to numpy array
     if isinstance(m, u.Quantity):
@@ -875,10 +873,10 @@ def create_70GHz_mask(sky_frac, nside=256, pol=False):
     # sky fraction for a range, and interpolate from this table.
     amp_percentages = np.flip(np.arange(1, 101))
     fracs = []
-    mask = np.zeros(len(template), dtype=np.bool)
+    mask = np.zeros(len(template), dtype=bool)
 
     for i in range(len(amp_percentages)):
-        mask = np.zeros(len(template), dtype=np.bool)
+        mask = np.zeros(len(template), dtype=bool)
         masked_template = np.abs(hp.ma(template))
         mask[np.where(np.log(masked_template) > (amp_percentages[i] / 100) * np.nanmax(np.log(masked_template)))] = 1
         masked_template.mask = mask
@@ -888,7 +886,7 @@ def create_70GHz_mask(sky_frac, nside=256, pol=False):
 
     amp_percentage = np.interp(100 - sky_frac, fracs, amp_percentages)
 
-    mask = np.zeros(len(template), dtype=np.bool)
+    mask = np.zeros(len(template), dtype=bool)
     masked_template = np.abs(hp.ma(template))
     mask[np.where(np.log(masked_template) > (amp_percentage / 100) * np.nanmax(np.log(masked_template)))] = 1
 

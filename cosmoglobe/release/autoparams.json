@@ -69,6 +69,36 @@
         "logscale": true,
         "special": false
     },
+    "hotPAH": {
+        "tags": ["hotPAH"],
+        "unit": "$\\mu\\mathrm{K}_{\\mathrm{RJ}}$",
+        "comp": "\\mathrm{Hot\\ PAH}",
+        "param": "$A$",
+        "cmap": ["afmhot", "iceburn"],
+        "ticks": [[10, 100, 1000],[-100, 0, 100],[5, 10, 25, 50]],
+        "logscale": true,
+        "special": false
+    },
+    "cii": {
+        "tags": ["cii"],
+        "unit": "$\\mu\\mathrm{K}_{\\mathrm{RJ}}$",
+        "comp": "\\mathrm{C^{+}}",
+        "param": "$A$",
+        "cmap": ["bone", "iceburn"],
+        "ticks": [[1, 10, 1000],[-100, 0, 100],[5, 10, 25, 50]],
+        "logscale": true,
+        "special": false
+    },
+    "stars": {
+        "tags": ["stars"],
+        "unit": "$\\mathrm{MJy\\,sr^{-1}}$",
+        "comp": "\\mathrm{stars}",
+        "param": "$A$",
+        "cmap": ["afmhot"],
+        "ticks": [[0.01, 100]],
+        "logscale": true,
+        "special": false
+    },
     "freefree_Te": {
         "tags": ["ff_Te","ff_Te","ff_TE_","ff_T_E","freefree_Te","freefree_Te","freefree_TE_","freefree_T_E"],
         "unit": "$\\mathrm{K}$",
@@ -106,6 +136,16 @@
         "param": "$A$",
         "cmap": ["amber"],
         "ticks": [[30, 300, 3000]],
+        "logscale": true,
+        "special": false
+    },
+    "co_tot": {
+        "tags": ["co10", "co-100", "CO_tot"],
+        "unit": "$\\mathrm{K}_{\\mathrm{RJ}}\\, \\mathrm{km}/\\mathrm{s}$",
+        "comp": "$\\mathrm{CO}$",
+        "param": "$a$",
+        "cmap": ["arctic"],
+        "ticks": [[0, 5, 50], [-10, 0, 10]],
         "logscale": true,
         "special": false
     },
@@ -178,6 +218,16 @@
         "param": "$A$",
         "cmap": ["planck", "planck"], 
         "ticks": ["auto", "auto"],
+        "logscale": false,
+        "special": false
+    },
+    "freqmap_DIRBE": {
+        "tags": ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10"],
+        "unit": "$\\mathrm{MJy\\,sr^{-1}}$",
+        "comp": "",
+        "param": "$A$",
+        "cmap": ["afmhot"], 
+        "ticks": ["auto"],
         "logscale": false,
         "special": false
     },

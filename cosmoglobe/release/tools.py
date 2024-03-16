@@ -83,7 +83,7 @@ def alm2fits_tool(input, dataset, nside, lmax, fwhm, save=True,):
         hp.write_map(outfile + f"_n{str(nside)}_lmax{lmax}.fits", maps, overwrite=True, dtype=None)
     return maps, nside, lmax, fwhm, outfile
 
-def h5handler(input, dataset, min, max, maxchain, output, fwhm, nside, command, pixweight=None, zerospin=False, lowmem=False, notchain=False, remove_mono=False):
+def h5handler(input, dataset, min, max, maxchain, output, fwhm, nside, command, pixweight=None, zerospin=False, lowmem=False, notchain=False, remove_mono=False, coadd=False,):
     """
     Function for calculating mean and stddev of signals in hdf file
     """
@@ -100,16 +100,29 @@ def h5handler(input, dataset, min, max, maxchain, output, fwhm, nside, command, 
     if command: print("{:-^50}".format(f" {dataset} calculating {command.__name__} "))
     print("{:-^50}".format(f" nside {nside}, {fwhm} arcmin smoothing "))
 
-    if dataset.endswith("map"):
-        type = "map"
-    elif dataset.endswith("rms"):
-        type = "map"
-    elif dataset.endswith("alm"):
-        type = "alm"
-    elif dataset.endswith("sigma"):
-        type = "sigma"
+
+    if coadd:
+        if dataset[0].endswith("map"):
+            type = "map"
+        elif dataset[0].endswith("rms"):
+            type = "map"
+        elif dataset[0].endswith("alm"):
+            type = "alm"
+        elif dataset[0].endswith("sigma"):
+            type = "sigma"
+        else:
+            type = "data"
     else:
-        type = "data"
+        if dataset.endswith("map"):
+            type = "map"
+        elif dataset.endswith("rms"):
+            type = "map"
+        elif dataset.endswith("alm"):
+            type = "alm"
+        elif dataset.endswith("sigma"):
+            type = "sigma"
+        else:
+            type = "data"
 
     if (lowmem):
         nsamp = 0 #track number of samples
@@ -127,7 +140,7 @@ def h5handler(input, dataset, min, max, maxchain, output, fwhm, nside, command, 
             if notchain:
                 data = f[dataset][()]
                 if data.shape[0] == 1:
-                    # Make sure its interprated as I by healpy
+                    # Make sure its interpreted as I by healpy
                     # For non-polarization data, (1,npix) is not accepted by healpy
                     data = data.ravel()
                 dats.append(data)
@@ -150,28 +163,54 @@ def h5handler(input, dataset, min, max, maxchain, output, fwhm, nside, command, 
                 s = str(sample).zfill(6)
 
                 # Sets tag with type
-                tag = f"{s}/{dataset}"
-                #print(f"Reading c{str(c).zfill(4)} {tag}")
+                if coadd:
+                    if pol:
+                        maps = np.zeros((len(dataset)-1, 3, hp.nside2npix(nside)))
+                        rmss = np.zeros((len(dataset)-1, 3, hp.nside2npix(nside)))
+                    else:
+                        maps = np.zeros((len(dataset)-1, 1, hp.nside2npix(nside)))
+                        rmss = np.zeros((len(dataset)-1, 1, hp.nside2npix(nside)))
+                    for i, dset in enumerate(dataset[:-1]):
+                        tag = f"{s}/{dset}"
+                        maps[i,:] = f[tag][()]
+                        rmss[i,:] = f[tag.replace('map', 'rms')][()]
+                    rmss[rmss == 0] = np.inf
+                    mu = np.zeros(maps[0].shape)
+                    den = np.zeros(maps[0].shape)
+                    for i in range(len(maps)):
+                        mu += maps[i]/rmss[i]**2
+                        den += 1/rmss[i]**2
+                    mu = hp.ma(mu)
+                    den = hp.ma(den)
+                    if 'rms' in dataset[0]:
+                        data = 1/den**0.5
+                    else:
+                        data = mu/den
 
-                # Check if map is available, if not, use alms.
-                # If alms is already chosen, no problem
-                try:
-                    data = f[tag][()]
-                    if len(data[0]) == 0:
-                        tag = f"{tag[:-3]}map"
-                        print(f"WARNING! No {type} data found, switching to map.")
-                        data = f[tag][()]
-                        type = "map"
-                except:
-                    print(f"Found no dataset called {dataset}")
-                    print(f"Trying alms instead {tag}")
+
+                else:
+                    tag = f"{s}/{dataset}"
+                    #print(f"Reading c{str(c).zfill(4)} {tag}")
+
+                    # Check if map is available, if not, use alms.
+                    # If alms is already chosen, no problem
                     try:
-                        # Use alms instead (This takes longer and is not preferred)
-                        tag = f"{tag[:-3]}alm"
-                        type = "alm"
                         data = f[tag][()]
+                        if len(data[0]) == 0:
+                            tag = f"{tag[:-3]}map"
+                            print(f"WARNING! No {type} data found, switching to map.")
+                            data = f[tag][()]
+                            type = "map"
                     except:
-                        print("Dataset not found.")
+                        print(f"Found no dataset called {dataset}")
+                        print(f"Trying alms instead {tag}")
+                        try:
+                            # Use alms instead (This takes longer and is not preferred)
+                            tag = f"{tag[:-3]}alm"
+                            type = "alm"
+                            data = f[tag][()]
+                        except:
+                            print("Dataset not found.")
 
                 # If data is alm, unpack.
                 if type == "alm":
@@ -198,7 +237,10 @@ def h5handler(input, dataset, min, max, maxchain, output, fwhm, nside, command, 
 
                 # Removing monopole - test
                 if remove_mono:
-                    data[0], mono = hp.remove_monopole(data[0], gal_cut=30, fitval=True)
+                    if pol:
+                        data[0], mono = hp.remove_monopole(data[0], gal_cut=30, fitval=True)
+                    else:
+                        data, mono = hp.remove_monopole(data, gal_cut=30, fitval=True)
 
                 if (lowmem):
                     if (first_samp):
@@ -447,7 +489,7 @@ def rspectrum(nu, r, sig, scaling=1.0):
     A = np.sqrt(sum( 4*np.pi * cl[2:,signal]*bl[2:,signal]**2/(2*l+1) ))
     return cmb(nu, A*scaling)
 
-def fits_handler(input, min, max, minchain, maxchain, chdir, output, fwhm, nside, zerospin, drop_missing, pixweight, command, lowmem=False, fields=None, write=False):
+def fits_handler(input, min, max, minchain, maxchain, chdir, output, fwhm, nside, zerospin, drop_missing, pixweight, command, lowmem=False, fields=None, write=False, coadd=False, rms_maps=None):
     """
     Function for handling fits files.
     """
@@ -455,6 +497,10 @@ def fits_handler(input, min, max, minchain, maxchain, chdir, output, fwhm, nside
     import healpy as hp
     from tqdm import tqdm
     import os
+
+    if coadd:
+        input_list = input
+        input = input_list[0]
 
     if maxchain is None:
         maxchain = minchain + 1
@@ -464,7 +510,7 @@ def fits_handler(input, min, max, minchain, maxchain, chdir, output, fwhm, nside
         exit()
 
     if (lowmem and command == np.std): #need to compute mean first
-        mean_data = fits_handler(input, min, max, minchain, maxchain, chdir, output, fwhm, nside, zerospin, drop_missing, pixweight, lowmem, np.mean, fields, write=False)
+        mean_data = fits_handler(input, min, max, minchain, maxchain, chdir, output, fwhm, nside, zerospin, drop_missing, pixweight, lowmem, np.mean, fields, write=False, coadd=coadd,)
 
     if (minchain > maxchain):
         print('Minimum chain number larger that maximum chain number. Exiting')
@@ -498,6 +544,19 @@ def fits_handler(input, min, max, minchain, maxchain, chdir, output, fwhm, nside
             else:
                 filename = f'{chdir}/{input}'
         basefile = filename.split("k000001")
+        if coadd:
+            basefiles = []
+            filenames = []
+            for i in range(len(input_list)):
+                if (chdir==None):
+                    filenames.append(input_list[i].replace("c0001", "c" + str(c).zfill(4)))
+                else:
+                    if maxchain > minchain + 1:
+                        filenames.append(chdir+'_c%i/'%(c)+input_list[i])
+                    else:
+                        filenames.append(f'{chdir}/{input_list[i]}')
+                basefiles.append(filenames[i].split("k000001"))
+
 
         if maxnone:
             # If no max is specified, find last sample of chain
@@ -590,7 +649,33 @@ def fits_handler(input, min, max, minchain, maxchain, chdir, output, fwhm, nside
                     else:
                         continue
 
-                data = hp.fitsfunc.read_map(filename,field=fields,h=False, nest=nest, dtype=None)
+                if coadd:
+                    # loop over the bands to weighted average over
+                    # use rms maps
+                    if pol:
+                        maps = np.zeros((len(rms_maps), 3, hp.nside2npix(nside)))
+                        rmss = np.zeros((len(rms_maps), 3, hp.nside2npix(nside)))
+                    else:
+                        maps = np.zeros((len(rms_maps), 1, hp.nside2npix(nside)))
+                        rmss = np.zeros((len(rms_maps), 1, hp.nside2npix(nside)))
+                    for i in range(len(filenames)-1):
+                        filename = basefiles[i][0]+'k'+str(sample).zfill(6)+basefiles[i][1]         
+                        maps[i,:] = hp.read_map(filename, nest=nest)
+                        rmss[i,:] = hp.read_map(f'{chdir}/{rms_maps[i]}', nest=nest)
+                    rmss[rmss == 0] = np.inf
+                    mu = np.zeros(maps[0].shape)
+                    den = np.zeros(maps[0].shape)
+                    for i in range(len(maps)):
+                        mu += maps[i]/rmss[i]**2
+                        den += 1/rmss[i]**2
+                    mu = hp.ma(mu)
+                    den = hp.ma(den)
+                    if 'rms' in dataset[0]:
+                        data = 1/den**0.5
+                    else:
+                        data = mu/den
+                else:
+                    data = hp.fitsfunc.read_map(filename,field=fields,h=False, nest=nest, dtype=None)
                 if (nest): #need to reorder to ring-ordering
                     data = hp.pixelfunc.reorder(data,n2r=True)
 

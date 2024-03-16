@@ -120,7 +120,7 @@ def sky_model(nside: int, cache: bool = True) -> SkyModel:
     """
 
     filename = _BP_DATA_URL + "BP_mean_v2.h5"
-    file = download_file(filename, cache=cache)
+    file = download_file(filename, cache=cache, timeout=1000)
 
     return SkyModel.from_chain(
         chain=file,
