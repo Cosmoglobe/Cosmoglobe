@@ -13,8 +13,8 @@ try:
 except pkg_resources.DistributionNotFound:  # pragma: no cover
     ...
 
-_COMPSEP_DATA_URL = "http://sdc.uio.no/vol/cosmoglobe-data/BeyondPlanck/compsep/"
-_BP_DATA_URL = "http://sdc.uio.no/vol/cosmoglobe-data/BeyondPlanck/releases/v2/"
+_COMPSEP_DATA_URL = "https://sdc.uio.no/vol/cosmoglobe-data/BeyondPlanck/compsep/"
+_BP_DATA_URL = "https://sdc.uio.no/vol/cosmoglobe-data/BeyondPlanck/releases/v2/"
 
 def get_test_chain(cache: bool = True) -> Chain:
     """Returns a minimal Cosmoglobe chain.
