@@ -462,7 +462,7 @@ def apply_colorbar(
         logticks = symlog(ticks_, linthresh)
         logticks = [x for x in logticks if x not in ticks]
         if orientation == "horizontal":
-            cb.set_xticks(np.concatenate((ticks, logticks)))  # Set major ticks
+            cb.set_ticks(np.concatenate((ticks, logticks)))  # Set major ticks
             cb.ax.set_xticklabels(ticklabels + [""] * len(logticks), ha='center')
         elif orientation == "vertical":
             cb.ax.yaxis.set_ticks(np.concatenate((ticks, logticks)))  # Set major ticks
@@ -511,8 +511,8 @@ def apply_colorbar(
             length=bheight*points_per_inch*0.02,
         )
         cb.ax.xaxis.labelpad = 0
-        if norm in ["linlog", "log"]:
-            ticklabels = cb.ax.get_xticklabels()
+        #if norm in ["linlog", "log"]:
+        #    ticklabels = cb.ax.get_xticklabels()
         cb.ax.set_xticks(ticks)
         cb.ax.set_xticklabels(ticklabels)
     elif orientation == "vertical":

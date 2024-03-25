@@ -83,7 +83,7 @@ def alm2fits_tool(input, dataset, nside, lmax, fwhm, save=True,):
         hp.write_map(outfile + f"_n{str(nside)}_lmax{lmax}.fits", maps, overwrite=True, dtype=None)
     return maps, nside, lmax, fwhm, outfile
 
-def h5handler(input, dataset, min, max, maxchain, output, fwhm, nside, command, pixweight=None, zerospin=False, lowmem=False, notchain=False, remove_mono=False, coadd=False,):
+def h5handler(input, dataset, min, max, maxchain, thinning, output, fwhm, nside, command, pixweight=None, zerospin=False, lowmem=False, notchain=False, remove_mono=False, coadd=False,):
     """
     Function for calculating mean and stddev of signals in hdf file
     """
@@ -93,7 +93,7 @@ def h5handler(input, dataset, min, max, maxchain, output, fwhm, nside, command, 
     from tqdm import tqdm
 
     if (lowmem and command == np.std): #need to compute mean first
-        mean_data = h5handler(input, dataset, min, max, maxchain, output, fwhm,
+        mean_data = h5handler(input, dataset, min, max, maxchain, thinning, output, fwhm,
             nside, np.mean, pixweight, zerospin, lowmem, remove_mono=remove_mono)
 
     print()
@@ -152,7 +152,7 @@ def h5handler(input, dataset, min, max, maxchain, output, fwhm, nside, command, 
 
             print("{:-^48}".format(f" Samples {min} to {max} in {filename}"))
 
-            for sample in tqdm(range(min, max + 1), ncols=80):
+            for sample in tqdm(range(min, max + 1, thinning), ncols=80):
                 # Identify dataset
                 # alm, map or (sigma_l, which is recognized as l)
 

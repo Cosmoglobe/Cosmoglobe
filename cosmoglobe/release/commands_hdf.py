@@ -35,11 +35,16 @@ def commands_hdf():
     help="max number of chains c0005 [ex. 5]",
 )
 @click.option(
+    "-thinning",
+    default=1,
+    help="thinning factor for processing",
+)
+@click.option(
     "-notchain",
     is_flag=True,
     help="Flag if parsing a non-chain hdf file",
 )
-def split(input, dataset, output, min, max, maxchain, notchain):
+def split(input, dataset, output, min, max, maxchain, thinning, notchain):
     """
     This function saves whatever specified data to a separate file.
     """
@@ -49,6 +54,7 @@ def split(input, dataset, output, min, max, maxchain, notchain):
         min,
         max,
         maxchain,
+        thinning,
         output,
         fwhm=None,
         nside=None,
@@ -81,6 +87,11 @@ def split(input, dataset, output, min, max, maxchain, notchain):
     default=1,
     help="max number of chains c0005 [ex. 5]",
 )
+@click.option(
+    "-thinning",
+    default=1,
+    help="thinning factor for processing",
+)
 @click.option("-fwhm", default=0.0, help="FWHM in arcmin")
 @click.option(
     "-nside",
@@ -99,7 +110,7 @@ def split(input, dataset, output, min, max, maxchain, notchain):
     type=click.STRING,
     help="Path to healpy pixel weights.",
 )
-def mean(input, dataset, output, min, max, maxchain, fwhm, nside, zerospin, pixweight):
+def mean(input, dataset, output, min, max, maxchain, thinning, fwhm, nside, zerospin, pixweight):
     """
     Calculates the mean over sample range from .h5 file.
     ex. chains_c0001.h5 dust/amp_map 5 50 dust_5-50_mean_40arcmin.fits -fwhm 40 -maxchain 3
@@ -116,6 +127,7 @@ def mean(input, dataset, output, min, max, maxchain, fwhm, nside, zerospin, pixw
         min,
         max,
         maxchain,
+        thinning,
         output,
         fwhm,
         nside,
@@ -146,6 +158,11 @@ def mean(input, dataset, output, min, max, maxchain, fwhm, nside, zerospin, pixw
     default=1,
     help="max number of chains c0005 [ex. 5]",
 )
+@click.option(
+    "-thinning",
+    default=1,
+    help="thinning factor for processing",
+)
 @click.option("-fwhm", default=0.0, help="FWHM in arcmin")
 @click.option(
     "-nside",
@@ -171,6 +188,7 @@ def stddev(
     min,
     max,
     maxchain,
+    thinning,
     fwhm,
     nside,
     zerospin,
@@ -193,6 +211,7 @@ def stddev(
         min,
         max,
         maxchain,
+        thinning,
         output,
         fwhm,
         nside,
@@ -429,6 +448,11 @@ def alm2fits(input, dataset, nside, lmax, fwhm):
     nargs=-1,
 )
 @click.argument("burnin", type=click.INT)
+@click.option(
+    "-thinning",
+    default=1,
+    help="thinning factor for processing",
+)
 @click.argument("procver", type=click.STRING)
 @click.option(
     "-resamp",
@@ -513,6 +537,7 @@ def release(
     ctx,
     chain,
     burnin,
+    thinning,
     procver,
     resamp,
     copy_,
@@ -692,6 +717,7 @@ def release(
             if "023-WMAP_K" in bands:
                 format_fits(
                     chain=chain,
+                    thinning=thinning,
                     extname="FREQMAP",
                     types=[
                         "I_MEAN",
@@ -737,6 +763,7 @@ def release(
             if "030-WMAP_Ka" in bands:
                 format_fits(
                     chain=chain,
+                    thinning=thinning,
                     extname="FREQMAP",
                     types=[
                         "I_MEAN",
@@ -781,6 +808,7 @@ def release(
             if "040-WMAP_Q1" in bands:
                 format_fits(
                     chain=chain,
+                    thinning=thinning,
                     extname="FREQMAP",
                     types=[
                         "I_MEAN",
@@ -825,6 +853,7 @@ def release(
             if "040-WMAP_Q2" in bands:
                 format_fits(
                     chain=chain,
+                    thinning=thinning,
                     extname="FREQMAP",
                     types=[
                         "I_MEAN",
@@ -869,6 +898,7 @@ def release(
             if "060-WMAP_V1" in bands:
                 format_fits(
                     chain=chain,
+                    thinning=thinning,
                     extname="FREQMAP",
                     types=[
                         "I_MEAN",
@@ -914,6 +944,7 @@ def release(
             if "060-WMAP_V2" in bands:
                 format_fits(
                     chain=chain,
+                    thinning=thinning,
                     extname="FREQMAP",
                     types=[
                         "I_MEAN",
@@ -959,6 +990,7 @@ def release(
             if "090-WMAP_W1" in bands:
                 format_fits(
                     chain=chain,
+                    thinning=thinning,
                     extname="FREQMAP",
                     types=[
                         "I_MEAN",
@@ -1004,6 +1036,7 @@ def release(
             if "090-WMAP_W2" in bands:
                 format_fits(
                     chain=chain,
+                    thinning=thinning,
                     extname="FREQMAP",
                     types=[
                         "I_MEAN",
@@ -1048,6 +1081,7 @@ def release(
             if "090-WMAP_W3" in bands:
                 format_fits(
                     chain=chain,
+                    thinning=thinning,
                     extname="FREQMAP",
                     nside=512,
                     types=[
@@ -1093,6 +1127,7 @@ def release(
             if "090-WMAP_W4" in bands:
                 format_fits(
                     chain=chain,
+                    thinning=thinning,
                     extname="FREQMAP",
                     nside=512,
                     types=[
@@ -1140,6 +1175,7 @@ def release(
             if "030" in bands:
                 format_fits(
                     chain=chain,
+                    thinning=thinning,
                     extname="FREQMAP",
                     types=[
                         "I_MEAN",
@@ -1185,6 +1221,7 @@ def release(
             if "044" in bands:
                 format_fits(
                     chain=chain,
+                    thinning=thinning,
                     extname="FREQMAP",
                     types=[
                         "I_MEAN",
@@ -1231,6 +1268,7 @@ def release(
             if "070" in bands:
                 format_fits(
                     chain=chain,
+                    thinning=thinning,
                     extname="FREQMAP",
                     types=[
                         "I_MEAN",
@@ -1288,6 +1326,7 @@ def release(
 
                     format_fits(
                         chain=chain,
+                        thinning=thinning,
                         extname="FREQMAP",
                         types=[
                             "I_MEAN",
@@ -1317,6 +1356,7 @@ def release(
 
                     format_fits(
                         chain=chain,
+                        thinning=thinning,
                         extname="FREQMAP",
                         types=[
                             "I_MEAN",
@@ -1345,6 +1385,7 @@ def release(
 
                     format_fits(
                         chain=chain,
+                        thinning=thinning,
                         extname="FREQMAP",
                         types=[
                             "I_MEAN",
@@ -1772,7 +1813,7 @@ def release(
                 burnin=burnin,
                 maxchain=maxchain,
                 polar=False,
-                component="CII",
+                component="Stars",
                 fwhm=10.0,
                 nu_ref_t="40.0 GHz",
                 nu_ref_p="40.0 GHz",
@@ -1856,7 +1897,32 @@ def release(
         try:
             if not os.path.exists(f"{procver}/diffs"):
                 os.mkdir(f"{procver}/diffs")
-            click.echo("Creating frequency difference maps")
+            click.echo("Creating DIRBE difference maps")
+            path_dirbe = '/mn/stornext/d16/cmbco/ola/dirbe'
+
+            maps_dirbe = [f'{path_dirbe}/DIRBE_ZSMA_{i:02}_1_256.fits' for i in range(1,11)]
+            maps_CG = [f'{procver}/CG_DIRBE_{i:02}_I_n0512_{procver}.fits' for i in range(1,11)]
+
+
+            for i in range(10):
+                m_CG = hp.ud_grade(hp.read_map(maps_CG[i]), 256)
+                m_D  = hp.read_map(maps_dirbe[i])
+                hp.write_map(
+                    f"{procver}/diffs/CG_DIRBE_{i+1:02}_diff_ZSMA_{procver}.fits",
+                    np.array(m_CG - m_D),
+                    overwrite=True,
+                    column_names=["I_DIFF"],
+                    dtype=None,
+                )
+
+        except Exception as e:
+            print(e)
+            click.secho("Continuing...", fg="yellow")
+
+        try:
+            if not os.path.exists(f"{procver}/diffs"):
+                os.mkdir(f"{procver}/diffs")
+            click.echo("Creating WMAP and LFI frequency difference maps")
             path_dx12 = "/mn/stornext/u3/trygvels/compsep/cdata/like/BP_releases/dx12"
             path_npipe = "/mn/stornext/u3/trygvels/compsep/cdata/like/BP_releases/npipe"
             path_BP10 = "/mn/stornext/d16/cmbco/bp/delivery/v10.00/v2"

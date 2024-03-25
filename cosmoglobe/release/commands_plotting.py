@@ -417,6 +417,7 @@ def plotrelease(ctx, procver, mask, defaultmask, freqmaps, cmb, cmbresamp,
     if not os.path.exists("figs"):
         os.mkdir("figs")
 
+
     if all_:
         freqmaps = not freqmaps; cmb = not cmb; synch = not synch; ame = not ame; co = not co;
         cii = not cii; hotpah = not hotpah; stars = not stars;
@@ -425,7 +426,6 @@ def plotrelease(ctx, procver, mask, defaultmask, freqmaps, cmb, cmbresamp,
         chisq = not chisq
 
         defaultmask = True if not mask else False
-    freqmaps = False
 
     if goodness_temp or goodness_pol or chisq:
         goodness = True
@@ -705,6 +705,22 @@ def plotrelease(ctx, procver, mask, defaultmask, freqmaps, cmb, cmbresamp,
             outdir = "figs/freqmap_difference/"
             if not os.path.exists(outdir):
                 os.mkdir(outdir)
+
+            try:
+                lims = [(-0.05, 0.05), (-0.05, 0.05), (-0.05, 0.05), (-0.1,
+                    0.1), (-1.5, -0.5), (-2, -0.5), (-0.5, 1.5), (-2, 2), (-10,
+                        10), (-5, 5)]
+                for i in range(1,11):
+                    ctx.invoke(plot, input=f'diffs/CG_DIRBE_{i:02}_diff_ZSMA_v10.fits',
+                            title="$\Delta A_{" + f'{i:02}' + "}^\mathrm{ZSMA}$",
+                            size=size, outdir=outdir, colorbar=colorbar,
+                            auto=True, sig=[0], cmap='planck',
+                            min=lims[i-1][0], max=lims[i-1][1])
+
+            except Exception as e:
+                print(e)
+                click.secho("Continuing...", fg="yellow")
+
                 
             try:
                 # Plot difference to npipe, dx12, BP10, and WMAP9
