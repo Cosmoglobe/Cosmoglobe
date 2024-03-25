@@ -43,6 +43,8 @@ def spec(
     planck=True,
     dirbe=True,
     litebird=False,
+    SO=False,
+    S4=False,
     custom_bands=None,
     include_co=True,
     add_error=True,
@@ -118,6 +120,12 @@ def spec(
         Toggle this observation column
         default:  True
     litebird : bool, optional
+        Toggle this observation column
+        default:  False
+    SO : bool, optional
+        Toggle this observation column
+        default:  False
+    S4 : bool, optional
         Toggle this observation column
         default:  False
     custom_bands : bool, optional
@@ -546,7 +554,7 @@ def spec(
             "W": { "pol": True, "show": wmap[4], "position": [90.0, ymin * yscaletextup], "range": [84, 106], "color": teal,},
         },
         "LiteBIRD": {
-            "40": { "pol": True, "show": litebird, "position": [40, ymax2 * yscaletext], "range": [34, 46], "color": red,},
+            "LiteBIRD 40": { "pol": True, "show": litebird, "position": [33, ymax2 * yscaletext], "range": [34, 46], "color": red,},
             "50": { "pol": True, "show": litebird, "position": [50, ymax2 * yscaletext], "range": [43, 57], "color": red,},
             "60": { "pol": True, "show": litebird, "position": [60, ymax2 * yscaletext], "range": [53, 67], "color": red,},
             "68": { "pol": True, "show": litebird, "position": [68, ymax2 * yscaletext], "range": [60, 76], "color": red,},
@@ -560,7 +568,35 @@ def spec(
             "235": { "pol": True, "show": litebird, "position": [235, ymax2 * yscaletext], "range": [200, 270], "color": red,},
             "280": { "pol": True, "show": litebird, "position": [280, ymax2 * yscaletext], "range": [238, 322], "color": red,},
             "337": { "pol": True, "show": litebird, "position": [337, ymax2 * yscaletext], "range": [287, 387], "color": red,},
-            "402\nLiteBIRD": { "pol": True, "show": litebird, "position": [402, ymax2 * yscaletext], "range": [356, 458], "color": red,},
+            "402": { "pol": True, "show": litebird, "position": [402, ymax2 * yscaletext], "range": [356, 458], "color": red,},
+        },
+        "SO" : {
+            "SO 27": { "pol": True, "show": SO, "position":[25, ymax2*yscaletext], "range": [23, 30], "color":green,},
+            "39": { "pol": True, "show": SO, "position":[39, ymax2*yscaletext], "range": [32, 49], "color":green,},
+            "93": { "pol": True, "show": SO, "position":[93, ymax2*yscaletext], "range": [75, 120], "color":green,},
+            "145": { "pol": True, "show": SO, "position":[145, ymax2*yscaletext], "range": [130, 180], "color":green,},
+            "225": { "pol": True, "show": SO, "position":[225, ymax2*yscaletext], "range": [190, 260], "color":green,},
+            "280": { "pol": True, "show": SO, "position":[280, ymax2*yscaletext], "range": [260, 320], "color":green,},
+        },
+        "S4-SAT" : { 
+            "S4-SAT 30": { "pol": True, "show": S4, "position":[24, ymax2*yscaletext], "range": [26, 35], "color":yellow,},
+            "40": { "pol": True, "show": S4, "position":[40, ymax2*yscaletext], "range": [34, 46], "color":yellow,},
+            "85": { "pol": True, "show": S4, "position":[85, ymax2*yscaletext], "range": [75, 95], "color":yellow,}, 
+            "95": { "pol": True, "show": S4, "position":[95, ymax2*yscaletext], "range": [84, 106], "color":yellow,},
+            "145": { "pol": True, "show": S4, "position":[130, ymax2*yscaletext], "range": [129, 161], "color":yellow,},
+            "155": { "pol": True, "show": S4, "position":[155, ymax2*yscaletext], "range": [138, 172], "color":yellow,},
+            "220": { "pol": True, "show": S4, "position":[220, ymax2*yscaletext], "range": [196, 244], "color":yellow,},
+            "270": { "pol": True, "show": S4, "position":[270, ymax2*yscaletext], "range": [240, 300], "color":yellow,},
+
+        },
+        "S4-LAT" : { 
+            "20": { "pol": True, "show": S4, "position":[20, ymax2*yscaletext], "range": [15, 25], "color":purple,},
+            "27": { "pol": True, "show": S4, "position":[27, ymax2*yscaletext], "range": [24, 30], "color":purple,},
+            "39": { "pol": True, "show": S4, "position":[39, ymax2*yscaletext], "range": [21, 57], "color":purple,},
+            "93\nS4-LAT": { "pol": True, "show": S4, "position":[93, ymax2*yscaletext], "range": [75, 110], "color":purple,},
+            "145": { "pol": True, "show": S4, "position":[145, ymax2*yscaletext], "range": [125, 165], "color":purple,},
+            "225" : { "pol": True, "show": S4, "position":[225, ymax2*yscaletext], "range": [195, 255], "color":purple,},
+            "278" : { "pol": True, "show": S4, "position":[278, ymax2*yscaletext], "range": [256, 300], "color":purple,},
         },
     }
     # fmt: on
@@ -573,6 +609,9 @@ def spec(
             if planck[i]:
                 oldkey = list(databands["Planck"].keys())[i]
                 break
+
+    if(litebird):
+        oldkey = list(databands["Planck"].keys())[8]
 
     newkey = oldkey + "\nPlanck"
     databands["Planck"][newkey] = databands["Planck"].pop(oldkey)
@@ -590,7 +629,10 @@ def spec(
     databands["WMAP"][newkey] = databands["WMAP"].pop(oldkey)
 
     # Set databands from dictonary
+    v_pos = ymax2
     for experiment, bands in databands.items():
+        if experiment in ["LiteBIRD", "SO", "S4-LAT", "S4-SAT"]:
+            v_pos = v_pos * 0.2  #add vertical space at the top to avoid the other labels
         for label, band in bands.items():
             if band["show"]:
                 # if label == "353" and not pol: continue # SPECIFIC FOR BP SETUP
@@ -599,6 +641,9 @@ def spec(
                 if band["position"][0] >= xmax or band["position"][0] <= xmin:
                     continue  # Skip databands outside range
                 va = "bottom" if experiment in ["WMAP", "CHI-PASS", "DIRBE", "Haslam"] else "top"  # VA for WMAP on bottom
+                if experiment in ["Planck", "LiteBIRD", "SO", "S4-LAT", "S4-SAT"]:
+                    band["position"][1] = v_pos
+
                 ha = (
                     "center"
                     if experiment

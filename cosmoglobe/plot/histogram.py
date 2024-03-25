@@ -1,4 +1,3 @@
-from e13tools import raise_error
 import numpy as np
 import healpy as hp
 import matplotlib.pyplot as plt
@@ -76,7 +75,7 @@ def hist(
         elif input.endswith(".fits"):
             input = hp.read_map(input, field=field)
         else:
-            raise_error("Input format not recognized")
+            raise ValueError("Input format not recognized")
 
     # Make figure
     fig, ax = make_fig(

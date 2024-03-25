@@ -13,8 +13,8 @@ try:
 except pkg_resources.DistributionNotFound:  # pragma: no cover
     ...
 
-_COMPSEP_DATA_URL = "http://sdc.uio.no/vol/cosmoglobe-data/BeyondPlanck/compsep/"
-_BP_DATA_URL = "http://sdc.uio.no/vol/cosmoglobe-data/BeyondPlanck/releases/v2/"
+_COMPSEP_DATA_URL = "https://sdc.uio.no/vol/cosmoglobe-data/BeyondPlanck/compsep/"
+_BP_DATA_URL = "https://sdc.uio.no/vol/cosmoglobe-data/BeyondPlanck/releases/v2/"
 
 def get_test_chain(cache: bool = True) -> Chain:
     """Returns a minimal Cosmoglobe chain.
@@ -120,7 +120,7 @@ def sky_model(nside: int, cache: bool = True) -> SkyModel:
     """
 
     filename = _BP_DATA_URL + "BP_mean_v2.h5"
-    file = download_file(filename, cache=cache)
+    file = download_file(filename, cache=cache, timeout=1000)
 
     return SkyModel.from_chain(
         chain=file,
