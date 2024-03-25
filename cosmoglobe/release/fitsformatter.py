@@ -218,8 +218,8 @@ def get_data(chain, extname, component, burnin, maxchain, thinning, fwhm, nside,
             input = 'gaia_01a_c0001_k000001.fits'
         print(input)
 
-        amp_mean = fits_handler(input=input, min=burnin, max=None, minchain=cmin, maxchain=cmax, chdir=chdir, output="map", fwhm=fwhm, nside=nside, drop_missing=True, pixweight=None, command=np.mean, lowmem=False, fields=fields, write=False, zerospin=False)
-        amp_stddev = fits_handler(input=input, min=burnin, max=None, minchain=cmin, maxchain=cmax, chdir=chdir, output="map", fwhm=fwhm, nside=nside, drop_missing=True, pixweight=None, command=np.std, lowmem=False, fields=fields, write=False, zerospin=False)
+        amp_mean = fits_handler(input=input, min=burnin, max=None, minchain=cmin, maxchain=cmax, thinning=thinning, chdir=chdir, output="map", fwhm=fwhm, nside=nside, drop_missing=True, pixweight=None, command=np.mean, lowmem=False, fields=fields, write=False, zerospin=False)
+        amp_stddev = fits_handler(input=input, min=burnin, max=None, minchain=cmin, maxchain=cmax, thinning=thinning, chdir=chdir, output="map", fwhm=fwhm, nside=nside, drop_missing=True, pixweight=None, command=np.std, lowmem=False, fields=fields, write=False, zerospin=False)
         #amp_mean = fits_handler(input="chisq_c0001_k000001.fits", min=burnin, max=None, minchain=cmin, maxchain=cmax, chdir=chdir, output="map", fwhm=fwhm, nside=nside, zerospin=False, drop_missing=True, pixweight=None, command=np.mean, lowmem=False, write=False)
 
         dset = np.zeros((len(types), hp.nside2npix(nside)))

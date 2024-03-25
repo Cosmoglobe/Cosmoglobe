@@ -1427,6 +1427,7 @@ def release(
                 try:
                     format_fits(
                         chain,
+                        thinning=thinning,
                         extname="COMP-MAP-CMB-RESAMP-P",
                         types=[
                             "Q_MEAN",
@@ -1462,6 +1463,7 @@ def release(
                 try:
                     format_fits(
                         chain,
+                        thinning=thinning,
                         extname="COMP-MAP-CMB-RESAMP-T",
                         types=[
                             "I_MEAN",
@@ -1493,6 +1495,7 @@ def release(
             try:
                 format_fits(
                     chain,
+                    thinning=thinning,
                     extname="COMP-MAP-CMB",
                     types=[
                         "I_MEAN",
@@ -1535,6 +1538,7 @@ def release(
             # Full-mission free-free I map
             format_fits(
                 chain,
+                thinning=thinning,
                 extname="COMP-MAP-FREE-FREE",
                 types=[
                     "I_MEAN",
@@ -1571,6 +1575,7 @@ def release(
             # Full-mission AME I map
             format_fits(
                 chain,
+                thinning=thinning,
                 extname="COMP-MAP-AME",
                 types=[
                     "I_MEAN",
@@ -1607,6 +1612,7 @@ def release(
             # Full-mission synchrotron IQU map
             format_fits(
                 chain,
+                thinning=thinning,
                 extname="COMP-MAP-SYNCHROTRON",
                 types=[
                     "I_MEAN",
@@ -1660,6 +1666,7 @@ def release(
             # Full-mission thermal dust IQU map
             format_fits(
                 chain,
+                thinning=thinning,
                 extname="COMP-MAP-DUST",
                 types=[
                     "I_MEAN",
@@ -1699,6 +1706,7 @@ def release(
             # Full-mission thermal dust IQU map
             format_fits(
                 chain,
+                thinning=thinning,
                 extname="COMP-MAP-DUST",
                 types=[
                     "I_MEAN",
@@ -1760,6 +1768,7 @@ def release(
             # Full-mission free-free I map
             format_fits(
                 chain,
+                thinning=thinning,
                 extname="COMP-MAP-CII-line",
                 types=[
                     "I_MEAN",
@@ -1800,6 +1809,7 @@ def release(
                 chdir = os.path.split(chains[0])[0]
             format_fits(
                 chain,
+                thinning=thinning,
                 extname="COMP-MAP-stars",
                 types=[
                     "I_MEAN",
@@ -1833,6 +1843,7 @@ def release(
             # Full-mission free-free I map
             format_fits(
                 chain,
+                thinning=thinning,
                 extname="COMP-hotPAH",
                 types=[
                     "I_MEAN",
@@ -1864,6 +1875,7 @@ def release(
             # Full-mission free-free I map
             format_fits(
                 chain,
+                thinning=thinning,
                 extname="COMP-CO_tot",
                 types=[
                     "I_MEAN",
@@ -2114,7 +2126,7 @@ def release(
             )
             mask_ = hp.read_map(
                 "/mn/stornext/u3/trygvels/compsep/cdata/like/BP_releases/masks/dx12_v3_common_mask_int_005a_1024_TQU.fits",
-                dtype=np.bool,
+                dtype=bool,
             )
             map_CG = hp.read_map(
                 f"{procver}/CG_cmb_IQU_n1024_{procver}.fits",
@@ -2201,6 +2213,7 @@ def release(
             try:
                 format_fits(
                     chains,
+                    thinning=thinning,
                     extname="CHISQ",
                     types=[
                         "I_MEAN",
@@ -2431,6 +2444,7 @@ def release(
                         lab = lab
                     format_fits(
                         chains,
+                        thinning=thinning,
                         extname="FREQBAND_RES",
                         types=types,
                         units=units,
