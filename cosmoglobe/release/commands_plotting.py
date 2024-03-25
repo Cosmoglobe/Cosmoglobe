@@ -502,10 +502,11 @@ def plotrelease(ctx, procver, mask, defaultmask, freqmaps, cmb, cmbresamp,
     
             try:
                 # DIRBE bands
-                for i in range(1, 11):
-                    ctx.invoke(plot, input=f"CG_DIRBE_{i:02}_I_n0512_{procver}.fits", outdir=outdir, colorbar=colorbar, auto=True, size=size, sig=[0,])
-                    ctx.invoke(plot, input=f"CG_DIRBE_{i:02}_I_n0512_{procver}.fits", outdir=outdir, colorbar=colorbar, auto=True, size=size, sig=[1,])
-                    ctx.invoke(plot, input=f"CG_DIRBE_{i:02}_I_n0512_{procver}.fits", outdir=outdir, colorbar=colorbar, auto=True, size=size, sig=[2,])
+                for j in ['a', 'b', '']:
+                    for i in range(1, 11):
+                        ctx.invoke(plot, input=f"CG_DIRBE_{i:02}{j}_I_n0512_{procver}.fits", outdir=outdir, colorbar=colorbar, auto=True, size=size, sig=[0,])
+                        ctx.invoke(plot, input=f"CG_DIRBE_{i:02}{j}_I_n0512_{procver}.fits", outdir=outdir, colorbar=colorbar, auto=True, size=size, sig=[1,])
+                        ctx.invoke(plot, input=f"CG_DIRBE_{i:02}{j}_I_n0512_{procver}.fits", outdir=outdir, colorbar=colorbar, auto=True, size=size, sig=[2,])
 
                 # 030 GHz IQU
                 ctx.invoke(plot, input=f"CG_030_IQU_n0512_{procver}.fits", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[0,],  range=3400,)

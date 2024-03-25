@@ -489,7 +489,7 @@ def rspectrum(nu, r, sig, scaling=1.0):
     A = np.sqrt(sum( 4*np.pi * cl[2:,signal]*bl[2:,signal]**2/(2*l+1) ))
     return cmb(nu, A*scaling)
 
-def fits_handler(input, min, max, minchain, maxchain, chdir, output, fwhm, nside, zerospin, drop_missing, pixweight, command, lowmem=False, fields=None, write=False, coadd=False, rms_maps=None):
+def fits_handler(input, min, max, minchain, maxchain, thinning, chdir, output, fwhm, nside, zerospin, drop_missing, pixweight, command, lowmem=False, fields=None, write=False, coadd=False, rms_maps=None):
     """
     Function for handling fits files.
     """
@@ -510,7 +510,7 @@ def fits_handler(input, min, max, minchain, maxchain, chdir, output, fwhm, nside
         exit()
 
     if (lowmem and command == np.std): #need to compute mean first
-        mean_data = fits_handler(input, min, max, minchain, maxchain, chdir, output, fwhm, nside, zerospin, drop_missing, pixweight, lowmem, np.mean, fields, write=False, coadd=coadd,)
+        mean_data = fits_handler(input, min, max, minchain, maxchain, thinning, chdir, output, fwhm, nside, zerospin, drop_missing, pixweight, lowmem, np.mean, fields, write=False, coadd=coadd,)
 
     if (minchain > maxchain):
         print('Minimum chain number larger that maximum chain number. Exiting')
@@ -594,7 +594,7 @@ def fits_handler(input, min, max, minchain, maxchain, chdir, output, fwhm, nside
 
         print("{:-^48}".format(f" Samples {min} to {max} in {filename}"))
 
-        for sample in tqdm(range(min, max + 1), ncols=80):
+        for sample in tqdm(range(min, max + 1, thinning), ncols=80):
                 # dataset sample formatting
                 filename = basefile[0]+'k'+str(sample).zfill(6)+basefile[1]                
                 if (first_samp):
