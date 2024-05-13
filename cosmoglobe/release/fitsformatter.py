@@ -210,7 +210,7 @@ def get_data(chain, extname, component, burnin, maxchain, thinning, fwhm, nside,
         # amp_mean = h5handler(input=chain, dataset="dust_cii/amp_alm", min=burnin, max=None, maxchain=maxchain, thinning=thinning, output="map", fwhm=fwhm, nside=nside, command=np.mean,)
         # amp_stddev = h5handler(input=chain, dataset="dust_cii/amp_alm", min=burnin, max=None, maxchain=maxchain, thinning=thinning, output="map", fwhm=fwhm, nside=nside, command=np.std,)
 
-        filename = f'{chdir}/stars_01a_c0001_k000001.fits'
+        filename = f'{chdir[0]}/stars_01a_c0001_k000001.fits'
         print(filename)
         if os.path.exists(filename):
             input = 'stars_01a_c0001_k000001.fits'

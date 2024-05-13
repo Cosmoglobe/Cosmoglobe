@@ -623,6 +623,8 @@ def release(
     elif chisq or res:
         goodness = True
 
+    copy_ = False
+
     # Make procver directory if not exists
     click.echo("{:#^80}".format(""))
     click.echo(f"Creating directory {procver}")
@@ -1802,11 +1804,11 @@ def release(
             if len(chains) == 1:
                 cmin = 1
                 cmax = None
-                chdir = os.path.split(chains[0])[0].rsplit("chain_", 1)[0]
+                chdir = [os.path.split(chains[0])[0].rsplit("chain_", 1)[0]]
             else:
                 cmin = 1
                 cmax = len(chains)
-                chdir = os.path.split(chains[0])[0]
+                chdir = [os.path.split(c)[0] for c in chains]
             format_fits(
                 chain,
                 thinning=thinning,
@@ -2195,7 +2197,7 @@ def release(
         if len(chains) == 1:
             cmin = 1
             cmax = None
-            chdir = os.path.split(chains[0])[0].rsplit("chain_", 1)[0]
+            chdir = [os.path.split(chains[0])[0].rsplit("chain_", 1)[0]]
         else:
             #print(chains[0])
             #print(os.path.split(chains[0]))
@@ -2205,7 +2207,7 @@ def release(
             #cmax = int(os.path.split(chains[-1])[0].rsplit("_c")[-1])
             cmin = 1
             cmax = len(chains)
-            chdir = os.path.split(chains[0])[0]
+            chdir = [os.path.split(c)[0] for c in chains]
             #chdir = os.path.split(chains[0])[0].rsplit("_", 1)[0]
             #print(chdir)
 

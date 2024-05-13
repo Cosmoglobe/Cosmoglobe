@@ -535,14 +535,15 @@ def fits_handler(input, min, max, minchain, maxchain, thinning, chdir, output, f
     use_pixweights = False if pixweight == None else True
     maxnone = True if max == None else False  # set length of keys for maxchains>1
     pol = True if zerospin == False else False  # treat maps as TQU maps (polarization)
-    for c in range(minchain, maxchain + 1):
+    #for c in range(minchain, maxchain + 1):
+    for c,i in zip(range(minchain, maxchain+1), range(len(chdir))):
         if (chdir==None):
             filename = input.replace("c0001", "c" + str(c).zfill(4))
         else:
             if maxchain > minchain + 1:
-                filename = chdir+'_c%i/'%(c)+input
+                filename = f'{chdir[i]}/{input}'
             else:
-                filename = f'{chdir}/{input}'
+                filename = f'{chdir[0]}/{input}'
         basefile = filename.split("k000001")
         if coadd:
             basefiles = []
@@ -552,9 +553,9 @@ def fits_handler(input, min, max, minchain, maxchain, thinning, chdir, output, f
                     filenames.append(input_list[i].replace("c0001", "c" + str(c).zfill(4)))
                 else:
                     if maxchain > minchain + 1:
-                        filenames.append(chdir+'_c%i/'%(c)+input_list[i])
+                        filenames.append(chdir[i]+str(c)+input_list[i])
                     else:
-                        filenames.append(f'{chdir}/{input_list[i]}')
+                        filenames.append(f'{chdir[0]}/{input_list[i]}')
                 basefiles.append(filenames[i].split("k000001"))
 
 
@@ -579,7 +580,7 @@ def fits_handler(input, min, max, minchain, maxchain, thinning, chdir, output, f
                     if (chdir==None):
                         tempname = input.replace("c0001", "c" + str(c).zfill(4))
                     else:
-                        tempname = chdir+'_c%i/'%(c)+input
+                        tempname = f'{chdir[i]}/{input}'
                         temp = tempname.split("k000001")
 
                     for siter in range(min,max+1):
@@ -661,7 +662,7 @@ def fits_handler(input, min, max, minchain, maxchain, thinning, chdir, output, f
                     for i in range(len(filenames)-1):
                         filename = basefiles[i][0]+'k'+str(sample).zfill(6)+basefiles[i][1]         
                         maps[i,:] = hp.read_map(filename, nest=nest)
-                        rmss[i,:] = hp.read_map(f'{chdir}/{rms_maps[i]}', nest=nest)
+                        rmss[i,:] = hp.read_map(f'{chdir[i]}/{rms_maps[i]}', nest=nest)
                     rmss[rmss == 0] = np.inf
                     mu = np.zeros(maps[0].shape)
                     den = np.zeros(maps[0].shape)
