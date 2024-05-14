@@ -2213,6 +2213,10 @@ def release(
 
         if chisq:
             try:
+                from astropy.io import fits
+                fits_file = fits.open(f'{chdir[0]}/chisq_c0001_k000001.fits')
+                nside = fits_file[1].header['NSIDE']
+                hdr = fits_file[1].header
                 format_fits(
                     chains,
                     thinning=thinning,
@@ -2225,7 +2229,7 @@ def release(
                         "NONE",
                         "NONE",
                     ],
-                    nside=16,
+                    nside=nside,
                     burnin=burnin,
                     maxchain=maxchain,
                     polar=True,
@@ -2234,7 +2238,7 @@ def release(
                     nu_ref_t="NONE",
                     nu_ref_p="NONE",
                     procver=procver,
-                    filename=f"goodness/CG_chisq_n16_{procver}.fits",
+                    filename=f"goodness/CG_chisq_n{nside}_{procver}.fits",
                     bndctr=None,
                     restfreq=None,
                     bndwid=None,
