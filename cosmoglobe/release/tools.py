@@ -553,7 +553,7 @@ def fits_handler(input, min, max, minchain, maxchain, thinning, chdir, output, f
                     filenames.append(input_list[i].replace("c0001", "c" + str(c).zfill(4)))
                 else:
                     if maxchain > minchain + 1:
-                        filenames.append(chdir[i]+str(c)+input_list[i])
+                        filenames.append(f'{chdir[i]}/{input_list[i]}')
                     else:
                         filenames.append(f'{chdir[0]}/{input_list[i]}')
                 basefiles.append(filenames[i].split("k000001"))
@@ -605,7 +605,7 @@ def fits_handler(input, min, max, minchain, maxchain, thinning, chdir, output, f
                             exit()
                         else:
                             continue
-                    
+                   
                     _, header = hp.fitsfunc.read_map(filename, h=True, dtype=None)
                     if fields!=None:
                         nfields = 0

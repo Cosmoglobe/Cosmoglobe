@@ -304,12 +304,6 @@ def get_data(chain, extname, component, burnin, maxchain, thinning, fwhm, nside,
         else:
             zerospin=True
         if coadd:
-        #    datasets = [f"tod/{comp}/map" for comp in component]
-        #    amp_mean = h5handler(input=chain, dataset=datasets, min=burnin, max=None, maxchain=maxchain, thinning=thinning, output="map", fwhm=fwhm, nside=nside, command=np.mean, zerospin=zerospin, coadd=coadd, )
-
-        #    amp_stddev = h5handler(input=chain, dataset=datasets, min=burnin, max=None, maxchain=maxchain, thinning=thinning, output="map", fwhm=120., nside=nside, command=np.std, remove_mono=True, zerospin=zerospin, coadd=coadd,)
-            # component is a list that looks like
-            # 10a, 10b, 10
 
             inputs = [f"res_{c}_c0001_k000001.fits" for c in component]
             rms_maps = [f"tod_{c}_rms_c0001_k000001.fits" for c in component[:-1]]

@@ -830,15 +830,17 @@ def plotrelease(ctx, procver, mask, defaultmask, freqmaps, cmb, cmbresamp,
                         click.secho("Continuing...", fg="yellow")
 
             if chisq:
+                import glob
+                fname = glob('goodness/CG_chisq_n16*.fits')[0]
                 nsides = [16, 16, 16, 512, 512, 1024, 1024]
                 fudge=1.02
                 scale = fudge*2*(np.sum([(x/16)**2 for x in nsides])-3*(64/16)**2)
-                ctx.invoke(plot, input=f"goodness/CG_chisq_n16_{procver}.fits", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[1,], scale=scale,)
+                ctx.invoke(plot, input=fname, size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[1,], scale=scale,)
                 #ctx.invoke(plot, input=f"goodness/CG_chisq_n16_{procver}.fits", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[4,5], min=0.001, max=0.01, scale=scale)
 
                 nsides = [512, 512, 1024, 512, 512, 512, 512, 512, 512, 1024]
                 scale = (np.sum([(x/16)**2 for x in nsides])-3*(128/16)**2)
-                ctx.invoke(plot, input=f"goodness/CG_chisq_n16_{procver}.fits", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[0,], scale=scale)
+                ctx.invoke(plot, input=fname, size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[0,], scale=scale)
                 #ctx.invoke(plot, input=f"goodness/CG_chisq_n16_{procver}.fits", size=size, outdir=outdir, colorbar=colorbar, auto=True, sig=[3,], min=0.001, max=0.01, scale=scale)
 
             
