@@ -623,8 +623,6 @@ def release(
     elif chisq or res:
         goodness = True
 
-    copy_ = False
-
     # Make procver directory if not exists
     click.echo("{:#^80}".format(""))
     click.echo(f"Creating directory {procver}")
