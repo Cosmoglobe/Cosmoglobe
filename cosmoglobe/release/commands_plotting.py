@@ -418,6 +418,7 @@ def plotrelease(ctx, procver, mask, defaultmask, freqmaps, cmb, cmbresamp,
         os.mkdir("figs")
 
 
+
     if all_:
         freqmaps = not freqmaps; cmb = not cmb; synch = not synch; ame = not ame; co = not co;
         cii = not cii; hotpah = not hotpah; stars = not stars;
@@ -426,6 +427,7 @@ def plotrelease(ctx, procver, mask, defaultmask, freqmaps, cmb, cmbresamp,
         chisq = not chisq
 
         defaultmask = True if not mask else False
+
 
     if goodness_temp or goodness_pol or chisq:
         goodness = True
@@ -712,7 +714,8 @@ def plotrelease(ctx, procver, mask, defaultmask, freqmaps, cmb, cmbresamp,
                     0.1), (-1.5, -0.5), (-2, -0.5), (-0.5, 1.5), (-2, 2), (-10,
                         10), (-5, 5)]
                 for i in range(1,11):
-                    ctx.invoke(plot, input=f'diffs/CG_DIRBE_{i:02}_diff_ZSMA_v10.fits',
+                    ctx.invoke(plot, input=f"diffs/CG_DIRBE_{i:02}_diff_ZSMA_{procver}.fits",
+
                             title="$\Delta A_{" + f'{i:02}' + "}^\mathrm{ZSMA}$",
                             size=size, outdir=outdir, colorbar=colorbar,
                             auto=True, sig=[0], cmap='planck',
@@ -831,7 +834,7 @@ def plotrelease(ctx, procver, mask, defaultmask, freqmaps, cmb, cmbresamp,
 
             if chisq:
                 import glob
-                fname = glob('goodness/CG_chisq_n16*.fits')[0]
+                fname = glob.glob('goodness/CG_chisq_*.fits')[0]
                 nsides = [16, 16, 16, 512, 512, 1024, 1024]
                 fudge=1.02
                 scale = fudge*2*(np.sum([(x/16)**2 for x in nsides])-3*(64/16)**2)

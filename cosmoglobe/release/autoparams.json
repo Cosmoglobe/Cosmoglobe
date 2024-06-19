@@ -62,7 +62,7 @@
     "dust": {
         "tags": ["dust"],
         "unit": "$\\mu\\mathrm{K}_{\\mathrm{RJ}}$",
-        "comp": "d",
+        "comp": "\\mathrm{cold\\ dust}",
         "param": "$A$",
         "cmap": ["sunburst", "iceburn"],
         "ticks": [[30, 300, 3000],[-100, 0, 100],[5, 10, 25, 50]],
@@ -72,9 +72,9 @@
     "hotPAH": {
         "tags": ["hotPAH"],
         "unit": "$\\mu\\mathrm{K}_{\\mathrm{RJ}}$",
-        "comp": "\\mathrm{Hot\\ PAH}",
+        "comp": "\\mathrm{nearby\\ dust}",
         "param": "$A$",
-        "cmap": ["afmhot", "iceburn"],
+        "cmap": ["sunburst", "iceburn"],
         "ticks": [[10, 100, 1000],[-100, 0, 100],[5, 10, 25, 50]],
         "logscale": true,
         "special": false
@@ -82,9 +82,9 @@
     "cii": {
         "tags": ["cii"],
         "unit": "$\\mu\\mathrm{K}_{\\mathrm{RJ}}$",
-        "comp": "\\mathrm{C^{+}}",
+        "comp": "\\mathrm{hot\\ dust}",
         "param": "$A$",
-        "cmap": ["bone", "iceburn"],
+        "cmap": ["sunburst", "iceburn"],
         "ticks": [[1, 10, 1000],[-100, 0, 100],[5, 10, 25, 50]],
         "logscale": true,
         "special": false

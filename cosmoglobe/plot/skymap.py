@@ -327,3 +327,5 @@ def plot(
 
     if return_figure:
        return ret, params
+    else:
+       return ret
