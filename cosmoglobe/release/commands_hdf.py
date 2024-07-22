@@ -596,7 +596,6 @@ def release(
     # Use inpainted data as well in CMB component
 
     from pathlib import Path
-    import shutil
 
     if all_:  # sets all other flags to true
         copy_ = not copy_
@@ -638,53 +637,10 @@ def release(
     Copying chains files
     """
     if copy_:
-        # Commander3 parameter file for main chain
-        for i, chainfile in enumerate(chains, 1):
-            path = os.path.split(chainfile)[0]
-            for file in os.listdir(path):
-                if file.startswith("param") and i == 1:  # Copy only first
-                    click.echo(
-                        f"Copying {path}/{file} to {procver}/CG_param_c"
-                        + str(i).zfill(4)
-                        + f"_{procver}.txt"
-                    )
-                    if resamp:
-                        shutil.copyfile(
-                            f"{path}/{file}",
-                            f"{procver}/CG_param_c"
-                            + str(i).zfill(4)
-                            + f"_{pol}resamp_{procver}.txt",
-                        )
-                    else:
-                        shutil.copyfile(
-                            f"{path}/{file}",
-                            f"{procver}/CG_param_c"
-                            + str(i).zfill(4)
-                            + f"_{procver}.txt",
-                        )
-
-            if resamp:
-                # Resampled CMB-only full-mission Gibbs chain file with Cls (for BR estimator)
-                click.echo(
-                    f"Copying {chainfile} to {procver}/CG_c"
-                    + str(i).zfill(4)
-                    + f"_{pol}resamp_{procver}.h5"
-                )
-                shutil.copyfile(
-                    chainfile,
-                    f"{procver}/CG_c" + str(i).zfill(4) + f"_{pol}resamp_{procver}.h5",
-                )
-            else:
-                # Full-mission Gibbs chain file
-                click.echo(
-                    f"Copying {chainfile} to {procver}/CG_c"
-                    + str(i).zfill(4)
-                    + f"_{procver}.h5"
-                )
-                shutil.copyfile(
-                    chainfile,
-                    f"{procver}/CG_c" + str(i).zfill(4) + f"_{procver}.h5",
-                )
+        import multiprocessing
+        with multiprocessing.Pool(processes=len(chains)) as pool:
+            multiple_results = [pool.apply_async(copy_files, args=(chains[i], i+1, procver, pol, resamp)) for i in range(len(chains))]
+            results = [res.get() for res in multiple_results]
 
     # if halfring:
     #   # Copy halfring files
