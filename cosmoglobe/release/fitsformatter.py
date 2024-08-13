@@ -248,8 +248,6 @@ def get_data(chain, extname, component, burnin, max_iter, maxchain, thinning, fw
         dset[1] = amp_stddev
 
     elif extname.endswith("FREQMAP"):
-        print('am I here though?')
-        asdf
         if polar:
             zerospin=False
         else:

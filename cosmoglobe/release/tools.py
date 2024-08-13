@@ -204,8 +204,7 @@ def h5handler(input, dataset, min, max, maxchain, thinning, output, fwhm, nside,
 
             print("{:-^48}".format(f" Samples {min} to {max} in {filename}"))
 
-            for sample in tqdm(range(min, max, thinning), ncols=80):
-                print(sample)
+            for sample in tqdm(range(min, max+1, thinning), ncols=80):
                 # Identify dataset
                 # alm, map or (sigma_l, which is recognized as l)
 
@@ -650,7 +649,7 @@ def fits_handler(input, min, max, minchain, maxchain, thinning, chdir, output, f
 
         print("{:-^48}".format(f" Samples {min} to {max} in {filename}"))
 
-        for sample in tqdm(range(min, max, thinning), ncols=80):
+        for sample in tqdm(range(min, max+1, thinning), ncols=80):
                 # dataset sample formatting
                 filename = basefile[0]+'k'+str(sample).zfill(6)+basefile[1]                
                 if (first_samp):

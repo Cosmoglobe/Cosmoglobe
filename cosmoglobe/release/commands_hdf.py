@@ -645,9 +645,20 @@ def release(
     Copying chains files
     """
     if copy_:
+        copy_list = np.arange(len(chains)).tolist()
+        delete_inds = []
+        for i in range(len(chains)):
+            if os.path.exists(f'{procver}/CG_c{i+1:04}_{procver}.h5'):
+                s = input(f'{procver}/CG_c{i+1:04}_{procver}.h5 exists. Overwrite? [y/N]')
+                if s != 'y':
+                    delete_inds.append(i)
+        delete_inds = delete_inds[::-1]
+        for i in range(len(delete_inds)):
+            del copy_list[delete_inds[i]]
+
         import multiprocessing
         with multiprocessing.Pool(processes=len(chains)) as pool:
-            multiple_results = [pool.apply_async(copy_files, args=(chains[i], i+1, procver, pol, resamp)) for i in range(len(chains))]
+            multiple_results = [pool.apply_async(copy_files, args=(chains[i], i+1, procver, pol, resamp)) for i in copy_list]
             results = [res.get() for res in multiple_results]
 
     # if halfring:
@@ -666,10 +677,10 @@ def release(
     else:
         chain = f"{procver}/CG_c0001_{procver}.h5"
 
-    chain_bla = cosmoglobe.Chain(chain, burn_in=1)
-    bands = chain_bla["000001/tod"]
 
     if freqmaps:
+        chain_bla = cosmoglobe.Chain(chain, burn_in=1)
+        bands = chain_bla["000001/tod"]
         try:
             # Ideally, we would have a way to access this information from the
             # chain itself, but currently we aren't outputting any of the main
@@ -1289,6 +1300,49 @@ def release(
                 )
 
             # DIRBE bands
+            for b in range(1, 11):
+                import astropy.units as u
+                import astropy.constants as c
+                wavs = np.array([1.25, 2.2, 3.5, 4.9, 12, 25, 60, 100, 140, 240])*u.micron
+                bw = np.array([59.5, 22.4, 22.0, 8.19, 13.3, 4.13, 2.32, 0.974, 0.605, 0.495])*u.THz
+                bw = bw.to('GHz')
+                freqs = (c.c/wavs).to('GHz')
+                if (f"{b:02}a" in bands) & (f"{b:02}b" in bands):
+
+                    band_cent = int(freqs[b-1].value)
+                    bandwidth = int(bw[b-1].value)
+
+                    format_fits(
+                        chain=chain,
+                        thinning=thinning,
+                        extname="FREQMAP",
+                        types=[
+                            "I_MEAN",
+                            "I_RMS",
+                            "I_STDDEV",
+                        ],
+                        units=[
+                            "MJy/sr",
+                            "MJy/sr",
+                            "MJy/sr",
+                        ],
+                        nside=512,
+                        burnin=burnin,
+                        max_iter=max_iter,
+                        maxchain=maxchain,
+                        polar=False,
+                        component=[f"{b:02}a", f"{b:02}b", f"{b:02}"],
+                        fwhm=0.0,
+                        nu_ref_t=f'{band_cent} GHz',
+                        nu_ref_p=None,
+                        procver=procver,
+                        filename=f"CG_DIRBE_{b:02}_I_n0512_{procver}.fits",
+                        bndctr=band_cent,
+                        restfreq=band_cent,
+                        bndwid=bandwidth,
+                        coadd=True,
+                    )
+
             for b in range(1, 11):
                 import astropy.units as u
                 import astropy.constants as c
