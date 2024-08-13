@@ -453,6 +453,12 @@ def alm2fits(input, dataset, nside, lmax, fwhm):
     default=1,
     help="thinning factor for processing",
 )
+@click.option(
+    "-max_iter",
+    default=None,
+    type=click.INT,
+    help="maximum number of Gibbs samples",
+)
 @click.argument("procver", type=click.STRING)
 @click.option(
     "-resamp",
@@ -537,6 +543,7 @@ def release(
     ctx,
     chain,
     burnin,
+    max_iter,
     thinning,
     procver,
     resamp,
@@ -591,6 +598,7 @@ def release(
 
     CG_DR2_{experiment_name}_{channel_id}_I_nside_{procver}
     """
+
     # TODO
     # Use proper masks for output of CMB component
     # Use inpainted data as well in CMB component
@@ -703,6 +711,7 @@ def release(
                     ],
                     nside=512,
                     burnin=burnin,
+                    max_iter=max_iter,
                     maxchain=maxchain,
                     polar=True,
                     component="023-WMAP_K",
@@ -749,6 +758,7 @@ def release(
                     ],
                     nside=512,
                     burnin=burnin,
+                    max_iter=max_iter,
                     maxchain=maxchain,
                     polar=True,
                     component="030-WMAP_Ka",
@@ -794,6 +804,7 @@ def release(
                     ],
                     nside=512,
                     burnin=burnin,
+                    max_iter=max_iter,
                     maxchain=maxchain,
                     polar=True,
                     component="040-WMAP_Q1",
@@ -839,6 +850,7 @@ def release(
                     ],
                     nside=512,
                     burnin=burnin,
+                    max_iter=max_iter,
                     maxchain=maxchain,
                     polar=True,
                     component="040-WMAP_Q2",
@@ -884,6 +896,7 @@ def release(
                     ],
                     nside=512,
                     burnin=burnin,
+                    max_iter=max_iter,
                     maxchain=maxchain,
                     polar=True,
                     component="060-WMAP_V1",
@@ -930,6 +943,7 @@ def release(
                     ],
                     nside=512,
                     burnin=burnin,
+                    max_iter=max_iter,
                     maxchain=maxchain,
                     polar=True,
                     component="060-WMAP_V2",
@@ -976,6 +990,7 @@ def release(
                     ],
                     nside=512,
                     burnin=burnin,
+                    max_iter=max_iter,
                     maxchain=maxchain,
                     polar=True,
                     component="090-WMAP_W1",
@@ -1022,6 +1037,7 @@ def release(
                     ],
                     nside=512,
                     burnin=burnin,
+                    max_iter=max_iter,
                     maxchain=maxchain,
                     polar=True,
                     component="090-WMAP_W2",
@@ -1067,6 +1083,7 @@ def release(
                         "mK2",
                     ],
                     burnin=burnin,
+                    max_iter=max_iter,
                     maxchain=maxchain,
                     polar=True,
                     component="090-WMAP_W3",
@@ -1113,6 +1130,7 @@ def release(
                         "mK2",
                     ],
                     burnin=burnin,
+                    max_iter=max_iter,
                     maxchain=maxchain,
                     polar=True,
                     component="090-WMAP_W4",
@@ -1161,6 +1179,7 @@ def release(
                     ],
                     nside=512,
                     burnin=burnin,
+                    max_iter=max_iter,
                     maxchain=maxchain,
                     polar=True,
                     component="030",
@@ -1207,6 +1226,7 @@ def release(
                     ],
                     nside=512,
                     burnin=burnin,
+                    max_iter=max_iter,
                     maxchain=maxchain,
                     polar=True,
                     component="044",
@@ -1254,6 +1274,7 @@ def release(
                     ],
                     nside=1024,
                     burnin=burnin,
+                    max_iter=max_iter,
                     maxchain=maxchain,
                     polar=True,
                     component="070",
@@ -1280,35 +1301,6 @@ def release(
                     band_cent = int(freqs[b-1].value)
                     bandwidth = int(bw[b-1].value)
 
-                    format_fits(
-                        chain=chain,
-                        thinning=thinning,
-                        extname="FREQMAP",
-                        types=[
-                            "I_MEAN",
-                            "I_RMS",
-                            "I_STDDEV",
-                        ],
-                        units=[
-                            "MJy/sr",
-                            "MJy/sr",
-                            "MJy/sr",
-                        ],
-                        nside=512,
-                        burnin=burnin,
-                        maxchain=maxchain,
-                        polar=False,
-                        component=[f"{b:02}a", f"{b:02}b", f"{b:02}"],
-                        fwhm=0.0,
-                        nu_ref_t=f'{band_cent} GHz',
-                        nu_ref_p=None,
-                        procver=procver,
-                        filename=f"CG_DIRBE_{b:02}_I_n0512_{procver}.fits",
-                        bndctr=band_cent,
-                        restfreq=band_cent,
-                        bndwid=bandwidth,
-                        coadd=True,
-                    )
 
                     format_fits(
                         chain=chain,
@@ -1326,6 +1318,7 @@ def release(
                         ],
                         nside=512,
                         burnin=burnin,
+                        max_iter=max_iter,
                         maxchain=maxchain,
                         polar=False,
                         component=f"{b:02}a",
@@ -1355,6 +1348,7 @@ def release(
                         ],
                         nside=512,
                         burnin=burnin,
+                        max_iter=max_iter,
                         maxchain=maxchain,
                         polar=False,
                         component=f"{b:02}b",
@@ -1368,6 +1362,36 @@ def release(
                         bndwid=bandwidth,
                     )
 
+                    format_fits(
+                        chain=chain,
+                        thinning=thinning,
+                        extname="FREQMAP",
+                        types=[
+                            "I_MEAN",
+                            "I_RMS",
+                            "I_STDDEV",
+                        ],
+                        units=[
+                            "MJy/sr",
+                            "MJy/sr",
+                            "MJy/sr",
+                        ],
+                        nside=512,
+                        burnin=burnin,
+                        max_iter=max_iter,
+                        maxchain=maxchain,
+                        polar=False,
+                        component=[f"{b:02}a", f"{b:02}b", f"{b:02}"],
+                        fwhm=0.0,
+                        nu_ref_t=f'{band_cent} GHz',
+                        nu_ref_p=None,
+                        procver=procver,
+                        filename=f"CG_DIRBE_{b:02}_I_n0512_{procver}.fits",
+                        bndctr=band_cent,
+                        restfreq=band_cent,
+                        bndwid=bandwidth,
+                        coadd=True,
+                    )
 
         except Exception as e:
             print(e)
@@ -1399,6 +1423,7 @@ def release(
                         ],
                         nside=1024,
                         burnin=burnin,
+                        max_iter=max_iter,
                         maxchain=maxchain,
                         polar=True,
                         component="CMB",
@@ -1431,6 +1456,7 @@ def release(
                         ],
                         nside=1024,
                         burnin=burnin,
+                        max_iter=max_iter,
                         maxchain=maxchain,
                         polar=True,
                         component="CMB",
@@ -1473,6 +1499,7 @@ def release(
                     ],
                     nside=1024,
                     burnin=burnin,
+                    max_iter=max_iter,
                     maxchain=maxchain,
                     polar=True,
                     component="CMB",
@@ -1510,6 +1537,7 @@ def release(
                 ],
                 nside=1024,
                 burnin=burnin,
+                max_iter=max_iter,
                 maxchain=maxchain,
                 polar=False,
                 component="FREE-FREE",
@@ -1547,6 +1575,7 @@ def release(
                 ],
                 nside=1024,
                 burnin=burnin,
+                max_iter=max_iter,
                 maxchain=maxchain,
                 polar=False,
                 component="AME",
@@ -1600,6 +1629,7 @@ def release(
                 ],
                 nside=1024,
                 burnin=burnin,
+                max_iter=max_iter,
                 maxchain=maxchain,
                 polar=True,
                 component="SYNCHROTRON",
@@ -1642,6 +1672,7 @@ def release(
                 ],
                 nside=2048,
                 burnin=burnin,
+                max_iter=max_iter,
                 maxchain=maxchain,
                 polar=False,
                 component="DUST",
@@ -1702,6 +1733,7 @@ def release(
                 ],
                 nside=1024,
                 burnin=burnin,
+                max_iter=max_iter,
                 maxchain=maxchain,
                 polar=True,
                 component="DUST",
@@ -1736,6 +1768,7 @@ def release(
                 ],
                 nside=2048,
                 burnin=burnin,
+                max_iter=max_iter,
                 maxchain=maxchain,
                 polar=False,
                 component="CII",
@@ -1777,6 +1810,7 @@ def release(
                 ],
                 nside=512,
                 burnin=burnin,
+                max_iter=max_iter,
                 maxchain=maxchain,
                 polar=False,
                 component="Stars",
@@ -1811,6 +1845,7 @@ def release(
                 ],
                 nside=2048,
                 burnin=burnin,
+                max_iter=max_iter,
                 maxchain=maxchain,
                 polar=False,
                 component="hotPAH",
@@ -1843,6 +1878,7 @@ def release(
                 ],
                 nside=1024,
                 burnin=burnin,
+                max_iter=max_iter,
                 maxchain=maxchain,
                 polar=False,
                 component="co_tot",
@@ -2185,6 +2221,7 @@ def release(
                     ],
                     nside=nside,
                     burnin=burnin,
+                    max_iter=max_iter,
                     maxchain=maxchain,
                     polar=True,
                     component="CHISQ",
@@ -2386,7 +2423,6 @@ def release(
                 }
 
             for lab, b in bands.items():
-                print(lab, b)
                 label = lab
 
                 types = []
@@ -2399,6 +2435,7 @@ def release(
                     units.append(b["unit"])
                 try:
                     if b['coadd']:
+                        #lab = [f'{lab}', f'{lab}a', f'{lab}b']
                         lab = [f'{lab}a', f'{lab}b', f'{lab}']
                     else:
                         lab = lab
@@ -2410,6 +2447,7 @@ def release(
                         units=units,
                         nside=b["nside"],
                         burnin=burnin,
+                        max_iter=max_iter,
                         maxchain=maxchain,
                         polar=len(b["fields"]) > 1,
                         component=lab,
@@ -2442,6 +2480,7 @@ def release(
             filename=resamp,
             nchains=1,
             burnin=burnin,
+            #max_iter=max_iter,
             path="cmb/sigma_l",
             outname=f"{procver}/CG_cmb_GBRlike_{procver}.fits",
             save=True,

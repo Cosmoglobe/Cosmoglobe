@@ -204,7 +204,8 @@ def h5handler(input, dataset, min, max, maxchain, thinning, output, fwhm, nside,
 
             print("{:-^48}".format(f" Samples {min} to {max} in {filename}"))
 
-            for sample in tqdm(range(min, max + 1, thinning), ncols=80):
+            for sample in tqdm(range(min, max, thinning), ncols=80):
+                print(sample)
                 # Identify dataset
                 # alm, map or (sigma_l, which is recognized as l)
 
@@ -550,6 +551,8 @@ def fits_handler(input, min, max, minchain, maxchain, thinning, chdir, output, f
     from tqdm import tqdm
     import os
 
+
+
     if coadd:
         input_list = input
         input = input_list[0]
@@ -587,7 +590,6 @@ def fits_handler(input, min, max, minchain, maxchain, thinning, chdir, output, f
     use_pixweights = False if pixweight == None else True
     maxnone = True if max == None else False  # set length of keys for maxchains>1
     pol = True if zerospin == False else False  # treat maps as TQU maps (polarization)
-    #for c in range(minchain, maxchain + 1):
     for c,i in zip(range(minchain, maxchain+1), range(len(chdir))):
         if (chdir==None):
             filename = input.replace("c0001", "c" + str(c).zfill(4))
@@ -625,6 +627,7 @@ def fits_handler(input, min, max, minchain, maxchain, thinning, chdir, output, f
                 else:
                     max_found = True
                     max = siter - 1
+                    filename = basefile[0]+'k'+str(siter-1).zfill(6)+basefile[1]
 
         else:
             if (first_samp):
@@ -647,7 +650,7 @@ def fits_handler(input, min, max, minchain, maxchain, thinning, chdir, output, f
 
         print("{:-^48}".format(f" Samples {min} to {max} in {filename}"))
 
-        for sample in tqdm(range(min, max + 1, thinning), ncols=80):
+        for sample in tqdm(range(min, max, thinning), ncols=80):
                 # dataset sample formatting
                 filename = basefile[0]+'k'+str(sample).zfill(6)+basefile[1]                
                 if (first_samp):
@@ -712,8 +715,7 @@ def fits_handler(input, min, max, minchain, maxchain, thinning, chdir, output, f
                         maps = np.zeros((len(rms_maps), 1, hp.nside2npix(nside)))
                         rmss = np.zeros((len(rms_maps), 1, hp.nside2npix(nside)))
                     for i in range(len(filenames)-1):
-                        filename = basefiles[i][0]+'k'+str(sample).zfill(6)+basefiles[i][1]         
-                        maps[i,:] = hp.read_map(filename, nest=nest)
+                        maps[i,:] = hp.read_map(filenames[i], nest=nest)
                         rmss[i,:] = hp.read_map(f'{chdir[i]}/{rms_maps[i]}', nest=nest)
                     rmss[rmss == 0] = np.inf
                     mu = np.zeros(maps[0].shape)
@@ -770,6 +772,8 @@ def fits_handler(input, min, max, minchain, maxchain, thinning, chdir, output, f
                     # Append sample to list
                     dats.append(data)
                 first_samp=False
+        if maxnone:
+            max = None
 
     if (lowmem):
         if (command == np.mean):
