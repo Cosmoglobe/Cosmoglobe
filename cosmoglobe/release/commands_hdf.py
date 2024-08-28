@@ -504,14 +504,19 @@ def alm2fits(input, dataset, nside, lmax, fwhm):
     help=" output dust",
 )
 @click.option(
-    "-cii",
+    "-dust_cii",
     is_flag=True,
     help=" output dust cii",
 )
 @click.option(
+    "-cii",
+    is_flag=True,
+    help=" output cii",
+)
+@click.option(
     "-stars",
     is_flag=True,
-    help=" output dust stars",
+    help=" output stars",
 )
 @click.option(
     "-hotpah",
@@ -556,6 +561,7 @@ def release(
     dust,
     co,
     cii,
+    dust_cii,
     stars,
     hotpah,
     br,
@@ -614,6 +620,7 @@ def release(
         synch = not synch
         dust = not dust
         cii = not cii
+        dust_cii = not dust_cii
         stars = not stars
         hotpah = not hotpah
         co = not co
@@ -1735,6 +1742,49 @@ def release(
                 nu_ref_p=None,
                 procver=procver,
                 filename=f"CG_dust_I_n2048_{procver}.fits",
+                bndctr=None,
+                restfreq=None,
+                bndwid=None,
+            )
+        except Exception as e:
+            print(e)
+            click.secho("Continuing...", fg="yellow")
+
+    if dust_cii:
+        # Need a better way to deal with the temperature-only analyses.
+        try:
+            # Full-mission thermal dust IQU map
+            format_fits(
+                chain,
+                thinning=thinning,
+                extname="COMP-MAP-DUST",
+                types=[
+                    "I_MEAN",
+                    "I_BETA_MEAN",
+                    "I_T_MEAN",
+                    "I_STDDEV",
+                    "I_BETA_STDDEV",
+                    "I_T_STDDEV",
+                ],
+                units=[
+                    "uK_RJ",
+                    "NONE",
+                    "K",
+                    "uK_RJ",
+                    "NONE",
+                    "K",
+                ],
+                nside=2048,
+                burnin=burnin,
+                max_iter=max_iter,
+                maxchain=maxchain,
+                polar=False,
+                component="DUST_CII",
+                fwhm=10.0,  # 60.0,
+                nu_ref_t="545 GHz",
+                nu_ref_p=None,
+                procver=procver,
+                filename=f"CG_dust_cii_I_n2048_{procver}.fits",
                 bndctr=None,
                 restfreq=None,
                 bndwid=None,

@@ -305,15 +305,27 @@ def get_data(chain, extname, component, burnin, max_iter, maxchain, thinning, fw
         else:
             zerospin=True
         if coadd:
-
-            inputs = [f"res_{c}_c0001_k000001.fits" for c in component]
+            if os.path.exists(f'{chdir[0]}/tod_{component[0]}_res_c0001_k000011.fits'):
+                inputs = [f"tod_{c}_res_c0001_k000001.fits" for c in component]
+            else:
+                inputs = [f"res_{c}_c0001_k000001.fits" for c in component]
             rms_maps = [f"tod_{c}_rms_c0001_k000001.fits" for c in component[:-1]]
             amp_mean = fits_handler(input=inputs, min=burnin, max=max_iter, minchain=cmin, maxchain=cmax, thinning=thinning, chdir=chdir, output="map", fwhm=fwhm, nside=nside, zerospin=zerospin, drop_missing=True, pixweight=None, command=np.mean, lowmem=False, fields=fields, write=False, coadd=True, rms_maps=rms_maps)
             amp_stddev = fits_handler(input=inputs, min=burnin, max=max_iter, minchain=cmin, maxchain=cmax, thinning=thinning, chdir=chdir, output="map", fwhm=fwhm, nside=nside, zerospin=zerospin, drop_missing=True, pixweight=None, command=np.std, lowmem=False, fields=fields, write=False, coadd=True, rms_maps=rms_maps)
 
         else:
-            amp_mean = fits_handler(input=f"res_{component}_c0001_k000001.fits", min=burnin, max=max_iter, minchain=cmin, maxchain=cmax, thinning=thinning, chdir=chdir, output="map", fwhm=fwhm, nside=nside, zerospin=zerospin, drop_missing=True, pixweight=None, command=np.mean, lowmem=False, fields=fields, write=False)
-            amp_stddev = fits_handler(input=f"res_{component}_c0001_k000001.fits", min=burnin, max=max_iter, minchain=cmin, maxchain=cmax, thinning=thinning, chdir=chdir, output="map", fwhm=fwhm, nside=nside, zerospin=zerospin, drop_missing=True, pixweight=None, command=np.std, lowmem=False, fields=fields, write=False)
+            asdf
+            if type(component) == 'list':
+                c = component[0]
+            else:
+                c = component
+
+            if os.path.exists(f'{chdir[0]}/tod_{c}_res_c0001_k000011.fits'):
+                input_mean = f"tod_{c}_res_c0001_k000001.fits"
+            else:
+                input_mean = f"res_{c}_c0001_k000001.fits"
+            amp_mean = fits_handler(input=input_mean, min=burnin, max=max_iter, minchain=cmin, maxchain=cmax, thinning=thinning, chdir=chdir, output="map", fwhm=fwhm, nside=nside, zerospin=zerospin, drop_missing=True, pixweight=None, command=np.mean, lowmem=False, fields=fields, write=False)
+            amp_stddev = fits_handler(input=input_mean, min=burnin, max=max_iter, minchain=cmin, maxchain=cmax, thinning=thinning, chdir=chdir, output="map", fwhm=fwhm, nside=nside, zerospin=zerospin, drop_missing=True, pixweight=None, command=np.std, lowmem=False, fields=fields, write=False)
         dset = np.zeros((N, hp.nside2npix(nside)))
         if len(fields)>1:
             dset[:N//2] = amp_mean[fields, :]*scale

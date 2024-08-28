@@ -79,10 +79,20 @@
         "logscale": true,
         "special": false
     },
+    "dust_cii": {
+        "tags": ["dust_cii"],
+        "unit": "$\\mu\\mathrm{K}_{\\mathrm{RJ}}$",
+        "comp": "\\mathrm{hot\\ dust}",
+        "param": "$A$",
+        "cmap": ["sunburst", "iceburn"],
+        "ticks": [[10, 100, 1000],[-100, 0, 100],[5, 10, 25, 50]],
+        "logscale": true,
+        "special": false
+    },
     "cii": {
         "tags": ["cii"],
         "unit": "$\\mu\\mathrm{K}_{\\mathrm{RJ}}$",
-        "comp": "\\mathrm{hot\\ dust}",
+        "comp": "\\mathrm{Cii}",
         "param": "$A$",
         "cmap": ["sunburst", "iceburn"],
         "ticks": [[1, 10, 1000],[-100, 0, 100],[5, 10, 25, 50]],

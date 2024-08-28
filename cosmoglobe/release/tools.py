@@ -580,6 +580,7 @@ def fits_handler(input, min, max, minchain, maxchain, thinning, chdir, output, f
 
     type = 'map'
 
+
     if (not lowmem):
         dats = []
 
@@ -601,15 +602,15 @@ def fits_handler(input, min, max, minchain, maxchain, thinning, chdir, output, f
         if coadd:
             basefiles = []
             filenames = []
-            for i in range(len(input_list)):
+            for j in range(len(input_list)):
                 if (chdir==None):
-                    filenames.append(input_list[i].replace("c0001", "c" + str(c).zfill(4)))
+                    filenames.append(input_list[j].replace("c0001", "c" + str(c).zfill(4)))
                 else:
                     if maxchain > minchain + 1:
-                        filenames.append(f'{chdir[i]}/{input_list[i]}')
+                        filenames.append(f'{chdir[i]}/{input_list[j]}')
                     else:
-                        filenames.append(f'{chdir[0]}/{input_list[i]}')
-                basefiles.append(filenames[i].split("k000001"))
+                        filenames.append(f'{chdir[0]}/{input_list[j]}')
+                basefiles.append(filenames[j].split("k000001"))
 
 
         if maxnone:
@@ -705,7 +706,7 @@ def fits_handler(input, min, max, minchain, maxchain, thinning, chdir, output, f
                         continue
 
                 if coadd:
-                    # loop over the bands to weighted average over
+                    # loop over the bands to be weighted average over
                     # use rms maps
                     if pol:
                         maps = np.zeros((len(rms_maps), 3, hp.nside2npix(nside)))
@@ -713,15 +714,15 @@ def fits_handler(input, min, max, minchain, maxchain, thinning, chdir, output, f
                     else:
                         maps = np.zeros((len(rms_maps), 1, hp.nside2npix(nside)))
                         rmss = np.zeros((len(rms_maps), 1, hp.nside2npix(nside)))
-                    for i in range(len(filenames)-1):
-                        maps[i,:] = hp.read_map(filenames[i], nest=nest)
-                        rmss[i,:] = hp.read_map(f'{chdir[i]}/{rms_maps[i]}', nest=nest)
+                    for j in range(len(filenames)-1):
+                        maps[j,:] = hp.read_map(filenames[j], nest=nest)
+                        rmss[j,:] = hp.read_map(f'{chdir[i]}/{rms_maps[j]}', nest=nest)
                     rmss[rmss == 0] = np.inf
                     mu = np.zeros(maps[0].shape)
                     den = np.zeros(maps[0].shape)
-                    for i in range(len(maps)):
-                        mu += maps[i]/rmss[i]**2
-                        den += 1/rmss[i]**2
+                    for j in range(len(maps)):
+                        mu += maps[j]/rmss[j]**2
+                        den += 1/rmss[j]**2
                     mu = hp.ma(mu)
                     den = hp.ma(den)
                     if 'rms' in dataset[0]:
