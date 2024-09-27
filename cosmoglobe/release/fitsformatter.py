@@ -154,6 +154,59 @@ def get_data(chain, extname, component, burnin, max_iter, maxchain, thinning, fw
             dset[14] = T_stddev[0, :]
             dset[15] = T_stddev[1, :]
 
+    elif extname.endswith("DUST_CII"):
+        # Mean data
+        amp_mean = h5handler(input=chain, dataset="dust_cii/amp_alm", min=burnin, max=max_iter, maxchain=maxchain, thinning=thinning, output="map", fwhm=fwhm, nside=nside, command=np.mean,)
+        beta_mean = h5handler(input=chain, dataset="dust_cii/beta_map", min=burnin, max=max_iter, maxchain=maxchain, thinning=thinning, output="map", fwhm=0.0, nside=nside, command=np.mean,)
+        assert amp_mean.shape == beta_mean.shape, f"SED parameters have different nside"
+        T_mean = h5handler(input=chain, dataset="dust_cii/T_map", min=burnin, max=max_iter, maxchain=maxchain, thinning=thinning, output="map", fwhm=0.0, nside=nside, command=np.mean,)
+
+        # stddev data
+        amp_stddev = h5handler(input=chain, dataset="dust_cii/amp_alm", min=burnin, max=max_iter, maxchain=maxchain, thinning=thinning, output="map", fwhm=fwhm, nside=nside, command=np.std,)
+        beta_stddev = h5handler(input=chain, dataset="dust_cii/beta_map", min=burnin, max=max_iter, maxchain=maxchain, thinning=thinning, output="map", fwhm=0.0, nside=nside, command=np.std,)
+        T_stddev = h5handler(input=chain, dataset="dust_cii/T_map", min=burnin, max=max_iter, maxchain=maxchain, thinning=thinning, output="map", fwhm=0.0, nside=nside, command=np.std,)
+
+
+
+        dset = np.zeros((len(types), hp.nside2npix(nside)))
+
+        if len(types) == 6:
+
+            dset[0] = amp_mean
+
+            dset[1] = beta_mean
+
+            dset[2] = T_mean
+
+            dset[3] = amp_stddev
+
+            dset[4] = beta_stddev
+
+            dset[5] = T_stddev
+        else:
+
+            dset[0] = amp_mean[0, :]
+            dset[1] = amp_mean[1, :]
+            dset[2] = amp_mean[2, :]
+            dset[3] = np.sqrt(amp_mean[1, :]**2 + amp_mean[2, :]**2)
+
+            dset[4] = beta_mean[0, :]
+            dset[5] = beta_mean[1, :]
+
+            dset[6] = T_mean[0, :]
+            dset[7] = T_mean[1, :]
+
+            dset[8] = amp_stddev[0, :]
+            dset[9] = amp_stddev[1, :]
+            dset[10] = amp_stddev[2, :]
+            dset[11] = np.sqrt(amp_stddev[1, :]**2 + amp_stddev[2, :]**2)
+
+            dset[12] = beta_stddev[0, :]
+            dset[13] = beta_stddev[1, :]
+
+            dset[14] = T_stddev[0, :]
+            dset[15] = T_stddev[1, :]
+
     elif extname.endswith("FREE-FREE"):
         # Mean data
         amp_mean = h5handler(input=chain, dataset="ff/amp_alm", min=burnin, max=max_iter, maxchain=maxchain, thinning=thinning, output="map", fwhm=fwhm, nside=nside, command=np.mean,)
