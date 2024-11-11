@@ -212,6 +212,8 @@ class TODLoader:
                     self.outFile.create_dataset(fieldName, data=data)
                 else:
                     raise OSError(e)
+            except TypeError as te:
+                self.outFile.create_dataset(fieldName, data=np.string_(data))
             for attr in self.attrDict.copy().keys():
                 fName, attrName = attr.split("@")
                 if fName == fieldName:
@@ -244,8 +246,8 @@ class TODLoader:
 
         if not self.exists or self.overwrite:
             for encoding in self.encodings.keys():
+                #print('adding ' + encoding + ' to file ' + self.outName)
                 self.add_field(encoding, [self.encodings[encoding]])
-                # print('adding ' + encoding + ' to file ' + self.outName)
 
             self.add_field("/common/version", self.version)
             # [Maksym]: was getting the error:
