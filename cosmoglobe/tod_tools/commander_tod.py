@@ -49,7 +49,7 @@ class TODLoader:
             sfreq = str(freq).zfill(3)
         else:
             sfreq = str(freq)
-        if not self.od:
+        if not self.od and self.od !=0:
             if not self.name:
                 self.outName = os.path.join(self.outPath, sfreq + ".h5")
             else:
@@ -213,7 +213,8 @@ class TODLoader:
                 else:
                     raise OSError(e)
             except TypeError as te:
-                self.outFile.create_dataset(fieldName, data=np.string_(data))
+                self.outFile.create_dataset(fieldName, data=np.bytes_(data))
+
             for attr in self.attrDict.copy().keys():
                 fName, attrName = attr.split("@")
                 if fName == fieldName:
@@ -262,7 +263,7 @@ class TODLoader:
             # File "h5py/h5t.pyx", line 1719, in h5py.h5t.py_create
             # TypeError: No conversion path for dtype: dtype('<U6')
             # So needed to add `np.string_()`
-            self.add_field("/common/pids", np.string_(list(self.pids.keys())))
+            self.add_field("/common/pids", list(self.pids.keys()))
 
         if self.filelists is not None:
             for pid in self.pids.keys():

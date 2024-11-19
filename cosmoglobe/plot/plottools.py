@@ -3,7 +3,6 @@ from cmath import inf
 from re import A, T
 import warnings
 
-from numpy.core.numeric import NaN
 from .. import data as data_dir
 from cosmoglobe.sky.model import SkyModel
 from cosmoglobe.h5.chain import Chain
@@ -830,10 +829,7 @@ def mask_map(m, mask):
 
     m = hp.ma(m)
     m.mask = mask
-    # Alternative
 
-    # mask = mask*np.NaN
-    # m *= mask
     return m
 
 
