@@ -8,6 +8,9 @@ from cosmoglobe.sky.model import SkyModel
 from cosmoglobe.h5.chain import Chain
 from cosmoglobe.sky._units import cmb_equivalencies, Unit
 
+from typing import Optional
+from enum import Enum
+
 import cmasher
 from rich import print
 import numpy as np
@@ -40,7 +43,13 @@ STOKES = [
 ]
 
 
-def set_style(darkmode=False, font="serif"):
+class AvailableUnits(str, Enum):
+    ukrj = "uK_RJ"
+    ukcmb = "uK_CMB"
+    mjysr = "MJy/sr"
+
+
+def set_style(darkmode: bool = False, font: str = "serif"):
     """
     This function sets the color parameter and text style
     """
@@ -87,7 +96,7 @@ def set_style(darkmode=False, font="serif"):
             plt.rcParams[p] = "black"
 
 
-def get_figure_width(width=600, fraction=1):
+def get_figure_width(width: int = 600, fraction: float = 1.0):
     """Set figure dimensions to avoid scaling in LaTeX.
 
     Parameters
@@ -119,13 +128,40 @@ def get_figure_width(width=600, fraction=1):
 
     # Proper scaling
     fig_dim = (fig_width_in, fig_height_in)
-    #print(f"Using dimensions: {fig_dim}")
+    # print(f"Using dimensions: {fig_dim}")
     return fig_dim
 
 
-def make_fig(figsize, fignum, hold, sub, reuse_axes, darkmode=False, projection=None, fraction=0.5):
+def make_fig(
+    figsize: tuple[int, int],
+    fignum: int,
+    hold: bool = False,
+    sub: bool = False,
+    reuse_axes: bool = False,
+    darkmode: bool = False,
+    projection: Optional[str] = None,
+    fraction: float = 0.5,
+):
     """
     Create matplotlib figure, add subplot, use current axes etc.
+
+    Parameters
+    ----------
+
+    figsize : tuple[int, int]
+        matplotlib figure size
+    fignum : int
+        Which figure is being created
+    hold : bool
+        ?
+    sub : bool
+        ?
+    reuse_axes : bool
+        Use the axes from the previous figure again?
+    darkmode : bool
+        Create the image in darkmode.
+    projection : str
+        Type of projection to be used.
     """
 
     if figsize is None:
@@ -162,12 +198,12 @@ def make_fig(figsize, fignum, hold, sub, reuse_axes, darkmode=False, projection=
             fig = plt.figure(figsize=figsize)
 
         if idx < 1 or idx > ncols * nrows:
-            raise ValueError("Wrong values for subplot: %d, %d, %d" % (nrows, ncols, idx))
+            raise ValueError(f"Wrong values for subplot: {nrows}, {ncols}, {idx}")
 
     if reuse_axes:
         ax = fig.gca()
     else:
-        ax = fig.add_subplot(nrows,ncols,idx, projection=projection)
+        ax = fig.add_subplot(nrows, ncols, idx, projection=projection)
 
     return fig, ax
 
@@ -185,7 +221,7 @@ def get_percentile(m, percentile):
     return [vmin, vmax]
 
 
-def fmt(x, pos):
+def fmt(x: float):
     """
     Format color bar labels
     """
@@ -306,7 +342,9 @@ def gradient_fill(x, y, fill_color=None, ax=None, alpha=1.0, invert=False, **kwa
     xmin, xmax, ymin, ymax = x.min(), x.max(), y.min(), y.max()
     if invert:
         ymin, ymax = (ymax, ymin)
-    im = ax.imshow(z, aspect="auto", extent=[xmin, xmax, ymin, ymax], origin="lower", zorder=zorder)
+    im = ax.imshow(
+        z, aspect="auto", extent=[xmin, xmax, ymin, ymax], origin="lower", zorder=zorder
+    )
 
     xy = np.column_stack([x, y])
     xy = np.vstack([[xmin, ymin], xy, [xmax, ymin], [xmin, ymin]])
@@ -343,7 +381,9 @@ def apply_logscale(m, ticks, linthresh=1):
     NOTE: This should ideally be done for the colorbar, not the data.
     """
 
-    print(f"[magenta]Applying semi-logscale with linear threshold={linthresh}[/magenta]")
+    print(
+        f"[magenta]Applying semi-logscale with linear threshold={linthresh}[/magenta]"
+    )
     m = symlog(m, linthresh)
     new_ticks = []
     for i in ticks:
@@ -354,10 +394,10 @@ def apply_logscale(m, ticks, linthresh=1):
 
 
 def standalone_colorbar(
-    cmap,
-    ticks,
-    ticklabels=None,
-    unit=None,
+    cmap: str,
+    ticks: list[float],
+    ticklabels: list[float] = None,
+    unit: list[AvailableUnits],
     fontsize=None,
     norm=None,
     shrink=0.3,
@@ -365,7 +405,6 @@ def standalone_colorbar(
     width=2,
     extend=None,
 ):
-
     fig = plt.figure(figsize=(width, width / 4))
     set_style(darkmode)
     cmap = load_cmap(cmap)
@@ -388,7 +427,7 @@ def standalone_colorbar(
         cbar_shrink=shrink,
         cbar_pad=0.0,
         cmap=cmap,
-        extend=extend
+        extend=extend,
     )
 
 
@@ -406,7 +445,7 @@ def apply_colorbar(
     cbar_shrink=0.3,
     cmap=None,
     orientation="horizontal",
-    extend=None
+    extend=None,
 ):
     """
     This function applies a colorbar to the figure and formats the ticks.
@@ -415,8 +454,8 @@ def apply_colorbar(
         unit = unit.to_string("latex")
 
     if fontsize is None:
-        fontsize = DEFAULT_FONTSIZES#['cbar_label']
-    #elif type(fontsize) is dict:
+        fontsize = DEFAULT_FONTSIZES  # ['cbar_label']
+    # elif type(fontsize) is dict:
     #    fontsize = fontsize['cbar_label']
 
     if image is None and cmap is not None:
@@ -429,7 +468,7 @@ def apply_colorbar(
             ticks=ticks,
             extend=extend,
         )
-        cb.set_label(label=unit, size=fontsize['cbar_label'])
+        cb.set_label(label=unit, size=fontsize["cbar_label"])
     else:
         cb = fig.colorbar(
             image,
@@ -438,13 +477,12 @@ def apply_colorbar(
             shrink=cbar_shrink,
             pad=cbar_pad,
         )
-    if orientation == 'horizontal':
-       cb.ax.set_xticklabels(ticklabels, size=fontsize["cbar_tick_label"])
-       cb.ax.xaxis.set_label_text(unit, size=fontsize["cbar_label"])
-    elif orientation == 'vertical':
-       cb.ax.set_yticklabels(ticklabels, size=fontsize["cbar_tick_label"])
-       cb.ax.yaxis.set_label_text(unit, size=fontsize["cbar_label"])
-
+    if orientation == "horizontal":
+        cb.ax.set_xticklabels(ticklabels, size=fontsize["cbar_tick_label"])
+        cb.ax.xaxis.set_label_text(unit, size=fontsize["cbar_label"])
+    elif orientation == "vertical":
+        cb.ax.set_yticklabels(ticklabels, size=fontsize["cbar_tick_label"])
+        cb.ax.yaxis.set_label_text(unit, size=fontsize["cbar_label"])
 
     if norm in ["linlog", "log"]:
         """
@@ -462,7 +500,7 @@ def apply_colorbar(
         logticks = [x for x in logticks if x not in ticks]
         if orientation == "horizontal":
             cb.set_ticks(np.concatenate((ticks, logticks)))  # Set major ticks
-            cb.ax.set_xticklabels(ticklabels + [""] * len(logticks), ha='center')
+            cb.ax.set_xticklabels(ticklabels + [""] * len(logticks), ha="center")
         elif orientation == "vertical":
             cb.ax.yaxis.set_ticks(np.concatenate((ticks, logticks)))  # Set major ticks
             cb.ax.set_yticklabels(ticklabels + [""] * len(logticks))
@@ -505,12 +543,12 @@ def apply_colorbar(
             direction="in",
             color="#3d3d3d",
             labelsize=fontsize["cbar_tick_label"],
-            width=fontsize['cbar_tick_label']/10,
-            #length=bheight*points_per_inch*0.75,
-            length=bheight*points_per_inch*0.02,
+            width=fontsize["cbar_tick_label"] / 10,
+            # length=bheight*points_per_inch*0.75,
+            length=bheight * points_per_inch * 0.02,
         )
         cb.ax.xaxis.labelpad = 0
-        #if norm in ["linlog", "log"]:
+        # if norm in ["linlog", "log"]:
         #    ticklabels = cb.ax.get_xticklabels()
         cb.ax.set_xticks(ticks)
         cb.ax.set_xticklabels(ticklabels)
@@ -521,8 +559,8 @@ def apply_colorbar(
             direction="in",
             color="#3d3d3d",
             labelsize=fontsize["cbar_tick_label"],
-            width=fontsize['cbar_tick_label']/10,
-            length=bheight*points_per_inch*0.02,
+            width=fontsize["cbar_tick_label"] / 10,
+            length=bheight * points_per_inch * 0.02,
         )
         cb.ax.yaxis.labelpad = 0
 
@@ -534,7 +572,7 @@ def apply_colorbar(
     return  # cb
 
 
-def load_cmap(cmap):
+def load_cmap(cmap: str):
     """
     This function takes the colormap label and loads the colormap object
     """
@@ -543,7 +581,7 @@ def load_cmap(cmap):
         cmap = "planck"
 
     if cmap in ["planck", "planck_log", "wmap"]:
-        cmap_path =  cmap_path = Path(data_dir.__path__[0]) / f"{cmap}_cmap.dat"
+        cmap_path = cmap_path = Path(data_dir.__path__[0]) / f"{cmap}_cmap.dat"
         cmap = ListedColormap(np.loadtxt(cmap_path) / 255.0, cmap)
     elif cmap.startswith("black2"):
         cmap = LinearSegmentedColormap.from_list(cmap, cmap.split("2"))
@@ -552,17 +590,27 @@ def load_cmap(cmap):
             cmap = eval(f"cmasher.{cmap}")
         except:
             try:
-
                 cmap = eval(f"cm.{cmap}")
             except:
-
                 cmap = plt.get_cmap(cmap)
 
     return cmap
 
 
-def get_data(input, sig, comp, freq, fwhm, nside=None, sample=-1, scale=1,
-    remove_mono=None, remove_dip=None, nest=False, gal_cut=0):
+def get_data(
+    input,
+    sig,
+    comp,
+    freq,
+    fwhm,
+    nside=None,
+    sample=-1,
+    scale=1,
+    remove_mono=None,
+    remove_dip=None,
+    nest=False,
+    gal_cut=0,
+):
     # Parsing component string
     fwhm_ = None
     specparam = "amp"
@@ -577,12 +625,18 @@ def get_data(input, sig, comp, freq, fwhm, nside=None, sample=-1, scale=1,
         if input.endswith(".h5"):
             if comp is None:
                 if freq is None:
-                    print("[bold magenta]Warning! Neither frequency nor component selected. Plotting sky at 70GHz[/bold magenta]")
-                data = SkyModel.from_chain(input, components=comp, nside=nside, samples=sample)
+                    print(
+                        "[bold magenta]Warning! Neither frequency nor component selected. Plotting sky at 70GHz[/bold magenta]"
+                    )
+                data = SkyModel.from_chain(
+                    input, components=comp, nside=nside, samples=sample
+                )
             else:
                 if freq is not None:
                     # If frequency is specified, simulate sky with model.
-                    data = SkyModel.from_chain(input, components=comp, nside=nside, samples=sample)
+                    data = SkyModel.from_chain(
+                        input, components=comp, nside=nside, samples=sample
+                    )
                 else:
                     chain = Chain(
                         input,
@@ -616,7 +670,9 @@ def get_data(input, sig, comp, freq, fwhm, nside=None, sample=-1, scale=1,
         """
         if comp is None:
             if freq is None:
-                print("[bold magenta]Warning! Neither frequency nor component selected. Plotting sky at 70GHz[/bold magenta]")
+                print(
+                    "[bold magenta]Warning! Neither frequency nor component selected. Plotting sky at 70GHz[/bold magenta]"
+                )
                 freq = 70 * u.GHz
             comp = "freqmap"
             m = data(freq, fwhm=fwhm)
@@ -629,7 +685,7 @@ def get_data(input, sig, comp, freq, fwhm, nside=None, sample=-1, scale=1,
                     m = data[comp].amp
                     if comp == "radio":
                         m = data(freq_ref, fwhm=fwhm, components=[comp])
-                    
+
                     try:
                         freq = np.round(freq[sig], 5) * freq_ref.unit
                     except IndexError:
@@ -641,21 +697,30 @@ def get_data(input, sig, comp, freq, fwhm, nside=None, sample=-1, scale=1,
                 m = data[comp].spectral_parameters[specparam]
 
                 if len(m[sig]) == 1:
-                    warnings.warn("Same value across the whole sky, mapping to array of length Npix")
+                    warnings.warn(
+                        "Same value across the whole sky, mapping to array of length Npix"
+                    )
                     m = np.full(hp.nside2npix(data.nside), m[sig])
 
     elif isinstance(data, np.ndarray):
         m = data
         if m.ndim == 1 and sig > 0 and not isinstance(input, str):
-            print(f"[magenta]Input array is 1d, specified signal will only be used for labeling, make sure this is correct.[/magenta]")
+            print(
+                f"[magenta]Input array is 1d, specified signal will only be used for labeling, make sure this is correct.[/magenta]"
+            )
     else:
-        raise TypeError(f"Type {type(data)} of data not supported" f"Supports numpy array, cosmoglobe model object or fits file string")
+        raise TypeError(
+            f"Type {type(data)} of data not supported"
+            f"Supports numpy array, cosmoglobe model object or fits file string"
+        )
 
     # Make sure it is a 1d array
     if m.ndim > 1:
-        if sig>np.shape(m)[0]-1:
-            warnings.warn(f"Index {sig} out of data range {np.shape(m)}, returning empty map")
-            m = np.zeros(np.shape(m[-1]))+hp.UNSEEN
+        if sig > np.shape(m)[0] - 1:
+            warnings.warn(
+                f"Index {sig} out of data range {np.shape(m)}, returning empty map"
+            )
+            m = np.zeros(np.shape(m[-1])) + hp.UNSEEN
         else:
             m = m[sig]
 
@@ -679,14 +744,13 @@ def get_data(input, sig, comp, freq, fwhm, nside=None, sample=-1, scale=1,
 
     # Remove monopole and dipole
     if remove_dip:
-        if remove_dip == 'auto':
-           gal_cut = 30
+        if remove_dip == "auto":
+            gal_cut = 30
         m = hp.remove_dipole(m, gal_cut=gal_cut, nest=nest, copy=True)
     elif remove_mono:
-        if remove_mono == 'auto':
-           gal_cut = 30
+        if remove_mono == "auto":
+            gal_cut = 30
         m = hp.remove_monopole(m, gal_cut=gal_cut, nest=nest, copy=True)
-
 
     return m, comp, freq, hp.get_nside(m)
 
@@ -708,12 +772,17 @@ def get_params(**params):
         try:
             autoparams = autoparams[params["comp"]]
         except KeyError:
-            print(f"[magenta]Component label {params['comp']} not found. Using unidentified profile.[/magenta]")
+            print(
+                f"[magenta]Component label {params['comp']} not found. Using unidentified profile.[/magenta]"
+            )
             print(f"available keys are: {autoparams.keys()}")
             autoparams = autoparams["unidentified"]
 
         # Replace default values if None
-        params = {key: (autoparams[key] if key in autoparams and value is None else value) for key, value in params.items()}
+        params = {
+            key: (autoparams[key] if key in autoparams and value is None else value)
+            for key, value in params.items()
+        }
 
         # NOTE: This is really ugly code for selecting pol parameters
         # Pick polarization or temperature
@@ -734,10 +803,17 @@ def get_params(**params):
         specials = ["residual", "freqmap", "bpcorr", "smap"]
         if any(j in params["comp"] for j in specials):
             if freq is not None:
-                params["rlabel"] = params["rlabel"] + "{" + f'{("%.5f" % freq.value).rstrip("0").rstrip(".")}' + "}"
+                params["rlabel"] = (
+                    params["rlabel"]
+                    + "{"
+                    + f"{('%.5f' % freq.value).rstrip('0').rstrip('.')}"
+                    + "}"
+                )
             else:
                 params["rlabel"] = None
-                warnings.warn(f'Specify frequency with -freq for automatic frequency labeling with the "freqmap" profile')
+                warnings.warn(
+                    f'Specify frequency with -freq for automatic frequency labeling with the "freqmap" profile'
+                )
 
         """
         # NOTE: This probably doesnt work with the current state of the comp
@@ -756,14 +832,23 @@ def get_params(**params):
 
         # Specify at which frequency we are observing in unit lable
         if freq is not None and params["unit"] is not None:
-            params["unit"] = f'{params["unit"]}\,@\,{("%.5f" % freq.value).rstrip("0").rstrip(".")}' + "\,\mathrm{GHz}"
+            params["unit"] = (
+                f"{params['unit']}\,@\,{('%.5f' % freq.value).rstrip('0').rstrip('.')}"
+                + "\,\mathrm{GHz}"
+            )
 
         # In the case that a difference frequency than the reference
         # is requested for a component map.
         if params["ticks"] == None:
-            if freq is not None and params["freq_ref"] != freq.value and params["comp"] not in specials:
-                warnings.warn(f"Input frequency is different from reference, autosetting ticks")
-                print(f'input: {freq}, reference: {params["freq_ref"]}')
+            if (
+                freq is not None
+                and params["freq_ref"] != freq.value
+                and params["comp"] not in specials
+            ):
+                warnings.warn(
+                    f"Input frequency is different from reference, autosetting ticks"
+                )
+                print(f"input: {freq}, reference: {params['freq_ref']}")
                 params["ticks"] = "auto"
 
     # If ticks is not set automatically, try inputs
@@ -806,9 +891,18 @@ def get_params(**params):
                 params[key] = r"$" + params[key] + "$"
 
     # Special case if dipole is detected in freqmap
-    if params["comp"] == "freqmap" and params["min"] is None and params["max"] is None and params["rng"] is None:
+    if (
+        params["comp"] == "freqmap"
+        and params["min"] is None
+        and params["max"] is None
+        and params["rng"] is None
+    ):
         # if colorbar is super-saturated
-        while len(params["data"][abs(params["data"]) > params["ticks"][-1]]) / len(params["data"].ravel()) > 0.7:
+        while (
+            len(params["data"][abs(params["data"]) > params["ticks"][-1]])
+            / len(params["data"].ravel())
+            > 0.7
+        ):
             params["ticks"] = [tick * 10 for tick in params["ticks"]]
             print("[magenta]Colormap saturated. Expanding color-range.[/magenta]")
 
@@ -818,7 +912,7 @@ def get_params(**params):
     # Set planck as default cmap
     if params["cmap"] is None:
         params["cmap"] = "planck"
-    
+
     return params
 
 
@@ -874,17 +968,29 @@ def create_70GHz_mask(sky_frac, nside=256, pol=False):
     for i in range(len(amp_percentages)):
         mask = np.zeros(len(template), dtype=bool)
         masked_template = np.abs(hp.ma(template))
-        mask[np.where(np.log(masked_template) > (amp_percentages[i] / 100) * np.nanmax(np.log(masked_template)))] = 1
+        mask[
+            np.where(
+                np.log(masked_template)
+                > (amp_percentages[i] / 100) * np.nanmax(np.log(masked_template))
+            )
+        ] = 1
         masked_template.mask = mask
 
-        frac = ((len(masked_template) - masked_template.count()) / len(masked_template)) * 100
+        frac = (
+            (len(masked_template) - masked_template.count()) / len(masked_template)
+        ) * 100
         fracs.append(frac)
 
     amp_percentage = np.interp(100 - sky_frac, fracs, amp_percentages)
 
     mask = np.zeros(len(template), dtype=bool)
     masked_template = np.abs(hp.ma(template))
-    mask[np.where(np.log(masked_template) > (amp_percentage / 100) * np.nanmax(np.log(masked_template)))] = 1
+    mask[
+        np.where(
+            np.log(masked_template)
+            > (amp_percentage / 100) * np.nanmax(np.log(masked_template))
+        )
+    ] = 1
 
     return mask
 
@@ -904,7 +1010,9 @@ def seds_from_model(nu, model, nside=None, pol=False, sky_fractions=(25, 85)):
         masks[i] = create_70GHz_mask(sky_frac, nside, pol=pol)
 
     # SED dictionary with T and P, skyfractions and the value per nu
-    seds = {comp: np.zeros((2, len(sky_fractions), len(nu))) for comp in model.components}
+    seds = {
+        comp: np.zeros((2, len(sky_fractions), len(nu))) for comp in model.components
+    }
     for key, value in comps.items():
         if key in ignore_comps:
             continue
@@ -913,7 +1021,10 @@ def seds_from_model(nu, model, nside=None, pol=False, sky_fractions=(25, 85)):
             specinds = {}
             for specind, m in value.spectral_parameters.items():
                 if m.shape[-1] != 1:
-                    m = np.mean(mask_map(m, mask), axis=1).reshape(-1, 1) * value.spectral_parameters[specind].unit
+                    m = (
+                        np.mean(mask_map(m, mask), axis=1).reshape(-1, 1)
+                        * value.spectral_parameters[specind].unit
+                    )
                 specinds[specind] = m
 
             amp = hp.ud_grade(value.amp, nside) if udgrade else value.amp
@@ -927,7 +1038,9 @@ def seds_from_model(nu, model, nside=None, pol=False, sky_fractions=(25, 85)):
             amp = rms_amp(amp[0])
 
             if key == "cmb" or key == "cmb_lowl":
-                freq_scaling = (np.ones(len(nu)) * Unit("uK_CMB")).to("uK_RJ", equivalencies=cmb_equivalencies(nu * u.GHz))
+                freq_scaling = (np.ones(len(nu)) * Unit("uK_CMB")).to(
+                    "uK_RJ", equivalencies=cmb_equivalencies(nu * u.GHz)
+                )
                 seds[key][0, i, :] = 45 * freq_scaling  # TEMP
                 seds[key][1, i, :] = 0.67 * freq_scaling  # POL
             else:
