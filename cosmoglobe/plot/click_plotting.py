@@ -3,19 +3,19 @@ from rich import print
 import astropy.units as u
 import matplotlib.pyplot as plt
 import os
-import re
 
 from cosmoglobe.plot import plot as cplot
 from cosmoglobe.plot import trace as ctrace
 from cosmoglobe.plot import gnom as cgnom
 
 
-from .plottools import *
+from .plottools import load_cmap
 
 
 @click.group()
 def commands_plotting():
     pass
+
 
 # fmt: off
 @commands_plotting.command()
@@ -102,7 +102,7 @@ def plot(input, **kwargs):
             kwargs["return_only_data"] = True
 
         # Actually plot the stuff
-        img, params = cplot(filename, **kwargs)
+        img, params = cplot(filename, return_figure=True, **kwargs)
 
         # Super hacky gif fix because "hold" is not implemented in newvisufunc
         if gif:
