@@ -159,7 +159,7 @@ class TODLoader:
 
                 elif compArr[0] == "digitize":
                     bins = np.linspace(
-                        compArr[1]["min"], compArr[1]["max"], num=compArr[1]["nbins"]
+                        compArr[1]["min"], compArr[1]["max"], num=compArr[1]["nbins"] 
                     )
                     data = np.digitize(data, bins)
                     metaName = "/common/n" + fieldName.split("/")[-1]

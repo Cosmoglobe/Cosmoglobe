@@ -79,6 +79,7 @@ class CommanderHDFWriter:
             self.sigma0[band][detector] = self.comm_adapter.get_sigma0(band, detector)
 
         nsegments = self.comm_adapter.get_num_segments(band)
+        from tqdm import tqdm
         if pool is None:
             for segment in range(1, nsegments+1):
                 self._process_hdf_segment(segment, band, detectors, ctod)

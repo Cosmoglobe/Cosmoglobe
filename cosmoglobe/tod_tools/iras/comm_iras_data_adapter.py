@@ -91,6 +91,18 @@ class CommIRASDataAdapter(CommanderDataAdapter):
 
         self.num_chunks = 5787
         self.num_segments = self.num_chunks // 10
+        self.inv_gain = {
+                             '12' :  1,
+                             '25' :  1,
+                             '60' :  1,
+                            '100' :  0.6
+                            }
+        self.K_corr = {
+                      '12' :  1.348e-13,
+                      '25' :  5.155e-14,
+                      '60' :  2.577e-14,
+                     '100' :  1.000e-14
+                     }
 
 
     def get_num_segments(self, band):
@@ -120,10 +132,11 @@ class CommIRASDataAdapter(CommanderDataAdapter):
 
     def get_chunk_indices(self, band, segment):
         out_indices = []
-        if segment != self.num_segments:
-            iterator = range((segment-1)*10+1, segment*10+1)
-        else:
+        amihere = False
+        if segment >= self.num_segments - 1:
             iterator = range(segment*10+1, self.num_chunks+1)
+        else:
+            iterator = range((segment-1)*10+1, segment*10+1)
         for idx in iterator:
             to_be_added = True
             for det in self.dets[band]:
@@ -147,7 +160,6 @@ class CommIRASDataAdapter(CommanderDataAdapter):
         self.chunk_starttime = None
 
     def get_chunk_data(self, band, detector):
-
         f = f'{self.iras_data_path}/det_{detector}/sopobs_{self.currchunk:04}.npy'
         if os.path.exists(f):
             t, lon, lat, tod = np.load(f)
@@ -159,7 +171,16 @@ class CommIRASDataAdapter(CommanderDataAdapter):
             self.chunk_starttime = t[0]*u.s + self.t0
             self.chunk_endtime = t[-1]*u.s + self.t0
 
-        tod /= self.Omegas[int(detector)] * 1e-7
+        F =  self.inv_gain[band] / self.K_corr[band]/(self.Omegas[int(detector)] * 1e-7)
+        tod = (tod*F*u.Jy/u.sr).to('MJy/sr').value
+
+
+        #tod /= self.Omegas[int(detector)] * 1e-7
+
+        #tod /= self.K_corr[band]
+        #tod *= self.inv_gain[band]
+        #tod *= u.Jy/u.sr
+        #tod = tod.to('MJy/sr').value
 
         flag_tot = np.zeros(len(t))
         flag_tot[~np.isfinite(lon)] += 2**0
