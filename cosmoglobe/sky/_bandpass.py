@@ -43,7 +43,7 @@ def get_normalized_weights(
         component_amp_unit /= Unit("sr")
 
     weights = weights.to(component_amp_unit, equivalencies=cmb_equivalencies(freqs))
-    weights /= np.trapz(weights, freqs)
+    weights /= np.trapezoid(weights, freqs)
 
     return weights
 
@@ -77,7 +77,7 @@ def get_bandpass_coefficient(
     in_intensity_derivative = get_intensity_derivative(input_unit)
     out_intensity_derivative = get_intensity_derivative(output_unit)
 
-    coefficient = np.trapz(weights * in_intensity_derivative(freqs), freqs) / np.trapz(
+    coefficient = np.trapezoid(weights * in_intensity_derivative(freqs), freqs) / np.trapezoid(
         weights * out_intensity_derivative(freqs), freqs
     )
 
@@ -151,7 +151,7 @@ def integrated_freq_scaling(
     """
 
     freq_scaling = freq_scaling_func(freqs, **spectral_parameters)
-    scaling_factor = np.trapz(freq_scaling * weights, freqs)
+    scaling_factor = np.trapezoid(freq_scaling * weights, freqs)
     if np.ndim(scaling_factor) > 0:
         return np.expand_dims(scaling_factor, axis=1)
 
@@ -182,7 +182,7 @@ def bandpass_interpolation_1d(
             param: value for param, value in spectral_parameters.items() if param != key
         }
         freq_scaling = freq_scaling_func(freqs, **{key: grid_point}, **scalar_params)
-        integrals[idx] = np.trapz(freq_scaling * weights, freqs)
+        integrals[idx] = np.trapezoid(freq_scaling * weights, freqs)
 
     # We transpose the array to make it into row format similar to how
     # regular IQU maps are stored
@@ -233,7 +233,7 @@ def bandpass_interpolation_2d(
         for j in range(n):
             grid_spectrals = {key: value[i, j] for key, value in mesh_grid.items()}
             freq_scaling = freq_scaling_func(freqs, **grid_spectrals)
-            integrals[i, j] = np.trapz(freq_scaling * weights, freqs)
+            integrals[i, j] = np.trapezoid(freq_scaling * weights, freqs)
     integrals = np.transpose(integrals)
 
     scaling = []
