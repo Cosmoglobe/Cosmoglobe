@@ -5,9 +5,11 @@ import sys
 import click
 from cosmoglobe.release.tools import *
 
+
 @click.group()
 def commands():
     pass
+
 
 @commands.command()
 @click.argument("filename", type=click.STRING)
@@ -36,7 +38,14 @@ def dlbin2dat(filename, min, max, binfile):
     dats = np.array(dats)
 
     binned_data = {}
-    possible_signals = ["TT","EE","BB","TE","EB","TB",]
+    possible_signals = [
+        "TT",
+        "EE",
+        "BB",
+        "TE",
+        "EB",
+        "TB",
+    ]
     with open(binfile) as f:
         next(f)  # Skip first line
         for line in f.readlines():
@@ -49,23 +58,64 @@ def dlbin2dat(filename, min, max, binfile):
             lmax = int(line[2])
             ellcenter = lmin + (lmax - lmin) / 2
             # Saves (ellcenter, lmin, lmax, Dl_mean, Dl_stddev) over samples chosen
-            binned_data[signal].append([ellcenter, lmin, lmax, np.mean(dats[:, signal_id, lmin], axis=0,), np.std(dats[:, signal_id, lmin], axis=0,),])
+            binned_data[signal].append(
+                [
+                    ellcenter,
+                    lmin,
+                    lmax,
+                    np.mean(
+                        dats[:, signal_id, lmin],
+                        axis=0,
+                    ),
+                    np.std(
+                        dats[:, signal_id, lmin],
+                        axis=0,
+                    ),
+                ]
+            )
 
     header = f"{'l':22} {'lmin':24} {'lmax':24} {'Dl':24} {'stddev':24}"
     for signal in binned_data.keys():
-        np.savetxt("Dl_" + signal + "_binned.dat", binned_data[signal], header=header,)
+        np.savetxt(
+            "Dl_" + signal + "_binned.dat",
+            binned_data[signal],
+            header=header,
+        )
 
 
 @commands.command()
 @click.argument("label", type=click.STRING)
 @click.argument("freqs", type=click.FLOAT, nargs=-1)
-@click.argument("nside", type=click.INT,)
-@click.option("-cmb", type=click.Path(exists=True), help="Include resampled chain file",)
-@click.option("-synch", type=click.Path(exists=True), help="Include resampled chain file",)
-@click.option("-dust", type=click.Path(exists=True), help="Include resampled chain file",)
-@click.option("-ff", type=click.Path(exists=True), help="Include resampled chain file",)
-@click.option("-ame", type=click.Path(exists=True), help="Include resampled chain file",)
-#@click.option("-skipcopy", is_flag=True, help="Don't copy full .h5 file",)
+@click.argument(
+    "nside",
+    type=click.INT,
+)
+@click.option(
+    "-cmb",
+    type=click.Path(exists=True),
+    help="Include resampled chain file",
+)
+@click.option(
+    "-synch",
+    type=click.Path(exists=True),
+    help="Include resampled chain file",
+)
+@click.option(
+    "-dust",
+    type=click.Path(exists=True),
+    help="Include resampled chain file",
+)
+@click.option(
+    "-ff",
+    type=click.Path(exists=True),
+    help="Include resampled chain file",
+)
+@click.option(
+    "-ame",
+    type=click.Path(exists=True),
+    help="Include resampled chain file",
+)
+# @click.option("-skipcopy", is_flag=True, help="Don't copy full .h5 file",)
 def generate_sky(label, freqs, nside, cmb, synch, dust, ff, ame):
     """
     Generate sky maps from separate input maps.
@@ -76,8 +126,9 @@ def generate_sky(label, freqs, nside, cmb, synch, dust, ff, ame):
     """
     import healpy as hp
     import numpy as np
+
     # Generate sky maps
-    A = 1 # Only relative scaling
+    A = 1  # Only relative scaling
     for nu in freqs:
         filename = f"{label}_{nu}_n{nside}_generated.fits"
         print(f"Generating {filename}")
@@ -85,28 +136,65 @@ def generate_sky(label, freqs, nside, cmb, synch, dust, ff, ame):
         for pl in range(3):
 
             if cmb:
-                pl_data  = hp.read_map(cmb, field=pl, verbose=False,)
+                pl_data = hp.read_map(
+                    cmb,
+                    field=pl,
+                    verbose=False,
+                )
 
             if synch:
-                scaling  = fgs.lf(nu, A, betalf=-3.11, nuref=30.)
-                print(hp.read_map(synch, field=pl, verbose=False)*scaling)
-                pl_data += hp.read_map(synch, field=pl, verbose=False)*scaling
+                scaling = fgs.lf(nu, A, betalf=-3.11, nuref=30.0)
+                print(hp.read_map(synch, field=pl, verbose=False) * scaling)
+                pl_data += hp.read_map(synch, field=pl, verbose=False) * scaling
 
             if dust:
                 if pl > 0:
-                    scaling = fgs.dust(nu, A, beta=1.6, Td=18.5, nuref=353.,)
+                    scaling = fgs.dust(
+                        nu,
+                        A,
+                        beta=1.6,
+                        Td=18.5,
+                        nuref=353.0,
+                    )
                 else:
-                    scaling = fgs.dust(nu, A, beta=1.6, Td=18.5, nuref=545.,)
-                pl_data += hp.read_map(dust, field=pl, verbose=False,)*scaling
+                    scaling = fgs.dust(
+                        nu,
+                        A,
+                        beta=1.6,
+                        Td=18.5,
+                        nuref=545.0,
+                    )
+                pl_data += (
+                    hp.read_map(
+                        dust,
+                        field=pl,
+                        verbose=False,
+                    )
+                    * scaling
+                )
 
             if pl == 0:
                 if ff:
-                    scaling  = fgs.ff(nu, A, Te=7000., nuref=40.) 
-                    pl_data += hp.read_map(ff, field=pl, verbose=False,)*scaling
+                    scaling = fgs.ff(nu, A, Te=7000.0, nuref=40.0)
+                    pl_data += (
+                        hp.read_map(
+                            ff,
+                            field=pl,
+                            verbose=False,
+                        )
+                        * scaling
+                    )
 
                 if ame:
-                    scaling  = fgs.sdust(nu, A, nu_p=21, nuref=22.)
-                    pl_data += hp.read_map(ame, field=pl, verbose=False,)*scaling
+                    scaling = fgs.sdust(nu, A, nu_p=21, nuref=22.0)
+                    pl_data += (
+                        hp.read_map(
+                            ame,
+                            field=pl,
+                            verbose=False,
+                        )
+                        * scaling
+                    )
 
             data[pl] = pl_data
         hp.write_map(filename, data, dtype=None)

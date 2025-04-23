@@ -110,7 +110,19 @@ def split(input, dataset, output, min, max, maxchain, thinning, notchain):
     type=click.STRING,
     help="Path to healpy pixel weights.",
 )
-def mean(input, dataset, output, min, max, maxchain, thinning, fwhm, nside, zerospin, pixweight):
+def mean(
+    input,
+    dataset,
+    output,
+    min,
+    max,
+    maxchain,
+    thinning,
+    fwhm,
+    nside,
+    zerospin,
+    pixweight,
+):
     """
     Calculates the mean over sample range from .h5 file.
     ex. chains_c0001.h5 dust/amp_map 5 50 dust_5-50_mean_40arcmin.fits -fwhm 40 -maxchain 3
@@ -655,17 +667,25 @@ def release(
         copy_list = np.arange(len(chains)).tolist()
         delete_inds = []
         for i in range(len(chains)):
-            if os.path.exists(f'{procver}/CG_c{i+1:04}_{procver}.h5'):
-                s = input(f'{procver}/CG_c{i+1:04}_{procver}.h5 exists. Overwrite? [y/N]')
-                if s != 'y':
+            if os.path.exists(f"{procver}/CG_c{i+1:04}_{procver}.h5"):
+                s = input(
+                    f"{procver}/CG_c{i+1:04}_{procver}.h5 exists. Overwrite? [y/N]"
+                )
+                if s != "y":
                     delete_inds.append(i)
         delete_inds = delete_inds[::-1]
         for i in range(len(delete_inds)):
             del copy_list[delete_inds[i]]
 
         import multiprocessing
+
         with multiprocessing.Pool(processes=len(chains)) as pool:
-            multiple_results = [pool.apply_async(copy_files, args=(chains[i], i+1, procver, pol, resamp)) for i in copy_list]
+            multiple_results = [
+                pool.apply_async(
+                    copy_files, args=(chains[i], i + 1, procver, pol, resamp)
+                )
+                for i in copy_list
+            ]
             results = [res.get() for res in multiple_results]
 
     """
@@ -677,7 +697,6 @@ def release(
     else:
         chain = f"{procver}/CG_c0001_{procver}.h5"
 
-
     if freqmaps:
         chain_bla = cosmoglobe.Chain(chain, burn_in=1)
         bands = chain_bla["000001/tod"]
@@ -688,7 +707,6 @@ def release(
             # A lot of the nu_ref, bandctr, restfreq, bndwid parameters are just
             # dummies for now.
 
-            
             if "023-WMAP_K" in bands:
                 format_fits(
                     chain=chain,
@@ -1250,7 +1268,7 @@ def release(
                     restfreq=44.121,
                     bndwid=10.719,
                 )
-            
+
             # Full-mission 70 GHz IQU frequency map
             if "070" in bands:
                 format_fits(
@@ -1304,15 +1322,23 @@ def release(
             for b in range(1, 11):
                 import astropy.units as u
                 import astropy.constants as c
-                wavs = np.array([1.25, 2.2, 3.5, 4.9, 12, 25, 60, 100, 140, 240])*u.micron
-                bw = np.array([59.5, 22.4, 22.0, 8.19, 13.3, 4.13, 2.32, 0.974, 0.605, 0.495])*u.THz
-                bw = bw.to('GHz')
-                freqs = (c.c/wavs).to('GHz')
+
+                wavs = (
+                    np.array([1.25, 2.2, 3.5, 4.9, 12, 25, 60, 100, 140, 240])
+                    * u.micron
+                )
+                bw = (
+                    np.array(
+                        [59.5, 22.4, 22.0, 8.19, 13.3, 4.13, 2.32, 0.974, 0.605, 0.495]
+                    )
+                    * u.THz
+                )
+                bw = bw.to("GHz")
+                freqs = (c.c / wavs).to("GHz")
                 if (f"{b:02}a" in bands) & (f"{b:02}b" in bands):
 
-                    band_cent = int(freqs[b-1].value)
-                    bandwidth = int(bw[b-1].value)
-
+                    band_cent = int(freqs[b - 1].value)
+                    bandwidth = int(bw[b - 1].value)
 
                     format_fits(
                         chain=chain,
@@ -1335,7 +1361,7 @@ def release(
                         polar=False,
                         component=f"{b:02}a",
                         fwhm=0.0,
-                        nu_ref_t=f'{band_cent} GHz',
+                        nu_ref_t=f"{band_cent} GHz",
                         nu_ref_p=None,
                         procver=procver,
                         filename=f"CG_DIRBE_{b:02}a_I_n0512_{procver}.fits",
@@ -1365,7 +1391,7 @@ def release(
                         polar=False,
                         component=f"{b:02}b",
                         fwhm=0.0,
-                        nu_ref_t=f'{band_cent} GHz',
+                        nu_ref_t=f"{band_cent} GHz",
                         nu_ref_p=None,
                         procver=procver,
                         filename=f"CG_DIRBE_{b:02}b_I_n0512_{procver}.fits",
@@ -1395,49 +1421,7 @@ def release(
                         polar=False,
                         component=[f"{b:02}a", f"{b:02}b", f"{b:02}"],
                         fwhm=0.0,
-                        nu_ref_t=f'{band_cent} GHz',
-                        nu_ref_p=None,
-                        procver=procver,
-                        filename=f"CG_DIRBE_{b:02}_I_n0512_{procver}.fits",
-                        bndctr=band_cent,
-                        restfreq=band_cent,
-                        bndwid=bandwidth,
-                        coadd=True,
-                    )
-            for b in range(1, 11):
-                import astropy.units as u
-                import astropy.constants as c
-                wavs = np.array([1.25, 2.2, 3.5, 4.9, 12, 25, 60, 100, 140, 240])*u.micron
-                bw = np.array([59.5, 22.4, 22.0, 8.19, 13.3, 4.13, 2.32, 0.974, 0.605, 0.495])*u.THz
-                bw = bw.to('GHz')
-                freqs = (c.c/wavs).to('GHz')
-                if (f"{b:02}a" in bands) & (f"{b:02}b" in bands):
-
-                    band_cent = int(freqs[b-1].value)
-                    bandwidth = int(bw[b-1].value)
-
-                    format_fits(
-                        chain=chain,
-                        thinning=thinning,
-                        extname="FREQMAP",
-                        types=[
-                            "I_MEAN",
-                            "I_RMS",
-                            "I_STDDEV",
-                        ],
-                        units=[
-                            "MJy/sr",
-                            "MJy/sr",
-                            "MJy/sr",
-                        ],
-                        nside=512,
-                        burnin=burnin,
-                        max_iter=max_iter,
-                        maxchain=maxchain,
-                        polar=False,
-                        component=[f"{b:02}a", f"{b:02}b", f"{b:02}"],
-                        fwhm=0.0,
-                        nu_ref_t=f'{band_cent} GHz',
+                        nu_ref_t=f"{band_cent} GHz",
                         nu_ref_p=None,
                         procver=procver,
                         filename=f"CG_DIRBE_{b:02}_I_n0512_{procver}.fits",
@@ -1847,7 +1831,6 @@ def release(
             print(e)
             click.secho("Continuing...", fg="yellow")
 
-
     if cii:
         try:
             # Full-mission free-free I map
@@ -1999,15 +1982,19 @@ def release(
             if not os.path.exists(f"{procver}/diffs"):
                 os.mkdir(f"{procver}/diffs")
             click.echo("Creating DIRBE difference maps")
-            path_dirbe = '/mn/stornext/d16/cmbco/ola/dirbe'
+            path_dirbe = "/mn/stornext/d16/cmbco/ola/dirbe"
 
-            maps_dirbe = [f'{path_dirbe}/DIRBE_ZSMA_{i:02}_1_256.fits' for i in range(1,11)]
-            maps_CG = [f'{procver}/CG_DIRBE_{i:02}_I_n0512_{procver}.fits' for i in range(1,11)]
-
+            maps_dirbe = [
+                f"{path_dirbe}/DIRBE_ZSMA_{i:02}_1_256.fits" for i in range(1, 11)
+            ]
+            maps_CG = [
+                f"{procver}/CG_DIRBE_{i:02}_I_n0512_{procver}.fits"
+                for i in range(1, 11)
+            ]
 
             for i in range(10):
                 m_CG = hp.ud_grade(hp.read_map(maps_CG[i]), 256)
-                m_D  = hp.read_map(maps_dirbe[i])
+                m_D = hp.read_map(maps_dirbe[i])
                 hp.write_map(
                     f"{procver}/diffs/CG_DIRBE_{i+1:02}_diff_ZSMA_{procver}.fits",
                     np.array(m_CG - m_D),
@@ -2292,8 +2279,9 @@ def release(
         if chisq:
             try:
                 from astropy.io import fits
-                fits_file = fits.open(f'{chdir[0]}/chisq_c0001_k000001.fits')
-                nside = fits_file[1].header['NSIDE']
+
+                fits_file = fits.open(f"{chdir[0]}/chisq_c0001_k000001.fits")
+                nside = fits_file[1].header["NSIDE"]
                 hdr = fits_file[1].header
                 format_fits(
                     chains,
@@ -2339,7 +2327,7 @@ def release(
                     "fields": (0, 1, 2),
                     "unit": "uK",
                     "scale": 1.0,
-                    "coadd": False
+                    "coadd": False,
                 },
                 "044": {
                     "nside": 512,
@@ -2348,7 +2336,7 @@ def release(
                     "fields": (0, 1, 2),
                     "unit": "uK",
                     "scale": 1.0,
-                    "coadd": False
+                    "coadd": False,
                 },
                 "070": {
                     "nside": 1024,
@@ -2357,7 +2345,7 @@ def release(
                     "fields": (0, 1, 2),
                     "unit": "uK",
                     "scale": 1.0,
-                    "coadd": False
+                    "coadd": False,
                 },
                 "023-WMAP_K": {
                     "nside": 512,
@@ -2366,7 +2354,7 @@ def release(
                     "fields": (0, 1, 2),
                     "unit": "mK",
                     "scale": 1,
-                    "coadd": False
+                    "coadd": False,
                 },
                 "030-WMAP_Ka": {
                     "nside": 512,
@@ -2375,7 +2363,7 @@ def release(
                     "fields": (0, 1, 2),
                     "unit": "mK",
                     "scale": 1,
-                    "coadd": False
+                    "coadd": False,
                 },
                 "040-WMAP_Q1": {
                     "nside": 512,
@@ -2384,7 +2372,7 @@ def release(
                     "fields": (0, 1, 2),
                     "unit": "mK",
                     "scale": 1.0,
-                    "coadd": False
+                    "coadd": False,
                 },
                 "040-WMAP_Q2": {
                     "nside": 512,
@@ -2397,7 +2385,7 @@ def release(
                     ),
                     "unit": "mK",
                     "scale": 1.0,
-                    "coadd": False
+                    "coadd": False,
                 },
                 "060-WMAP_V1": {
                     "nside": 512,
@@ -2406,7 +2394,7 @@ def release(
                     "fields": (0, 1, 2),
                     "unit": "mK",
                     "scale": 1.0,
-                    "coadd": False
+                    "coadd": False,
                 },
                 "060-WMAP_V2": {
                     "nside": 512,
@@ -2415,7 +2403,7 @@ def release(
                     "fields": (0, 1, 2),
                     "unit": "mK",
                     "scale": 1.0,
-                    "coadd": False
+                    "coadd": False,
                 },
                 "090-WMAP_W1": {
                     "nside": 512,
@@ -2424,7 +2412,7 @@ def release(
                     "fields": (0, 1, 2),
                     "unit": "mK",
                     "scale": 1.0,
-                    "coadd": False
+                    "coadd": False,
                 },
                 "090-WMAP_W2": {
                     "nside": 512,
@@ -2433,7 +2421,7 @@ def release(
                     "fields": (0, 1, 2),
                     "unit": "mK",
                     "scale": 1.0,
-                    "coadd": False
+                    "coadd": False,
                 },
                 "090-WMAP_W3": {
                     "nside": 512,
@@ -2442,7 +2430,7 @@ def release(
                     "fields": (0, 1, 2),
                     "unit": "mK",
                     "scale": 1.0,
-                    "coadd": False
+                    "coadd": False,
                 },
                 "090-WMAP_W4": {
                     "nside": 512,
@@ -2451,7 +2439,7 @@ def release(
                     "fields": (0, 1, 2),
                     "unit": "mK",
                     "scale": 1.0,
-                    "coadd": False
+                    "coadd": False,
                 },
                 "0.4-Haslam": {
                     "nside": 512,
@@ -2460,54 +2448,54 @@ def release(
                     "fields": (0,),
                     "unit": "uK",
                     "scale": 1.0,
-                    "coadd": False
+                    "coadd": False,
                 },
-                #"857": {
+                # "857": {
                 #    "nside": 1024,
                 #    "fwhm": 120,
                 #    "sig": "I",
                 #    "fields": (0,),
                 #    "unit": "uK",
                 #    "scale": 1.0,
-                #},
-                #"353": {
+                # },
+                # "353": {
                 #    "nside": 1024,
                 #    "fwhm": 120,
                 #    "sig": "QU",
                 #    "fields": (1, 2),
                 #    "unit": "uK",
                 #    "scale": 1.0,
-                #},
+                # },
             }
 
             for i in range(1, 11):
                 # DIRBE bands
-                bands[f"{i:02}a"] =  {
+                bands[f"{i:02}a"] = {
                     "nside": 512,
                     "fwhm": 0,
                     "sig": "I",
                     "fields": (0,),
                     "unit": "MJy/sr",
                     "scale": 1.0,
-                    "coadd": False
+                    "coadd": False,
                 }
-                bands[f"{i:02}b"] =  {
+                bands[f"{i:02}b"] = {
                     "nside": 512,
                     "fwhm": 0,
                     "sig": "I",
                     "fields": (0,),
                     "unit": "MJy/sr",
                     "scale": 1.0,
-                    "coadd": False
+                    "coadd": False,
                 }
-                bands[f"{i:02}"] =  {
+                bands[f"{i:02}"] = {
                     "nside": 512,
                     "fwhm": 0,
                     "sig": "I",
                     "fields": (0,),
                     "unit": "MJy/sr",
                     "scale": 1.0,
-                    "coadd": True
+                    "coadd": True,
                 }
 
             for lab, b in bands.items():
@@ -2522,9 +2510,9 @@ def release(
                     types.append(f"{l}_STDDEV")
                     units.append(b["unit"])
                 try:
-                    if b['coadd']:
-                        #lab = [f'{lab}', f'{lab}a', f'{lab}b']
-                        lab = [f'{lab}a', f'{lab}b', f'{lab}']
+                    if b["coadd"]:
+                        # lab = [f'{lab}', f'{lab}a', f'{lab}b']
+                        lab = [f"{lab}a", f"{lab}b", f"{lab}"]
                     else:
                         lab = lab
                     format_fits(
@@ -2552,7 +2540,7 @@ def release(
                         chdir=chdir,
                         fields=b["fields"],
                         scale=b["scale"],
-                        coadd=b['coadd'],
+                        coadd=b["coadd"],
                     )
                 except Exception as e:
                     print(e)
@@ -2568,7 +2556,7 @@ def release(
             filename=resamp,
             nchains=1,
             burnin=burnin,
-            #max_iter=max_iter,
+            # max_iter=max_iter,
             path="cmb/sigma_l",
             outname=f"{procver}/CG_cmb_GBRlike_{procver}.fits",
             save=True,
