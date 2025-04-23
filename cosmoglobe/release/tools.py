@@ -226,6 +226,8 @@ def h5handler(input, dataset, min, max, maxchain, thinning, output, fwhm, nside,
                         tag = f"{s}/{dset}"
                         maps[i,:] = f[tag][()]
                         rmss[i,:] = f[tag.replace('map', 'rms')][()]
+                    mask = np.all(rmss == 0, axis=0)
+
                     rmss[rmss == 0] = np.inf
                     mu = np.zeros(maps[0].shape)
                     den = np.zeros(maps[0].shape)
@@ -239,15 +241,15 @@ def h5handler(input, dataset, min, max, maxchain, thinning, output, fwhm, nside,
                     else:
                         data = mu/den
 
-
                 else:
                     tag = f"{s}/{dataset}"
-                    #print(f"Reading c{str(c).zfill(4)} {tag}")
+                    print(f"Reading c{str(c).zfill(4)} {tag}")
 
                     # Check if map is available, if not, use alms.
                     # If alms is already chosen, no problem
                     try:
                         data = f[tag][()]
+                        mask = f[tag.replace('map', 'rms')][()] == 0
                         if len(data[0]) == 0:
                             tag = f"{tag[:-3]}map"
                             print(f"WARNING! No {type} data found, switching to map.")
@@ -268,6 +270,8 @@ def h5handler(input, dataset, min, max, maxchain, thinning, output, fwhm, nside,
                 if type == "alm":
                     lmax_h5 = f[f"{tag[:-3]}lmax"][()]
                     data = unpack_alms(data, lmax_h5)  # Unpack alms
+                else:
+                    data[mask] = hp.UNSEEN
                     
                 if data.shape[0] == 1:
                     # Make sure its interprated as I by healpy

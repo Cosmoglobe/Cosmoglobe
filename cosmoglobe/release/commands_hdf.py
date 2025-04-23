@@ -668,13 +668,6 @@ def release(
             multiple_results = [pool.apply_async(copy_files, args=(chains[i], i+1, procver, pol, resamp)) for i in copy_list]
             results = [res.get() for res in multiple_results]
 
-    # if halfring:
-    #   # Copy halfring files
-    #   for i, chainfile in enumerate([halfring], 1):
-    #       # Copy halfring files
-    #       click.echo(f"Copying {resamp} to {procver}/CG_halfring_c" + str(i).zfill(4) + f"_{procver}.h5")
-    #       shutil.copyfile(halfring, f"{procver}/CG_halfring_c" + str(i).zfill(4) + f"_{procver}.h5",)
-
     """
     IQU mean, IQU stdev, (Masks for cmb)
     Run mean and stddev from min to max sample (Choose min manually or start at 1?)
@@ -1307,48 +1300,6 @@ def release(
                 )
 
             # DIRBE bands
-            for b in range(1, 11):
-                import astropy.units as u
-                import astropy.constants as c
-                wavs = np.array([1.25, 2.2, 3.5, 4.9, 12, 25, 60, 100, 140, 240])*u.micron
-                bw = np.array([59.5, 22.4, 22.0, 8.19, 13.3, 4.13, 2.32, 0.974, 0.605, 0.495])*u.THz
-                bw = bw.to('GHz')
-                freqs = (c.c/wavs).to('GHz')
-                if (f"{b:02}a" in bands) & (f"{b:02}b" in bands):
-
-                    band_cent = int(freqs[b-1].value)
-                    bandwidth = int(bw[b-1].value)
-
-                    format_fits(
-                        chain=chain,
-                        thinning=thinning,
-                        extname="FREQMAP",
-                        types=[
-                            "I_MEAN",
-                            "I_RMS",
-                            "I_STDDEV",
-                        ],
-                        units=[
-                            "MJy/sr",
-                            "MJy/sr",
-                            "MJy/sr",
-                        ],
-                        nside=512,
-                        burnin=burnin,
-                        max_iter=max_iter,
-                        maxchain=maxchain,
-                        polar=False,
-                        component=[f"{b:02}a", f"{b:02}b", f"{b:02}"],
-                        fwhm=0.0,
-                        nu_ref_t=f'{band_cent} GHz',
-                        nu_ref_p=None,
-                        procver=procver,
-                        filename=f"CG_DIRBE_{b:02}_I_n0512_{procver}.fits",
-                        bndctr=band_cent,
-                        restfreq=band_cent,
-                        bndwid=bandwidth,
-                        coadd=True,
-                    )
 
             for b in range(1, 11):
                 import astropy.units as u
@@ -1422,6 +1373,48 @@ def release(
                         restfreq=band_cent,
                         bndwid=bandwidth,
                     )
+
+                    format_fits(
+                        chain=chain,
+                        thinning=thinning,
+                        extname="FREQMAP",
+                        types=[
+                            "I_MEAN",
+                            "I_RMS",
+                            "I_STDDEV",
+                        ],
+                        units=[
+                            "MJy/sr",
+                            "MJy/sr",
+                            "MJy/sr",
+                        ],
+                        nside=512,
+                        burnin=burnin,
+                        max_iter=max_iter,
+                        maxchain=maxchain,
+                        polar=False,
+                        component=[f"{b:02}a", f"{b:02}b", f"{b:02}"],
+                        fwhm=0.0,
+                        nu_ref_t=f'{band_cent} GHz',
+                        nu_ref_p=None,
+                        procver=procver,
+                        filename=f"CG_DIRBE_{b:02}_I_n0512_{procver}.fits",
+                        bndctr=band_cent,
+                        restfreq=band_cent,
+                        bndwid=bandwidth,
+                        coadd=True,
+                    )
+            for b in range(1, 11):
+                import astropy.units as u
+                import astropy.constants as c
+                wavs = np.array([1.25, 2.2, 3.5, 4.9, 12, 25, 60, 100, 140, 240])*u.micron
+                bw = np.array([59.5, 22.4, 22.0, 8.19, 13.3, 4.13, 2.32, 0.974, 0.605, 0.495])*u.THz
+                bw = bw.to('GHz')
+                freqs = (c.c/wavs).to('GHz')
+                if (f"{b:02}a" in bands) & (f"{b:02}b" in bands):
+
+                    band_cent = int(freqs[b-1].value)
+                    bandwidth = int(bw[b-1].value)
 
                     format_fits(
                         chain=chain,
@@ -2286,24 +2279,15 @@ def release(
 
         path_goodness = procver + "/goodness"
         Path(path_goodness).mkdir(parents=True, exist_ok=True)
-        print("PATH", path_goodness)
 
         if len(chains) == 1:
             cmin = 1
             cmax = None
             chdir = [os.path.split(chains[0])[0].rsplit("chain_", 1)[0]]
         else:
-            #print(chains[0])
-            #print(os.path.split(chains[0]))
-            #print(os.path.split(chains[0])[-1])
-            #print(os.path.split(chains[0])[-1][-1])
-            #cmin = int(os.path.split(chains[0])[0].rsplit("_c")[-1])
-            #cmax = int(os.path.split(chains[-1])[0].rsplit("_c")[-1])
             cmin = 1
             cmax = len(chains)
             chdir = [os.path.split(c)[0] for c in chains]
-            #chdir = os.path.split(chains[0])[0].rsplit("_", 1)[0]
-            #print(chdir)
 
         if chisq:
             try:
