@@ -101,7 +101,7 @@ def format_fits(
         coord="G",
         overwrite=True,
         extra_header=header,
-        dtype=None,
+        dtype=np.float64,
     )
 
 
