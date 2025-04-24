@@ -93,7 +93,6 @@ def format_fits(
         coadd,
     )
 
-    print(f"{procver}/{filename}", dset.shape)
     hp.write_map(
         f"{procver}/{filename}",
         dset,

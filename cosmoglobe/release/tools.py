@@ -206,7 +206,10 @@ def h5handler(
 
     print()
     if command:
-        print("{:-^50}".format(f" {dataset} calculating {command.__name__} "))
+        if coadd:
+            print("{:-^50}".format(f" {dataset[-1]} calculating {command.__name__} "))
+        else:
+            print("{:-^50}".format(f" {dataset} calculating {command.__name__} "))
     print("{:-^50}".format(f" nside {nside}, {fwhm} arcmin smoothing "))
 
     if coadd:
@@ -352,7 +355,7 @@ def h5handler(
                     and fwhm > 0.0
                     and (command == np.std or command == np.cov)
                 ):
-                    # print(f"#{sample} --- Smoothing map ---")
+                    #print(f"#{sample} --- Smoothing map ---")
                     if use_pixweights:
                         data = hp.sphtfunc.smoothing(
                             data,
@@ -403,6 +406,7 @@ def h5handler(
     else:
         # Convert list to array
         dats = np.array(dats)
+        dats[dats == hp.UNSEEN] = np.nan
         # Calculate std or mean
         if command == np.cov:
             N = dats.shape[0]
@@ -411,9 +415,10 @@ def h5handler(
         else:
             outdata = command(dats, axis=0)
             outdata = command(dats, axis=0) if command else dats
+        outdata[~np.isfinite(outdata)] = hp.UNSEEN
     # Smoothing afterwards when calculating mean
     if type == "alm" and command == np.mean and alm2map:
-        print(f"# --- alm2map mean with {fwhm} arcmin, lmax {lmax_h5} ---")
+        #print(f"# --- alm2map mean with {fwhm} arcmin, lmax {lmax_h5} ---")
         outdata = hp.alm2map(
             outdata,
             nside=nside,
@@ -424,7 +429,7 @@ def h5handler(
         )
 
     if type == "map" and fwhm > 0.0 and command == np.mean:
-        print(f"--- Smoothing mean map with {fwhm} arcmin,---")
+        #print(f"--- Smoothing mean map with {fwhm} arcmin,---")
         if use_pixweights:
             outdata = hp.sphtfunc.smoothing(
                 outdata,
@@ -519,7 +524,6 @@ def sync(nu, As, alpha, nuref=0.408):
     """
     Synchrotron spectrum using template
     """
-    print("nuref", nuref)
     # alpha = 1., As = 30 K (30*1e6 muK)
     nu_0 = nuref * 1e9  # 408 MHz
     from pathlib import Path
@@ -990,7 +994,6 @@ def fits_handler(
             )
     # Outputs fits map if output name is .fits
     if write:
-        print("debug 3")
         if output.endswith(".fits"):
             hp.write_map(output, outdata, overwrite=True, dtype=None)
         elif output.endswith(".dat"):
