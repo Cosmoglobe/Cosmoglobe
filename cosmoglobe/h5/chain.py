@@ -65,7 +65,9 @@ class Chain:
                 for component, group in file[PARAMETER_GROUP_NAME].items():
                     parameters[component] = {}
                     for key, value in group.items():
-                        if np.issubdtype(value.dtype, np.string_):
+                        #if np.issubdtype(value.dtype, np.string_):
+                        #    value = value.asstr()
+                        if np.issubdtype(value.dtype, getattr(np, "string_", np.bytes_)):
                             value = value.asstr()
                         parameters[component][key] = value[()]
 
@@ -319,7 +321,9 @@ class Chain:
                 return list(item.keys())
 
             elif isinstance(item, h5py.Dataset):
-                if np.issubdtype(item.dtype, np.string_):
+                #if np.issubdtype(item.dtype, np.string_):
+                #    return item.asstr()[()]
+                if np.issubdtype(item.dtype, getattr(np, "string_", np.bytes_)):
                     return item.asstr()[()]
                 return item[()]
 

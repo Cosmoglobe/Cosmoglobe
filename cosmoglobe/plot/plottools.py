@@ -739,24 +739,9 @@ def get_params(**params):
                 params["rlabel"] = None
                 warnings.warn(f'Specify frequency with -freq for automatic frequency labeling with the "freqmap" profile')
 
-        """
-        # NOTE: This probably doesnt work with the current state of the comp
-        # keyword. Rewrite somehow.
-        if "rms" in params["comp"]:
-            params["rlabel"] += "^{\mathrm{RMS}}"
-            params["cmap"] = "neutral"
-            params["ticks"] = "comp"
-        if "stddev" in params["comp"]:
-            params["rlabel"] = "\sigma_{\mathrm{" + params["rlabel"] + "}}"
-            params["cmap"] = "neutral"
-            params["ticks"] = "comp"
-        if "mean" in params["comp"]:
-            params["rlabel"] = "\langle " + params["rlabel"] + "\rangle"
-        """
-
         # Specify at which frequency we are observing in unit lable
         if freq is not None and params["unit"] is not None:
-            params["unit"] = f'{params["unit"]}\,@\,{("%.5f" % freq.value).rstrip("0").rstrip(".")}' + "\,\mathrm{GHz}"
+            params["unit"] = rf'{params["unit"]}\,@\,{("%.5f" % freq.value).rstrip("0").rstrip(".")}' + rf"\,\mathrm{GHz}"
 
         # In the case that a difference frequency than the reference
         # is requested for a component map.

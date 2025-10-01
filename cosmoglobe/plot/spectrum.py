@@ -450,7 +450,7 @@ def spec(
                     aspect_ratio,
                 )
                 ax.annotate(
-                    r"$f_{\mathrm{sky}}=" + "{:d}".format(int(sky_fractions[1])) + "\%$",
+                    r"$f_{\mathrm{sky}}=" + "{:d}".format(int(sky_fractions[1])) + r"\%$",
                     rotation=rotation,
                     rotation_mode="anchor",
                     xy=(x0, y0),
@@ -474,7 +474,7 @@ def spec(
                     aspect_ratio,
                 )
                 ax.annotate(
-                    r"$f_{\mathrm{sky}}=" + "{:d}".format(int(sky_fractions[0])) + "\%$",
+                    r"$f_{\mathrm{sky}}=" + "{:d}".format(int(sky_fractions[0])) + r"\%$",
                     rotation=rotation,
                     rotation_mode="anchor",
                     xy=(x0, y0),

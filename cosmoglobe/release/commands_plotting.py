@@ -377,7 +377,7 @@ def specplot(input, cmap, long, lambdacdm, min_, max_, lmax):
     "-unit",
     default=None,
     type=click.STRING,
-    help="Set unit (Under color bar), has LaTeX functionality. Ex. $\mu$",
+    help=r"Set unit (Under color bar), has LaTeX functionality. Ex. $\mu$",
 )
 @click.option(
     "-scale",
@@ -558,13 +558,13 @@ def plot(
     "-title",
     default=None,
     type=click.STRING,
-    help="Set title, has LaTeX functionality. Ex. $\mu$",
+    help=r"Set title, has LaTeX functionality. Ex. $\mu$",
 )
 @click.option(
     "-unit",
     default=None,
     type=click.STRING,
-    help="Set unit (Under color bar), has LaTeX functionality. Ex. $\mu$",
+    help=r"Set unit (Under color bar), has LaTeX functionality. Ex. $\mu$",
 )
 @click.option(
     "-cmap",
@@ -773,13 +773,13 @@ def gnomplot(
     "-title",
     default=None,
     type=click.STRING,
-    help="Set title, has LaTeX functionality. Ex. $\mu$",
+    help=r"Set title, has LaTeX functionality. Ex. $\mu$",
 )
 @click.option(
     "-unit",
     default=None,
     type=click.STRING,
-    help="Set unit (Under color bar), has LaTeX functionality. Ex. $\mu$",
+    help=r"Set unit (Under color bar), has LaTeX functionality. Ex. $\mu$",
 )
 @click.option(
     "-cmap",
@@ -1304,7 +1304,7 @@ def plotrelease(
                     min=0,
                     max=2,
                     scale=1 / 3,
-                    title="$\sigma_{30}/3$",
+                    title=r"$\sigma_{30}/3$",
                 )
                 ctx.invoke(
                     plot,
@@ -1411,7 +1411,7 @@ def plotrelease(
                     ],
                     min=0,
                     max=75,
-                    title="$A^{\mathrm{RMS}}_{30}/2$",
+                    title=r"$A^{\mathrm{RMS}}_{30}/2$",
                     scale=1 / 2,
                 )
                 ctx.invoke(
@@ -1521,7 +1521,7 @@ def plotrelease(
                     mid=[100],
                     max=200,
                     scale=1e-6,
-                    unit="$\mathrm{K_{RJ}}$",
+                    unit=r"$\mathrm{K_{RJ}}$",
                 )
                 ctx.invoke(
                     plot,
@@ -1549,7 +1549,7 @@ def plotrelease(
                     mid=[2],
                     max=3,
                     scale=1e-6,
-                    unit="$\mathrm{K_{RJ}}$",
+                    unit=r"$\mathrm{K_{RJ}}$",
                 )
                 ctx.invoke(
                     plot,
@@ -1981,7 +1981,7 @@ def plotrelease(
                     ctx.invoke(
                         plot,
                         input=f"diffs/CG_DIRBE_{i:02}_diff_ZSMA_{procver}.fits",
-                        title="$\Delta A_{" + f"{i:02}" + "}^\mathrm{ZSMA}$",
+                        title=r"$\Delta A_{" + f"{i:02}" + r"}^\mathrm{ZSMA}$",
                         size=size,
                         outdir=outdir,
                         colorbar=colorbar,
@@ -2001,7 +2001,7 @@ def plotrelease(
                 ctx.invoke(
                     plot,
                     input=f"diffs/CG_030_diff_npipe_{procver}.fits",
-                    title="$\Delta A_{30}^{\mathrm{DR4}}$",
+                    title=r"$\Delta A_{30}^{\mathrm{DR4}}$",
                     size=size,
                     outdir=outdir,
                     colorbar=colorbar,
@@ -2014,7 +2014,7 @@ def plotrelease(
                 ctx.invoke(
                     plot,
                     input=f"diffs/CG_030_diff_npipe_{procver}.fits",
-                    title="$\Delta A_{30}^{\mathrm{DR4}}$",
+                    title=r"$\Delta A_{30}^{\mathrm{DR4}}$",
                     size=size,
                     outdir=outdir,
                     colorbar=colorbar,
@@ -2028,7 +2028,7 @@ def plotrelease(
                 ctx.invoke(
                     plot,
                     input=f"diffs/CG_030_diff_dx12_{procver}.fits",
-                    title="$\Delta A_{30}^{\mathrm{2018}}$",
+                    title=r"$\Delta A_{30}^{\mathrm{2018}}$",
                     size=size,
                     outdir=outdir,
                     colorbar=colorbar,
@@ -2041,7 +2041,7 @@ def plotrelease(
                 ctx.invoke(
                     plot,
                     input=f"diffs/CG_030_diff_dx12_{procver}.fits",
-                    title="$\Delta A_{30}^{\mathrm{2018}}$",
+                    title=r"$\Delta A_{30}^{\mathrm{2018}}$",
                     size=size,
                     outdir=outdir,
                     colorbar=colorbar,
@@ -2055,7 +2055,7 @@ def plotrelease(
                 ctx.invoke(
                     plot,
                     input=f"diffs/CG_030_diff_BP10_{procver}.fits",
-                    title="$\Delta A_{30}^{\mathrm{BP10}}$",
+                    title=r"$\Delta A_{30}^{\mathrm{BP10}}$",
                     size=size,
                     outdir=outdir,
                     colorbar=colorbar,
@@ -2068,7 +2068,7 @@ def plotrelease(
                 ctx.invoke(
                     plot,
                     input=f"diffs/CG_030_diff_BP10_{procver}.fits",
-                    title="$\Delta A_{30}^{\mathrm{BP10}}$",
+                    title=r"$\Delta A_{30}^{\mathrm{BP10}}$",
                     size=size,
                     outdir=outdir,
                     colorbar=colorbar,
@@ -2083,7 +2083,7 @@ def plotrelease(
                 ctx.invoke(
                     plot,
                     input=f"diffs/CG_044_diff_npipe_{procver}.fits",
-                    title="$\Delta A_{44}^{\mathrm{DR4}}$",
+                    title=r"$\Delta A_{44}^{\mathrm{DR4}}$",
                     size=size,
                     outdir=outdir,
                     colorbar=colorbar,
@@ -2096,7 +2096,7 @@ def plotrelease(
                 ctx.invoke(
                     plot,
                     input=f"diffs/CG_044_diff_npipe_{procver}.fits",
-                    title="$\Delta A_{44}^{\mathrm{DR4}}$",
+                    title=r"$\Delta A_{44}^{\mathrm{DR4}}$",
                     size=size,
                     outdir=outdir,
                     colorbar=colorbar,
@@ -2110,7 +2110,7 @@ def plotrelease(
                 ctx.invoke(
                     plot,
                     input=f"diffs/CG_044_diff_dx12_{procver}.fits",
-                    title="$\Delta A_{44}^{\mathrm{2018}}$",
+                    title=r"$\Delta A_{44}^{\mathrm{2018}}$",
                     size=size,
                     outdir=outdir,
                     colorbar=colorbar,
@@ -2123,7 +2123,7 @@ def plotrelease(
                 ctx.invoke(
                     plot,
                     input=f"diffs/CG_044_diff_dx12_{procver}.fits",
-                    title="$\Delta A_{44}^{\mathrm{2018}}$",
+                    title=r"$\Delta A_{44}^{\mathrm{2018}}$",
                     size=size,
                     outdir=outdir,
                     colorbar=colorbar,
@@ -2137,7 +2137,7 @@ def plotrelease(
                 ctx.invoke(
                     plot,
                     input=f"diffs/CG_044_diff_BP10_{procver}.fits",
-                    title="$\Delta A_{44}^{\mathrm{BP10}}$",
+                    title=r"$\Delta A_{44}^{\mathrm{BP10}}$",
                     size=size,
                     outdir=outdir,
                     colorbar=colorbar,
@@ -2150,7 +2150,7 @@ def plotrelease(
                 ctx.invoke(
                     plot,
                     input=f"diffs/CG_044_diff_BP10_{procver}.fits",
-                    title="$\Delta A_{44}^{\mathrm{BP10}}$",
+                    title=r"$\Delta A_{44}^{\mathrm{BP10}}$",
                     size=size,
                     outdir=outdir,
                     colorbar=colorbar,
@@ -2165,7 +2165,7 @@ def plotrelease(
                 ctx.invoke(
                     plot,
                     input=f"diffs/CG_070_diff_npipe_{procver}.fits",
-                    title="$\Delta A_{70}^{\mathrm{DR4}}$",
+                    title=r"$\Delta A_{70}^{\mathrm{DR4}}$",
                     size=size,
                     outdir=outdir,
                     colorbar=colorbar,
@@ -2178,7 +2178,7 @@ def plotrelease(
                 ctx.invoke(
                     plot,
                     input=f"diffs/CG_070_diff_npipe_{procver}.fits",
-                    title="$\Delta A_{70}^{\mathrm{DR4}}$",
+                    title=r"$\Delta A_{70}^{\mathrm{DR4}}$",
                     size=size,
                     outdir=outdir,
                     colorbar=colorbar,
@@ -2192,7 +2192,7 @@ def plotrelease(
                 ctx.invoke(
                     plot,
                     input=f"diffs/CG_070_diff_dx12_{procver}.fits",
-                    title="$\Delta A_{70}^{\mathrm{2018}}$",
+                    title=r"$\Delta A_{70}^{\mathrm{2018}}$",
                     size=size,
                     outdir=outdir,
                     colorbar=colorbar,
@@ -2205,7 +2205,7 @@ def plotrelease(
                 ctx.invoke(
                     plot,
                     input=f"diffs/CG_070_diff_dx12_{procver}.fits",
-                    title="$\Delta A_{70}^{\mathrm{2018}}$",
+                    title=r"$\Delta A_{70}^{\mathrm{2018}}$",
                     size=size,
                     outdir=outdir,
                     colorbar=colorbar,
@@ -2219,7 +2219,7 @@ def plotrelease(
                 ctx.invoke(
                     plot,
                     input=f"diffs/CG_070_diff_BP10_{procver}.fits",
-                    title="$\Delta A_{70}^{\mathrm{BP10}}$",
+                    title=r"$\Delta A_{70}^{\mathrm{BP10}}$",
                     size=size,
                     outdir=outdir,
                     colorbar=colorbar,
@@ -2232,7 +2232,7 @@ def plotrelease(
                 ctx.invoke(
                     plot,
                     input=f"diffs/CG_070_diff_BP10_{procver}.fits",
-                    title="$\Delta A_{70}^{\mathrm{BP10}}$",
+                    title=r"$\Delta A_{70}^{\mathrm{BP10}}$",
                     size=size,
                     outdir=outdir,
                     colorbar=colorbar,
@@ -2261,7 +2261,7 @@ def plotrelease(
                     ctx.invoke(
                         plot,
                         input=f"diffs/CG_{wb}_diff_wmap9_{procver}.fits",
-                        title="$\Delta A_{" + lab + "}^{\mathit{WMAP9}}$",
+                        title=r"$\Delta A_{" + lab + r"}^{\mathit{WMAP9}}$",
                         size=size,
                         outdir=outdir,
                         colorbar=colorbar,
@@ -2275,7 +2275,7 @@ def plotrelease(
                     ctx.invoke(
                         plot,
                         input=f"diffs/CG_{wb}_diff_wmap9_{procver}.fits",
-                        title="$\Delta A_{" + lab + "}^{\mathit{WMAP9}}$",
+                        title=r"$\Delta A_{" + lab + r"}^{\mathit{WMAP9}}$",
                         size=size,
                         outdir=outdir,
                         colorbar=colorbar,
@@ -2310,7 +2310,7 @@ def plotrelease(
             ):
                 try:
                     input = f"diffs/CG_cmb_diff_{method.lower()}_{procver}.fits"
-                    ttl = "$\mathrm{" + method + "}$"
+                    ttl = r"$\mathrm{" + method + r"}$"
                     ctx.invoke(
                         plot,
                         input=input,
@@ -2731,15 +2731,6 @@ def hist(chainfile, dataset, burnin, maxchain, lloc, nbins, sig, idx, prior, min
                 )
                 if np.max(nn) > ymax:
                     ymax = np.max(nn)
-        """
-        #t3 = np.loadtxt("sampletrace_t3.csv",delimiter=",",) #"regdatat3.dat", delimiter=",")
-        t3 = np.loadtxt("regdatat3.dat", delimiter=",")
-        plt.hist(t3[:,4],  bins=bins, histtype='step', density=True, stacked=True, linestyle="--", color="#ef553b", label=r"$P_{-2.8}(\beta^{\mathrm{Spur}}_{\mathrm{s}}|\,d, \omega_{\mathrm{TOD}})$")
-        bp8r = np.loadtxt("sampletrace_P_synch-beta_pixreg_val.csv", delimiter=",", skiprows=1)
-        plt.hist(bp8r[:,2],bins=bins, histtype='step', density=True, stacked=True, linestyle="--", color="#636efa", label=r"$P_{-3.1}(\beta^{\mathrm{Spur}}_{\mathrm{s}}|\,d, \omega_{\mathrm{TOD}})$")
-        #n1, bins, _ = plt.hist(x[:,4],bins=20, histtype='step', color="#636efa", label=r"$P(\beta^{\mathrm{Spur}}_{\mathrm{s}}|\,d)$")
-        #xmin, xmax = (-3.25,-2.75)
-        """
         if prior != []:
             for i, pri in enumerate(prior):
                 import scipy.stats as stats

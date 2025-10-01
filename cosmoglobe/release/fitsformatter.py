@@ -1056,7 +1056,6 @@ def get_data(
             )
 
         else:
-            asdf
             if type(component) == "list":
                 c = component[0]
             else:
