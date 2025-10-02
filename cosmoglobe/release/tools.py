@@ -881,8 +881,6 @@ def fits_handler(
                     continue
 
             if coadd:
-                # loop over the bands to be weighted average over
-                # use rms maps
                 if pol:
                     maps = np.zeros((len(rms_maps), 3, hp.nside2npix(nside)))
                     rmss = np.zeros((len(rms_maps), 3, hp.nside2npix(nside)))
@@ -890,7 +888,8 @@ def fits_handler(
                     maps = np.zeros((len(rms_maps), 1, hp.nside2npix(nside)))
                     rmss = np.zeros((len(rms_maps), 1, hp.nside2npix(nside)))
                 for j in range(len(filenames) - 1):
-                    maps[j, :] = hp.read_map(filenames[j], nest=nest)
+                    filename = basefiles[j][0] + "k" + str(sample).zfill(6) + basefiles[j][1]
+                    maps[j, :] = hp.read_map(filename, nest=nest)
                     rmss[j, :] = hp.read_map(f"{chdir[i]}/{rms_maps[j]}", nest=nest)
                 rmss[rmss == 0] = np.inf
                 mu = np.zeros(maps[0].shape)
