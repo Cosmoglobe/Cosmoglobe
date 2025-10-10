@@ -1,6 +1,5 @@
 # This file contains useful functions used across different plotting scripts.
 from cmath import inf
-from re import A, T
 import warnings
 
 from .. import data as data_dir
