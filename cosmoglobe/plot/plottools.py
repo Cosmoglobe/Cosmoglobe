@@ -740,7 +740,7 @@ def get_params(**params):
 
         # Specify at which frequency we are observing in unit lable
         if freq is not None and params["unit"] is not None:
-            params["unit"] = rf'{params["unit"]}\,@\,{("%.5f" % freq.value).rstrip("0").rstrip(".")}' + rf"\,\mathrm{GHz}"
+            params["unit"] = rf'{params["unit"]}\,@\,{("%.5f" % freq.value).rstrip("0").rstrip(".")}\,\mathrm{{GHz}}'
 
         # In the case that a difference frequency than the reference
         # is requested for a component map.
