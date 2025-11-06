@@ -309,6 +309,13 @@ def h5handler(
                     try:
                         data = f[tag][()]
                         mask = f[tag.replace("map", "rms")][()] == 0
+                        try:
+                            mask = f[tag.replace("map", "rms")][()] == 0
+                            # Deals with case when map and rms are not same size.
+                            mask = mask[:len(data)]
+                        except KeyError:
+                            mask = np.zeros(data.shape, dtype=bool)
+
                         if len(data[0]) == 0:
                             tag = f"{tag[:-3]}map"
                             print(f"WARNING! No {type} data found, switching to map.")
