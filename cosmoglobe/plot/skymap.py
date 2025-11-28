@@ -281,12 +281,18 @@ def plot(
     if override_plot_properties is None:
         override_plot_properties = {"cbar_tick_direction": "in"}
 
+    # use min/max or ticks depending on what is specified
+    if min is None:
+        min = np.min(params["ticks"])
+    if max is None:
+        max = np.max(params["ticks"])
+
     warnings.filterwarnings("ignore")  # Healpy complains too much
     # Plot figure
     ret = temp_projview(
         params["data"],
-        min=np.min(params["ticks"]),
-        max=np.max(params["ticks"]),
+        min=min,
+        max=max,
         cbar_ticks=params["ticks"],
         cbar=cbar,
         cmap=cmap,
