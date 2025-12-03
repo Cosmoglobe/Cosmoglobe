@@ -595,26 +595,26 @@ def release(
     with a burnin of 30 to a directory called CG_r1
 
     This function outputs the following files to the {procver} directory:
-    CG_chain01_{procver}.h5
-    CG_resamp_chain01_Cl_{procver}.h5
-    CG_resamp_chain01_noCl_{procver}.h5
-    CG_param_v1.txt
-    CG_param_resamp_Cl_v1.txt
-    CG_param_resamp_noCl_v1.txt
+    cosmoglobe_{procver}_chain01.h5
+    cosmoglobe_{procver}_resamp_chain01_Cl.h5
+    cosmoglobe_{procver}_resamp_chain01_noCl.h5
+    cosmoglobe_param_v1.txt
+    cosmoglobe_param_resamp_Cl_v1.txt
+    cosmoglobe_param_resamp_noCl_v1.txt
 
-    CG_030_IQU_n0512_{procver}.fits
-    CG_044_IQU_n0512_{procver}.fits
-    CG_070_IQU_n1024_{procver}.fits
+    cosmoglobe_{procver}_030_IQU_n0512.fits
+    cosmoglobe_{procver}_044_IQU_n0512.fits
+    cosmoglobe_{procver}_070_IQU_n1024.fits
 
-    CG_cmb_IQU_n1024_{procver}.fits
-    CG_synch_IQU_n1024_{procver}.fits
-    CG_freefree_I_n1024_{procver}.fits
-    CG_ame_I_n1024_{procver}.fits
+    cosmoglobe_{procver}_cmb_IQU_n1024.fits
+    cosmoglobe_{procver}_synch_IQU_n1024.fits
+    cosmoglobe_{procver}_freefree_I_n1024.fits
+    cosmoglobe_{procver}_ame_I_n1024.fits
 
-    CG_cmb_GBRlike_{procver}.fits
+    cosmoglobe_{procver}_cmb_GBRlike.fits
 
 
-    CG_DR2_{experiment_name}_{channel_id}_I_nside_{procver}
+    cosmoglobe_{procver}_{experiment_name}_{channel_id}_nside_I
     """
 
     # TODO
@@ -667,9 +667,9 @@ def release(
         copy_list = np.arange(len(chains)).tolist()
         delete_inds = []
         for i in range(len(chains)):
-            if os.path.exists(f"{procver}/CG_c{i+1:04}_{procver}.h5"):
+            if os.path.exists(f"{procver}/cosmoglobe_{procver}_c{i+1:04}.h5"):
                 s = input(
-                    f"{procver}/CG_c{i+1:04}_{procver}.h5 exists. Overwrite? [y/N]"
+                    f"{procver}/cosmoglobe_{procver}_c{i+1:04}.h5 exists. Overwrite? [y/N]"
                 )
                 if s != "y":
                     delete_inds.append(i)
@@ -693,9 +693,9 @@ def release(
     Run mean and stddev from min to max sample (Choose min manually or start at 1?)
     """
     if resamp:
-        chain = f"{procver}/CG_c0001_{pol}resamp_{procver}.h5"
+        chain = f"{procver}/cosmoglobe_{procver}_c0001_{pol}resamp.h5"
     else:
-        chain = f"{procver}/CG_c0001_{procver}.h5"
+        chain = f"{procver}/cosmoglobe_{procver}_c0001.h5"
 
     if freqmaps:
         chain_bla = cosmoglobe.Chain(chain, burn_in=1)
@@ -708,6 +708,10 @@ def release(
             # dummies for now.
 
             if "023-WMAP_K" in bands:
+                band = "023-WMAP_K"
+                nside = 512
+                nu_ref = 23
+                filename=f"cosmoglobe_{procver}_{band}_IQU_n{nside:05}.fits"
                 format_fits(
                     chain=chain,
                     thinning=thinning,
@@ -738,23 +742,27 @@ def release(
                         "mK",
                         "mK2",
                     ],
-                    nside=512,
+                    nside=nside,
                     burnin=burnin,
                     max_iter=max_iter,
                     maxchain=maxchain,
                     polar=True,
-                    component="023-WMAP_K",
+                    component=band,
                     fwhm=0.0,
-                    nu_ref_t="23 GHz",
-                    nu_ref_p="23 GHz",
+                    nu_ref_t=f"{nu_ref} GHz",
+                    nu_ref_p=f"{nu_ref} GHz",
                     procver=procver,
-                    filename=f"CG_023-WMAP_K_IQU_n0512_{procver}.fits",
-                    bndctr=23,
-                    restfreq=23,
+                    filename=filename,
+                    bndctr=nu_ref,
+                    restfreq=nu_ref,
                     bndwid=5,
                 )
 
             if "030-WMAP_Ka" in bands:
+                band = "030-WMAP_Ka"
+                nside = 512
+                nu_ref = 30
+                filename=f"cosmoglobe_{procver}_{band}_IQU_n{nside:05}.fits"
                 format_fits(
                     chain=chain,
                     thinning=thinning,
@@ -785,22 +793,26 @@ def release(
                         "mK",
                         "mK2",
                     ],
-                    nside=512,
+                    nside=nside,
                     burnin=burnin,
                     max_iter=max_iter,
                     maxchain=maxchain,
                     polar=True,
-                    component="030-WMAP_Ka",
+                    component=band,
                     fwhm=0.0,
-                    nu_ref_t="30 GHz",
-                    nu_ref_p="30 GHz",
+                    nu_ref_t=f"{nu_ref} GHz",
+                    nu_ref_p=f"{nu_ref} GHz",
                     procver=procver,
-                    filename=f"CG_030-WMAP_Ka_IQU_n0512_{procver}.fits",
-                    bndctr=30,
-                    restfreq=30,
+                    filename=filename,
+                    bndctr=nu_ref,
+                    restfreq=nu_ref,
                     bndwid=5,
                 )
             if "040-WMAP_Q1" in bands:
+                band = "040-WMAP_Q1"
+                nside = 512
+                nu_ref = 40
+                filename=f"cosmoglobe_{procver}_{band}_IQU_n{nside:05}.fits"
                 format_fits(
                     chain=chain,
                     thinning=thinning,
@@ -831,22 +843,26 @@ def release(
                         "mK",
                         "mK2",
                     ],
-                    nside=512,
+                    nside=nside,
                     burnin=burnin,
                     max_iter=max_iter,
                     maxchain=maxchain,
                     polar=True,
-                    component="040-WMAP_Q1",
+                    component=band,
                     fwhm=0.0,
-                    nu_ref_t="40 GHz",
-                    nu_ref_p="40 GHz",
+                    nu_ref_t=f"{nu_ref} GHz",
+                    nu_ref_p=f"{nu_ref} GHz",
                     procver=procver,
-                    filename=f"CG_040-WMAP_Q1_IQU_n0512_{procver}.fits",
-                    bndctr=40,
-                    restfreq=40,
+                    filename=filename,
+                    bndctr=nu_ref,
+                    restfreq=nu_ref,
                     bndwid=5,
                 )
             if "040-WMAP_Q2" in bands:
+                band = "040-WMAP_Q2"
+                nside = 512
+                nu_ref = 40
+                filename=f"cosmoglobe_{procver}_{band}_IQU_n{nside:05}.fits"
                 format_fits(
                     chain=chain,
                     thinning=thinning,
@@ -877,22 +893,26 @@ def release(
                         "mK",
                         "mK2",
                     ],
-                    nside=512,
+                    nside=nside,
                     burnin=burnin,
                     max_iter=max_iter,
                     maxchain=maxchain,
                     polar=True,
-                    component="040-WMAP_Q2",
+                    component=band,
                     fwhm=0.0,
-                    nu_ref_t="40 GHz",
-                    nu_ref_p="40 GHz",
+                    nu_ref_t=f"{nu_ref} GHz",
+                    nu_ref_p=f"{nu_ref} GHz",
                     procver=procver,
-                    filename=f"CG_040-WMAP_Q2_IQU_n0512_{procver}.fits",
-                    bndctr=40,
-                    restfreq=40,
+                    filename=filename,
+                    bndctr=nu_ref,
+                    restfreq=nu_ref,
                     bndwid=5,
                 )
             if "060-WMAP_V1" in bands:
+                band = "060-WMAP_V1"
+                nside = 512
+                nu_ref = 60
+                filename=f"cosmoglobe_{procver}_{band}_IQU_n{nside:05}.fits"
                 format_fits(
                     chain=chain,
                     thinning=thinning,
@@ -923,23 +943,27 @@ def release(
                         "mK",
                         "mK2",
                     ],
-                    nside=512,
+                    nside=nside,
                     burnin=burnin,
                     max_iter=max_iter,
                     maxchain=maxchain,
                     polar=True,
-                    component="060-WMAP_V1",
+                    component=band,
                     fwhm=0.0,
-                    nu_ref_t="60 GHz",
-                    nu_ref_p="60 GHz",
+                    nu_ref_t=f"{nu_ref} GHz",
+                    nu_ref_p=f"{nu_ref} GHz",
                     procver=procver,
-                    filename=f"CG_060-WMAP_V1_IQU_n0512_{procver}.fits",
-                    bndctr=60,
-                    restfreq=60,
+                    filename=filename,
+                    bndctr=nu_ref,
+                    restfreq=nu_ref,
                     bndwid=5,
                 )
 
             if "060-WMAP_V2" in bands:
+                band = "060-WMAP_V2"
+                nside = 512
+                nu_ref = 60
+                filename=f"cosmoglobe_{procver}_{band}_IQU_n{nside:05}.fits"
                 format_fits(
                     chain=chain,
                     thinning=thinning,
@@ -970,23 +994,27 @@ def release(
                         "mK",
                         "mK2",
                     ],
-                    nside=512,
+                    nside=nside,
                     burnin=burnin,
                     max_iter=max_iter,
                     maxchain=maxchain,
                     polar=True,
-                    component="060-WMAP_V2",
+                    component=band,
                     fwhm=0.0,
-                    nu_ref_t="60 GHz",
-                    nu_ref_p="60 GHz",
+                    nu_ref_t=f"{nu_ref} GHz",
+                    nu_ref_p=f"{nu_ref} GHz",
                     procver=procver,
-                    filename=f"CG_060-WMAP_V2_IQU_n0512_{procver}.fits",
-                    bndctr=60,
-                    restfreq=60,
+                    filename=filename,
+                    bndctr=nu_ref,
+                    restfreq=nu_ref,
                     bndwid=5,
                 )
 
             if "090-WMAP_W1" in bands:
+                band = "090-WMAP_W1"
+                nside = 512
+                nu_ref = 90
+                filename=f"cosmoglobe_{procver}_{band}_IQU_n{nside:05}.fits"
                 format_fits(
                     chain=chain,
                     thinning=thinning,
@@ -1017,23 +1045,27 @@ def release(
                         "mK",
                         "mK2",
                     ],
-                    nside=512,
+                    nside=nside,
                     burnin=burnin,
                     max_iter=max_iter,
                     maxchain=maxchain,
                     polar=True,
-                    component="090-WMAP_W1",
+                    component=band,
                     fwhm=0.0,
-                    nu_ref_t="90 GHz",
-                    nu_ref_p="90 GHz",
+                    nu_ref_t=f"{nu_ref} GHz",
+                    nu_ref_p=f"{nu_ref} GHz",
                     procver=procver,
-                    filename=f"CG_090-WMAP_W1_IQU_n0512_{procver}.fits",
-                    bndctr=90,
-                    restfreq=90,
+                    filename=filename,
+                    bndctr=nu_ref,
+                    restfreq=nu_ref,
                     bndwid=5,
                 )
 
             if "090-WMAP_W2" in bands:
+                band = "090-WMAP_W2"
+                nside = 512
+                nu_ref = 90
+                filename=f"cosmoglobe_{procver}_{band}_IQU_n{nside:05}.fits"
                 format_fits(
                     chain=chain,
                     thinning=thinning,
@@ -1064,27 +1096,30 @@ def release(
                         "mK",
                         "mK2",
                     ],
-                    nside=512,
+                    nside=nside,
                     burnin=burnin,
                     max_iter=max_iter,
                     maxchain=maxchain,
                     polar=True,
-                    component="090-WMAP_W2",
+                    component=band,
                     fwhm=0.0,
-                    nu_ref_t="90 GHz",
-                    nu_ref_p="90 GHz",
+                    nu_ref_t=f"{nu_ref} GHz",
+                    nu_ref_p=f"{nu_ref} GHz",
                     procver=procver,
-                    filename=f"CG_090-WMAP_W2_IQU_n0512_{procver}.fits",
-                    bndctr=90,
-                    restfreq=90,
+                    filename=filename,
+                    bndctr=nu_ref,
+                    restfreq=nu_ref,
                     bndwid=5,
                 )
             if "090-WMAP_W3" in bands:
+                band = "090-WMAP_W3"
+                nside = 512
+                nu_ref = 90
+                filename=f"cosmoglobe_{procver}_{band}_IQU_n{nside:05}.fits"
                 format_fits(
                     chain=chain,
                     thinning=thinning,
                     extname="FREQMAP",
-                    nside=512,
                     types=[
                         "I_MEAN",
                         "Q_MEAN",
@@ -1111,27 +1146,31 @@ def release(
                         "mK",
                         "mK2",
                     ],
+                    nside=nside,
                     burnin=burnin,
                     max_iter=max_iter,
                     maxchain=maxchain,
                     polar=True,
-                    component="090-WMAP_W3",
+                    component=band,
                     fwhm=0.0,
-                    nu_ref_t="90 GHz",
-                    nu_ref_p="90 GHz",
+                    nu_ref_t=f"{nu_ref} GHz",
+                    nu_ref_p=f"{nu_ref} GHz",
                     procver=procver,
-                    filename=f"CG_090-WMAP_W3_IQU_n0512_{procver}.fits",
-                    bndctr=90,
-                    restfreq=90,
+                    filename=filename,
+                    bndctr=nu_ref,
+                    restfreq=nu_ref,
                     bndwid=5,
                 )
 
             if "090-WMAP_W4" in bands:
+                band = "090-WMAP_W4"
+                nside = 512
+                nu_ref = 90
+                filename=f"cosmoglobe_{procver}_{band}_IQU_n{nside:05}.fits"
                 format_fits(
                     chain=chain,
                     thinning=thinning,
                     extname="FREQMAP",
-                    nside=512,
                     types=[
                         "I_MEAN",
                         "Q_MEAN",
@@ -1158,23 +1197,24 @@ def release(
                         "mK",
                         "mK2",
                     ],
+                    nside=nside,
                     burnin=burnin,
                     max_iter=max_iter,
                     maxchain=maxchain,
                     polar=True,
-                    component="090-WMAP_W4",
+                    component=band,
                     fwhm=0.0,
-                    nu_ref_t="90 GHz",
-                    nu_ref_p="90 GHz",
+                    nu_ref_t=f"{nu_ref} GHz",
+                    nu_ref_p=f"{nu_ref} GHz",
                     procver=procver,
-                    filename=f"CG_090-WMAP_W4_IQU_n0512_{procver}.fits",
-                    bndctr=90,
-                    restfreq=90,
+                    filename=filename,
+                    bndctr=nu_ref,
+                    restfreq=nu_ref,
                     bndwid=5,
                 )
 
             # Full-mission 30 GHz IQU frequency map
-            # CG_030_IQU_n0512_{procver}.fits
+            # cosmoglobe_030_IQU_n0512_{procver}.fits
             if "030" in bands:
                 format_fits(
                     chain=chain,
@@ -1216,10 +1256,62 @@ def release(
                     nu_ref_t="30.0 GHz",
                     nu_ref_p="30.0 GHz",
                     procver=procver,
-                    filename=f"CG_030_IQU_n0512_{procver}.fits",
+                    filename=f"cosmoglobe_030_IQU_n0512_{procver}.fits",
                     bndctr=30,
                     restfreq=28.456,
                     bndwid=9.899,
+                )
+                band = "030"
+                nside = 512
+                nu_ref = 30
+                restfreq = 28.456
+                bndwid = 9.899
+
+                filename=f"cosmoglobe_{procver}_{band}_IQU_n{nside:05}.fits"
+                format_fits(
+                    chain=chain,
+                    thinning=thinning,
+                    extname="FREQMAP",
+                    types=[
+                        "I_MEAN",
+                        "Q_MEAN",
+                        "U_MEAN",
+                        "I_RMS",
+                        "Q_RMS",
+                        "U_RMS",
+                        "QU_RMS",
+                        "I_STDDEV",
+                        "Q_STDDEV",
+                        "U_STDDEV",
+                        "QU_COV",
+                    ],
+                    units=[
+                        "uK",
+                        "uK",
+                        "uK",
+                        "uK",
+                        "uK",
+                        "uK",
+                        "uK2",
+                        "uK",
+                        "uK",
+                        "uK",
+                        "uK2",
+                    ],
+                    nside=nside,
+                    burnin=burnin,
+                    max_iter=max_iter,
+                    maxchain=maxchain,
+                    polar=True,
+                    component=band,
+                    fwhm=0.0,
+                    nu_ref_t=f"{nu_ref} GHz",
+                    nu_ref_p=f"{nu_ref} GHz",
+                    procver=procver,
+                    filename=filename,
+                    bndctr=nu_ref,
+                    restfreq=restfreq,
+                    bndwid=bndwid,
                 )
             # Full-mission 44 GHz IQU frequency map
             if "044" in bands:
@@ -1263,7 +1355,7 @@ def release(
                     nu_ref_t="44.0 GHz",
                     nu_ref_p="44.0 GHz",
                     procver=procver,
-                    filename=f"CG_044_IQU_n0512_{procver}.fits",
+                    filename=f"cosmoglobe_044_IQU_n0512_{procver}.fits",
                     bndctr=44,
                     restfreq=44.121,
                     bndwid=10.719,
@@ -1311,7 +1403,7 @@ def release(
                     nu_ref_t="70.0 GHz",
                     nu_ref_p="70.0 GHz",
                     procver=procver,
-                    filename=f"CG_070_IQU_n1024_{procver}.fits",
+                    filename=f"cosmoglobe_070_IQU_n1024_{procver}.fits",
                     bndctr=70,
                     restfreq=70.467,
                     bndwid=14.909,
@@ -1364,7 +1456,7 @@ def release(
                         nu_ref_t=f"{band_cent} GHz",
                         nu_ref_p=None,
                         procver=procver,
-                        filename=f"CG_DIRBE_{b:02}a_I_n0512_{procver}.fits",
+                        filename=f"cosmoglobe_DIRBE_{b:02}a_I_n00512_{procver}.fits",
                         bndctr=band_cent,
                         restfreq=band_cent,
                         bndwid=bandwidth,
@@ -1394,7 +1486,7 @@ def release(
                         nu_ref_t=f"{band_cent} GHz",
                         nu_ref_p=None,
                         procver=procver,
-                        filename=f"CG_DIRBE_{b:02}b_I_n0512_{procver}.fits",
+                        filename=f"cosmoglobe_DIRBE_{b:02}b_I_n00512_{procver}.fits",
                         bndctr=band_cent,
                         restfreq=band_cent,
                         bndwid=bandwidth,
@@ -1424,7 +1516,7 @@ def release(
                         nu_ref_t=f"{band_cent} GHz",
                         nu_ref_p=None,
                         procver=procver,
-                        filename=f"CG_DIRBE_{b:02}_I_n0512_{procver}.fits",
+                        filename=f"cosmoglobe_DIRBE_{b:02}_I_n00512_{procver}.fits",
                         bndctr=band_cent,
                         restfreq=band_cent,
                         bndwid=bandwidth,
@@ -1469,7 +1561,7 @@ def release(
                         nu_ref_t="NONE",
                         nu_ref_p="NONE",
                         procver=procver,
-                        filename=f"CG_cmb_resamp_QU_n1024_{procver}.fits",
+                        filename=f"cosmoglobe_cmb_resamp_QU_n1024_{procver}.fits",
                         bndctr=None,
                         restfreq=None,
                         bndwid=None,
@@ -1502,7 +1594,7 @@ def release(
                         nu_ref_t="NONE",
                         nu_ref_p="NONE",
                         procver=procver,
-                        filename=f"CG_cmb_resamp_I_n1024_{procver}.fits",
+                        filename=f"cosmoglobe_cmb_resamp_I_n1024_{procver}.fits",
                         bndctr=None,
                         restfreq=None,
                         bndwid=None,
@@ -1545,7 +1637,7 @@ def release(
                     nu_ref_t="NONE",
                     nu_ref_p="NONE",
                     procver=procver,
-                    filename=f"CG_cmb_IQU_n1024_{procver}.fits",
+                    filename=f"cosmoglobe_cmb_IQU_n1024_{procver}.fits",
                     bndctr=None,
                     restfreq=None,
                     bndwid=None,
@@ -1583,7 +1675,7 @@ def release(
                 nu_ref_t="40.0 GHz",
                 nu_ref_p="40.0 GHz",
                 procver=procver,
-                filename=f"CG_freefree_I_n1024_{procver}.fits",
+                filename=f"cosmoglobe_freefree_I_n1024_{procver}.fits",
                 bndctr=None,
                 restfreq=None,
                 bndwid=None,
@@ -1621,7 +1713,7 @@ def release(
                 nu_ref_t="22.0 GHz",
                 nu_ref_p="22.0 GHz",
                 procver=procver,
-                filename=f"CG_ame_I_n1024_{procver}.fits",
+                filename=f"cosmoglobe_ame_I_n1024_{procver}.fits",
                 bndctr=None,
                 restfreq=None,
                 bndwid=None,
@@ -1675,7 +1767,7 @@ def release(
                 nu_ref_t="0.408 GHz",
                 nu_ref_p="30.0 GHz",
                 procver=procver,
-                filename=f"CG_synch_IQU_n1024_{procver}.fits",
+                filename=f"cosmoglobe_synch_IQU_n1024_{procver}.fits",
                 bndctr=None,
                 restfreq=None,
                 bndwid=None,
@@ -1718,7 +1810,7 @@ def release(
                 nu_ref_t="545 GHz",
                 nu_ref_p=None,
                 procver=procver,
-                filename=f"CG_dust_I_n2048_{procver}.fits",
+                filename=f"cosmoglobe_dust_I_n2048_{procver}.fits",
                 bndctr=None,
                 restfreq=None,
                 bndwid=None,
@@ -1761,7 +1853,7 @@ def release(
                 nu_ref_t="545 GHz",
                 nu_ref_p=None,
                 procver=procver,
-                filename=f"CG_dust_cii_I_n2048_{procver}.fits",
+                filename=f"cosmoglobe_dust_cii_I_n2048_{procver}.fits",
                 bndctr=None,
                 restfreq=None,
                 bndwid=None,
@@ -1822,7 +1914,7 @@ def release(
                 nu_ref_t="857 GHz",
                 nu_ref_p="353 GHz",
                 procver=procver,
-                filename=f"CG_dust_IQU_n2048_{procver}.fits",
+                filename=f"cosmoglobe_dust_IQU_n2048_{procver}.fits",
                 bndctr=None,
                 restfreq=None,
                 bndwid=None,
@@ -1856,7 +1948,7 @@ def release(
                 nu_ref_t="40.0 GHz",
                 nu_ref_p="40.0 GHz",
                 procver=procver,
-                filename=f"CG_cii_I_n1024_{procver}.fits",
+                filename=f"cosmoglobe_cii_I_n1024_{procver}.fits",
                 bndctr=None,
                 restfreq=None,
                 bndwid=None,
@@ -1898,7 +1990,7 @@ def release(
                 nu_ref_t="1 micron",
                 nu_ref_p="1 micron",
                 procver=procver,
-                filename=f"CG_stars_I_n0512_{procver}.fits",
+                filename=f"cosmoglobe_stars_I_n0512_{procver}.fits",
                 bndctr=None,
                 restfreq=None,
                 bndwid=None,
@@ -1933,7 +2025,7 @@ def release(
                 nu_ref_t="545.0 GHz",
                 nu_ref_p="545.0 GHz",
                 procver=procver,
-                filename=f"CG_hotPAH_I_n2048_{procver}.fits",
+                filename=f"cosmoglobe_hotPAH_I_n2048_{procver}.fits",
                 bndctr=None,
                 restfreq=None,
                 bndwid=None,
@@ -1966,7 +2058,7 @@ def release(
                 nu_ref_t="40.0 GHz",
                 nu_ref_p="40.0 GHz",
                 procver=procver,
-                filename=f"CG_CO_tot_I_n1024_{procver}.fits",
+                filename=f"cosmoglobe_CO_tot_I_n1024_{procver}.fits",
                 bndctr=None,
                 restfreq=None,
                 bndwid=None,
@@ -1988,7 +2080,7 @@ def release(
                 f"{path_dirbe}/DIRBE_ZSMA_{i:02}_1_256.fits" for i in range(1, 11)
             ]
             maps_CG = [
-                f"{procver}/CG_DIRBE_{i:02}_I_n0512_{procver}.fits"
+                f"{procver}/cosmoglobe_DIRBE_{i:02}_I_n0512_{procver}.fits"
                 for i in range(1, 11)
             ]
 
@@ -1996,7 +2088,7 @@ def release(
                 m_CG = hp.ud_grade(hp.read_map(maps_CG[i]), 256)
                 m_D = hp.read_map(maps_dirbe[i])
                 hp.write_map(
-                    f"{procver}/diffs/CG_DIRBE_{i+1:02}_diff_ZSMA_{procver}.fits",
+                    f"{procver}/diffs/cosmoglobe_DIRBE_{i+1:02}_diff_ZSMA_{procver}.fits",
                     np.array(m_CG - m_D),
                     overwrite=True,
                     column_names=["I_DIFF"],
@@ -2030,9 +2122,9 @@ def release(
                 "BP_070_IQU_n1024_v2.fits",
             ]
             maps_CG = [
-                f"CG_030_IQU_n0512_{procver}.fits",
-                f"CG_044_IQU_n0512_{procver}.fits",
-                f"CG_070_IQU_n1024_{procver}.fits",
+                f"cosmoglobe_030_IQU_n0512_{procver}.fits",
+                f"cosmoglobe_044_IQU_n0512_{procver}.fits",
+                f"cosmoglobe_070_IQU_n1024_{procver}.fits",
             ]
             beamscaling = [9.8961854e-01, 9.9757886e-01, 9.9113965e-01]
 
@@ -2090,22 +2182,22 @@ def release(
                 map_BP10 -= np.mean(map_BP10, axis=1).reshape(-1, 1)
                 click.echo(f"creating {freq} GHz difference")
                 hp.write_map(
-                    f"{procver}/diffs/CG_{freq}_diff_npipe_{procver}.fits",
+                    f"{procver}/diffs/cosmoglobe_{freq}_diff_npipe_{procver}.fits",
                     np.array(map_CG - map_npipe),
                     overwrite=True,
                     column_names=["I_DIFF", "Q_DIFF", "U_DIFF"],
                     dtype=None,
                 )
                 hp.write_map(
-                    f"{procver}/diffs/CG_{freq}_diff_dx12_{procver}.fits",
+                    f"{procver}/diffs/cosmoglobe_{freq}_diff_dx12_{procver}.fits",
                     np.array(map_CG - map_dx12),
                     overwrite=True,
                     column_names=["I_DIFF", "Q_DIFF", "U_DIFF"],
                     dtype=None,
                 )
                 hp.write_map(
-                    f"{procver}/diffs/CG_{freq}_diff_BP10_{procver}.fits",
-                    np.array(map_CG - map_BP10),
+                    f"{procver}/diffs/cosmoglobe_{freq}_diff_BP10_{procver}.fits",
+                    np.array(map_cosmoglobe - map_BP10),
                     overwrite=True,
                     column_names=["I_DIFF", "Q_DIFF", "U_DIFF"],
                     dtype=None,
@@ -2125,16 +2217,16 @@ def release(
                 "wmap_iqusmap_r9_9yr_W4_v5.fits",
             ]
             maps_CG = [
-                f"CG_030-WMAP_Ka_IQU_n0512_{procver}.fits",
-                f"CG_040-WMAP_Q1_IQU_n0512_{procver}.fits",
-                f"CG_040-WMAP_Q2_IQU_n0512_{procver}.fits",
-                f"CG_060-WMAP_V1_IQU_n0512_{procver}.fits",
-                f"CG_060-WMAP_V2_IQU_n0512_{procver}.fits",
-                f"CG_023-WMAP_K_IQU_n0512_{procver}.fits",
-                f"CG_090-WMAP_W1_IQU_n0512_{procver}.fits",
-                f"CG_090-WMAP_W2_IQU_n0512_{procver}.fits",
-                f"CG_090-WMAP_W3_IQU_n0512_{procver}.fits",
-                f"CG_090-WMAP_W4_IQU_n0512_{procver}.fits",
+                f"cosmoglobe_030-WMAP_Ka_IQU_n0512_{procver}.fits",
+                f"cosmoglobe_040-WMAP_Q1_IQU_n0512_{procver}.fits",
+                f"cosmoglobe_040-WMAP_Q2_IQU_n0512_{procver}.fits",
+                f"cosmoglobe_060-WMAP_V1_IQU_n0512_{procver}.fits",
+                f"cosmoglobe_060-WMAP_V2_IQU_n0512_{procver}.fits",
+                f"cosmoglobe_023-WMAP_K_IQU_n0512_{procver}.fits",
+                f"cosmoglobe_090-WMAP_W1_IQU_n0512_{procver}.fits",
+                f"cosmoglobe_090-WMAP_W2_IQU_n0512_{procver}.fits",
+                f"cosmoglobe_090-WMAP_W3_IQU_n0512_{procver}.fits",
+                f"cosmoglobe_090-WMAP_W4_IQU_n0512_{procver}.fits",
             ]
 
             # WMAP9 maps must have dipole added back in:
@@ -2180,7 +2272,7 @@ def release(
                 map_wmap9 -= np.mean(map_wmap9, axis=1).reshape(-1, 1)
                 click.echo(f"creating {freq} GHz difference")
                 hp.write_map(
-                    f"{procver}/diffs/CG_{freq}_diff_wmap9_{procver}.fits",
+                    f"{procver}/diffs/cosmoglobe_{freq}_diff_wmap9_{procver}.fits",
                     np.array(map_CG - map_wmap9),
                     overwrite=True,
                     column_names=["I_DIFF", "Q_DIFF", "U_DIFF"],
@@ -2205,7 +2297,7 @@ def release(
                 dtype=bool,
             )
             map_CG = hp.read_map(
-                f"{procver}/CG_cmb_IQU_n1024_{procver}.fits",
+                f"{procver}/cosmoglobe_cmb_IQU_n1024_{procver}.fits",
                 field=(0, 1, 2),
                 dtype=None,
             )
@@ -2250,7 +2342,7 @@ def release(
                 )  # np.mean(map_cmblegacy,axis=1).reshape(-1,1)
 
                 hp.write_map(
-                    f"{procver}/diffs/CG_cmb_diff_{method}_{procver}.fits",
+                    f"{procver}/diffs/cosmoglobe_cmb_diff_{method}_{procver}.fits",
                     np.array(map_CG - map_cmblegacy),
                     overwrite=True,
                     column_names=["I_DIFF", "Q_DIFF", "U_DIFF"],
@@ -2305,7 +2397,7 @@ def release(
                     nu_ref_t="NONE",
                     nu_ref_p="NONE",
                     procver=procver,
-                    filename=f"goodness/CG_chisq_n{nside}_{procver}.fits",
+                    filename=f"goodness/cosmoglobe_chisq_n{nside}_{procver}.fits",
                     bndctr=None,
                     restfreq=None,
                     bndwid=None,
@@ -2531,7 +2623,7 @@ def release(
                         nu_ref_t="NONE",
                         nu_ref_p="NONE",
                         procver=procver,
-                        filename=f'goodness/CG_res_{label}_{b["sig"]}_n{b["nside"]}_{b["fwhm"]}arcmin_{procver}.fits',
+                        filename=f'goodness/cosmoglobe_res_{label}_{b["sig"]}_n{b["nside"]}_{b["fwhm"]}arcmin_{procver}.fits',
                         bndctr=None,
                         restfreq=None,
                         bndwid=None,
@@ -2558,7 +2650,7 @@ def release(
             burnin=burnin,
             # max_iter=max_iter,
             path="cmb/sigma_l",
-            outname=f"{procver}/CG_cmb_GBRlike_{procver}.fits",
+            outname=f"{procver}/cosmoglobe_cmb_GBRlike_{procver}.fits",
             save=True,
         )
 
@@ -2566,21 +2658,21 @@ def release(
     TODO Generalize this so that they can be generated by Elina and Anna-Stiina
     """
     # Full-mission 30 GHz IQU beam symmetrized frequency map
-    # CG_030_IQUdeconv_n0512_{procver}.fits
+    # cosmoglobe_030_IQUdeconv_n0512_{procver}.fits
     # Full-mission 44 GHz IQU beam symmetrized frequency map
-    # CG_044_IQUdeconv_n0512_{procver}.fits
+    # cosmoglobe_044_IQUdeconv_n0512_{procver}.fits
     # Full-mission 70 GHz IQU beam symmetrized frequency map
-    # CG_070_IQUdeconv_n1024_{procver}.fits
+    # cosmoglobe_070_IQUdeconv_n1024_{procver}.fits
 
     """ Both sigma_l's and Dl's re in the h5. (Which one do we use?)
     """
     # CMB TT, TE, EE power spectrum
-    # CG_cmb_{procver}.txt
+    # cosmoglobe_cmb_{procver}.txt
 
     """ Just get this from somewhere
     """
     # Best-fit LCDM CMB TT, TE, EE power spectrum
-    # CG_cmb_bfLCDM_{procver}.txt
+    # cosmoglobe_cmb_bfLCDM_{procver}.txt
 
     if plot:
         os.chdir(procver)

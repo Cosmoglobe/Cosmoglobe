@@ -9,51 +9,50 @@ import click
 # HELPFUL TOOLS BELOW #
 #######################
 
-
 def copy_files(chainfile, i, procver, pol, resamp):
     # Commander3 parameter file for main chain
     path = os.path.split(chainfile)[0]
     for file in os.listdir(path):
         if file.startswith("param") and i == 1:  # Copy only first
             click.echo(
-                f"Copying {path}/{file} to {procver}/CG_param_c"
+                f"Copying {path}/{file} to {procver}/cosmoglobe_{procver}_param_c"
                 + str(i).zfill(4)
-                + f"_{procver}.txt"
+                + f".txt"
             )
             if resamp:
                 shutil.copyfile(
                     f"{path}/{file}",
-                    f"{procver}/CG_param_c"
+                    f"{procver}/cosmoglobe_{procver}_param_c"
                     + str(i).zfill(4)
-                    + f"_{pol}resamp_{procver}.txt",
+                    + f"_{pol}resamp.txt",
                 )
             else:
                 shutil.copyfile(
                     f"{path}/{file}",
-                    f"{procver}/CG_param_c" + str(i).zfill(4) + f"_{procver}.txt",
+                    f"{procver}/cosmoglobe_{procver}_param_c" + str(i).zfill(4) + f".txt",
                 )
 
     if resamp:
         # Resampled CMB-only full-mission Gibbs chain file with Cls (for BR estimator)
         click.echo(
-            f"Copying {chainfile} to {procver}/CG_c"
+            f"Copying {chainfile} to {procver}/cosmoglobe_{procver}_c"
             + str(i).zfill(4)
-            + f"_{pol}resamp_{procver}.h5"
+            + f"_{pol}resamp.h5"
         )
         shutil.copyfile(
             chainfile,
-            f"{procver}/CG_c" + str(i).zfill(4) + f"_{pol}resamp_{procver}.h5",
+            f"{procver}/cosmoglobe_{procver}_c" + str(i).zfill(4) + f"_{pol}resamp.h5",
         )
     else:
         # Full-mission Gibbs chain file
         click.echo(
-            f"Copying {chainfile} to {procver}/CG_c"
+            f"Copying {chainfile} to {procver}/cosmoglobe_{procver}_c"
             + str(i).zfill(4)
-            + f"_{procver}.h5"
+            + f".h5"
         )
         shutil.copyfile(
             chainfile,
-            f"{procver}/CG_c" + str(i).zfill(4) + f"_{procver}.h5",
+            f"{procver}/cosmoglobe_{procver}_c" + str(i).zfill(4) + f".h5",
         )
 
 
