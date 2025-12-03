@@ -33,6 +33,7 @@ def format_fits(
     fields=None,
     scale=1.0,
     coadd=False,
+    coadd_type=None,
 ):
     print()
     print("{:#^80}".format(""))
@@ -91,6 +92,7 @@ def format_fits(
         scale,
         polar,
         coadd,
+        coadd_type,
     )
 
     hp.write_map(
@@ -123,6 +125,7 @@ def get_data(
     scale=1.0,
     polar=True,
     coadd=False,
+    coadd_type=None,
 ):
 
     if extname.endswith("CMB"):
@@ -868,6 +871,7 @@ def get_data(
                 command=np.mean,
                 zerospin=zerospin,
                 coadd=coadd,
+                coadd_type=coadd_type,
             )
 
             if polar:
@@ -885,6 +889,7 @@ def get_data(
                     remove_mono=True,
                     zerospin=zerospin,
                     coadd=coadd,
+                    coadd_type=coadd_type,
                 )
             else:
                 amp_stddev = h5handler(
@@ -901,6 +906,7 @@ def get_data(
                     remove_mono=True,
                     zerospin=zerospin,
                     coadd=coadd,
+                    coadd_type=coadd_type
                 )
 
             datasets = [f"tod/{comp}/rms" for comp in component]
@@ -917,6 +923,7 @@ def get_data(
                 command=np.mean,
                 zerospin=zerospin,
                 coadd=coadd,
+                coadd_type=coadd_type,
             )
 
         else:
@@ -1031,6 +1038,7 @@ def get_data(
                 fields=fields,
                 write=False,
                 coadd=True,
+                coadd_type=None,
                 rms_maps=rms_maps,
             )
             amp_stddev = fits_handler(
@@ -1052,6 +1060,7 @@ def get_data(
                 fields=fields,
                 write=False,
                 coadd=True,
+                coadd_type=None,
                 rms_maps=rms_maps,
             )
 

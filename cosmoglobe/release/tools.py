@@ -176,6 +176,7 @@ def h5handler(
     notchain=False,
     remove_mono=False,
     coadd=False,
+    coadd_type=None,
 ):
     """
     Function for calculating mean and stddev of signals in hdf file
@@ -274,30 +275,69 @@ def h5handler(
 
                 # Sets tag with type
                 if coadd:
-                    if pol:
-                        maps = np.zeros((len(dataset) - 1, 3, hp.nside2npix(nside)))
-                        rmss = np.zeros((len(dataset) - 1, 3, hp.nside2npix(nside)))
-                    else:
-                        maps = np.zeros((len(dataset) - 1, 1, hp.nside2npix(nside)))
-                        rmss = np.zeros((len(dataset) - 1, 1, hp.nside2npix(nside)))
-                    for i, dset in enumerate(dataset[:-1]):
-                        tag = f"{s}/{dset}"
-                        maps[i, :] = f[tag][()]
-                        rmss[i, :] = f[tag.replace("map", "rms")][()]
-                    mask = np.all(rmss == 0, axis=0)
+                    if coadd_type == 'hmhd':
+                        if pol:
+                            maps = np.zeros((len(dataset) - 1, 3, hp.nside2npix(nside)))
+                        else:
+                            maps = np.zeros((len(dataset) - 1, 1, hp.nside2npix(nside)))
+                        for i, dset in enumerate(dataset[:-1]):
+                            tag = f"{s}/{dset}"
+                            maps[i, :] = f[tag][()]
+                            if i == 0:
+                                mask = maps[i,:] == 0
+                            else:
+                                mask = mask | (maps[i,:] == 0)
+                        if len(maps) != 2:
+                            print('HMHD only works when you have two maps.')
+                        else:
+                            data = (maps[0] - maps[1])/2
+                            data[mask] = np.inf
+                            data = hp.ma(data)
 
-                    rmss[rmss == 0] = np.inf
-                    mu = np.zeros(maps[0].shape)
-                    den = np.zeros(maps[0].shape)
-                    for i in range(len(maps)):
-                        mu += maps[i] / rmss[i] ** 2
-                        den += 1 / rmss[i] ** 2
-                    mu = hp.ma(mu)
-                    den = hp.ma(den)
-                    if "rms" in dataset[0]:
-                        data = 1 / den**0.5
+
+                    elif coadd_type == 'hmhs':
+                        if pol:
+                            maps = np.zeros((len(dataset) - 1, 3, hp.nside2npix(nside)))
+                        else:
+                            maps = np.zeros((len(dataset) - 1, 1, hp.nside2npix(nside)))
+                        for i, dset in enumerate(dataset[:-1]):
+                            tag = f"{s}/{dset}"
+                            maps[i, :] = f[tag][()]
+                            if i == 0:
+                                mask = maps[i,:] == 0
+                            else:
+                                mask = mask | (maps[i,:] == 0)
+
+                            num = maps.sum(axis=0)
+                            den = len(maps)
+                            data = num/den
+                            data[mask] = np.inf
+                            data = hp.ma(data)
                     else:
-                        data = mu / den
+                        if pol:
+                            maps = np.zeros((len(dataset) - 1, 3, hp.nside2npix(nside)))
+                            rmss = np.zeros((len(dataset) - 1, 3, hp.nside2npix(nside)))
+                        else:
+                            maps = np.zeros((len(dataset) - 1, 1, hp.nside2npix(nside)))
+                            rmss = np.zeros((len(dataset) - 1, 1, hp.nside2npix(nside)))
+                        for i, dset in enumerate(dataset[:-1]):
+                            tag = f"{s}/{dset}"
+                            maps[i, :] = f[tag][()]
+                            rmss[i, :] = f[tag.replace("map", "rms")][()]
+                        mask = np.all(rmss == 0, axis=0)
+
+                        rmss[rmss == 0] = np.inf
+                        mu = np.zeros(maps[0].shape)
+                        den = np.zeros(maps[0].shape)
+                        for i in range(len(maps)):
+                            mu += maps[i] / rmss[i] ** 2
+                            den += 1 / rmss[i] ** 2
+                        mu = hp.ma(mu)
+                        den = hp.ma(den)
+                        if "rms" in dataset[0]:
+                            data = 1 / den**0.5
+                        else:
+                            data = mu / den
 
                 else:
                     tag = f"{s}/{dataset}"

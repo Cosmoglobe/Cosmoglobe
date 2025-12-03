@@ -1432,6 +1432,7 @@ def release(
                     band_cent = int(freqs[b - 1].value)
                     bandwidth = int(bw[b - 1].value)
 
+
                     format_fits(
                         chain=chain,
                         thinning=thinning,
@@ -1521,6 +1522,70 @@ def release(
                         restfreq=band_cent,
                         bndwid=bandwidth,
                         coadd=True,
+                    )
+
+                    format_fits(
+                        chain=chain,
+                        thinning=thinning,
+                        extname="FREQMAP",
+                        types=[
+                            "I_MEAN",
+                            "I_RMS",
+                            "I_STDDEV",
+                        ],
+                        units=[
+                            "MJy/sr",
+                            "MJy/sr",
+                            "MJy/sr",
+                        ],
+                        nside=512,
+                        burnin=burnin,
+                        max_iter=max_iter,
+                        maxchain=maxchain,
+                        polar=False,
+                        component=[f"{b:02}a", f"{b:02}b", f"{b:02}"],
+                        fwhm=0.0,
+                        nu_ref_t=f"{band_cent} GHz",
+                        nu_ref_p=None,
+                        procver=procver,
+                        filename=f"cosmoglobe_DIRBE_{b:02}_hmhs_I_n00512_{procver}.fits",
+                        bndctr=band_cent,
+                        restfreq=band_cent,
+                        bndwid=bandwidth,
+                        coadd=True,
+                        coadd_type='hmhs',
+                    )
+
+                    format_fits(
+                        chain=chain,
+                        thinning=thinning,
+                        extname="FREQMAP",
+                        types=[
+                            "I_MEAN",
+                            "I_RMS",
+                            "I_STDDEV",
+                        ],
+                        units=[
+                            "MJy/sr",
+                            "MJy/sr",
+                            "MJy/sr",
+                        ],
+                        nside=512,
+                        burnin=burnin,
+                        max_iter=max_iter,
+                        maxchain=maxchain,
+                        polar=False,
+                        component=[f"{b:02}a", f"{b:02}b", f"{b:02}"],
+                        fwhm=0.0,
+                        nu_ref_t=f"{band_cent} GHz",
+                        nu_ref_p=None,
+                        procver=procver,
+                        filename=f"cosmoglobe_DIRBE_{b:02}_hmhd_I_n00512_{procver}.fits",
+                        bndctr=band_cent,
+                        restfreq=band_cent,
+                        bndwid=bandwidth,
+                        coadd=True,
+                        coadd_type='hmhd',
                     )
 
         except Exception as e:
