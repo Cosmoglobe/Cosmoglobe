@@ -745,6 +745,7 @@ def fits_handler(
     fields=None,
     write=False,
     coadd=False,
+    coadd_type=None,
     rms_maps=None,
 ):
     """
@@ -786,6 +787,7 @@ def fits_handler(
             fields,
             write=False,
             coadd=coadd,
+            coadd_type=coadd_type,
         )
 
     if minchain > maxchain:

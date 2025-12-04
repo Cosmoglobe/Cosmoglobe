@@ -2485,6 +2485,7 @@ def release(
                     "unit": "uK",
                     "scale": 1.0,
                     "coadd": False,
+                    "coadd_type": None,
                 },
                 "044": {
                     "nside": 512,
@@ -2494,6 +2495,7 @@ def release(
                     "unit": "uK",
                     "scale": 1.0,
                     "coadd": False,
+                    "coadd_type": None,
                 },
                 "070": {
                     "nside": 1024,
@@ -2503,6 +2505,7 @@ def release(
                     "unit": "uK",
                     "scale": 1.0,
                     "coadd": False,
+                    "coadd_type": None,
                 },
                 "023-WMAP_K": {
                     "nside": 512,
@@ -2512,6 +2515,7 @@ def release(
                     "unit": "mK",
                     "scale": 1,
                     "coadd": False,
+                    "coadd_type": None,
                 },
                 "030-WMAP_Ka": {
                     "nside": 512,
@@ -2521,6 +2525,7 @@ def release(
                     "unit": "mK",
                     "scale": 1,
                     "coadd": False,
+                    "coadd_type": None,
                 },
                 "040-WMAP_Q1": {
                     "nside": 512,
@@ -2530,6 +2535,7 @@ def release(
                     "unit": "mK",
                     "scale": 1.0,
                     "coadd": False,
+                    "coadd_type": None,
                 },
                 "040-WMAP_Q2": {
                     "nside": 512,
@@ -2543,6 +2549,7 @@ def release(
                     "unit": "mK",
                     "scale": 1.0,
                     "coadd": False,
+                    "coadd_type": None,
                 },
                 "060-WMAP_V1": {
                     "nside": 512,
@@ -2552,6 +2559,7 @@ def release(
                     "unit": "mK",
                     "scale": 1.0,
                     "coadd": False,
+                    "coadd_type": None,
                 },
                 "060-WMAP_V2": {
                     "nside": 512,
@@ -2561,6 +2569,7 @@ def release(
                     "unit": "mK",
                     "scale": 1.0,
                     "coadd": False,
+                    "coadd_type": None,
                 },
                 "090-WMAP_W1": {
                     "nside": 512,
@@ -2570,6 +2579,7 @@ def release(
                     "unit": "mK",
                     "scale": 1.0,
                     "coadd": False,
+                    "coadd_type": None,
                 },
                 "090-WMAP_W2": {
                     "nside": 512,
@@ -2579,6 +2589,7 @@ def release(
                     "unit": "mK",
                     "scale": 1.0,
                     "coadd": False,
+                    "coadd_type": None,
                 },
                 "090-WMAP_W3": {
                     "nside": 512,
@@ -2588,6 +2599,7 @@ def release(
                     "unit": "mK",
                     "scale": 1.0,
                     "coadd": False,
+                    "coadd_type": None,
                 },
                 "090-WMAP_W4": {
                     "nside": 512,
@@ -2597,6 +2609,7 @@ def release(
                     "unit": "mK",
                     "scale": 1.0,
                     "coadd": False,
+                    "coadd_type": None,
                 },
                 "0.4-Haslam": {
                     "nside": 512,
@@ -2606,6 +2619,7 @@ def release(
                     "unit": "uK",
                     "scale": 1.0,
                     "coadd": False,
+                    "coadd_type": None,
                 },
                 # "857": {
                 #    "nside": 1024,
@@ -2635,6 +2649,7 @@ def release(
                     "unit": "MJy/sr",
                     "scale": 1.0,
                     "coadd": False,
+                    "coadd_type": None,
                 }
                 bands[f"{i:02}b"] = {
                     "nside": 512,
@@ -2644,6 +2659,7 @@ def release(
                     "unit": "MJy/sr",
                     "scale": 1.0,
                     "coadd": False,
+                    "coadd_type": None,
                 }
                 bands[f"{i:02}"] = {
                     "nside": 512,
@@ -2653,6 +2669,7 @@ def release(
                     "unit": "MJy/sr",
                     "scale": 1.0,
                     "coadd": True,
+                    "coadd_type": None,
                 }
 
             for lab, b in bands.items():
@@ -2688,7 +2705,7 @@ def release(
                         nu_ref_t="NONE",
                         nu_ref_p="NONE",
                         procver=procver,
-                        filename=f'goodness/cosmoglobe_res_{label}_{b["sig"]}_n{b["nside"]}_{b["fwhm"]}arcmin_{procver}.fits',
+                        filename=f'goodness/cosmoglobe_res_{label}_{b["sig"]}_n{b["nside"]:05}_{b["fwhm"]}arcmin_{procver}.fits',
                         bndctr=None,
                         restfreq=None,
                         bndwid=None,
@@ -2698,6 +2715,7 @@ def release(
                         fields=b["fields"],
                         scale=b["scale"],
                         coadd=b["coadd"],
+                        coadd_type=b["coadd_type"],
                     )
                 except Exception as e:
                     print(e)
