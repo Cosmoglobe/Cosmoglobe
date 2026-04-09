@@ -64,10 +64,11 @@
         current one.
 
     get_chunk_data(self, band:str, detector:str)->tod(np.array[float/int]),
-        pix(np.array[int]), psi(np.array(float)), flag(np.array[bool]):
+        pix(np.array[int]), psi(np.array(float)), flag(np.array[int]):
         Given a band and detector (with the chunk number assumed set by
         set_chunk_index), returns the tod, pixel, psi, and flag array
-        corresponding to the detector and chunk in question.
+        corresponding to the detector and chunk in question. The flag array is
+        an array of integers representing bits.
 
     get_chunk_start_time(self)->astropy.time.Time: Returns the time of the
         beginning of the chunk.

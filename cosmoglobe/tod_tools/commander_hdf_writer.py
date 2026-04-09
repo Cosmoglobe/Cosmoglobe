@@ -150,7 +150,7 @@ class CommanderHDFWriter:
         if not self.should_compress_tods:
             ctod.add_field(prefix + '/tod', tod_arr)
         else:
-            raise NotImplementedError()
+            ctod.add_field(prefix + '/todz', tod_arr, [self.hufftod])
 
         ctod.add_field(prefix + '/pix', pix_arr, [self.huffman])
 
