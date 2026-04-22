@@ -41,7 +41,7 @@ class TODLoader:
         self.raggedDict = {}
         self.attrDict = {}
         self.encodings = {}
-        self.pids = {}
+        self.spinaxis = {}
 
         self.od = od
         self.freq = freq
@@ -78,7 +78,7 @@ class TODLoader:
                         loadBalance = self.load_field(
                             "/" + str(pid).zfill(6) + "/common/load"
                         )
-                        self.pids[pid] = (
+                        self.spinaxis[pid] = (
                             str(float(loadBalance[0]))
                             + " "
                             + str(float(loadBalance[1]))
@@ -251,29 +251,17 @@ class TODLoader:
                 self.add_field(encoding, [self.encodings[encoding]])
 
             self.add_field("/common/version", self.version)
-            # [Maksym]: was getting the error:
-            # ...
-            # File ".../python/commander_tools/tod_tools/commander_tod.py", line 213, in finaliz    e_file
-            # self.add_field('/common/pids', list(self.pids.keys()))
-            # File ".../python/commander_tools/tod_tools/commander_tod.py", line 179, in add_fie    ld
-            # self.outFile.create_dataset(fieldName, data=data)
-            # ...
-            # File "h5py/h5t.pyx", line 1629, in h5py.h5t.py_create
-            # File "h5py/h5t.pyx", line 1653, in h5py.h5t.py_create
-            # File "h5py/h5t.pyx", line 1719, in h5py.h5t.py_create
-            # TypeError: No conversion path for dtype: dtype('<U6')
-            # So needed to add `np.string_()`
-            self.add_field("/common/pids", list(self.pids.keys()))
+            self.add_field("/common/pids", list(self.spinaxis.keys()))
 
         if self.filelists is not None:
-            for pid in self.pids.keys():
+            for pid in self.spinaxis.keys():
                 self.filelists[self.freq]["id" + str(pid)] = (
                     str(pid)
                     + ' "'
                     + os.path.abspath(self.outName)
                     + '" '
                     + "1 "
-                    + self.pids[pid]
+                    + self.spinaxis[pid]
                     + "\n"
                 )
 
@@ -357,7 +345,7 @@ class TODLoader:
         self.raggedDict = {}
         self.huffDict = {}
         self.add_field("/" + str(pid).zfill(6) + "/common/load", loadBalance)
-        self.pids[pid] = str(float(loadBalance[0])) + " " + str(float(loadBalance[1]))
+        self.spinaxis[pid] = str(float(loadBalance[0])) + " " + str(float(loadBalance[1]))
 
     def compute_version(self):
         return
@@ -369,7 +357,6 @@ class TODLoader:
             )
             outfile.write(str(len(self.filelists[freq])) + "\n")
             for buf in self.filelists[freq].values():
-                # print(buf, len(buf))
                 outfile.write(buf)
 
             outfile.close()
