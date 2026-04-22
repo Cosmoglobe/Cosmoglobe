@@ -134,7 +134,7 @@ class CommanderHDFWriter:
         chunk_vel = self.comm_adapter.get_chunk_satvel() # m/s
         ctod.add_field(f"{chunk:06d}/common/vsun", chunk_vel)
 
-        ctod.finalize_chunk(f"{chunk:06d}")
+        ctod.finalize_chunk(f"{chunk:06d}", self.comm_adapter.get_spinaxis())
 
     def _process_detector(self, detector: str, band: str, chunk: int, ctod:
                           TODLoader):
@@ -166,7 +166,7 @@ class CommanderHDFWriter:
         ]
 
         ctod.add_field(prefix + '/scalars', scalars)
-        outp = np.array([0, 0]) # Right now I don't know what to do about this one..
-        ctod.add_field(prefix + '/outP', outp)
+        spinaxis = self.comm_adapter.get_spinaxis()
+        ctod.add_field(prefix + '/outP', spinaxis)
 
         return ctod
