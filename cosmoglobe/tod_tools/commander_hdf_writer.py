@@ -79,7 +79,6 @@ class CommanderHDFWriter:
             self.sigma0[band][detector] = self.comm_adapter.get_sigma0(band, detector)
 
         nsegments = self.comm_adapter.get_num_segments(band)
-        from tqdm import tqdm
         if pool is None:
             for segment in range(1, nsegments+1):
                 self._process_hdf_segment(segment, band, detectors, ctod)
@@ -134,7 +133,7 @@ class CommanderHDFWriter:
         chunk_vel = self.comm_adapter.get_chunk_satvel() # m/s
         ctod.add_field(f"{chunk:06d}/common/vsun", chunk_vel)
 
-        ctod.finalize_chunk(f"{chunk:06d}", self.comm_adapter.get_spinaxis())
+        ctod.finalize_chunk(f"{chunk:06d}", self.comm_adapter.get_spinaxis(band))
 
     def _process_detector(self, detector: str, band: str, chunk: int, ctod:
                           TODLoader):
@@ -166,7 +165,7 @@ class CommanderHDFWriter:
         ]
 
         ctod.add_field(prefix + '/scalars', scalars)
-        spinaxis = self.comm_adapter.get_spinaxis()
+        spinaxis = self.comm_adapter.get_spinaxis(band)
         ctod.add_field(prefix + '/outP', spinaxis)
 
         return ctod
