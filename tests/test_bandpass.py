@@ -19,7 +19,7 @@ def test_normalized():
     assert get_normalized_weights(freqs, weights_CMB, Unit("uK_CMB")).unit.is_equivalent("1/GHz")
     assert get_normalized_weights(freqs, weights_JY, Unit("uK_CMB")).unit.is_equivalent("1/GHz")
 
-    assert np.trapz(
+    assert np.trapezoid(
         get_normalized_weights(freqs, weights_RJ, Unit("uK_CMB")), freqs
         ).value == pytest.approx(1)
 

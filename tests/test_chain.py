@@ -5,12 +5,10 @@ import healpy as hp
 import numpy as np
 import pytest
 
+import cosmoglobe
 from cosmoglobe.h5 import ChainVersion
 from cosmoglobe.h5._exceptions import ChainFormatError, ChainKeyError, ChainSampleError
 from cosmoglobe.h5.chain import Chain
-
-# This path needs to exist in the test environment
-CHAIN_PATH = "/Users/metinsan/Documents/doktor/Cosmoglobe_test_data/chain_test.h5"
 
 
 def test_init():
@@ -21,26 +19,27 @@ def test_init():
     with pytest.raises(ChainFormatError):
         Chain(pathlib.Path(__file__).resolve())
 
-    assert isinstance(Chain(CHAIN_PATH), Chain)
+    assert isinstance(cosmoglobe.get_test_chain(), Chain)
 
 
 def test_init_with_burnin():
     """Test initialization of a chain with a burn in sample."""
+    chain_path = cosmoglobe.get_test_chain().path
 
     with pytest.raises(ChainSampleError):
-        Chain(CHAIN_PATH, burn_in=100)
+        Chain(chain_path, burn_in=100)
 
-    assert isinstance(Chain(CHAIN_PATH, burn_in=1), Chain)
+    assert isinstance(Chain(chain_path, burn_in=1), Chain)
 
 
 @pytest.fixture
 def chain():
-    return Chain(CHAIN_PATH)
+    return cosmoglobe.get_test_chain()
 
 
 @pytest.fixture
 def chain_burn_in():
-    return Chain(CHAIN_PATH, burn_in=1)
+    return Chain(cosmoglobe.get_test_chain().path, burn_in=1)
 
 
 def test_samples_type(chain):
