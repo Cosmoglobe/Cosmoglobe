@@ -78,19 +78,19 @@
 
     get_chunk_start_satpos(self)->list[float] Returns the position of the
         satellite at the beginning of the chunk in galactic coordinates
-        (cartesian, in meters) as a length 3 list.
+        (cartesian, in AU) as a length 3 list.
 
     get_chunk_end_satpos(self)->list[float] Returns the position of the
         satellite at the end of the chunk in galactic coordinates (cartesian,
-        in meters) as a length 3 list. 
+        in AU) as a length 3 list. 
 
     get_chunk_start_earthpos(self)->list[float] Returns the position of the
         Earth at the beginning of the chunk in galactic coordinates
-        (cartesian, in meters) as a length 3 list.
+        (cartesian, in AU) as a length 3 list.
 
-    get_chunk_end_earth(self)->list[float] Returns the position of the
+    get_chunk_end_earthpos(self)->list[float] Returns the position of the
         Earth at the end of the chunk in galactic coordinates (cartesian,
-        in meters) as a length 3 list. 
+        in AU) as a length 3 list. 
 
     get_chunk_satvel(self)->list[float]: Returns the velocity of the satellite
         at the beginning of the chunk in m/s as a length 3 list.
