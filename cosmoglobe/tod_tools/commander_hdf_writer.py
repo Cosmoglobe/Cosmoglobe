@@ -84,9 +84,15 @@ class CommanderHDFWriter:
             for segment in range(1, nsegments+1):
                 self._process_hdf_segment(segment, band, detectors, ctod)
         else:
-            [pool.apply_async(self._process_hdf_segment, (segment, band,
-                                                          detectors, ctod)) for
-             segment in range(1, nsegments+1)]
+            async_results = [
+                pool.apply_async(
+                    self._process_hdf_segment, (segment, band, detectors, ctod)
+                    ) for segment in range(1, nsegments+1)
+                ]
+            # Using results.get() to catch errors that would otherwise 
+            # go unnoticed with multiprocessing
+            dummy = [result.get() for result in async_results]
+            
 
     def _process_hdf_segment(self, segment: int, band: str, detectors:
                              list[str], ctod: TODLoader):
