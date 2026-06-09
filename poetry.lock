@@ -62,7 +62,7 @@ files = [
 
 [package.dependencies]
 astropy-iers-data = ">=0.2024.2.26.0.28.55"
-numpy = ">=1.22,<2"
+numpy = ">=1.22"
 packaging = ">=19.0"
 pyerfa = ">=2.0.1.1"
 PyYAML = ">=3.13"

@@ -45,6 +45,7 @@ class CommanderHDFWriter:
             manager = mp.Manager()
             filelists = dict([(band, manager.dict()) for band in bands])
 
+
         ctod = TODLoader(hdf_output_dir,
                          self.comm_adapter.get_experiment_name(),
                          version=self.comm_adapter.get_version(),
@@ -79,7 +80,6 @@ class CommanderHDFWriter:
             self.sigma0[band][detector] = self.comm_adapter.get_sigma0(band, detector)
 
         nsegments = self.comm_adapter.get_num_segments(band)
-        from tqdm import tqdm
         if pool is None:
             for segment in range(1, nsegments+1):
                 self._process_hdf_segment(segment, band, detectors, ctod)
@@ -97,10 +97,13 @@ class CommanderHDFWriter:
     def _process_hdf_segment(self, segment: int, band: str, detectors:
                              list[str], ctod: TODLoader):
         ctod.init_file(band, segment, mode='w') # assuming that segment is the segment number
+        print(f'Processing segment {segment}')
         chunks = self.comm_adapter.get_chunk_indices(band, segment)
         for chunk in chunks:
+            print(f'Chunk: {chunk}')
             self.comm_adapter.set_chunk_index(chunk)
             self._process_chunk(chunk, band, detectors, ctod)
+        print(f'Finished processing segment {segment}')
 
         prefix = 'common'
         ctod.add_field(prefix + '/det', ','.join(list(detectors)))
@@ -117,12 +120,13 @@ class CommanderHDFWriter:
 
         for detector in detectors:
             ctod = self._process_detector(detector, band, chunk, ctod)
+
         ctod.add_field(f"{chunk:06d}/common/ntod", self.chunk_size) # Should have been updated during the first 'process_detector' call.
 
-        chunk_start_time = self.comm_adapter.get_chunk_start_time() # Format='isot'
+        chunk_start_time = self.comm_adapter.get_chunk_start_time()
         ctod.add_field(f"{chunk:06d}/common/time", [chunk_start_time.mjd, 0, 0])
 
-        chunk_end_time = self.comm_adapter.get_chunk_end_time() # Format='isot'
+        chunk_end_time = self.comm_adapter.get_chunk_end_time()
         ctod.add_field(f"{chunk:06d}/common/time_end", [chunk_end_time.mjd, 0, 0])
 
         chunk_start_satpos = self.comm_adapter.get_chunk_start_satpos() # In galactic coordinates, cartesian, in m
@@ -140,7 +144,7 @@ class CommanderHDFWriter:
         chunk_vel = self.comm_adapter.get_chunk_satvel() # m/s
         ctod.add_field(f"{chunk:06d}/common/vsun", chunk_vel)
 
-        ctod.finalize_chunk(f"{chunk:06d}")
+        ctod.finalize_chunk(f"{chunk:06d}", self.comm_adapter.get_spinaxis(band))
 
     def _process_detector(self, detector: str, band: str, chunk: int, ctod:
                           TODLoader):
@@ -172,7 +176,7 @@ class CommanderHDFWriter:
         ]
 
         ctod.add_field(prefix + '/scalars', scalars)
-        outp = np.array([0, 0]) # Right now I don't know what to do about this one..
-        ctod.add_field(prefix + '/outP', outp)
+        spinaxis = self.comm_adapter.get_spinaxis(band)
+        ctod.add_field(prefix + '/outP', spinaxis)
 
         return ctod
