@@ -32,8 +32,9 @@ class CommanderHDFWriter:
 
 
     def write_hdf_files(self, hdf_output_dir, bands=None, overwrite=False,
-                        num_processes=None):
+                        num_processes=None, verbosity=3):
 
+        self.verbosity = verbosity
         if bands is None:
             bands = self.comm_adapter.get_bands()
 
@@ -97,13 +98,16 @@ class CommanderHDFWriter:
     def _process_hdf_segment(self, segment: int, band: str, detectors:
                              list[str], ctod: TODLoader):
         ctod.init_file(band, segment, mode='w') # assuming that segment is the segment number
-        print(f'Processing segment {segment}')
+        if self.verbosity >= 2: 
+            print(f'Processing segment {segment}')
         chunks = self.comm_adapter.get_chunk_indices(band, segment)
         for chunk in chunks:
-            print(f'Chunk: {chunk}')
+            if self.verbosity == 3:
+                print(f'Chunk: {chunk}')
             self.comm_adapter.set_chunk_index(chunk)
             self._process_chunk(chunk, band, detectors, ctod)
-        print(f'Finished processing segment {segment}')
+        if self.verbosity >= 2: 
+            print(f'Finished processing segment {segment}')
 
         prefix = 'common'
         ctod.add_field(prefix + '/det', ','.join(list(detectors)))
