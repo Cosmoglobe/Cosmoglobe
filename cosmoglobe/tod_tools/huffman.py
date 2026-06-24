@@ -199,7 +199,10 @@ class Huffman:
         bytarr = bytearray(bytarr)
         binary_txt = ''.join(bin(i)[2:].rjust(8,'0') for i in bytarr)
         padding = int(binary_txt[:8], 2)
-        binary_txt = binary_txt[8:-1*padding]
+        if padding != 0:
+            binary_txt = binary_txt[8:-1*padding]
+        else:
+            binary_txt = binary_txt[8:]
 
         decoded_arr = []
         code = ""
