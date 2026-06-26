@@ -272,7 +272,21 @@ class TODLoader:
             raise ValueError("Load Balancing numbers must be length 2")
         for key in self.huffDict.keys():
             h = huffman.Huffman()
-            h.GenerateCode(list(self.huffDict[key].values()))
+            try:
+                h.GenerateCode(list(self.huffDict[key].values()))
+            except:
+                # [Vetle]: was getting invisible errors when creating hdf files with multiprocessing.
+                # Caused by some chunks having different number of TODs between detectors in a band,
+                # making parts of 'list(self.huffDict[key].values())' inhomogeneous.
+                # 
+                # Resulted in broken h5 files for the relevant segments, which were silently omitted 
+                # from the final filelists, and would thus not cause problem in commander either.  
+                print(f" >>> Error! Unable to execute huffman.GenerateCode correctly")
+                print(f" >>> Maybe caused by shape of 'list(self.huffDict[key].values())'")
+                print(f" >>>     chunk:      {pid}")
+                print(f" >>>     segment:    {self.od}")
+                print()
+
             huffArray = np.append(
                 np.append(np.array(h.node_max), h.left_nodes), h.right_nodes
             )
