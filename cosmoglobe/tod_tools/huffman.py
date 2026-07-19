@@ -23,7 +23,15 @@ import healpy as hp
 import numpy as np
 import heapq
 import os
-from time import time
+from time import perf_counter
+
+import pyximport
+pyximport.install(language_level=3, setup_args={"include_dirs": np.get_include()})
+from cosmoglobe.tod_tools.huffman_cython import (
+    huffman_decode_tree,
+    prepare_tree_decoder_from_tree,
+)
+
 
 _node_number = 0
 
@@ -44,7 +52,7 @@ class LeafNode:
 
 class Huffman:
 
-    def __init__(self, infile="", nside=256, tree=None, symb=None):
+    def __init__(self, infile="", nside=256, tree=None, symb=None, build=False):
         self.infile = infile
         self.nside = nside
         self.encoding = {}
@@ -56,6 +64,8 @@ class Huffman:
         self.right_nodes = []
         self.node_max = 0
         self.head_node = None
+        self.tree = tree
+        self.symb = symb
 
         if(tree is not None):
             self.node_max = tree[0]
@@ -65,7 +75,7 @@ class Huffman:
         if(symb is not None):
             self.symbols = np.array(symb)
 
-        if(symb is not None and tree is not None):
+        if(symb is not None and tree is not None and build):
             self.BuildTree()
             self.PrintCode(self.head_node)
 
@@ -195,30 +205,20 @@ class Huffman:
         else :
             return bytes(b)
 
-    def Decoder(self, bytarr, write=False):
-        bytarr = bytearray(bytarr)
-        binary_txt = ''.join(bin(i)[2:].rjust(8,'0') for i in bytarr)
-        padding = int(binary_txt[:8], 2)
-        if padding != 0:
-            binary_txt = binary_txt[8:-1*padding]
-        else:
-            binary_txt = binary_txt[8:]
 
-        decoded_arr = []
-        code = ""
+    def Decoder(self, bytarr):
+        left_nodes, right_nodes, symb, node_max, nsymb = (
+            prepare_tree_decoder_from_tree(self.tree, self.symb)
+        ) 
+        dataBuf = np.cumsum(
+            huffman_decode_tree(
+                bytarr, 
+                left_nodes,
+                right_nodes,
+                symb,
+                node_max,
+                nsymb,
+            )
+        )
 
-        for b in binary_txt:
-            code += b
-
-            if code in self.decoding:
-                decoded_arr.append(self.decoding[code])
-                code = ""
-        decoded_arr = np.cumsum(decoded_arr)
-
-        if write:
-            fname, fext = os.path.splitext(self.infile)
-            file_out = fname + "_n"+str(self.nside).zfill(4)+"_decoded_pixels.npy"
-            np.save(file_out, decoded_arr)
-            return decoded_arr, file_out
-        else:
-            return decoded_arr
+        return dataBuf
