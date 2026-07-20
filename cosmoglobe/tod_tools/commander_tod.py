@@ -456,7 +456,7 @@ class TODLoader:
                     ntod = self.load_field("/" + pid + "/common/ntod")[()]
                     d = np.zeros(ntod, dtype=np.int64)
                     d[:] = cpp_utils.huffman_decode(np.frombuffer(dataBuf[()], dtype=np.uint8), huffTree, huffSymb, d)
-                    dataBuf = d
+                    dataBuf = np.cumsum(d)
 
                 elif comp == "rice":
                     k = self.load_field(field.rsplit("/", 1)[0] + "/riceK")
