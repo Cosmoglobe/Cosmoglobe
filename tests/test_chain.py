@@ -2,6 +2,7 @@ import pathlib
 from typing import Generator
 
 import healpy as hp
+import h5py
 import numpy as np
 import pytest
 
@@ -209,3 +210,54 @@ def test_format_samples(chain):
     """Tests the _format_samples function of chain."""
 
     assert chain._format_samples([0, 1]) == ["000000", "000001"]
+
+
+def test_combine_preserves_samples(chain, tmp_path):
+    """Combining chains should keep all base samples, not just one."""
+
+    chain_a_path = tmp_path / "chain_a.h5"
+    chain_b_path = tmp_path / "chain_b.h5"
+    combined_path = tmp_path / "combined.h5"
+
+    chain.copy(samples=[0, 1], new_name=str(chain_a_path))
+    chain.copy(samples=[0, 1], new_name=str(chain_b_path))
+
+    chain_a = Chain(chain_a_path)
+    chain_b = Chain(chain_b_path)
+
+    chain_a.combine(chain_b, group_list=["dust"], new_name=str(combined_path))
+
+    combined = Chain(combined_path)
+    assert combined.nsamples == 2
+    assert combined.samples == ["000000", "000001"]
+
+    for sample in combined.samples:
+        assert isinstance(combined[f"{sample}/dust/amp_lmax"], np.int32)
+
+
+def test_combine_uses_available_other_samples_only(chain, tmp_path):
+    """Combining should overwrite matching sample positions and keep trailing samples."""
+
+    chain_a_path = tmp_path / "chain_a.h5"
+    chain_b_path = tmp_path / "chain_b.h5"
+    combined_path = tmp_path / "combined.h5"
+
+    chain.copy(samples=[0, 1], new_name=str(chain_a_path))
+    chain.copy(samples=[0], new_name=str(chain_b_path))
+
+    with h5py.File(chain_a_path, "r") as chain_a_file:
+        original_first = chain_a_file["000000/dust/amp_lmax"][()]
+        original_second = chain_a_file["000001/dust/amp_lmax"][()]
+
+    replacement_value = np.int32(original_first + 7)
+    with h5py.File(chain_b_path, "r+") as chain_b_file:
+        chain_b_file["000000/dust/amp_lmax"][...] = replacement_value
+
+    chain_a = Chain(chain_a_path)
+    chain_b = Chain(chain_b_path)
+    chain_a.combine(chain_b, group_list=["dust"], new_name=str(combined_path))
+
+    combined = Chain(combined_path)
+    assert combined.nsamples == 2
+    assert combined["000000/dust/amp_lmax"] == replacement_value
+    assert combined["000001/dust/amp_lmax"] == original_second

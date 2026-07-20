@@ -25,15 +25,7 @@ from cosmoglobe.tod_tools import huffman, rice
 import numpy as np
 import os
 
-
-import pyximport
-pyximport.install(language_level=3, setup_args={"include_dirs": np.get_include()})
-from cosmoglobe.tod_tools.huffman_cython import (
-    huffman_decode_tree,
-    prepare_tree_decoder_from_tree,
-)
-
-
+from commander4.cmdr4_support import utils as cpp_utils
 
 class TODLoader:
     def __init__(self, outPath, name, version=None, dicts=None, overwrite=False):
@@ -458,11 +450,13 @@ class TODLoader:
                         huffNum = ""
                     if huffNum == "1":
                         huffNum = ""
-                    huffTree = self.load_field("/" + pid + "/common/hufftree" + huffNum)[()]
+                    huffTree = self.load_field("/" + pid + "/common/hufftree" + huffNum)[()].astype(np.int64, copy=False)
                     huffSymb = self.load_field("/" + pid + "/common/huffsymb" + huffNum)[()]
 
-                    h = huffman.Huffman(tree=huffTree, symb=huffSymb, build=False)
-                    dataBuf = h.Decoder(bytes(dataBuf[()]))
+                    ntod = self.load_field("/" + pid + "/common/ntod")[()]
+                    d = np.zeros(ntod, dtype=np.int64)
+                    d[:] = cpp_utils.huffman_decode(np.frombuffer(dataBuf[()], dtype=np.uint8), huffTree, huffSymb, d)
+                    dataBuf = d
 
                 elif comp == "rice":
                     k = self.load_field(field.rsplit("/", 1)[0] + "/riceK")

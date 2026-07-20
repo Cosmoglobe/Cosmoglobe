@@ -408,39 +408,54 @@ class Chain:
         group_list: Sequence[str],
         new_name: Optional[str] = None,
     ) -> None:
-        """Creates a new chainfile that combines specific groups from two chains."""
+        """Creates a new chainfile that combines specific groups from two chains.
 
-        sample = other_chain.samples[0]
-        for group in group_list:
-            try:
-                other_chain[f"{sample}/{group}"]
-            except ChainKeyError:
-                raise ChainKeyError(f"group {group} does not exist in `other chain`.")
+        All samples from ``self`` are copied to the new chain. For each sample
+        position available in ``other_chain``, the requested groups are
+        overwritten with content from ``other_chain``. If ``self`` has more
+        samples than ``other_chain``, the trailing samples are left unchanged.
+        """
+
+        sample_pairs = list(zip(self.samples, other_chain.samples))
+
+        for _, other_sample in sample_pairs:
+            for group in group_list:
+                try:
+                    other_chain[f"{other_sample}/{group}"]
+                except ChainKeyError:
+                    raise ChainKeyError(
+                        f"group {group} does not exist in `other chain` sample {other_sample}."
+                    )
 
         if new_name is None:
             new_name = self.path.stem + "_combined.h5"
 
-        self.copy(samples=-1, new_name=new_name)
+        self.copy(samples=range(self.nsamples), new_name=new_name)
 
         with h5py.File(new_name, "r+") as new_chain:
             with h5py.File(other_chain.path, "r") as chain:
-                sample = other_chain.samples[0]
-                for group in group_list:
-                    if group in new_chain[sample].keys():
-                        del new_chain[f"{sample}/{group}"]
-                    group_to_copy = chain[f"{sample}/{group}"]
-                    chain.copy(
-                        source=group_to_copy, dest=new_chain, name=group_to_copy.name
-                    )
+                for sample, other_sample in sample_pairs:
+                    for group in group_list:
+                        if group in new_chain[sample].keys():
+                            del new_chain[sample][group]
 
-                    if group in chain[f"parameters"].keys():
-                        del new_chain[f"parameters/{group}"]
-                        param_to_copy = chain[f"parameters/{group}"]
                         chain.copy(
-                            source=param_to_copy,
-                            dest=new_chain,
-                            name=param_to_copy.name,
+                            source=chain[f"{other_sample}/{group}"],
+                            dest=new_chain[sample],
+                            name=group,
                         )
+
+                if "parameters" in chain.keys() and "parameters" in new_chain.keys():
+                    for group in group_list:
+                        if group in chain["parameters"].keys():
+                            if group in new_chain["parameters"].keys():
+                                del new_chain["parameters"][group]
+
+                            chain.copy(
+                                source=chain[f"parameters/{group}"],
+                                dest=new_chain["parameters"],
+                                name=group,
+                            )
 
 
 def copy_chain(
