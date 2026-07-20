@@ -25,13 +25,6 @@ import heapq
 import os
 from time import perf_counter
 
-import pyximport
-pyximport.install(language_level=3, setup_args={"include_dirs": np.get_include()})
-from cosmoglobe.tod_tools.huffman_cython import (
-    huffman_decode_tree,
-    prepare_tree_decoder_from_tree,
-)
-
 
 _node_number = 0
 
@@ -204,21 +197,3 @@ class Huffman:
             return bytes(b), outfile
         else :
             return bytes(b)
-
-
-    def Decoder(self, bytarr):
-        left_nodes, right_nodes, symb, node_max, nsymb = (
-            prepare_tree_decoder_from_tree(self.tree, self.symb)
-        ) 
-        dataBuf = np.cumsum(
-            huffman_decode_tree(
-                bytarr, 
-                left_nodes,
-                right_nodes,
-                symb,
-                node_max,
-                nsymb,
-            )
-        )
-
-        return dataBuf
